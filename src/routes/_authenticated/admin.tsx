@@ -186,7 +186,8 @@ function AdminPage() {
     try {
       let imageRef = form.image_url;
       if (file) {
-        imageRef = await uploadMenuImage(file);
+        const optimized = await compressImage(file);
+        imageRef = await uploadMenuImage(optimized);
       }
 
       const payload = {
