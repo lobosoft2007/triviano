@@ -22,6 +22,10 @@ export interface Category {
   combo_role: ComboRole;
 }
 
+export interface FreeAddon {
+  nome: string;
+}
+
 export interface Product {
   id: string;
   category_id: string;
@@ -33,6 +37,12 @@ export interface Product {
   sort_order: number;
   price_options: PriceOption[];
   addons: Addon[];
+  /** Traditional toppings eligible for the free allowance (e.g. Açaí). */
+  free_addons: FreeAddon[];
+  /** How many units of free_addons are free in total. */
+  free_addon_limit: number;
+  /** Price charged per unit of free_addons beyond the limit. */
+  free_addon_price: number;
 }
 
 function normOptions(value: unknown): PriceOption[] {
