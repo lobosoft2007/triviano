@@ -589,12 +589,16 @@ function TabButton({
 /* Delivery column                                                     */
 /* ------------------------------------------------------------------ */
 
+type ResolveFn = (categoryId: string | null | undefined) => ResolvedSector;
+
 function DeliveryColumn({
   orders,
-  onSendKitchen,
+  onDispatch,
+  resolveSector,
 }: {
   orders: CaixaOrder[];
-  onSendKitchen: (o: CaixaOrder) => void;
+  onDispatch: (o: CaixaOrder) => void;
+  resolveSector: ResolveFn;
 }) {
   if (orders.length === 0) {
     return <EmptyState label="Nenhum pedido de delivery em aberto." />;
@@ -602,7 +606,12 @@ function DeliveryColumn({
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {orders.map((o) => (
-        <OrderCard key={o.id} order={o} onSendKitchen={onSendKitchen} />
+        <OrderCard
+          key={o.id}
+          order={o}
+          onDispatch={onDispatch}
+          resolveSector={resolveSector}
+        />
       ))}
     </div>
   );
@@ -614,12 +623,14 @@ function DeliveryColumn({
 
 function MesasColumn({
   orders,
-  onSendKitchen,
+  onDispatch,
   onPrintBill,
+  resolveSector,
 }: {
   orders: CaixaOrder[];
-  onSendKitchen: (o: CaixaOrder) => void;
+  onDispatch: (o: CaixaOrder) => void;
   onPrintBill: (mesa: number, group: CaixaOrder[]) => void;
+  resolveSector: ResolveFn;
 }) {
   const grouped = useMemo(() => {
     const map = new Map<number, CaixaOrder[]>();
@@ -658,19 +669,19 @@ function MesasColumn({
             <div className="space-y-3 border-t border-border pt-3">
               {group.map((o) => (
                 <div key={o.id}>
-                  <OrderItems order={o} />
+                  <OrderItems order={o} resolveSector={resolveSector} />
                   {!o.impresso_cozinha && (
                     <Button
                       size="sm"
                       className="mt-2 w-full rounded-xl"
-                      onClick={() => onSendKitchen(o)}
+                      onClick={() => onDispatch(o)}
                     >
-                      <ChefHat className="mr-1.5 h-4 w-4" /> Enviar para cozinha
+                      <Printer className="mr-1.5 h-4 w-4" /> Disparar impressões
                     </Button>
                   )}
                   {o.impresso_cozinha && (
                     <p className="mt-1 text-[11px] font-semibold text-success">
-                      ✓ Na cozinha
+                      ✓ Preparo disparado
                     </p>
                   )}
                 </div>
@@ -699,10 +710,12 @@ function MesasColumn({
 
 function OrderCard({
   order,
-  onSendKitchen,
+  onDispatch,
+  resolveSector,
 }: {
   order: CaixaOrder;
-  onSendKitchen: (o: CaixaOrder) => void;
+  onDispatch: (o: CaixaOrder) => void;
+  resolveSector: ResolveFn;
 }) {
   const isNew = !order.impresso_cozinha;
   return (
@@ -730,7 +743,7 @@ function OrderCard({
         </p>
       )}
 
-      <OrderItems order={order} />
+      <OrderItems order={order} resolveSector={resolveSector} />
 
       {order.notes && (
         <p className="mt-2 rounded-lg bg-secondary px-2.5 py-1.5 text-[11px] text-muted-foreground">
@@ -746,55 +759,77 @@ function OrderCard({
       </div>
 
       {isNew ? (
-        <Button
-          className="mt-3 rounded-xl"
-          onClick={() => onSendKitchen(order)}
-        >
-          <ChefHat className="mr-1.5 h-4 w-4" /> Enviar para cozinha
+        <Button className="mt-3 rounded-xl" onClick={() => onDispatch(order)}>
+          <Printer className="mr-1.5 h-4 w-4" /> Disparar impressões de preparo
         </Button>
       ) : (
         <p className="mt-3 text-center text-xs font-semibold text-success">
-          ✓ Enviado para a cozinha
+          ✓ Impressões de preparo disparadas
         </p>
       )}
     </div>
   );
 }
 
-function OrderItems({ order }: { order: CaixaOrder }) {
+function SectorTag({ sector }: { sector: ResolvedSector }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+      style={{ backgroundColor: sector.cor }}
+      title={`Roteado para: ${sector.nome}`}
+    >
+      <Printer className="h-2.5 w-2.5" />
+      {sector.nome}
+    </span>
+  );
+}
+
+function OrderItems({
+  order,
+  resolveSector,
+}: {
+  order: CaixaOrder;
+  resolveSector: ResolveFn;
+}) {
   return (
     <ul className="space-y-1.5">
-      {order.order_items.map((it) => (
-        <li key={it.id} className="text-sm">
-          <span className="font-medium">
-            {it.quantity}× {it.product_name}
-            {it.size ? ` (${it.size})` : ""}
-            {it.second_flavor ? ` / ${it.second_flavor}` : ""}
-          </span>
-          {it.addons.length > 0 && (
-            <span className="block text-[11px] text-muted-foreground">
-              {it.addons
-                .map(
-                  (a) =>
-                    `+ ${a.name}${(a.quantity ?? 1) > 1 ? ` ×${a.quantity}` : ""}`,
-                )
-                .join(", ")}
+      {order.order_items.map((it) => {
+        const sector = resolveSector(it.category_id);
+        return (
+          <li key={it.id} className="text-sm">
+            <span className="flex flex-wrap items-center gap-1.5">
+              <span className="font-medium">
+                {it.quantity}× {it.product_name}
+                {it.size ? ` (${it.size})` : ""}
+                {it.second_flavor ? ` / ${it.second_flavor}` : ""}
+              </span>
+              <SectorTag sector={sector} />
             </span>
-          )}
-          {it.remocoes.length > 0 && (
-            <span className="mt-0.5 flex flex-wrap gap-1">
-              {it.remocoes.map((r) => (
-                <span
-                  key={r}
-                  className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive"
-                >
-                  Sem {r}
-                </span>
-              ))}
-            </span>
-          )}
-        </li>
-      ))}
+            {it.addons.length > 0 && (
+              <span className="block text-[11px] text-muted-foreground">
+                {it.addons
+                  .map(
+                    (a) =>
+                      `+ ${a.name}${(a.quantity ?? 1) > 1 ? ` ×${a.quantity}` : ""}`,
+                  )
+                  .join(", ")}
+              </span>
+            )}
+            {it.remocoes.length > 0 && (
+              <span className="mt-0.5 flex flex-wrap gap-1">
+                {it.remocoes.map((r) => (
+                  <span
+                    key={r}
+                    className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive"
+                  >
+                    Sem {r}
+                  </span>
+                ))}
+              </span>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -808,6 +843,7 @@ function EmptyState({ label }: { label: string }) {
       <p className="text-sm text-muted-foreground">{label}</p>
     </div>
   );
+
 }
 
 /* ------------------------------------------------------------------ */
