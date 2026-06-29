@@ -152,3 +152,36 @@
     display: none;
   }
 }
+
+/* Thermal receipt: hidden on screen, shown only when printing (80mm) */
+.thermal-receipt {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .thermal-receipt,
+  .thermal-receipt * {
+    visibility: visible;
+  }
+  .thermal-receipt {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    padding: 4mm 3mm;
+    margin: 0;
+    color: #000;
+    background: #fff;
+    font-family: "Courier New", ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+}
