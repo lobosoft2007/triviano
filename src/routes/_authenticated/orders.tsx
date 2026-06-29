@@ -99,6 +99,18 @@ function OrdersPage() {
                               .join(", ")}
                           </span>
                         )}
+                        {it.remocoes.length > 0 && (
+                          <span className="mt-0.5 flex flex-wrap gap-1">
+                            {it.remocoes.map((r) => (
+                              <span
+                                key={r}
+                                className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive"
+                              >
+                                Sem {r}
+                              </span>
+                            ))}
+                          </span>
+                        )}
                       </span>
                       <span className="whitespace-nowrap tabular-nums">
                         {formatBRL(it.unit_price * it.quantity)}

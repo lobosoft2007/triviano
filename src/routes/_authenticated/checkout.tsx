@@ -132,6 +132,11 @@ function CheckoutPage() {
                         {i.addons.map((a) => `+ ${a.name}`).join(", ")}
                       </span>
                     )}
+                    {i.remocoes.length > 0 && (
+                      <span className="block text-[11px] font-semibold text-destructive">
+                        {i.remocoes.map((r) => `Sem ${r}`).join(", ")}
+                      </span>
+                    )}
                   </span>
                   <span className="whitespace-nowrap font-medium tabular-nums">
                     {formatBRL(i.unitPrice * i.quantity)}

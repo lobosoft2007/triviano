@@ -41,9 +41,13 @@ export function ProductCustomizer({
   const [half, setHalf] = useState(false);
   const [secondId, setSecondId] = useState<string>("");
   const [qty, setQty] = useState(1);
+  // Ingredients the customer chose to remove (e.g. "Cebola Roxa").
+  const [removals, setRemovals] = useState<string[]>([]);
   // Açaí: quantity per topping name (traditional + premium).
   const [freeCounts, setFreeCounts] = useState<Record<string, number>>({});
   const [premiumCounts, setPremiumCounts] = useState<Record<string, number>>({});
+
+  const removable = product.removable_ingredients ?? [];
 
   const size = options[sizeIdx] ?? options[0];
   const second = siblings.find((s) => s.id === secondId) ?? null;
@@ -109,12 +113,19 @@ export function ProductCustomizer({
     });
   }
 
+  function toggleRemoval(name: string) {
+    setRemovals((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+    );
+  }
+
   function reset() {
     setSizeIdx(0);
     setSelectedAddons([]);
     setHalf(false);
     setSecondId("");
     setQty(1);
+    setRemovals([]);
     setFreeCounts({});
     setPremiumCounts({});
   }
@@ -160,6 +171,7 @@ export function ProductCustomizer({
       size: size.tamanho,
       addons,
       secondFlavor: half && second ? second.name : "",
+      remocoes: removable.filter((r) => removals.includes(r)),
       unitPrice,
       image_url: product.image_url,
     };
@@ -427,6 +439,46 @@ export function ProductCustomizer({
               </div>
             </section>
           )}
+
+          {/* Remove ingredients */}
+          {removable.length > 0 && (
+            <section>
+              <h4 className="mb-2 text-sm font-semibold">
+                Deseja remover algum ingrediente?
+              </h4>
+              <div className="space-y-2">
+                {removable.map((nome) => {
+                  const checked = removals.includes(nome);
+                  return (
+                    <button
+                      key={nome}
+                      onClick={() => toggleRemoval(nome)}
+                      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm transition-colors ${
+                        checked
+                          ? "border-destructive bg-destructive/5"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 font-medium">
+                        <span
+                          className={`flex h-5 w-5 items-center justify-center rounded-md border ${
+                            checked
+                              ? "border-destructive bg-destructive text-destructive-foreground"
+                              : "border-border"
+                          }`}
+                        >
+                          {checked && <Check className="h-3.5 w-3.5" />}
+                        </span>
+                        {checked ? `Sem ${nome}` : nome}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+
 
           {/* Quantity */}
           <section className="flex items-center justify-between">

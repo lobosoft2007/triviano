@@ -89,6 +89,11 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           .join(", ")}
                       </p>
                     )}
+                    {item.remocoes.length > 0 && (
+                      <p className="truncate text-[11px] font-semibold text-destructive">
+                        {item.remocoes.map((r) => `Sem ${r}`).join(", ")}
+                      </p>
+                    )}
                     <p className="text-sm font-bold text-primary">
                       {formatBRL(item.unitPrice * item.quantity)}
                     </p>
