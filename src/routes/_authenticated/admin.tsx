@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
 import { resolveImageUrls, uploadMenuImage } from "@/lib/storage";
+import { compressImage } from "@/lib/imageCompression";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -185,7 +186,8 @@ function AdminPage() {
     try {
       let imageRef = form.image_url;
       if (file) {
-        imageRef = await uploadMenuImage(file);
+        const optimized = await compressImage(file);
+        imageRef = await uploadMenuImage(optimized);
       }
 
       const payload = {
