@@ -56,7 +56,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
     unit_price: i.unitPrice,
     quantity: i.quantity,
     size: i.size,
-    addons: i.addons,
+    addons: i.addons as unknown as Json,
     second_flavor: i.secondFlavor,
   }));
 
