@@ -1,11 +1,44 @@
-import { Plus, Minus } from "lucide-react";
-import type { Product } from "@/lib/menu";
-import { useCart } from "@/lib/cart";
+import { useState } from "react";
+import { Plus, Minus, Settings2 } from "lucide-react";
+import type { Category, Product } from "@/lib/menu";
+import { useCart, makeLineId, type NewCartItem } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
+import { ProductCustomizer } from "@/components/ProductCustomizer";
 
-export function ProductCard({ product }: { product: Product }) {
-  const { items, addItem, increment, decrement } = useCart();
-  const inCart = items.find((i) => i.id === product.id);
+export function ProductCard({
+  product,
+  category,
+  siblings,
+}: {
+  product: Product;
+  category: Category;
+  siblings: Product[];
+}) {
+  const { items, addLine, increment, decrement } = useCart();
+  const [open, setOpen] = useState(false);
+
+  const options = product.price_options.length
+    ? product.price_options
+    : [{ tamanho: "Padrão", preco: product.price }];
+
+  const needsCustomization =
+    options.length > 1 || product.addons.length > 0 || category.allows_half;
+
+  // Simple line (single size, no add-ons) for quick add / stepper.
+  const simpleLine: NewCartItem = {
+    productId: product.id,
+    productName: product.name,
+    categorySlug: category.slug,
+    comboRole: category.combo_role,
+    name: product.name,
+    size: options[0].tamanho,
+    addons: [],
+    secondFlavor: "",
+    unitPrice: options[0].preco,
+    image_url: product.image_url,
+  };
+  const simpleLineId = makeLineId(simpleLine);
+  const inCart = items.find((i) => i.lineId === simpleLineId);
 
   return (
     <div className="flex gap-3 rounded-2xl bg-card p-3 shadow-card">
@@ -26,14 +59,28 @@ export function ProductCard({ product }: { product: Product }) {
         </p>
         <div className="mt-auto flex items-center justify-between pt-2">
           <span className="font-display text-base font-bold text-primary">
+            {options.length > 1 && (
+              <span className="mr-1 text-xs font-normal text-muted-foreground">
+                a partir de
+              </span>
+            )}
             {formatBRL(product.price)}
           </span>
 
-          {inCart ? (
+          {needsCustomization ? (
+            <button
+              aria-label={`Personalizar ${product.name}`}
+              onClick={() => setOpen(true)}
+              className="flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
+            >
+              <Settings2 className="h-4 w-4" />
+              Escolher
+            </button>
+          ) : inCart ? (
             <div className="flex items-center gap-2.5">
               <button
                 aria-label={`Remover um ${product.name}`}
-                onClick={() => decrement(product.id)}
+                onClick={() => decrement(simpleLineId)}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-secondary-foreground transition-colors active:bg-border"
               >
                 <Minus className="h-4 w-4" />
@@ -43,7 +90,7 @@ export function ProductCard({ product }: { product: Product }) {
               </span>
               <button
                 aria-label={`Adicionar um ${product.name}`}
-                onClick={() => increment(product.id)}
+                onClick={() => increment(simpleLineId)}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors active:bg-primary/80"
               >
                 <Plus className="h-4 w-4" />
@@ -52,14 +99,7 @@ export function ProductCard({ product }: { product: Product }) {
           ) : (
             <button
               aria-label={`Adicionar ${product.name} ao carrinho`}
-              onClick={() =>
-                addItem({
-                  id: product.id,
-                  name: product.name,
-                  price: product.price,
-                  image_url: product.image_url,
-                })
-              }
+              onClick={() => addLine(simpleLine)}
               className="flex h-9 items-center gap-1 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
             >
               <Plus className="h-4 w-4" />
@@ -68,6 +108,16 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
       </div>
+
+      {needsCustomization && (
+        <ProductCustomizer
+          open={open}
+          onOpenChange={setOpen}
+          product={product}
+          category={category}
+          siblings={siblings}
+        />
+      )}
     </div>
   );
 }

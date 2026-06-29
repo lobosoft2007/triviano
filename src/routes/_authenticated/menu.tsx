@@ -106,7 +106,12 @@ function MenuPage() {
                   </h2>
                   <div className="space-y-3">
                     {products.map((p) => (
-                      <ProductCard key={p.id} product={p} />
+                      <ProductCard
+                        key={p.id}
+                        product={p}
+                        category={cat}
+                        siblings={products}
+                      />
                     ))}
                   </div>
                 </section>

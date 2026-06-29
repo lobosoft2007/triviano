@@ -7,29 +7,67 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import {
+  comboDiscount,
+  minOrderShortfalls,
+  subtotalOf,
+  type MinShortfall,
+} from "@/lib/pricing";
 
-export interface CartItem {
-  id: string;
+export interface CartAddon {
   name: string;
   price: number;
+}
+
+export type CartComboRole = "burger" | "side" | "beverage" | "";
+
+export interface CartItem {
+  /** Stable id for this exact configuration (merges identical lines). */
+  lineId: string;
+  productId: string;
+  productName: string;
+  categorySlug: string;
+  comboRole: CartComboRole;
+  /** Display name including size / half-and-half. */
+  name: string;
+  size: string;
+  addons: CartAddon[];
+  /** Second flavor name for half-and-half pizzas (empty otherwise). */
+  secondFlavor: string;
+  /** Final per-unit price (size + add-ons + half-and-half average). */
+  unitPrice: number;
   image_url: string;
   quantity: number;
 }
 
+export type NewCartItem = Omit<CartItem, "lineId" | "quantity">;
+
 interface CartContextValue {
   items: CartItem[];
   totalItems: number;
+  subtotal: number;
+  discount: number;
   totalPrice: number;
-  addItem: (product: Omit<CartItem, "quantity">) => void;
-  increment: (id: string) => void;
-  decrement: (id: string) => void;
-  removeItem: (id: string) => void;
+  shortfalls: MinShortfall[];
+  canCheckout: boolean;
+  addLine: (line: NewCartItem, quantity?: number) => void;
+  increment: (lineId: string) => void;
+  decrement: (lineId: string) => void;
+  removeItem: (lineId: string) => void;
   clear: () => void;
 }
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "delivery_cart_v1";
+const STORAGE_KEY = "delivery_cart_v2";
+
+export function makeLineId(line: NewCartItem): string {
+  const addonKey = [...line.addons]
+    .map((a) => a.name)
+    .sort()
+    .join(",");
+  return [line.productId, line.size, line.secondFlavor, addonKey].join("|");
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -51,34 +89,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items]);
 
-  const addItem = useCallback((product: Omit<CartItem, "quantity">) => {
+  const addLine = useCallback((line: NewCartItem, quantity = 1) => {
+    const lineId = makeLineId(line);
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === product.id);
+      const existing = prev.find((i) => i.lineId === lineId);
       if (existing) {
         return prev.map((i) =>
-          i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i,
+          i.lineId === lineId
+            ? { ...i, quantity: i.quantity + quantity }
+            : i,
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...line, lineId, quantity }];
     });
   }, []);
 
-  const increment = useCallback((id: string) => {
+  const increment = useCallback((lineId: string) => {
     setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, quantity: i.quantity + 1 } : i)),
+      prev.map((i) =>
+        i.lineId === lineId ? { ...i, quantity: i.quantity + 1 } : i,
+      ),
     );
   }, []);
 
-  const decrement = useCallback((id: string) => {
+  const decrement = useCallback((lineId: string) => {
     setItems((prev) =>
       prev
-        .map((i) => (i.id === id ? { ...i, quantity: i.quantity - 1 } : i))
+        .map((i) =>
+          i.lineId === lineId ? { ...i, quantity: i.quantity - 1 } : i,
+        )
         .filter((i) => i.quantity > 0),
     );
   }, []);
 
-  const removeItem = useCallback((id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  const removeItem = useCallback((lineId: string) => {
+    setItems((prev) => prev.filter((i) => i.lineId !== lineId));
   }, []);
 
   const clear = useCallback(() => setItems([]), []);
@@ -87,23 +132,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
     () => items.reduce((sum, i) => sum + i.quantity, 0),
     [items],
   );
+  const subtotal = useMemo(() => subtotalOf(items), [items]);
+  const discount = useMemo(() => comboDiscount(items), [items]);
   const totalPrice = useMemo(
-    () => items.reduce((sum, i) => sum + i.quantity * i.price, 0),
-    [items],
+    () => Math.max(0, subtotal - discount),
+    [subtotal, discount],
   );
+  const shortfalls = useMemo(() => minOrderShortfalls(items), [items]);
+  const canCheckout = items.length > 0 && shortfalls.length === 0;
 
   const value = useMemo(
     () => ({
       items,
       totalItems,
+      subtotal,
+      discount,
       totalPrice,
-      addItem,
+      shortfalls,
+      canCheckout,
+      addLine,
       increment,
       decrement,
       removeItem,
       clear,
     }),
-    [items, totalItems, totalPrice, addItem, increment, decrement, removeItem, clear],
+    [
+      items,
+      totalItems,
+      subtotal,
+      discount,
+      totalPrice,
+      shortfalls,
+      canCheckout,
+      addLine,
+      increment,
+      decrement,
+      removeItem,
+      clear,
+    ],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

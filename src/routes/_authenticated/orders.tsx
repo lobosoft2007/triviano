@@ -85,23 +85,38 @@ function OrdersPage() {
                   {order.order_items.map((it) => (
                     <li
                       key={it.id}
-                      className="flex justify-between text-sm text-muted-foreground"
+                      className="flex justify-between gap-3 text-sm text-muted-foreground"
                     >
-                      <span>
+                      <span className="min-w-0">
                         {it.quantity}× {it.product_name}
+                        {it.addons.length > 0 && (
+                          <span className="block text-[11px]">
+                            {it.addons.map((a) => `+ ${a.name}`).join(", ")}
+                          </span>
+                        )}
                       </span>
-                      <span className="tabular-nums">
+                      <span className="whitespace-nowrap tabular-nums">
                         {formatBRL(it.unit_price * it.quantity)}
                       </span>
                     </li>
                   ))}
                 </ul>
 
-                <div className="mt-3 flex justify-between border-t border-border pt-3">
-                  <span className="text-sm font-semibold">Total</span>
-                  <span className="font-display font-bold text-primary">
-                    {formatBRL(order.total)}
-                  </span>
+                <div className="mt-3 space-y-1 border-t border-border pt-3">
+                  {order.discount > 0 && (
+                    <div className="flex justify-between text-sm text-success">
+                      <span>Desconto combo</span>
+                      <span className="tabular-nums">
+                        − {formatBRL(order.discount)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-sm font-semibold">Total</span>
+                    <span className="font-display font-bold text-primary">
+                      {formatBRL(order.total)}
+                    </span>
+                  </div>
                 </div>
               </article>
             ))}

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { CartItem } from "@/lib/cart";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface Profile {
   id: string;
@@ -22,6 +23,7 @@ export interface PlaceOrderInput {
   userId: string;
   items: CartItem[];
   total: number;
+  discount: number;
   deliveryAddress: string;
   phone: string;
   notes: string;
@@ -34,6 +36,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
     .insert({
       user_id: input.userId,
       total: input.total,
+      discount: input.discount,
       delivery_address: input.deliveryAddress,
       phone: input.phone,
       notes: input.notes,
@@ -48,10 +51,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
 
   const itemsPayload = input.items.map((i) => ({
     order_id: orderId,
-    product_id: i.id,
+    product_id: i.productId,
     product_name: i.name,
-    unit_price: i.price,
+    unit_price: i.unitPrice,
     quantity: i.quantity,
+    size: i.size,
+    addons: i.addons as unknown as Json,
+    second_flavor: i.secondFlavor,
   }));
 
   const { error: itemsError } = await supabase
@@ -67,6 +73,7 @@ export interface OrderRow {
   id: string;
   status: string;
   total: number;
+  discount: number;
   delivery_address: string;
   created_at: string;
   order_items: {
@@ -74,6 +81,9 @@ export interface OrderRow {
     product_name: string;
     unit_price: number;
     quantity: number;
+    size: string;
+    addons: { name: string; price: number }[];
+    second_flavor: string;
   }[];
 }
 
@@ -81,16 +91,28 @@ export async function fetchOrders(): Promise<OrderRow[]> {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, status, total, delivery_address, created_at, order_items(id, product_name, unit_price, quantity)",
+      "id, status, total, discount, delivery_address, created_at, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor)",
     )
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((o) => ({
-    ...o,
+    id: o.id,
+    status: o.status,
     total: Number(o.total),
+    discount: Number((o as { discount?: number }).discount ?? 0),
+    delivery_address: o.delivery_address,
+    created_at: o.created_at,
     order_items: (o.order_items ?? []).map((it) => ({
-      ...it,
+      id: it.id,
+      product_name: it.product_name,
       unit_price: Number(it.unit_price),
+      quantity: it.quantity,
+      size: (it as { size?: string }).size ?? "",
+      addons: Array.isArray((it as { addons?: unknown }).addons)
+        ? ((it as unknown as { addons: { name: string; price: number }[] })
+            .addons)
+        : [],
+      second_flavor: (it as { second_flavor?: string }).second_flavor ?? "",
     })),
   })) as OrderRow[];
 }
