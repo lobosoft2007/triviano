@@ -27,6 +27,8 @@ export interface PlaceOrderInput {
   deliveryAddress: string;
   phone: string;
   notes: string;
+  tipoAtendimento: "Delivery" | "Presencial";
+  numeroMesa: number | null;
 }
 
 export async function placeOrder(input: PlaceOrderInput): Promise<string> {
@@ -41,6 +43,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
       phone: input.phone,
       notes: input.notes,
       status: "pending",
+      tipo_atendimento: input.tipoAtendimento,
+      numero_mesa: input.tipoAtendimento === "Presencial" ? input.numeroMesa : null,
     })
     .select("id")
     .single();
