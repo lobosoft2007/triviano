@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ShoppingBag, LogOut, Loader2, ClipboardList } from "lucide-react";
+import { ShoppingBag, LogOut, Loader2, ClipboardList, Settings } from "lucide-react";
 import { menuQueryOptions } from "@/lib/menu";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { ProductCard } from "@/components/ProductCard";
 import { CartSheet } from "@/components/CartSheet";
