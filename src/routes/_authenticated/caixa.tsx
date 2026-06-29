@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Wallet,
   DoorClosed,
+  ChefHat,
   Volume2,
   VolumeX,
   Settings,
