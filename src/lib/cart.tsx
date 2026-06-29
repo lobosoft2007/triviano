@@ -17,6 +17,8 @@ import {
 export interface CartAddon {
   name: string;
   price: number;
+  /** Units of this add-on (defaults to 1). */
+  quantity?: number;
 }
 
 export type CartComboRole = "burger" | "side" | "beverage" | "";
