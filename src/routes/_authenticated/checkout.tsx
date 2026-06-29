@@ -38,7 +38,10 @@ function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
-  const [copied, setCopied] = useState(false);
+
+  const { payload: pixPayload, copied, copy: copyPixPayload } =
+    usePixPayment(totalPrice);
+
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
