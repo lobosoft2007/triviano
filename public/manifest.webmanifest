@@ -1,0 +1,25 @@
+{
+  "name": "Sabor Express — Delivery de Comida",
+  "short_name": "Sabor Express",
+  "description": "Cardápio variado com entrega rápida. Peça pratos, lanches, sobremesas e bebidas.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbf6ee",
+  "theme_color": "#e74a2e",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
