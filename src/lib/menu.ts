@@ -89,7 +89,7 @@ export async function fetchMenu(): Promise<{
   if (catRes.error) throw catRes.error;
   if (prodRes.error) throw prodRes.error;
 
-  return {
+  const result = {
     categories: (catRes.data ?? []).map((c) => ({
       id: c.id,
       name: c.name,
