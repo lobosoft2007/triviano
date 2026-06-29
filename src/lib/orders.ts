@@ -82,7 +82,7 @@ export interface OrderRow {
     unit_price: number;
     quantity: number;
     size: string;
-    addons: { name: string; price: number }[];
+    addons: { name: string; price: number; quantity?: number }[];
     second_flavor: string;
   }[];
 }
