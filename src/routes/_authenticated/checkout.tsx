@@ -76,7 +76,25 @@ function CheckoutPage() {
       toast.error("Revise as regras do pedido antes de finalizar.");
       return;
     }
-    const parsed = schema.safeParse({ address, phone, notes });
+    let mesaNumber: number | null = null;
+    if (tipo === "Presencial") {
+      mesaNumber = parseInt(mesa, 10);
+      if (Number.isNaN(mesaNumber) || mesaNumber <= 0) {
+        toast.error("Informe o número da mesa para pedidos presenciais.");
+        return;
+      }
+    } else {
+      const parsedAddr = schema.shape.address.safeParse(address);
+      if (!parsedAddr.success) {
+        toast.error(parsedAddr.error.issues[0].message);
+        return;
+      }
+    }
+    const parsed = schema.safeParse({
+      address: tipo === "Presencial" ? "Mesa " + mesa : address,
+      phone,
+      notes,
+    });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
       return;
@@ -92,6 +110,8 @@ function CheckoutPage() {
         deliveryAddress: parsed.data.address,
         phone: parsed.data.phone,
         notes: parsed.data.notes ?? "",
+        tipoAtendimento: tipo,
+        numeroMesa: mesaNumber,
       });
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
