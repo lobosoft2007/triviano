@@ -503,7 +503,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         </div>
 
         {/* Tabs */}
-        <div className="mx-auto flex max-w-6xl gap-2 px-4 pb-3 lg:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap gap-2 px-4 pb-3 lg:px-8">
           <TabButton
             active={tab === "delivery"}
             onClick={() => setTab("delivery")}
@@ -516,28 +516,42 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             icon={<UtensilsCrossed className="h-4 w-4" />}
             label={`Mesas ativas (${mesaOrders.length})`}
           />
+          <TabButton
+            active={tab === "config"}
+            onClick={() => setTab("config")}
+            icon={<Settings className="h-4 w-4" />}
+            label="Configurações"
+          />
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-5 lg:px-8">
-        {!orders && (
+        {tab !== "config" && !orders && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
           </div>
         )}
 
         {orders && tab === "delivery" && (
-          <DeliveryColumn orders={deliveryOrders} onSendKitchen={sendToKitchen} />
+          <DeliveryColumn
+            orders={deliveryOrders}
+            onDispatch={dispatchPreparation}
+            resolveSector={resolveSector}
+          />
         )}
 
         {orders && tab === "mesas" && (
           <MesasColumn
             orders={mesaOrders}
-            onSendKitchen={sendToKitchen}
+            onDispatch={dispatchPreparation}
             onPrintBill={printBill}
+            resolveSector={resolveSector}
           />
         )}
+
+        {tab === "config" && <ConfigTab />}
       </main>
+
 
       {/* Hidden thermal print surface */}
       <div className="thermal-receipt">{printNode}</div>
