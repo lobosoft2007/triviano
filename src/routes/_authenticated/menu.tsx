@@ -57,6 +57,15 @@ function MenuPage() {
             <div className="flex items-center gap-1">
               {isAdmin && (
                 <Link
+                  to="/caixa"
+                  aria-label="Painel do caixa"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                >
+                  <Wallet className="h-5 w-5" />
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
                   to="/admin"
                   aria-label="Administração do cardápio"
                   className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
