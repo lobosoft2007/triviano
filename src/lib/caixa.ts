@@ -169,6 +169,10 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
     impresso_conta: o.impresso_conta,
     order_items: (o.order_items ?? []).map((it) => ({
       id: it.id,
+      product_id: (it as { product_id?: string | null }).product_id ?? null,
+      category_id:
+        (it as { products?: { category_id?: string | null } | null }).products
+          ?.category_id ?? null,
       product_name: it.product_name,
       unit_price: Number(it.unit_price),
       quantity: it.quantity,
