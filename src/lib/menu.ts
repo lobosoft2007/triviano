@@ -1,10 +1,25 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface PriceOption {
+  tamanho: string;
+  preco: number;
+}
+
+export interface Addon {
+  nome: string;
+  preco: number;
+}
+
+export type ComboRole = "burger" | "side" | "beverage" | "";
+
 export interface Category {
   id: string;
   name: string;
   slug: string;
   sort_order: number;
+  min_items: number;
+  allows_half: boolean;
+  combo_role: ComboRole;
 }
 
 export interface Product {
@@ -16,6 +31,28 @@ export interface Product {
   image_url: string;
   available: boolean;
   sort_order: number;
+  price_options: PriceOption[];
+  addons: Addon[];
+}
+
+function normOptions(value: unknown): PriceOption[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((o) => ({
+      tamanho: String((o as PriceOption).tamanho ?? ""),
+      preco: Number((o as PriceOption).preco ?? 0),
+    }))
+    .filter((o) => o.tamanho);
+}
+
+function normAddons(value: unknown): Addon[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((a) => ({
+      nome: String((a as Addon).nome ?? ""),
+      preco: Number((a as Addon).preco ?? 0),
+    }))
+    .filter((a) => a.nome);
 }
 
 export async function fetchMenu(): Promise<{
@@ -35,10 +72,26 @@ export async function fetchMenu(): Promise<{
   if (prodRes.error) throw prodRes.error;
 
   return {
-    categories: (catRes.data ?? []) as Category[],
+    categories: (catRes.data ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      sort_order: c.sort_order,
+      min_items: (c as { min_items?: number }).min_items ?? 0,
+      allows_half: (c as { allows_half?: boolean }).allows_half ?? false,
+      combo_role: ((c as { combo_role?: string }).combo_role ?? "") as ComboRole,
+    })) as Category[],
     products: (prodRes.data ?? []).map((p) => ({
-      ...p,
+      id: p.id,
+      category_id: p.category_id,
+      name: p.name,
+      description: p.description,
       price: Number(p.price),
+      image_url: p.image_url,
+      available: p.available,
+      sort_order: p.sort_order,
+      price_options: normOptions((p as { price_options?: unknown }).price_options),
+      addons: normAddons((p as { addons?: unknown }).addons),
     })) as Product[],
   };
 }
