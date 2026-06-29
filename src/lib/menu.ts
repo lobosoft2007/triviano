@@ -109,6 +109,9 @@ export async function fetchMenu(): Promise<{
       sort_order: p.sort_order,
       price_options: normOptions((p as { price_options?: unknown }).price_options),
       addons: normAddons((p as { addons?: unknown }).addons),
+      free_addons: normFreeAddons((p as { free_addons?: unknown }).free_addons),
+      free_addon_limit: Number((p as { free_addon_limit?: number }).free_addon_limit ?? 0),
+      free_addon_price: Number((p as { free_addon_price?: number }).free_addon_price ?? 0),
     })) as Product[],
   };
 }
