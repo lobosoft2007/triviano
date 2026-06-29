@@ -144,6 +144,9 @@ export type Database = {
           category_id: string
           created_at: string
           description: string
+          free_addon_limit: number
+          free_addon_price: number
+          free_addons: Json
           id: string
           image_url: string
           name: string
@@ -157,6 +160,9 @@ export type Database = {
           category_id: string
           created_at?: string
           description?: string
+          free_addon_limit?: number
+          free_addon_price?: number
+          free_addons?: Json
           id?: string
           image_url?: string
           name: string
@@ -170,6 +176,9 @@ export type Database = {
           category_id?: string
           created_at?: string
           description?: string
+          free_addon_limit?: number
+          free_addon_price?: number
+          free_addons?: Json
           id?: string
           image_url?: string
           name?: string
