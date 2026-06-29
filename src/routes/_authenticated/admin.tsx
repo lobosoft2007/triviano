@@ -14,11 +14,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
-import {
-  resolveImageUrls,
-  uploadMenuImage,
-  isExternalUrl,
-} from "@/lib/storage";
+import { resolveImageUrls, uploadMenuImage } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
