@@ -33,6 +33,8 @@ function CheckoutPage() {
   const { items, subtotal, discount, totalPrice, canCheckout, shortfalls, clear } =
     useCart();
   const [submitting, setSubmitting] = useState(false);
+  const [tipo, setTipo] = useState<"Delivery" | "Presencial">("Delivery");
+  const [mesa, setMesa] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
