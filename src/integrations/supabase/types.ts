@@ -16,22 +16,31 @@ export type Database = {
     Tables: {
       categories: {
         Row: {
+          allows_half: boolean
+          combo_role: string
           created_at: string
           id: string
+          min_items: number
           name: string
           slug: string
           sort_order: number
         }
         Insert: {
+          allows_half?: boolean
+          combo_role?: string
           created_at?: string
           id?: string
+          min_items?: number
           name: string
           slug: string
           sort_order?: number
         }
         Update: {
+          allows_half?: boolean
+          combo_role?: string
           created_at?: string
           id?: string
+          min_items?: number
           name?: string
           slug?: string
           sort_order?: number
@@ -40,30 +49,39 @@ export type Database = {
       }
       order_items: {
         Row: {
+          addons: Json
           created_at: string
           id: string
           order_id: string
           product_id: string | null
           product_name: string
           quantity: number
+          second_flavor: string
+          size: string
           unit_price: number
         }
         Insert: {
+          addons?: Json
           created_at?: string
           id?: string
           order_id: string
           product_id?: string | null
           product_name: string
           quantity: number
+          second_flavor?: string
+          size?: string
           unit_price: number
         }
         Update: {
+          addons?: Json
           created_at?: string
           id?: string
           order_id?: string
           product_id?: string | null
           product_name?: string
           quantity?: number
+          second_flavor?: string
+          size?: string
           unit_price?: number
         }
         Relationships: [
@@ -87,6 +105,7 @@ export type Database = {
         Row: {
           created_at: string
           delivery_address: string
+          discount: number
           id: string
           notes: string
           phone: string
@@ -97,6 +116,7 @@ export type Database = {
         Insert: {
           created_at?: string
           delivery_address?: string
+          discount?: number
           id?: string
           notes?: string
           phone?: string
@@ -107,6 +127,7 @@ export type Database = {
         Update: {
           created_at?: string
           delivery_address?: string
+          discount?: number
           id?: string
           notes?: string
           phone?: string
@@ -118,6 +139,7 @@ export type Database = {
       }
       products: {
         Row: {
+          addons: Json
           available: boolean
           category_id: string
           created_at: string
@@ -126,9 +148,11 @@ export type Database = {
           image_url: string
           name: string
           price: number
+          price_options: Json
           sort_order: number
         }
         Insert: {
+          addons?: Json
           available?: boolean
           category_id: string
           created_at?: string
@@ -137,9 +161,11 @@ export type Database = {
           image_url?: string
           name: string
           price: number
+          price_options?: Json
           sort_order?: number
         }
         Update: {
+          addons?: Json
           available?: boolean
           category_id?: string
           created_at?: string
@@ -148,6 +174,7 @@ export type Database = {
           image_url?: string
           name?: string
           price?: number
+          price_options?: Json
           sort_order?: number
         }
         Relationships: [
