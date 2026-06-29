@@ -3,11 +3,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { QRCodeCanvas } from "qrcode.react";
 import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
 import { formatBRL } from "@/lib/format";
+import { usePixPayment, PIX_RECEIVER } from "@/hooks/usePixPayment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,8 +19,6 @@ export const Route = createFileRoute("/_authenticated/checkout")({
   component: CheckoutPage,
 });
 
-const PIX_KEY = "21993383918";
-const PIX_NAME = "Marcello Ribeiro Lobo Assumpção";
 
 const schema = z.object({
   address: z.string().trim().min(5, { message: "Informe o endereço de entrega" }).max(300),
@@ -38,7 +38,10 @@ function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
-  const [copied, setCopied] = useState(false);
+
+  const { payload: pixPayload, copied, copy: copyPixPayload } =
+    usePixPayment(totalPrice);
+
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -60,15 +63,14 @@ function CheckoutPage() {
   }, [items.length, submitting, navigate]);
 
   async function copyPix() {
-    try {
-      await navigator.clipboard.writeText(PIX_KEY);
-      setCopied(true);
-      toast.success("Chave PIX copiada!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Não foi possível copiar. Anote a chave manualmente.");
+    const ok = await copyPixPayload();
+    if (ok) {
+      toast.success("Código copiado com sucesso!");
+    } else {
+      toast.error("Não foi possível copiar. Tente novamente.");
     }
   }
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -196,45 +198,56 @@ function CheckoutPage() {
             </p>
           ))}
 
-          {/* PIX payment */}
+          {/* PIX payment — BR Code (Copia e Cola) + QR Code dinâmico */}
           <section className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
-            <div className="mb-2 flex items-center gap-2">
+            <div className="mb-1 flex items-center gap-2">
               <QrCode className="h-5 w-5 text-primary" />
               <h2 className="font-display text-base font-bold">
                 Pagamento via PIX
               </h2>
             </div>
             <p className="text-xs text-muted-foreground">
-              Pague com a chave PIX abaixo. Envie o comprovante após confirmar o
-              pedido.
+              Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
+              <span className="font-semibold text-foreground">
+                {formatBRL(totalPrice)}
+              </span>{" "}
+              já vem preenchido.
             </p>
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3">
-              <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Chave (telefone)
-                </p>
-                <p className="truncate font-display text-lg font-bold tabular-nums">
-                  {PIX_KEY}
-                </p>
+
+            <div className="mt-4 flex flex-col items-center">
+              <div className="rounded-2xl bg-white p-3 shadow-card">
+                <QRCodeCanvas
+                  value={pixPayload}
+                  size={196}
+                  level="M"
+                  marginSize={1}
+                  aria-label="QR Code para pagamento PIX"
+                />
               </div>
-              <button
-                type="button"
-                onClick={copyPix}
-                aria-label="Copiar chave PIX"
-                className="flex h-10 flex-shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-                {copied ? "Copiado" : "Copiar"}
-              </button>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Favorecido: <span className="font-medium">{PIX_NAME}</span>
+
+            <button
+              type="button"
+              onClick={copyPix}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
+            >
+              {copied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              {copied ? "Código copiado com sucesso!" : "Copiar Código PIX (Copia e Cola)"}
+            </button>
+
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Favorecido:{" "}
+              <span className="font-medium text-foreground">
+                {PIX_RECEIVER.merchantName}
+              </span>{" "}
+              • {PIX_RECEIVER.merchantCity}
             </p>
           </section>
+
 
           {/* Order form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
