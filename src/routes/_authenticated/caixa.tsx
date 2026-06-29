@@ -49,7 +49,7 @@ import {
   setCategoryPrinter,
   updatePrinter,
   makeSectorResolver,
-  type Printer,
+  type Printer as PrinterConfig,
   type ResolvedSector,
 } from "@/lib/printers";
 import { Button } from "@/components/ui/button";
