@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
@@ -17,6 +17,9 @@ export const Route = createFileRoute("/_authenticated/checkout")({
   component: CheckoutPage,
 });
 
+const PIX_KEY = "21993383918";
+const PIX_NAME = "Marcello Ribeiro Lobo Assumpção";
+
 const schema = z.object({
   address: z.string().trim().min(5, { message: "Informe o endereço de entrega" }).max(300),
   phone: z.string().trim().min(8, { message: "Informe um telefone válido" }).max(20),
@@ -27,11 +30,13 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { items, totalPrice, clear } = useCart();
+  const { items, subtotal, discount, totalPrice, canCheckout, shortfalls, clear } =
+    useCart();
   const [submitting, setSubmitting] = useState(false);
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -52,8 +57,23 @@ function CheckoutPage() {
     }
   }, [items.length, submitting, navigate]);
 
+  async function copyPix() {
+    try {
+      await navigator.clipboard.writeText(PIX_KEY);
+      setCopied(true);
+      toast.success("Chave PIX copiada!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar. Anote a chave manualmente.");
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canCheckout) {
+      toast.error("Revise as regras do pedido antes de finalizar.");
+      return;
+    }
     const parsed = schema.safeParse({ address, phone, notes });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
@@ -66,6 +86,7 @@ function CheckoutPage() {
         userId: user.id,
         items,
         total: totalPrice,
+        discount,
         deliveryAddress: parsed.data.address,
         phone: parsed.data.phone,
         notes: parsed.data.notes ?? "",
@@ -103,22 +124,89 @@ function CheckoutPage() {
             </h2>
             <ul className="space-y-2">
               {items.map((i) => (
-                <li key={i.id} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">
+                <li key={i.lineId} className="flex justify-between gap-3 text-sm">
+                  <span className="min-w-0 text-muted-foreground">
                     {i.quantity}× {i.name}
+                    {i.addons.length > 0 && (
+                      <span className="block text-[11px]">
+                        {i.addons.map((a) => `+ ${a.name}`).join(", ")}
+                      </span>
+                    )}
                   </span>
-                  <span className="font-medium tabular-nums">
-                    {formatBRL(i.price * i.quantity)}
+                  <span className="whitespace-nowrap font-medium tabular-nums">
+                    {formatBRL(i.unitPrice * i.quantity)}
                   </span>
                 </li>
               ))}
             </ul>
-            <div className="mt-3 flex justify-between border-t border-border pt-3">
-              <span className="font-semibold">Total</span>
-              <span className="font-display text-lg font-bold text-primary">
-                {formatBRL(totalPrice)}
-              </span>
+            <div className="mt-3 space-y-1 border-t border-border pt-3">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Subtotal</span>
+                <span className="tabular-nums">{formatBRL(subtotal)}</span>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-sm text-success">
+                  <span>Desconto combo</span>
+                  <span className="tabular-nums">− {formatBRL(discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between pt-1">
+                <span className="font-semibold">Total</span>
+                <span className="font-display text-lg font-bold text-primary">
+                  {formatBRL(totalPrice)}
+                </span>
+              </div>
             </div>
+          </section>
+
+          {shortfalls.map((s) => (
+            <p
+              key={s.slug}
+              className="mb-4 rounded-xl bg-destructive/10 px-4 py-3 text-xs text-destructive"
+            >
+              Pedido mínimo de {s.required} unidades em {s.name}. Adicione mais{" "}
+              {s.missing} antes de finalizar.
+            </p>
+          ))}
+
+          {/* PIX payment */}
+          <section className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <QrCode className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-base font-bold">
+                Pagamento via PIX
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Pague com a chave PIX abaixo. Envie o comprovante após confirmar o
+              pedido.
+            </p>
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Chave (telefone)
+                </p>
+                <p className="truncate font-display text-lg font-bold tabular-nums">
+                  {PIX_KEY}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={copyPix}
+                aria-label="Copiar chave PIX"
+                className="flex h-10 flex-shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {copied ? "Copiado" : "Copiar"}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Favorecido: <span className="font-medium">{PIX_NAME}</span>
+            </p>
           </section>
 
           {/* Delivery form */}
@@ -166,7 +254,7 @@ function CheckoutPage() {
               type="submit"
               size="lg"
               className="mt-2 h-13 rounded-2xl py-3.5 text-base"
-              disabled={submitting}
+              disabled={submitting || !canCheckout}
             >
               {submitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
