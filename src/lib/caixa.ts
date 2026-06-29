@@ -24,6 +24,8 @@ export interface Movimentacao {
 
 export interface CaixaOrderItem {
   id: string;
+  product_id: string | null;
+  category_id: string | null;
   product_name: string;
   unit_price: number;
   quantity: number;
