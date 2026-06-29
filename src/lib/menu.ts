@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { resolveImageUrls } from "@/lib/storage";
 
 export interface PriceOption {
   tamanho: string;
