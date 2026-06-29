@@ -93,7 +93,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover",
       },
-      { title: "Sabor Express — Delivery de Comida" },
+      { title: "Clube 23 — Delivery" },
       {
         name: "description",
         content:
@@ -105,13 +105,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Sabor Express" },
-      { property: "og:title", content: "Sabor Express — Delivery de Comida" },
+      { property: "og:title", content: "Clube 23 — Delivery" },
       {
         property: "og:description",
         content: "Cardápio variado com entrega rápida. Peça em poucos toques.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Clube 23 — Delivery" },
+      { name: "description", content: "Seus lanches favoritos agora na palma da sua mão" },
+      { property: "og:description", content: "Seus lanches favoritos agora na palma da sua mão" },
+      { name: "twitter:description", content: "Seus lanches favoritos agora na palma da sua mão" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/gKs6L2RxDvOSuUbK4PpJKnTJ0o43/social-images/social-1782701595332-icon-512x512.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/gKs6L2RxDvOSuUbK4PpJKnTJ0o43/social-images/social-1782701595332-icon-512x512.webp" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
