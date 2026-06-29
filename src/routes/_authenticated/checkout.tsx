@@ -3,11 +3,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { QRCodeCanvas } from "qrcode.react";
 import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
 import { formatBRL } from "@/lib/format";
+import { usePixPayment, PIX_RECEIVER } from "@/hooks/usePixPayment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,8 +19,6 @@ export const Route = createFileRoute("/_authenticated/checkout")({
   component: CheckoutPage,
 });
 
-const PIX_KEY = "21993383918";
-const PIX_NAME = "Marcello Ribeiro Lobo Assumpção";
 
 const schema = z.object({
   address: z.string().trim().min(5, { message: "Informe o endereço de entrega" }).max(300),
