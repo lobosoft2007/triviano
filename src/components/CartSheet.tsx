@@ -1,5 +1,13 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, Plus, Minus, Trash2, ArrowRight } from "lucide-react";
+import {
+  ShoppingBag,
+  Plus,
+  Minus,
+  Trash2,
+  ArrowRight,
+  AlertCircle,
+  BadgePercent,
+} from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import {
@@ -12,8 +20,18 @@ import {
 import { Button } from "@/components/ui/button";
 
 export function CartSheet({ children }: { children: React.ReactNode }) {
-  const { items, totalItems, totalPrice, increment, decrement, removeItem } =
-    useCart();
+  const {
+    items,
+    totalItems,
+    subtotal,
+    discount,
+    totalPrice,
+    shortfalls,
+    canCheckout,
+    increment,
+    decrement,
+    removeItem,
+  } = useCart();
   const navigate = useNavigate();
 
   return (
@@ -45,7 +63,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
             <div className="no-scrollbar flex-1 space-y-3 overflow-y-auto px-5 py-4">
               {items.map((item) => (
                 <div
-                  key={item.id}
+                  key={item.lineId}
                   className="flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card"
                 >
                   <img
@@ -58,13 +76,23 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{item.name}</p>
+                    {(item.addons.length > 0 ||
+                      (item.size && item.size !== "Padrão" && !item.secondFlavor && item.name === item.productName)) && (
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {[
+                          item.addons.map((a) => `+ ${a.name}`).join(", "),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
                     <p className="text-sm font-bold text-primary">
-                      {formatBRL(item.price * item.quantity)}
+                      {formatBRL(item.unitPrice * item.quantity)}
                     </p>
                     <div className="mt-1 flex items-center gap-2">
                       <button
                         aria-label="Diminuir"
-                        onClick={() => decrement(item.id)}
+                        onClick={() => decrement(item.lineId)}
                         className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary"
                       >
                         <Minus className="h-3.5 w-3.5" />
@@ -74,7 +102,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       </span>
                       <button
                         aria-label="Aumentar"
-                        onClick={() => increment(item.id)}
+                        onClick={() => increment(item.lineId)}
                         className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground"
                       >
                         <Plus className="h-3.5 w-3.5" />
@@ -83,7 +111,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   </div>
                   <button
                     aria-label={`Remover ${item.name}`}
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => removeItem(item.lineId)}
                     className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -93,6 +121,31 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="border-t border-border px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              {shortfalls.map((s) => (
+                <div
+                  key={s.slug}
+                  className="mb-3 flex items-start gap-2 rounded-xl bg-destructive/10 px-3 py-2.5 text-xs text-destructive"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <span>
+                    Pedido mínimo de {s.required} unidades em {s.name}. Adicione
+                    mais {s.missing}.
+                  </span>
+                </div>
+              ))}
+
+              {discount > 0 && (
+                <div className="mb-2 flex items-center justify-between text-sm text-success">
+                  <span className="flex items-center gap-1.5">
+                    <BadgePercent className="h-4 w-4" />
+                    Desconto combo
+                  </span>
+                  <span className="font-semibold tabular-nums">
+                    − {formatBRL(discount)}
+                  </span>
+                </div>
+              )}
+
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Total</span>
                 <span className="font-display text-xl font-bold">
@@ -102,6 +155,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
               <Button
                 size="lg"
                 className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base"
+                disabled={!canCheckout}
                 onClick={() => navigate({ to: "/checkout" })}
               >
                 Finalizar pedido
