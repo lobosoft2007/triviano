@@ -91,7 +91,12 @@ function OrdersPage() {
                         {it.quantity}× {it.product_name}
                         {it.addons.length > 0 && (
                           <span className="block text-[11px]">
-                            {it.addons.map((a) => `+ ${a.name}`).join(", ")}
+                            {it.addons
+                              .map(
+                                (a) =>
+                                  `+ ${a.name}${(a.quantity ?? 1) > 1 ? ` ×${a.quantity}` : ""}`,
+                              )
+                              .join(", ")}
                           </span>
                         )}
                       </span>
