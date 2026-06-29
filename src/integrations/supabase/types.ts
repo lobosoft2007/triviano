@@ -20,6 +20,7 @@ export type Database = {
           combo_role: string
           created_at: string
           id: string
+          id_impressora_destino: string | null
           min_items: number
           name: string
           slug: string
@@ -30,6 +31,7 @@ export type Database = {
           combo_role?: string
           created_at?: string
           id?: string
+          id_impressora_destino?: string | null
           min_items?: number
           name: string
           slug: string
@@ -40,12 +42,21 @@ export type Database = {
           combo_role?: string
           created_at?: string
           id?: string
+          id_impressora_destino?: string | null
           min_items?: number
           name?: string
           slug?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_id_impressora_destino_fkey"
+            columns: ["id_impressora_destino"]
+            isOneToOne: false
+            referencedRelation: "config_impressoras"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       composicao_subproduto: {
         Row: {
@@ -85,6 +96,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      config_impressoras: {
+        Row: {
+          ativo: boolean
+          caminho_usb: string | null
+          cor: string
+          created_at: string
+          endereco_ip: string | null
+          id: string
+          is_default: boolean
+          nome: string
+          porta: number | null
+          tipo_conexao: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          caminho_usb?: string | null
+          cor?: string
+          created_at?: string
+          endereco_ip?: string | null
+          id?: string
+          is_default?: boolean
+          nome: string
+          porta?: number | null
+          tipo_conexao?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          caminho_usb?: string | null
+          cor?: string
+          created_at?: string
+          endereco_ip?: string | null
+          id?: string
+          is_default?: boolean
+          nome?: string
+          porta?: number | null
+          tipo_conexao?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       fichas_tecnicas: {
         Row: {
