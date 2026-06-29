@@ -65,7 +65,7 @@ const STORAGE_KEY = "delivery_cart_v2";
 
 export function makeLineId(line: NewCartItem): string {
   const addonKey = [...line.addons]
-    .map((a) => a.name)
+    .map((a) => `${a.name}:${a.price}x${a.quantity ?? 1}`)
     .sort()
     .join(",");
   return [line.productId, line.size, line.secondFlavor, addonKey].join("|");
