@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ShoppingBag, LogOut, Loader2, ClipboardList } from "lucide-react";
+import { ShoppingBag, LogOut, Loader2, ClipboardList, Settings } from "lucide-react";
 import { menuQueryOptions } from "@/lib/menu";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { ProductCard } from "@/components/ProductCard";
 import { CartSheet } from "@/components/CartSheet";
@@ -16,8 +17,23 @@ export const Route = createFileRoute("/_authenticated/menu")({
 function MenuPage() {
   const { data, isLoading, isError } = useQuery(menuQueryOptions);
   const { totalItems, totalPrice } = useCart();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [active, setActive] = useState<string | null>(null);
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+  });
 
   const scrollTo = (slug: string) => {
     setActive(slug);
@@ -39,6 +55,15 @@ function MenuPage() {
               </h1>
             </div>
             <div className="flex items-center gap-1">
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  aria-label="Administração do cardápio"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                >
+                  <Settings className="h-5 w-5" />
+                </Link>
+              )}
               <Link
                 to="/orders"
                 aria-label="Meus pedidos"

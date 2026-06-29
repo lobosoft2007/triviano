@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { resolveImageUrls } from "@/lib/storage";
 
 export interface PriceOption {
   tamanho: string;
@@ -88,7 +89,7 @@ export async function fetchMenu(): Promise<{
   if (catRes.error) throw catRes.error;
   if (prodRes.error) throw prodRes.error;
 
-  return {
+  const result = {
     categories: (catRes.data ?? []).map((c) => ({
       id: c.id,
       name: c.name,
@@ -98,22 +99,32 @@ export async function fetchMenu(): Promise<{
       allows_half: (c as { allows_half?: boolean }).allows_half ?? false,
       combo_role: ((c as { combo_role?: string }).combo_role ?? "") as ComboRole,
     })) as Category[],
-    products: (prodRes.data ?? []).map((p) => ({
-      id: p.id,
-      category_id: p.category_id,
-      name: p.name,
-      description: p.description,
-      price: Number(p.price),
-      image_url: p.image_url,
-      available: p.available,
-      sort_order: p.sort_order,
-      price_options: normOptions((p as { price_options?: unknown }).price_options),
-      addons: normAddons((p as { addons?: unknown }).addons),
-      free_addons: normFreeAddons((p as { free_addons?: unknown }).free_addons),
-      free_addon_limit: Number((p as { free_addon_limit?: number }).free_addon_limit ?? 0),
-      free_addon_price: Number((p as { free_addon_price?: number }).free_addon_price ?? 0),
-    })) as Product[],
+    products: [] as Product[],
   };
+
+  const rawProducts = (prodRes.data ?? []).map((p) => ({
+    id: p.id,
+    category_id: p.category_id,
+    name: p.name,
+    description: p.description,
+    price: Number(p.price),
+    image_url: p.image_url,
+    available: p.available,
+    sort_order: p.sort_order,
+    price_options: normOptions((p as { price_options?: unknown }).price_options),
+    addons: normAddons((p as { addons?: unknown }).addons),
+    free_addons: normFreeAddons((p as { free_addons?: unknown }).free_addons),
+    free_addon_limit: Number((p as { free_addon_limit?: number }).free_addon_limit ?? 0),
+    free_addon_price: Number((p as { free_addon_price?: number }).free_addon_price ?? 0),
+  })) as Product[];
+
+  const urlMap = await resolveImageUrls(rawProducts.map((p) => p.image_url));
+  result.products = rawProducts.map((p) => ({
+    ...p,
+    image_url: urlMap[p.image_url] ?? p.image_url,
+  }));
+
+  return result;
 }
 
 export const menuQueryOptions = {
