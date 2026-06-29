@@ -58,6 +58,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
     size: i.size,
     addons: i.addons as unknown as Json,
     second_flavor: i.secondFlavor,
+    remocoes: i.remocoes,
   }));
 
   const { error: itemsError } = await supabase
@@ -84,6 +85,7 @@ export interface OrderRow {
     size: string;
     addons: { name: string; price: number; quantity?: number }[];
     second_flavor: string;
+    remocoes: string[];
   }[];
 }
 
@@ -91,7 +93,7 @@ export async function fetchOrders(): Promise<OrderRow[]> {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, status, total, discount, delivery_address, created_at, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor)",
+      "id, status, total, discount, delivery_address, created_at, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes)",
     )
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -114,6 +116,9 @@ export async function fetchOrders(): Promise<OrderRow[]> {
           }).addons)
         : [],
       second_flavor: (it as { second_flavor?: string }).second_flavor ?? "",
+      remocoes: Array.isArray((it as { remocoes?: unknown }).remocoes)
+        ? ((it as unknown as { remocoes: string[] }).remocoes)
+        : [],
     })),
   })) as OrderRow[];
 }

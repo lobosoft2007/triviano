@@ -47,6 +47,165 @@ export type Database = {
         }
         Relationships: []
       }
+      composicao_subproduto: {
+        Row: {
+          created_at: string
+          id: string
+          insumo_id: string
+          quantidade: number
+          subproduto_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insumo_id: string
+          quantidade?: number
+          subproduto_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insumo_id?: string
+          quantidade?: number
+          subproduto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "composicao_subproduto_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composicao_subproduto_subproduto_id_fkey"
+            columns: ["subproduto_id"]
+            isOneToOne: false
+            referencedRelation: "subprodutos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fichas_tecnicas: {
+        Row: {
+          created_at: string
+          dados_fiscais: Json
+          id: string
+          modo_preparo_final: string
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dados_fiscais?: Json
+          id?: string
+          modo_preparo_final?: string
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dados_fiscais?: Json
+          id?: string
+          modo_preparo_final?: string
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fichas_tecnicas_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredientes_produto: {
+        Row: {
+          created_at: string
+          id: string
+          insumo_id: string | null
+          nome: string
+          permitir_exclusao: boolean
+          product_id: string
+          quantidade: number
+          sort_order: number
+          subproduto_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insumo_id?: string | null
+          nome: string
+          permitir_exclusao?: boolean
+          product_id: string
+          quantidade?: number
+          sort_order?: number
+          subproduto_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insumo_id?: string | null
+          nome?: string
+          permitir_exclusao?: boolean
+          product_id?: string
+          quantidade?: number
+          sort_order?: number
+          subproduto_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredientes_produto_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredientes_produto_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredientes_produto_subproduto_id_fkey"
+            columns: ["subproduto_id"]
+            isOneToOne: false
+            referencedRelation: "subprodutos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insumos: {
+        Row: {
+          created_at: string
+          custo_unitario: number
+          id: string
+          nome: string
+          unidade_medida: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          nome: string
+          unidade_medida?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          nome?: string
+          unidade_medida?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           addons: Json
@@ -56,6 +215,7 @@ export type Database = {
           product_id: string | null
           product_name: string
           quantity: number
+          remocoes: string[]
           second_flavor: string
           size: string
           unit_price: number
@@ -68,6 +228,7 @@ export type Database = {
           product_id?: string | null
           product_name: string
           quantity: number
+          remocoes?: string[]
           second_flavor?: string
           size?: string
           unit_price: number
@@ -80,6 +241,7 @@ export type Database = {
           product_id?: string | null
           product_name?: string
           quantity?: number
+          remocoes?: string[]
           second_flavor?: string
           size?: string
           unit_price?: number
@@ -219,6 +381,33 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subprodutos: {
+        Row: {
+          created_at: string
+          id: string
+          modo_preparo: string
+          nome: string
+          rendimento_porcoes: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          modo_preparo?: string
+          nome: string
+          rendimento_porcoes?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          modo_preparo?: string
+          nome?: string
+          rendimento_porcoes?: number
           updated_at?: string
         }
         Relationships: []

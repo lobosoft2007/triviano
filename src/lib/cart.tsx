@@ -36,6 +36,8 @@ export interface CartItem {
   addons: CartAddon[];
   /** Second flavor name for half-and-half pizzas (empty otherwise). */
   secondFlavor: string;
+  /** Ingredients the customer asked to remove (e.g. ["Cebola Roxa"]). */
+  remocoes: string[];
   /** Final per-unit price (size + add-ons + half-and-half average). */
   unitPrice: number;
   image_url: string;
@@ -68,7 +70,8 @@ export function makeLineId(line: NewCartItem): string {
     .map((a) => `${a.name}:${a.price}x${a.quantity ?? 1}`)
     .sort()
     .join(",");
-  return [line.productId, line.size, line.secondFlavor, addonKey].join("|");
+  const removalKey = [...line.remocoes].sort().join(",");
+  return [line.productId, line.size, line.secondFlavor, addonKey, removalKey].join("|");
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {

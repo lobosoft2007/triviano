@@ -44,6 +44,8 @@ export interface Product {
   free_addon_limit: number;
   /** Price charged per unit of free_addons beyond the limit. */
   free_addon_price: number;
+  /** Ingredient names the customer may opt to remove (permitir_exclusao = true). */
+  removable_ingredients: string[];
 }
 
 function normOptions(value: unknown): PriceOption[] {
@@ -77,17 +79,31 @@ export async function fetchMenu(): Promise<{
   categories: Category[];
   products: Product[];
 }> {
-  const [catRes, prodRes] = await Promise.all([
+  const [catRes, prodRes, ingRes] = await Promise.all([
     supabase.from("categories").select("*").order("sort_order"),
     supabase
       .from("products")
       .select("*")
       .eq("available", true)
       .order("sort_order"),
+    supabase
+      .from("ingredientes_produto")
+      .select("product_id, nome, permitir_exclusao, sort_order")
+      .eq("permitir_exclusao", true)
+      .order("sort_order"),
   ]);
 
   if (catRes.error) throw catRes.error;
   if (prodRes.error) throw prodRes.error;
+  if (ingRes.error) throw ingRes.error;
+
+  // Map product_id -> list of removable ingredient names.
+  const removableMap = new Map<string, string[]>();
+  for (const row of ingRes.data ?? []) {
+    const list = removableMap.get(row.product_id) ?? [];
+    if (row.nome && !list.includes(row.nome)) list.push(row.nome);
+    removableMap.set(row.product_id, list);
+  }
 
   const result = {
     categories: (catRes.data ?? []).map((c) => ({
@@ -116,6 +132,7 @@ export async function fetchMenu(): Promise<{
     free_addons: normFreeAddons((p as { free_addons?: unknown }).free_addons),
     free_addon_limit: Number((p as { free_addon_limit?: number }).free_addon_limit ?? 0),
     free_addon_price: Number((p as { free_addon_price?: number }).free_addon_price ?? 0),
+    removable_ingredients: removableMap.get(p.id) ?? [],
   })) as Product[];
 
   const urlMap = await resolveImageUrls(rawProducts.map((p) => p.image_url));

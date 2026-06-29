@@ -9,6 +9,9 @@ import {
   ImagePlus,
   Trash2,
   ShieldAlert,
+  Package,
+  Boxes,
+  UtensilsCrossed,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +91,45 @@ async function fetchAdminMenu() {
   };
 }
 
+interface Insumo {
+  id: string;
+  nome: string;
+  unidade_medida: string;
+  custo_unitario: number;
+}
+
+interface Subproduto {
+  id: string;
+  nome: string;
+  rendimento_porcoes: number;
+  modo_preparo: string;
+}
+
+async function fetchInventory() {
+  const [insRes, subRes] = await Promise.all([
+    supabase
+      .from("insumos")
+      .select("id, nome, unidade_medida, custo_unitario")
+      .order("nome"),
+    supabase
+      .from("subprodutos")
+      .select("id, nome, rendimento_porcoes, modo_preparo")
+      .order("nome"),
+  ]);
+  if (insRes.error) throw insRes.error;
+  if (subRes.error) throw subRes.error;
+  return {
+    insumos: (insRes.data ?? []).map((i) => ({
+      ...i,
+      custo_unitario: Number(i.custo_unitario),
+    })) as Insumo[],
+    subprodutos: (subRes.data ?? []).map((s) => ({
+      ...s,
+      rendimento_porcoes: Number(s.rendimento_porcoes),
+    })) as Subproduto[],
+  };
+}
+
 function useIsAdmin(userId: string | undefined) {
   return useQuery({
     queryKey: ["is-admin", userId],
@@ -133,6 +175,13 @@ function AdminPage() {
     queryKey: ["admin-menu"],
     queryFn: fetchAdminMenu,
     enabled: isAdmin === true,
+  });
+
+  const [tab, setTab] = useState<"cardapio" | "insumos">("cardapio");
+  const { data: inventory, isLoading: invLoading } = useQuery({
+    queryKey: ["admin-inventory"],
+    queryFn: fetchInventory,
+    enabled: isAdmin === true && tab === "insumos",
   });
 
   const [open, setOpen] = useState(false);
@@ -280,17 +329,46 @@ function AdminPage() {
               <div>
                 <p className="text-xs text-muted-foreground">Administração</p>
                 <h1 className="font-display text-xl font-bold leading-tight">
-                  Cardápio
+                  {tab === "cardapio" ? "Cardápio" : "Insumos & Subprodutos"}
                 </h1>
               </div>
             </div>
-            <Button size="sm" onClick={openNew}>
-              <Plus className="mr-1 h-4 w-4" /> Novo
-            </Button>
+            {tab === "cardapio" && (
+              <Button size="sm" onClick={openNew}>
+                <Plus className="mr-1 h-4 w-4" /> Novo
+              </Button>
+            )}
+          </div>
+
+          <div className="mt-3 flex gap-1.5 rounded-xl bg-secondary p-1">
+            <button
+              onClick={() => setTab("cardapio")}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                tab === "cardapio"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <UtensilsCrossed className="h-4 w-4" /> Cardápio
+            </button>
+            <button
+              onClick={() => setTab("insumos")}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                tab === "insumos"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <Package className="h-4 w-4" /> Estoque
+            </button>
           </div>
         </header>
 
         <main className="px-5 py-5">
+          {tab === "insumos" ? (
+            <InventoryView loading={invLoading} inventory={inventory} />
+          ) : (
+          <>
           {isLoading && (
             <div className="flex justify-center py-20">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -353,6 +431,8 @@ function AdminPage() {
                 </section>
               );
             })}
+          </>
+          )}
         </main>
       </div>
 
@@ -475,6 +555,104 @@ function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function InventoryView({
+  loading,
+  inventory,
+}: {
+  loading: boolean;
+  inventory: { insumos: Insumo[]; subprodutos: Subproduto[] } | undefined;
+}) {
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const insumos = inventory?.insumos ?? [];
+  const subprodutos = inventory?.subprodutos ?? [];
+
+  return (
+    <div className="space-y-7">
+      <p className="rounded-xl bg-secondary/60 px-3 py-2.5 text-xs text-muted-foreground">
+        Estrutura base do controle de custos (ERP). Cadastro detalhado de
+        insumos, fichas técnicas e dados fiscais chega em breve.
+      </p>
+
+      <section>
+        <div className="mb-3 flex items-center gap-2">
+          <Package className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-base font-bold">Insumos</h2>
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            {insumos.length}
+          </span>
+        </div>
+        {insumos.length === 0 ? (
+          <p className="rounded-2xl bg-card p-4 text-sm text-muted-foreground shadow-card">
+            Nenhum insumo cadastrado ainda.
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {insumos.map((i) => (
+              <div
+                key={i.id}
+                className="flex items-center justify-between gap-3 rounded-2xl bg-card p-3 shadow-card"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{i.nome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    por {i.unidade_medida}
+                  </p>
+                </div>
+                <span className="whitespace-nowrap text-sm font-bold text-primary tabular-nums">
+                  {formatBRL(i.custo_unitario)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center gap-2">
+          <Boxes className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-base font-bold">Subprodutos</h2>
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            {subprodutos.length}
+          </span>
+        </div>
+        {subprodutos.length === 0 ? (
+          <p className="rounded-2xl bg-card p-4 text-sm text-muted-foreground shadow-card">
+            Nenhum subproduto cadastrado ainda.
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {subprodutos.map((s) => (
+              <div
+                key={s.id}
+                className="rounded-2xl bg-card p-3 shadow-card"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="truncate text-sm font-semibold">{s.nome}</p>
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">
+                    rende {s.rendimento_porcoes} porções
+                  </span>
+                </div>
+                {s.modo_preparo && (
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {s.modo_preparo}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

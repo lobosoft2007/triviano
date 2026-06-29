@@ -26,7 +26,8 @@ export function ProductCard({
     options.length > 1 ||
     product.addons.length > 0 ||
     category.allows_half ||
-    product.free_addon_limit > 0;
+    product.free_addon_limit > 0 ||
+    (product.removable_ingredients?.length ?? 0) > 0;
 
   // Simple line (single size, no add-ons) for quick add / stepper.
   const simpleLine: NewCartItem = {
@@ -38,6 +39,7 @@ export function ProductCard({
     size: options[0].tamanho,
     addons: [],
     secondFlavor: "",
+    remocoes: [],
     unitPrice: options[0].preco,
     image_url: product.image_url,
   };
