@@ -121,6 +121,42 @@ export type Database = {
           },
         ]
       }
+      fluxo_caixa: {
+        Row: {
+          created_at: string
+          data_hora_abertura: string
+          data_hora_fechamento: string | null
+          id: string
+          id_usuario: string
+          status: string
+          updated_at: string
+          valor_abertura: number
+          valor_fechamento: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_hora_abertura?: string
+          data_hora_fechamento?: string | null
+          id?: string
+          id_usuario: string
+          status?: string
+          updated_at?: string
+          valor_abertura?: number
+          valor_fechamento?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_hora_abertura?: string
+          data_hora_fechamento?: string | null
+          id?: string
+          id_usuario?: string
+          status?: string
+          updated_at?: string
+          valor_abertura?: number
+          valor_fechamento?: number | null
+        }
+        Relationships: []
+      }
       ingredientes_produto: {
         Row: {
           created_at: string
@@ -206,6 +242,41 @@ export type Database = {
         }
         Relationships: []
       }
+      movimentacoes_caixa: {
+        Row: {
+          created_at: string
+          id: string
+          id_caixa: string
+          motivo: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          id_caixa: string
+          motivo?: string
+          tipo: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          id_caixa?: string
+          motivo?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_caixa_id_caixa_fkey"
+            columns: ["id_caixa"]
+            isOneToOne: false
+            referencedRelation: "fluxo_caixa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           addons: Json
@@ -269,9 +340,13 @@ export type Database = {
           delivery_address: string
           discount: number
           id: string
+          impresso_conta: boolean
+          impresso_cozinha: boolean
           notes: string
+          numero_mesa: number | null
           phone: string
           status: string
+          tipo_atendimento: Database["public"]["Enums"]["attendance_type"]
           total: number
           user_id: string
         }
@@ -280,9 +355,13 @@ export type Database = {
           delivery_address?: string
           discount?: number
           id?: string
+          impresso_conta?: boolean
+          impresso_cozinha?: boolean
           notes?: string
+          numero_mesa?: number | null
           phone?: string
           status?: string
+          tipo_atendimento?: Database["public"]["Enums"]["attendance_type"]
           total: number
           user_id: string
         }
@@ -291,9 +370,13 @@ export type Database = {
           delivery_address?: string
           discount?: number
           id?: string
+          impresso_conta?: boolean
+          impresso_cozinha?: boolean
           notes?: string
+          numero_mesa?: number | null
           phone?: string
           status?: string
+          tipo_atendimento?: Database["public"]["Enums"]["attendance_type"]
           total?: number
           user_id?: string
         }
@@ -448,6 +531,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      attendance_type: "Delivery" | "Presencial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -576,6 +660,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      attendance_type: ["Delivery", "Presencial"],
     },
   },
 } as const

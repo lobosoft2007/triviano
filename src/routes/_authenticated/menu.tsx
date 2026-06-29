@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ShoppingBag, LogOut, Loader2, ClipboardList, Settings } from "lucide-react";
+import { ShoppingBag, LogOut, Loader2, ClipboardList, Settings, Wallet } from "lucide-react";
 import { menuQueryOptions } from "@/lib/menu";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
@@ -55,6 +55,15 @@ function MenuPage() {
               </h1>
             </div>
             <div className="flex items-center gap-1">
+              {isAdmin && (
+                <Link
+                  to="/caixa"
+                  aria-label="Painel do caixa"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                >
+                  <Wallet className="h-5 w-5" />
+                </Link>
+              )}
               {isAdmin && (
                 <Link
                   to="/admin"
