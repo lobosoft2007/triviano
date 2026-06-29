@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { CartItem } from "@/lib/cart";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface Profile {
   id: string;
