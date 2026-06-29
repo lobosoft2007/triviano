@@ -326,17 +326,42 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     [],
   );
 
-  async function sendToKitchen(order: CaixaOrder) {
-    await printAndRun(<KitchenReceipt order={order} />, async () => {
-      try {
-        await markPrintedCozinha(order.id);
-        await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
-        toast.success("Pedido enviado para a cozinha.");
-      } catch {
-        toast.error("Falha ao marcar impressão.");
-      }
-    });
+  async function dispatchPreparation(order: CaixaOrder) {
+    // Group items by destination printer/sector.
+    const groups = new Map<
+      string,
+      { sector: ResolvedSector; items: CaixaOrderItem[] }
+    >();
+    for (const it of order.order_items) {
+      const sector = resolveSector(it.category_id);
+      const key = sector.printerId ?? `fallback:${sector.nome}`;
+      const g = groups.get(key) ?? { sector, items: [] };
+      g.items.push(it);
+      groups.set(key, g);
+    }
+    const list = [...groups.values()];
+    if (list.length === 0) return;
+
+    // Sequential thermal dispatches — one coupon per sector.
+    for (const g of list) {
+      await printAndRun(
+        <SectorReceipt order={order} sector={g.sector} items={g.items} />,
+      );
+    }
+
+    try {
+      await markPrintedCozinha(order.id);
+      await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+      toast.success(
+        `Impressões de preparo disparadas (${list.length} setor${
+          list.length > 1 ? "es" : ""
+        }).`,
+      );
+    } catch {
+      toast.error("Falha ao marcar impressão.");
+    }
   }
+
 
   async function printBill(mesa: number, mesaOrdersGroup: CaixaOrder[]) {
     const qr = await QRCode.toDataURL(PIX_KEY, { margin: 1, width: 220 }).catch(
