@@ -313,7 +313,7 @@ function AdminPage() {
                         className="flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card"
                       >
                         <img
-                          src={p.display_url || "/icon-192.png"}
+                          src={p.display_url || "/icons/icon-192.png"}
                           alt={p.name}
                           loading="lazy"
                           className="h-14 w-14 flex-shrink-0 rounded-xl bg-secondary object-cover"
