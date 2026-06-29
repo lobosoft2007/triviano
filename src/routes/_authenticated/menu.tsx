@@ -55,6 +55,15 @@ function MenuPage() {
               </h1>
             </div>
             <div className="flex items-center gap-1">
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  aria-label="Administração do cardápio"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                >
+                  <Settings className="h-5 w-5" />
+                </Link>
+              )}
               <Link
                 to="/orders"
                 aria-label="Meus pedidos"
