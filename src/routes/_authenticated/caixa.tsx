@@ -995,3 +995,223 @@ function BillReceipt({
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Config tab — printers & category routing                            */
+/* ------------------------------------------------------------------ */
+
+function ConfigTab() {
+  const queryClient = useQueryClient();
+  const { data: printers } = useQuery({
+    queryKey: ["printers"],
+    queryFn: fetchPrinters,
+  });
+  const { data: categories } = useQuery({
+    queryKey: ["categories-routing"],
+    queryFn: fetchCategoriesRouting,
+  });
+  const [savingCat, setSavingCat] = useState<string | null>(null);
+
+  async function handleAssign(categoryId: string, printerId: string) {
+    setSavingCat(categoryId);
+    try {
+      await setCategoryPrinter(categoryId, printerId || null);
+      await queryClient.invalidateQueries({ queryKey: ["categories-routing"] });
+      toast.success("Roteamento atualizado.");
+    } catch {
+      toast.error("Não foi possível salvar o roteamento.");
+    } finally {
+      setSavingCat(null);
+    }
+  }
+
+  if (!printers || !categories) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-5">
+      {/* Category → printer routing */}
+      <section className="lg:col-span-3">
+        <header className="mb-3">
+          <h2 className="font-display text-lg font-bold">
+            Roteamento por categoria
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Defina a impressora de destino de cada categoria do cardápio. Itens
+            sem impressora vão para o Balcão de Entregas.
+          </p>
+        </header>
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          {categories.map((c, idx) => {
+            const current = printers.find(
+              (p) => p.id === c.id_impressora_destino,
+            );
+            return (
+              <div
+                key={c.id}
+                className={`flex items-center justify-between gap-3 px-4 py-3 ${
+                  idx > 0 ? "border-t border-border" : ""
+                }`}
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  {current && (
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: current.cor }}
+                    />
+                  )}
+                  <span className="truncate text-sm font-medium">{c.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {savingCat === c.id && (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  )}
+                  <select
+                    value={c.id_impressora_destino ?? ""}
+                    onChange={(e) => handleAssign(c.id, e.target.value)}
+                    className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
+                  >
+                    <option value="">Balcão de Entregas (padrão)</option>
+                    {printers.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Printers list */}
+      <section className="lg:col-span-2">
+        <header className="mb-3">
+          <h2 className="font-display text-lg font-bold">Setores de impressão</h2>
+          <p className="text-sm text-muted-foreground">
+            Conexão de cada impressora (USB ou IP de rede).
+          </p>
+        </header>
+        <div className="space-y-3">
+          {printers.map((p) => (
+            <PrinterCard key={p.id} printer={p} />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PrinterCard({ printer }: { printer: PrinterConfig }) {
+  const queryClient = useQueryClient();
+  const [tipo, setTipo] = useState(printer.tipo_conexao);
+  const [ip, setIp] = useState(printer.endereco_ip ?? "");
+  const [porta, setPorta] = useState(printer.porta ? String(printer.porta) : "");
+  const [usb, setUsb] = useState(printer.caminho_usb ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updatePrinter(printer.id, {
+        tipo_conexao: tipo,
+        endereco_ip: tipo === "IP" ? ip || null : null,
+        porta: tipo === "IP" && porta ? Number(porta) : null,
+        caminho_usb: tipo === "USB" ? usb || null : null,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["printers"] });
+      toast.success(`${printer.nome} atualizada.`);
+    } catch {
+      toast.error("Não foi possível salvar a impressora.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
+      <div className="mb-3 flex items-center gap-2">
+        <span
+          className="h-3.5 w-3.5 rounded-full"
+          style={{ backgroundColor: printer.cor }}
+        />
+        <span className="font-display font-bold">{printer.nome}</span>
+        {printer.is_default && (
+          <span className="ml-auto rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase">
+            Padrão
+          </span>
+        )}
+      </div>
+
+      <div className="mb-3 flex gap-2">
+        <button
+          onClick={() => setTipo("USB")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+            tipo === "USB"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-muted-foreground"
+          }`}
+        >
+          <Usb className="h-4 w-4" /> USB
+        </button>
+        <button
+          onClick={() => setTipo("IP")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+            tipo === "IP"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-muted-foreground"
+          }`}
+        >
+          <Network className="h-4 w-4" /> IP
+        </button>
+      </div>
+
+      {tipo === "IP" ? (
+        <div className="flex gap-2">
+          <Input
+            value={ip}
+            onChange={(e) => setIp(e.target.value)}
+            placeholder="192.168.0.50"
+            className="h-9 rounded-lg"
+          />
+          <Input
+            value={porta}
+            onChange={(e) => setPorta(e.target.value)}
+            placeholder="9100"
+            inputMode="numeric"
+            className="h-9 w-24 rounded-lg"
+          />
+        </div>
+      ) : (
+        <Input
+          value={usb}
+          onChange={(e) => setUsb(e.target.value)}
+          placeholder="Identificador USB (ex: POS-80)"
+          className="h-9 rounded-lg"
+        />
+      )}
+
+      <Button
+        size="sm"
+        className="mt-3 w-full rounded-xl"
+        onClick={handleSave}
+        disabled={saving}
+      >
+        {saving ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <>
+            <Save className="mr-1.5 h-4 w-4" /> Salvar conexão
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
+
