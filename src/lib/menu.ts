@@ -65,6 +65,13 @@ function normAddons(value: unknown): Addon[] {
     .filter((a) => a.nome);
 }
 
+function normFreeAddons(value: unknown): FreeAddon[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((a) => ({ nome: String((a as FreeAddon).nome ?? "") }))
+    .filter((a) => a.nome);
+}
+
 export async function fetchMenu(): Promise<{
   categories: Category[];
   products: Product[];
