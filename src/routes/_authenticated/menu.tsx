@@ -17,8 +17,23 @@ export const Route = createFileRoute("/_authenticated/menu")({
 function MenuPage() {
   const { data, isLoading, isError } = useQuery(menuQueryOptions);
   const { totalItems, totalPrice } = useCart();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [active, setActive] = useState<string | null>(null);
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+  });
 
   const scrollTo = (slug: string) => {
     setActive(slug);
