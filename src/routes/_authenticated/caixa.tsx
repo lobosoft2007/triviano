@@ -850,13 +850,29 @@ function EmptyState({ label }: { label: string }) {
 /* Thermal receipts (80mm)                                             */
 /* ------------------------------------------------------------------ */
 
-function KitchenReceipt({ order }: { order: CaixaOrder }) {
+function SectorReceipt({
+  order,
+  sector,
+  items,
+}: {
+  order: CaixaOrder;
+  sector: ResolvedSector;
+  items: CaixaOrderItem[];
+}) {
+  const conn = sector.printer
+    ? sector.printer.tipo_conexao === "IP"
+      ? `IP ${sector.printer.endereco_ip ?? "-"}${
+          sector.printer.porta ? `:${sector.printer.porta}` : ""
+        }`
+      : `USB ${sector.printer.caminho_usb ?? ""}`.trim()
+    : "Sem impressora vinculada";
   return (
     <div>
       <p style={{ textAlign: "center", fontWeight: 700, fontSize: 14 }}>
-        *** COZINHA ***
+        *** {sector.nome.toUpperCase()} ***
       </p>
       <p style={{ textAlign: "center" }}>{RESTAURANT}</p>
+      <p style={{ textAlign: "center", fontSize: 10 }}>{conn}</p>
       <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "4px 0" }} />
       <p>
         Pedido #{order.id.slice(0, 6).toUpperCase()}
@@ -868,7 +884,7 @@ function KitchenReceipt({ order }: { order: CaixaOrder }) {
         {new Date(order.created_at).toLocaleString("pt-BR")}
       </p>
       <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "4px 0" }} />
-      {order.order_items.map((it) => (
+      {items.map((it) => (
         <div key={it.id} style={{ marginBottom: 6 }}>
           <p style={{ fontWeight: 700 }}>
             {it.quantity}x {it.product_name}
@@ -903,6 +919,7 @@ function KitchenReceipt({ order }: { order: CaixaOrder }) {
     </div>
   );
 }
+
 
 function BillReceipt({
   mesa,
