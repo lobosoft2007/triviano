@@ -79,11 +79,12 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                     {(item.addons.length > 0 ||
                       (item.size && item.size !== "Padrão" && !item.secondFlavor && item.name === item.productName)) && (
                       <p className="truncate text-[11px] text-muted-foreground">
-                        {[
-                          item.addons.map((a) => `+ ${a.name}`).join(", "),
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
+                        {item.addons
+                          .map(
+                            (a) =>
+                              `+ ${a.name}${(a.quantity ?? 1) > 1 ? ` ×${a.quantity}` : ""}`,
+                          )
+                          .join(", ")}
                       </p>
                     )}
                     <p className="text-sm font-bold text-primary">

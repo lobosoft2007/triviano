@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Minus, Check } from "lucide-react";
+import { Plus, Minus, Check, Gift } from "lucide-react";
 import type { Category, Product } from "@/lib/menu";
 import { useCart, type CartAddon, type NewCartItem } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
@@ -34,16 +34,38 @@ export function ProductCustomizer({
     ? product.price_options
     : [{ tamanho: "Padrão", preco: product.price }];
 
+  const isAcai = product.free_addon_limit > 0 && product.free_addons.length > 0;
+
   const [sizeIdx, setSizeIdx] = useState(0);
   const [selectedAddons, setSelectedAddons] = useState<CartAddon[]>([]);
   const [half, setHalf] = useState(false);
   const [secondId, setSecondId] = useState<string>("");
   const [qty, setQty] = useState(1);
+  // Açaí: quantity per topping name (traditional + premium).
+  const [freeCounts, setFreeCounts] = useState<Record<string, number>>({});
+  const [premiumCounts, setPremiumCounts] = useState<Record<string, number>>({});
 
   const size = options[sizeIdx] ?? options[0];
   const second = siblings.find((s) => s.id === secondId) ?? null;
 
+  const limit = product.free_addon_limit;
+  const overflowPrice = product.free_addon_price;
+  const totalFree = useMemo(
+    () => Object.values(freeCounts).reduce((a, b) => a + b, 0),
+    [freeCounts],
+  );
+  const paidOverflow = Math.max(0, totalFree - limit);
+
   const unitPrice = useMemo(() => {
+    if (isAcai) {
+      const base = size.preco;
+      const traditionalCost = paidOverflow * overflowPrice;
+      const premiumCost = product.addons.reduce(
+        (s, a) => s + (premiumCounts[a.nome] ?? 0) * a.preco,
+        0,
+      );
+      return round2(base + traditionalCost + premiumCost);
+    }
     let base = size.preco;
     if (category.allows_half && half && second) {
       const firstPrice = size.preco;
@@ -52,14 +74,39 @@ export function ProductCustomizer({
     }
     const addonsTotal = selectedAddons.reduce((s, a) => s + a.price, 0);
     return round2(base + addonsTotal);
-  }, [size, category.allows_half, half, second, selectedAddons]);
+  }, [
+    isAcai,
+    size,
+    paidOverflow,
+    overflowPrice,
+    product.addons,
+    premiumCounts,
+    category.allows_half,
+    half,
+    second,
+    selectedAddons,
+  ]);
 
   function toggleAddon(addon: CartAddon) {
     setSelectedAddons((prev) =>
       prev.find((a) => a.name === addon.name)
         ? prev.filter((a) => a.name !== addon.name)
-        : [...prev, addon],
+        : [...prev, { ...addon, quantity: 1 }],
     );
+  }
+
+  function bump(
+    setter: React.Dispatch<React.SetStateAction<Record<string, number>>>,
+    name: string,
+    delta: number,
+  ) {
+    setter((prev) => {
+      const next = Math.max(0, (prev[name] ?? 0) + delta);
+      const copy = { ...prev };
+      if (next === 0) delete copy[name];
+      else copy[name] = next;
+      return copy;
+    });
   }
 
   function reset() {
@@ -68,6 +115,8 @@ export function ProductCustomizer({
     setHalf(false);
     setSecondId("");
     setQty(1);
+    setFreeCounts({});
+    setPremiumCounts({});
   }
 
   function handleAdd() {
@@ -80,6 +129,28 @@ export function ProductCustomizer({
       displayName = `${product.name} (${size.tamanho})`;
     }
 
+    let addons: CartAddon[];
+    if (isAcai) {
+      addons = [
+        ...product.free_addons
+          .filter((a) => (freeCounts[a.nome] ?? 0) > 0)
+          .map((a) => ({
+            name: a.nome,
+            price: overflowPrice,
+            quantity: freeCounts[a.nome],
+          })),
+        ...product.addons
+          .filter((a) => (premiumCounts[a.nome] ?? 0) > 0)
+          .map((a) => ({
+            name: a.nome,
+            price: a.preco,
+            quantity: premiumCounts[a.nome],
+          })),
+      ];
+    } else {
+      addons = selectedAddons;
+    }
+
     const line: NewCartItem = {
       productId: product.id,
       productName: product.name,
@@ -87,7 +158,7 @@ export function ProductCustomizer({
       comboRole: category.combo_role,
       name: displayName,
       size: size.tamanho,
-      addons: selectedAddons,
+      addons,
       secondFlavor: half && second ? second.name : "",
       unitPrice,
       image_url: product.image_url,
@@ -142,8 +213,129 @@ export function ProductCustomizer({
             </section>
           )}
 
+          {/* Açaí: traditional toppings with free allowance */}
+          {isAcai && (
+            <section>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-semibold">Toppings tradicionais</h4>
+                <span
+                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                    paidOverflow > 0
+                      ? "bg-secondary text-muted-foreground"
+                      : "bg-success/12 text-success"
+                  }`}
+                >
+                  <Gift className="h-3.5 w-3.5" />
+                  {Math.min(totalFree, limit)}/{limit} grátis
+                </span>
+              </div>
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Até {limit} grátis no total (pode repetir). Excedente:{" "}
+                {formatBRL(overflowPrice)} cada.
+              </p>
+              <div className="space-y-2">
+                {product.free_addons.map((a) => {
+                  const count = freeCounts[a.nome] ?? 0;
+                  return (
+                    <div
+                      key={a.nome}
+                      className={`flex items-center justify-between rounded-xl border px-4 py-2.5 text-sm transition-colors ${
+                        count > 0
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {a.nome}
+                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          aria-label={`Remover ${a.nome}`}
+                          onClick={() => bump(setFreeCounts, a.nome, -1)}
+                          disabled={count === 0}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary disabled:opacity-40"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="w-4 text-center text-sm font-semibold tabular-nums">
+                          {count}
+                        </span>
+                        <button
+                          aria-label={`Adicionar ${a.nome}`}
+                          onClick={() => bump(setFreeCounts, a.nome, 1)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {paidOverflow > 0 && (
+                <p className="mt-2 text-[11px] font-medium text-primary">
+                  {paidOverflow}{" "}
+                  {paidOverflow === 1 ? "topping extra" : "toppings extras"} ·
+                  + {formatBRL(paidOverflow * overflowPrice)}
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* Açaí: premium toppings (always paid) */}
+          {isAcai && product.addons.length > 0 && (
+            <section>
+              <h4 className="mb-2 text-sm font-semibold">Toppings premium</h4>
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Cobrados desde a 1ª unidade.
+              </p>
+              <div className="space-y-2">
+                {product.addons.map((a) => {
+                  const count = premiumCounts[a.nome] ?? 0;
+                  return (
+                    <div
+                      key={a.nome}
+                      className={`flex items-center justify-between rounded-xl border px-4 py-2.5 text-sm transition-colors ${
+                        count > 0
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {a.nome}
+                        <span className="ml-1.5 text-xs font-normal text-primary">
+                          + {formatBRL(a.preco)}
+                        </span>
+                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          aria-label={`Remover ${a.nome}`}
+                          onClick={() => bump(setPremiumCounts, a.nome, -1)}
+                          disabled={count === 0}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary disabled:opacity-40"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="w-4 text-center text-sm font-semibold tabular-nums">
+                          {count}
+                        </span>
+                        <button
+                          aria-label={`Adicionar ${a.nome}`}
+                          onClick={() => bump(setPremiumCounts, a.nome, 1)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           {/* Half and half */}
-          {category.allows_half && (
+          {!isAcai && category.allows_half && (
             <section>
               <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
                 <span className="text-sm font-semibold">
@@ -193,8 +385,8 @@ export function ProductCustomizer({
             </section>
           )}
 
-          {/* Add-ons */}
-          {product.addons.length > 0 && (
+          {/* Add-ons (non-Açaí) */}
+          {!isAcai && product.addons.length > 0 && (
             <section>
               <h4 className="mb-2 text-sm font-semibold">Adicionais</h4>
               <div className="space-y-2">

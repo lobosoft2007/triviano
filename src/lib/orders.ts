@@ -82,7 +82,7 @@ export interface OrderRow {
     unit_price: number;
     quantity: number;
     size: string;
-    addons: { name: string; price: number }[];
+    addons: { name: string; price: number; quantity?: number }[];
     second_flavor: string;
   }[];
 }
@@ -109,8 +109,9 @@ export async function fetchOrders(): Promise<OrderRow[]> {
       quantity: it.quantity,
       size: (it as { size?: string }).size ?? "",
       addons: Array.isArray((it as { addons?: unknown }).addons)
-        ? ((it as unknown as { addons: { name: string; price: number }[] })
-            .addons)
+        ? ((it as unknown as {
+            addons: { name: string; price: number; quantity?: number }[];
+          }).addons)
         : [],
       second_flavor: (it as { second_flavor?: string }).second_flavor ?? "",
     })),

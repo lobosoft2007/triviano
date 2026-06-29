@@ -22,7 +22,10 @@ export function ProductCard({
     : [{ tamanho: "Padrão", preco: product.price }];
 
   const needsCustomization =
-    options.length > 1 || product.addons.length > 0 || category.allows_half;
+    options.length > 1 ||
+    product.addons.length > 0 ||
+    category.allows_half ||
+    product.free_addon_limit > 0;
 
   // Simple line (single size, no add-ons) for quick add / stepper.
   const simpleLine: NewCartItem = {
