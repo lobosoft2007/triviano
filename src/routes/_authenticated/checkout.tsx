@@ -63,15 +63,14 @@ function CheckoutPage() {
   }, [items.length, submitting, navigate]);
 
   async function copyPix() {
-    try {
-      await navigator.clipboard.writeText(PIX_KEY);
-      setCopied(true);
-      toast.success("Chave PIX copiada!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Não foi possível copiar. Anote a chave manualmente.");
+    const ok = await copyPixPayload();
+    if (ok) {
+      toast.success("Código copiado com sucesso!");
+    } else {
+      toast.error("Não foi possível copiar. Tente novamente.");
     }
   }
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
