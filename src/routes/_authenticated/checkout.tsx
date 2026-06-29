@@ -236,23 +236,68 @@ function CheckoutPage() {
             </p>
           </section>
 
-          {/* Delivery form */}
+          {/* Order form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <MapPin className="h-4 w-4 text-primary" />
-              Dados da entrega
+            {/* Attendance type */}
+            <div className="grid grid-cols-2 gap-2 rounded-2xl bg-secondary p-1">
+              <button
+                type="button"
+                onClick={() => setTipo("Delivery")}
+                className={`rounded-xl py-2.5 text-sm font-semibold transition-colors ${
+                  tipo === "Delivery"
+                    ? "bg-primary text-primary-foreground shadow-card"
+                    : "text-muted-foreground"
+                }`}
+              >
+                Delivery
+              </button>
+              <button
+                type="button"
+                onClick={() => setTipo("Presencial")}
+                className={`rounded-xl py-2.5 text-sm font-semibold transition-colors ${
+                  tipo === "Presencial"
+                    ? "bg-primary text-primary-foreground shadow-card"
+                    : "text-muted-foreground"
+                }`}
+              >
+                Presencial (mesa)
+              </button>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="address">Endereço de entrega</Label>
-              <Input
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Rua, número, bairro, complemento"
-                className="h-12 rounded-xl"
-              />
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <MapPin className="h-4 w-4 text-primary" />
+              {tipo === "Delivery" ? "Dados da entrega" : "Dados do atendimento"}
             </div>
+
+            {tipo === "Presencial" ? (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="mesa">Número da mesa</Label>
+                <Input
+                  id="mesa"
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={mesa}
+                  onChange={(e) => setMesa(e.target.value)}
+                  placeholder="Ex: 7"
+                  className="h-12 rounded-xl"
+                />
+                <p className="text-xs text-muted-foreground">
+                  O garçom levará o pedido até a sua mesa.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="address">Endereço de entrega</Label>
+                <Input
+                  id="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Rua, número, bairro, complemento"
+                  className="h-12 rounded-xl"
+                />
+              </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="phone">Telefone</Label>
