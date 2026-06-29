@@ -17,9 +17,13 @@ import {
   TrendingUp,
   Wallet,
   DoorClosed,
-  ChefHat,
+  
   Volume2,
   VolumeX,
+  Settings,
+  Usb,
+  Network,
+  Save,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -36,8 +40,18 @@ import {
   saldoAtual,
   updateOrderStatus,
   type CaixaOrder,
+  type CaixaOrderItem,
   type MovimentacaoTipo,
 } from "@/lib/caixa";
+import {
+  fetchPrinters,
+  fetchCategoriesRouting,
+  setCategoryPrinter,
+  updatePrinter,
+  makeSectorResolver,
+  type Printer as PrinterConfig,
+  type ResolvedSector,
+} from "@/lib/printers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -225,7 +239,7 @@ function LockScreen({ userId }: { userId: string }) {
 
 function OperationalPanel({ caixaId }: { caixaId: string }) {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"delivery" | "mesas">("delivery");
+  const [tab, setTab] = useState<"delivery" | "mesas" | "config">("delivery");
   const [soundOn, setSoundOn] = useState(true);
   const [printNode, setPrintNode] = useState<ReactNode>(null);
   const prevIdsRef = useRef<Set<string> | null>(null);
@@ -243,6 +257,19 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     queryFn: fetchCaixaOrders,
     refetchInterval: 20000,
   });
+  const { data: printers } = useQuery({
+    queryKey: ["printers"],
+    queryFn: fetchPrinters,
+  });
+  const { data: catRouting } = useQuery({
+    queryKey: ["categories-routing"],
+    queryFn: fetchCategoriesRouting,
+  });
+
+  const resolveSector = useMemo(
+    () => makeSectorResolver(printers ?? [], catRouting ?? []),
+    [printers, catRouting],
+  );
 
   // Realtime: refresh orders + beep on new ones.
   useEffect(() => {
@@ -299,17 +326,42 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     [],
   );
 
-  async function sendToKitchen(order: CaixaOrder) {
-    await printAndRun(<KitchenReceipt order={order} />, async () => {
-      try {
-        await markPrintedCozinha(order.id);
-        await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
-        toast.success("Pedido enviado para a cozinha.");
-      } catch {
-        toast.error("Falha ao marcar impressão.");
-      }
-    });
+  async function dispatchPreparation(order: CaixaOrder) {
+    // Group items by destination printer/sector.
+    const groups = new Map<
+      string,
+      { sector: ResolvedSector; items: CaixaOrderItem[] }
+    >();
+    for (const it of order.order_items) {
+      const sector = resolveSector(it.category_id);
+      const key = sector.printerId ?? `fallback:${sector.nome}`;
+      const g = groups.get(key) ?? { sector, items: [] };
+      g.items.push(it);
+      groups.set(key, g);
+    }
+    const list = [...groups.values()];
+    if (list.length === 0) return;
+
+    // Sequential thermal dispatches — one coupon per sector.
+    for (const g of list) {
+      await printAndRun(
+        <SectorReceipt order={order} sector={g.sector} items={g.items} />,
+      );
+    }
+
+    try {
+      await markPrintedCozinha(order.id);
+      await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+      toast.success(
+        `Impressões de preparo disparadas (${list.length} setor${
+          list.length > 1 ? "es" : ""
+        }).`,
+      );
+    } catch {
+      toast.error("Falha ao marcar impressão.");
+    }
   }
+
 
   async function printBill(mesa: number, mesaOrdersGroup: CaixaOrder[]) {
     const qr = await QRCode.toDataURL(PIX_KEY, { margin: 1, width: 220 }).catch(
@@ -451,7 +503,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         </div>
 
         {/* Tabs */}
-        <div className="mx-auto flex max-w-6xl gap-2 px-4 pb-3 lg:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap gap-2 px-4 pb-3 lg:px-8">
           <TabButton
             active={tab === "delivery"}
             onClick={() => setTab("delivery")}
@@ -464,28 +516,42 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             icon={<UtensilsCrossed className="h-4 w-4" />}
             label={`Mesas ativas (${mesaOrders.length})`}
           />
+          <TabButton
+            active={tab === "config"}
+            onClick={() => setTab("config")}
+            icon={<Settings className="h-4 w-4" />}
+            label="Configurações"
+          />
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-5 lg:px-8">
-        {!orders && (
+        {tab !== "config" && !orders && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
           </div>
         )}
 
         {orders && tab === "delivery" && (
-          <DeliveryColumn orders={deliveryOrders} onSendKitchen={sendToKitchen} />
+          <DeliveryColumn
+            orders={deliveryOrders}
+            onDispatch={dispatchPreparation}
+            resolveSector={resolveSector}
+          />
         )}
 
         {orders && tab === "mesas" && (
           <MesasColumn
             orders={mesaOrders}
-            onSendKitchen={sendToKitchen}
+            onDispatch={dispatchPreparation}
             onPrintBill={printBill}
+            resolveSector={resolveSector}
           />
         )}
+
+        {tab === "config" && <ConfigTab />}
       </main>
+
 
       {/* Hidden thermal print surface */}
       <div className="thermal-receipt">{printNode}</div>
@@ -523,12 +589,16 @@ function TabButton({
 /* Delivery column                                                     */
 /* ------------------------------------------------------------------ */
 
+type ResolveFn = (categoryId: string | null | undefined) => ResolvedSector;
+
 function DeliveryColumn({
   orders,
-  onSendKitchen,
+  onDispatch,
+  resolveSector,
 }: {
   orders: CaixaOrder[];
-  onSendKitchen: (o: CaixaOrder) => void;
+  onDispatch: (o: CaixaOrder) => void;
+  resolveSector: ResolveFn;
 }) {
   if (orders.length === 0) {
     return <EmptyState label="Nenhum pedido de delivery em aberto." />;
@@ -536,7 +606,12 @@ function DeliveryColumn({
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {orders.map((o) => (
-        <OrderCard key={o.id} order={o} onSendKitchen={onSendKitchen} />
+        <OrderCard
+          key={o.id}
+          order={o}
+          onDispatch={onDispatch}
+          resolveSector={resolveSector}
+        />
       ))}
     </div>
   );
@@ -548,12 +623,14 @@ function DeliveryColumn({
 
 function MesasColumn({
   orders,
-  onSendKitchen,
+  onDispatch,
   onPrintBill,
+  resolveSector,
 }: {
   orders: CaixaOrder[];
-  onSendKitchen: (o: CaixaOrder) => void;
+  onDispatch: (o: CaixaOrder) => void;
   onPrintBill: (mesa: number, group: CaixaOrder[]) => void;
+  resolveSector: ResolveFn;
 }) {
   const grouped = useMemo(() => {
     const map = new Map<number, CaixaOrder[]>();
@@ -592,19 +669,19 @@ function MesasColumn({
             <div className="space-y-3 border-t border-border pt-3">
               {group.map((o) => (
                 <div key={o.id}>
-                  <OrderItems order={o} />
+                  <OrderItems order={o} resolveSector={resolveSector} />
                   {!o.impresso_cozinha && (
                     <Button
                       size="sm"
                       className="mt-2 w-full rounded-xl"
-                      onClick={() => onSendKitchen(o)}
+                      onClick={() => onDispatch(o)}
                     >
-                      <ChefHat className="mr-1.5 h-4 w-4" /> Enviar para cozinha
+                      <Printer className="mr-1.5 h-4 w-4" /> Disparar impressões
                     </Button>
                   )}
                   {o.impresso_cozinha && (
                     <p className="mt-1 text-[11px] font-semibold text-success">
-                      ✓ Na cozinha
+                      ✓ Preparo disparado
                     </p>
                   )}
                 </div>
@@ -633,10 +710,12 @@ function MesasColumn({
 
 function OrderCard({
   order,
-  onSendKitchen,
+  onDispatch,
+  resolveSector,
 }: {
   order: CaixaOrder;
-  onSendKitchen: (o: CaixaOrder) => void;
+  onDispatch: (o: CaixaOrder) => void;
+  resolveSector: ResolveFn;
 }) {
   const isNew = !order.impresso_cozinha;
   return (
@@ -664,7 +743,7 @@ function OrderCard({
         </p>
       )}
 
-      <OrderItems order={order} />
+      <OrderItems order={order} resolveSector={resolveSector} />
 
       {order.notes && (
         <p className="mt-2 rounded-lg bg-secondary px-2.5 py-1.5 text-[11px] text-muted-foreground">
@@ -680,55 +759,77 @@ function OrderCard({
       </div>
 
       {isNew ? (
-        <Button
-          className="mt-3 rounded-xl"
-          onClick={() => onSendKitchen(order)}
-        >
-          <ChefHat className="mr-1.5 h-4 w-4" /> Enviar para cozinha
+        <Button className="mt-3 rounded-xl" onClick={() => onDispatch(order)}>
+          <Printer className="mr-1.5 h-4 w-4" /> Disparar impressões de preparo
         </Button>
       ) : (
         <p className="mt-3 text-center text-xs font-semibold text-success">
-          ✓ Enviado para a cozinha
+          ✓ Impressões de preparo disparadas
         </p>
       )}
     </div>
   );
 }
 
-function OrderItems({ order }: { order: CaixaOrder }) {
+function SectorTag({ sector }: { sector: ResolvedSector }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+      style={{ backgroundColor: sector.cor }}
+      title={`Roteado para: ${sector.nome}`}
+    >
+      <Printer className="h-2.5 w-2.5" />
+      {sector.nome}
+    </span>
+  );
+}
+
+function OrderItems({
+  order,
+  resolveSector,
+}: {
+  order: CaixaOrder;
+  resolveSector: ResolveFn;
+}) {
   return (
     <ul className="space-y-1.5">
-      {order.order_items.map((it) => (
-        <li key={it.id} className="text-sm">
-          <span className="font-medium">
-            {it.quantity}× {it.product_name}
-            {it.size ? ` (${it.size})` : ""}
-            {it.second_flavor ? ` / ${it.second_flavor}` : ""}
-          </span>
-          {it.addons.length > 0 && (
-            <span className="block text-[11px] text-muted-foreground">
-              {it.addons
-                .map(
-                  (a) =>
-                    `+ ${a.name}${(a.quantity ?? 1) > 1 ? ` ×${a.quantity}` : ""}`,
-                )
-                .join(", ")}
+      {order.order_items.map((it) => {
+        const sector = resolveSector(it.category_id);
+        return (
+          <li key={it.id} className="text-sm">
+            <span className="flex flex-wrap items-center gap-1.5">
+              <span className="font-medium">
+                {it.quantity}× {it.product_name}
+                {it.size ? ` (${it.size})` : ""}
+                {it.second_flavor ? ` / ${it.second_flavor}` : ""}
+              </span>
+              <SectorTag sector={sector} />
             </span>
-          )}
-          {it.remocoes.length > 0 && (
-            <span className="mt-0.5 flex flex-wrap gap-1">
-              {it.remocoes.map((r) => (
-                <span
-                  key={r}
-                  className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive"
-                >
-                  Sem {r}
-                </span>
-              ))}
-            </span>
-          )}
-        </li>
-      ))}
+            {it.addons.length > 0 && (
+              <span className="block text-[11px] text-muted-foreground">
+                {it.addons
+                  .map(
+                    (a) =>
+                      `+ ${a.name}${(a.quantity ?? 1) > 1 ? ` ×${a.quantity}` : ""}`,
+                  )
+                  .join(", ")}
+              </span>
+            )}
+            {it.remocoes.length > 0 && (
+              <span className="mt-0.5 flex flex-wrap gap-1">
+                {it.remocoes.map((r) => (
+                  <span
+                    key={r}
+                    className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive"
+                  >
+                    Sem {r}
+                  </span>
+                ))}
+              </span>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -742,19 +843,36 @@ function EmptyState({ label }: { label: string }) {
       <p className="text-sm text-muted-foreground">{label}</p>
     </div>
   );
+
 }
 
 /* ------------------------------------------------------------------ */
 /* Thermal receipts (80mm)                                             */
 /* ------------------------------------------------------------------ */
 
-function KitchenReceipt({ order }: { order: CaixaOrder }) {
+function SectorReceipt({
+  order,
+  sector,
+  items,
+}: {
+  order: CaixaOrder;
+  sector: ResolvedSector;
+  items: CaixaOrderItem[];
+}) {
+  const conn = sector.printer
+    ? sector.printer.tipo_conexao === "IP"
+      ? `IP ${sector.printer.endereco_ip ?? "-"}${
+          sector.printer.porta ? `:${sector.printer.porta}` : ""
+        }`
+      : `USB ${sector.printer.caminho_usb ?? ""}`.trim()
+    : "Sem impressora vinculada";
   return (
     <div>
       <p style={{ textAlign: "center", fontWeight: 700, fontSize: 14 }}>
-        *** COZINHA ***
+        *** {sector.nome.toUpperCase()} ***
       </p>
       <p style={{ textAlign: "center" }}>{RESTAURANT}</p>
+      <p style={{ textAlign: "center", fontSize: 10 }}>{conn}</p>
       <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "4px 0" }} />
       <p>
         Pedido #{order.id.slice(0, 6).toUpperCase()}
@@ -766,7 +884,7 @@ function KitchenReceipt({ order }: { order: CaixaOrder }) {
         {new Date(order.created_at).toLocaleString("pt-BR")}
       </p>
       <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "4px 0" }} />
-      {order.order_items.map((it) => (
+      {items.map((it) => (
         <div key={it.id} style={{ marginBottom: 6 }}>
           <p style={{ fontWeight: 700 }}>
             {it.quantity}x {it.product_name}
@@ -801,6 +919,7 @@ function KitchenReceipt({ order }: { order: CaixaOrder }) {
     </div>
   );
 }
+
 
 function BillReceipt({
   mesa,
@@ -876,3 +995,223 @@ function BillReceipt({
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Config tab — printers & category routing                            */
+/* ------------------------------------------------------------------ */
+
+function ConfigTab() {
+  const queryClient = useQueryClient();
+  const { data: printers } = useQuery({
+    queryKey: ["printers"],
+    queryFn: fetchPrinters,
+  });
+  const { data: categories } = useQuery({
+    queryKey: ["categories-routing"],
+    queryFn: fetchCategoriesRouting,
+  });
+  const [savingCat, setSavingCat] = useState<string | null>(null);
+
+  async function handleAssign(categoryId: string, printerId: string) {
+    setSavingCat(categoryId);
+    try {
+      await setCategoryPrinter(categoryId, printerId || null);
+      await queryClient.invalidateQueries({ queryKey: ["categories-routing"] });
+      toast.success("Roteamento atualizado.");
+    } catch {
+      toast.error("Não foi possível salvar o roteamento.");
+    } finally {
+      setSavingCat(null);
+    }
+  }
+
+  if (!printers || !categories) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-5">
+      {/* Category → printer routing */}
+      <section className="lg:col-span-3">
+        <header className="mb-3">
+          <h2 className="font-display text-lg font-bold">
+            Roteamento por categoria
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Defina a impressora de destino de cada categoria do cardápio. Itens
+            sem impressora vão para o Balcão de Entregas.
+          </p>
+        </header>
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          {categories.map((c, idx) => {
+            const current = printers.find(
+              (p) => p.id === c.id_impressora_destino,
+            );
+            return (
+              <div
+                key={c.id}
+                className={`flex items-center justify-between gap-3 px-4 py-3 ${
+                  idx > 0 ? "border-t border-border" : ""
+                }`}
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  {current && (
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: current.cor }}
+                    />
+                  )}
+                  <span className="truncate text-sm font-medium">{c.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {savingCat === c.id && (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  )}
+                  <select
+                    value={c.id_impressora_destino ?? ""}
+                    onChange={(e) => handleAssign(c.id, e.target.value)}
+                    className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
+                  >
+                    <option value="">Balcão de Entregas (padrão)</option>
+                    {printers.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Printers list */}
+      <section className="lg:col-span-2">
+        <header className="mb-3">
+          <h2 className="font-display text-lg font-bold">Setores de impressão</h2>
+          <p className="text-sm text-muted-foreground">
+            Conexão de cada impressora (USB ou IP de rede).
+          </p>
+        </header>
+        <div className="space-y-3">
+          {printers.map((p) => (
+            <PrinterCard key={p.id} printer={p} />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PrinterCard({ printer }: { printer: PrinterConfig }) {
+  const queryClient = useQueryClient();
+  const [tipo, setTipo] = useState(printer.tipo_conexao);
+  const [ip, setIp] = useState(printer.endereco_ip ?? "");
+  const [porta, setPorta] = useState(printer.porta ? String(printer.porta) : "");
+  const [usb, setUsb] = useState(printer.caminho_usb ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updatePrinter(printer.id, {
+        tipo_conexao: tipo,
+        endereco_ip: tipo === "IP" ? ip || null : null,
+        porta: tipo === "IP" && porta ? Number(porta) : null,
+        caminho_usb: tipo === "USB" ? usb || null : null,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["printers"] });
+      toast.success(`${printer.nome} atualizada.`);
+    } catch {
+      toast.error("Não foi possível salvar a impressora.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
+      <div className="mb-3 flex items-center gap-2">
+        <span
+          className="h-3.5 w-3.5 rounded-full"
+          style={{ backgroundColor: printer.cor }}
+        />
+        <span className="font-display font-bold">{printer.nome}</span>
+        {printer.is_default && (
+          <span className="ml-auto rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase">
+            Padrão
+          </span>
+        )}
+      </div>
+
+      <div className="mb-3 flex gap-2">
+        <button
+          onClick={() => setTipo("USB")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+            tipo === "USB"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-muted-foreground"
+          }`}
+        >
+          <Usb className="h-4 w-4" /> USB
+        </button>
+        <button
+          onClick={() => setTipo("IP")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+            tipo === "IP"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-muted-foreground"
+          }`}
+        >
+          <Network className="h-4 w-4" /> IP
+        </button>
+      </div>
+
+      {tipo === "IP" ? (
+        <div className="flex gap-2">
+          <Input
+            value={ip}
+            onChange={(e) => setIp(e.target.value)}
+            placeholder="192.168.0.50"
+            className="h-9 rounded-lg"
+          />
+          <Input
+            value={porta}
+            onChange={(e) => setPorta(e.target.value)}
+            placeholder="9100"
+            inputMode="numeric"
+            className="h-9 w-24 rounded-lg"
+          />
+        </div>
+      ) : (
+        <Input
+          value={usb}
+          onChange={(e) => setUsb(e.target.value)}
+          placeholder="Identificador USB (ex: POS-80)"
+          className="h-9 rounded-lg"
+        />
+      )}
+
+      <Button
+        size="sm"
+        className="mt-3 w-full rounded-xl"
+        onClick={handleSave}
+        disabled={saving}
+      >
+        {saving ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <>
+            <Save className="mr-1.5 h-4 w-4" /> Salvar conexão
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
+

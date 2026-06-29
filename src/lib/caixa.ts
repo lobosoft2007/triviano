@@ -24,6 +24,8 @@ export interface Movimentacao {
 
 export interface CaixaOrderItem {
   id: string;
+  product_id: string | null;
+  category_id: string | null;
   product_name: string;
   unit_price: number;
   quantity: number;
@@ -146,7 +148,7 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, status, total, discount, delivery_address, phone, notes, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes)",
+      "id, status, total, discount, delivery_address, phone, notes, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
     )
     .neq("status", "delivered")
     .neq("status", "cancelled")
@@ -167,6 +169,10 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
     impresso_conta: o.impresso_conta,
     order_items: (o.order_items ?? []).map((it) => ({
       id: it.id,
+      product_id: (it as { product_id?: string | null }).product_id ?? null,
+      category_id:
+        (it as { products?: { category_id?: string | null } | null }).products
+          ?.category_id ?? null,
       product_name: it.product_name,
       unit_price: Number(it.unit_price),
       quantity: it.quantity,
