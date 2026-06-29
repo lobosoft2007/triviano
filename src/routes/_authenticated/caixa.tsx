@@ -239,7 +239,7 @@ function LockScreen({ userId }: { userId: string }) {
 
 function OperationalPanel({ caixaId }: { caixaId: string }) {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"delivery" | "mesas">("delivery");
+  const [tab, setTab] = useState<"delivery" | "mesas" | "config">("delivery");
   const [soundOn, setSoundOn] = useState(true);
   const [printNode, setPrintNode] = useState<ReactNode>(null);
   const prevIdsRef = useRef<Set<string> | null>(null);
@@ -257,6 +257,19 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     queryFn: fetchCaixaOrders,
     refetchInterval: 20000,
   });
+  const { data: printers } = useQuery({
+    queryKey: ["printers"],
+    queryFn: fetchPrinters,
+  });
+  const { data: catRouting } = useQuery({
+    queryKey: ["categories-routing"],
+    queryFn: fetchCategoriesRouting,
+  });
+
+  const resolveSector = useMemo(
+    () => makeSectorResolver(printers ?? [], catRouting ?? []),
+    [printers, catRouting],
+  );
 
   // Realtime: refresh orders + beep on new ones.
   useEffect(() => {
