@@ -148,7 +148,7 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, status, total, discount, delivery_address, phone, notes, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes)",
+      "id, status, total, discount, delivery_address, phone, notes, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
     )
     .neq("status", "delivered")
     .neq("status", "cancelled")
