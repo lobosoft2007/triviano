@@ -198,45 +198,56 @@ function CheckoutPage() {
             </p>
           ))}
 
-          {/* PIX payment */}
+          {/* PIX payment — BR Code (Copia e Cola) + QR Code dinâmico */}
           <section className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
-            <div className="mb-2 flex items-center gap-2">
+            <div className="mb-1 flex items-center gap-2">
               <QrCode className="h-5 w-5 text-primary" />
               <h2 className="font-display text-base font-bold">
                 Pagamento via PIX
               </h2>
             </div>
             <p className="text-xs text-muted-foreground">
-              Pague com a chave PIX abaixo. Envie o comprovante após confirmar o
-              pedido.
+              Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
+              <span className="font-semibold text-foreground">
+                {formatBRL(totalPrice)}
+              </span>{" "}
+              já vem preenchido.
             </p>
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3">
-              <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Chave (telefone)
-                </p>
-                <p className="truncate font-display text-lg font-bold tabular-nums">
-                  {PIX_KEY}
-                </p>
+
+            <div className="mt-4 flex flex-col items-center">
+              <div className="rounded-2xl bg-white p-3 shadow-card">
+                <QRCodeCanvas
+                  value={pixPayload}
+                  size={196}
+                  level="M"
+                  marginSize={1}
+                  aria-label="QR Code para pagamento PIX"
+                />
               </div>
-              <button
-                type="button"
-                onClick={copyPix}
-                aria-label="Copiar chave PIX"
-                className="flex h-10 flex-shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-                {copied ? "Copiado" : "Copiar"}
-              </button>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Favorecido: <span className="font-medium">{PIX_NAME}</span>
+
+            <button
+              type="button"
+              onClick={copyPix}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
+            >
+              {copied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              {copied ? "Código copiado com sucesso!" : "Copiar Código PIX (Copia e Cola)"}
+            </button>
+
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Favorecido:{" "}
+              <span className="font-medium text-foreground">
+                {PIX_RECEIVER.merchantName}
+              </span>{" "}
+              • {PIX_RECEIVER.merchantCity}
             </p>
           </section>
+
 
           {/* Order form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
