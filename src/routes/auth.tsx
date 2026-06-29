@@ -98,11 +98,14 @@ function AuthPage() {
     });
     setSubmitting(false);
     if (error) {
-      toast.error(
-        error.message.includes("already")
-          ? "Este e-mail já está cadastrado. Tente entrar."
-          : "Não foi possível criar a conta.",
-      );
+      const msg = error.message.toLowerCase();
+      if (msg.includes("already") || msg.includes("registered")) {
+        toast.error("Este e-mail já está cadastrado. Tente entrar.");
+      } else if (msg.includes("password") || msg.includes("pwned") || msg.includes("leaked")) {
+        toast.error("Senha muito fraca ou vazada. Escolha uma senha mais segura.");
+      } else {
+        toast.error("Não foi possível criar a conta.");
+      }
       return;
     }
     toast.success("Conta criada com sucesso!");
