@@ -4,6 +4,7 @@ import type { Category, Product } from "@/lib/menu";
 import { useCart, makeLineId, type NewCartItem } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import { ProductCustomizer } from "@/components/ProductCustomizer";
+import { ProductImage } from "@/components/ProductImage";
 
 export function ProductCard({
   product,
@@ -45,14 +46,15 @@ export function ProductCard({
 
   return (
     <div className="flex gap-3 rounded-2xl bg-card p-3 shadow-card">
-      <img
+      <ProductImage
         src={product.image_url}
         alt={product.name}
-        loading="lazy"
+        categorySlug={category.slug}
         width={768}
         height={768}
         className="h-24 w-24 flex-shrink-0 rounded-xl object-cover"
       />
+
       <div className="flex min-w-0 flex-1 flex-col">
         <h3 className="font-display text-base font-semibold leading-tight">
           {product.name}

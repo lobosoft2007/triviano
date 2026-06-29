@@ -18,6 +18,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { ProductImage } from "@/components/ProductImage";
 
 export function CartSheet({ children }: { children: React.ReactNode }) {
   const {
@@ -66,14 +67,15 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   key={item.lineId}
                   className="flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card"
                 >
-                  <img
+                  <ProductImage
                     src={item.image_url}
                     alt={item.name}
-                    loading="lazy"
+                    categorySlug={item.categorySlug}
                     width={768}
                     height={768}
                     className="h-16 w-16 flex-shrink-0 rounded-xl object-cover"
                   />
+
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{item.name}</p>
                     {(item.addons.length > 0 ||
