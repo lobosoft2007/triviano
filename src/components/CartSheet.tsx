@@ -18,6 +18,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { ProductImage } from "@/components/ProductImage";
 
 export function CartSheet({ children }: { children: React.ReactNode }) {
   const {
