@@ -322,6 +322,7 @@ export type Database = {
           custo_anterior: number | null
           custo_anterior_at: string | null
           custo_unitario: number
+          estocavel: boolean
           fornecedor_id: string | null
           id: string
           nome: string
@@ -334,6 +335,7 @@ export type Database = {
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           custo_unitario?: number
+          estocavel?: boolean
           fornecedor_id?: string | null
           id?: string
           nome: string
@@ -346,6 +348,7 @@ export type Database = {
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           custo_unitario?: number
+          estocavel?: boolean
           fornecedor_id?: string | null
           id?: string
           nome?: string
