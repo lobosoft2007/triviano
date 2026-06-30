@@ -1,6 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const MENU_IMAGE_BUCKET = "imagens-cardapio";
+export const CERT_BUCKET = "certificados-fiscais";
+
+/** Upload a digital A1 certificate (.pfx / .p12) to the secure private bucket. */
+export async function uploadCertificate(file: File): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "pfx";
+  const path = `a1/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from(CERT_BUCKET).upload(path, file, {
+    cacheControl: "0",
+    upsert: false,
+    contentType: file.type || "application/x-pkcs12",
+  });
+  if (error) throw error;
+  return path;
+}
 
 /** A value is an external/static URL if it's a full URL or an app asset path. */
 export function isExternalUrl(value: string): boolean {
