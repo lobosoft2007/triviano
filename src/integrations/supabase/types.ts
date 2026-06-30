@@ -235,6 +235,8 @@ export type Database = {
           data_hora_fechamento: string | null
           id: string
           id_usuario: string
+          metadados_abertura: Json | null
+          metadados_fechamento: Json | null
           status: string
           updated_at: string
           valor_abertura: number
@@ -246,6 +248,8 @@ export type Database = {
           data_hora_fechamento?: string | null
           id?: string
           id_usuario: string
+          metadados_abertura?: Json | null
+          metadados_fechamento?: Json | null
           status?: string
           updated_at?: string
           valor_abertura?: number
@@ -257,6 +261,8 @@ export type Database = {
           data_hora_fechamento?: string | null
           id?: string
           id_usuario?: string
+          metadados_abertura?: Json | null
+          metadados_fechamento?: Json | null
           status?: string
           updated_at?: string
           valor_abertura?: number
