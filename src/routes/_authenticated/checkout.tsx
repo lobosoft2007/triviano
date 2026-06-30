@@ -38,6 +38,20 @@ function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [useCashback, setUseCashback] = useState(false);
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => fetchProfile(user!.id),
+    enabled: !!user,
+  });
+
+  const saldoCashback = profile?.saldo_cashback ?? 0;
+  const cashbackApplied = useCashback
+    ? Math.min(Math.round(saldoCashback * 100), Math.round(totalPrice * 100)) /
+      100
+    : 0;
+  const finalTotal = Math.round((totalPrice - cashbackApplied) * 100) / 100;
 
   const {
     payload: pixPayload,
@@ -45,7 +59,8 @@ function CheckoutPage() {
     copy: copyPixPayload,
     merchantName: pixMerchantName,
     merchantCity: pixMerchantCity,
-  } = usePixPayment(totalPrice);
+  } = usePixPayment(finalTotal);
+
 
 
   const { data: profile } = useQuery({
