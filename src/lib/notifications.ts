@@ -13,7 +13,7 @@ export interface NotificacaoCliente {
 
 /**
  * Automatic message for each production-conveyor status. Some statuses share
- * the same final message ("Entregue" and "Pago").
+ * the same final message ("Entregue" and "Encerrado e pago").
  */
 export const STATUS_NOTIFICATION_MESSAGES: Record<
   StatusPedido,
