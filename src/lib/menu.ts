@@ -46,7 +46,16 @@ export interface Product {
   free_addon_price: number;
   /** Ingredient names the customer may opt to remove (permitir_exclusao = true). */
   removable_ingredients: string[];
+  /**
+   * true = prepared in-house (custo_total = sum of recipe insumos/subprodutos);
+   * false = bought ready (custo_total = direct acquisition cost / price).
+   */
+  manipulado: boolean;
+  setor_id: string | null;
+  fornecedor_id: string | null;
+  custo_anterior: number | null;
 }
+
 
 
 
