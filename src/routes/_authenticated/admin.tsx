@@ -609,6 +609,15 @@ function InventoryView({
                   <p className="truncate text-sm font-semibold">{i.nome}</p>
                   <p className="text-xs text-muted-foreground">
                     por {i.unidade_medida}
+                    <span
+                      className={`ml-2 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                        i.estocavel
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      }`}
+                    >
+                      {i.estocavel ? "Estocável" : "Não estocável"}
+                    </span>
                   </p>
                 </div>
                 <span className="whitespace-nowrap text-sm font-bold text-primary tabular-nums">
@@ -616,6 +625,7 @@ function InventoryView({
                 </span>
               </div>
             ))}
+
           </div>
         )}
       </section>
