@@ -63,12 +63,6 @@ function CheckoutPage() {
 
 
 
-  const { data: profile } = useQuery({
-    queryKey: ["profile", user?.id],
-    queryFn: () => fetchProfile(user!.id),
-    enabled: !!user,
-  });
-
   useEffect(() => {
     if (profile) {
       setAddress((a) => a || profile.address);
