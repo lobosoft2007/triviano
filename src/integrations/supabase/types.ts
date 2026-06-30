@@ -139,6 +139,45 @@ export type Database = {
         }
         Relationships: []
       }
+      config_pagamentos: {
+        Row: {
+          ativo: boolean
+          chave_pix_padrao: string
+          cidade_recebedor: string
+          client_id: string
+          client_secret: string
+          created_at: string
+          gateway_banco: string
+          id: string
+          nome_recebedor: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          chave_pix_padrao?: string
+          cidade_recebedor?: string
+          client_id?: string
+          client_secret?: string
+          created_at?: string
+          gateway_banco?: string
+          id?: string
+          nome_recebedor?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          chave_pix_padrao?: string
+          cidade_recebedor?: string
+          client_id?: string
+          client_secret?: string
+          created_at?: string
+          gateway_banco?: string
+          id?: string
+          nome_recebedor?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fichas_tecnicas: {
         Row: {
           created_at: string
@@ -807,6 +846,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_active_pix_config: {
+        Args: never
+        Returns: {
+          chave_pix_padrao: string
+          cidade_recebedor: string
+          gateway_banco: string
+          nome_recebedor: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
