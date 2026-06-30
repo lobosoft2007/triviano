@@ -7,6 +7,7 @@ import {
   ESTEIRA_STATUSES,
   type StatusPedido,
 } from "@/lib/caixa";
+import { notifyStatusChange } from "@/lib/notifications";
 
 const STATUS_COLOR: Record<StatusPedido, string> = {
   Recebido: "#6366f1",
@@ -20,9 +21,11 @@ const STATUS_COLOR: Record<StatusPedido, string> = {
 
 export function StatusControl({
   orderId,
+  userId,
   status,
 }: {
   orderId: string;
+  userId?: string;
   status: StatusPedido;
 }) {
   const queryClient = useQueryClient();
@@ -33,6 +36,13 @@ export function StatusControl({
     setSaving(true);
     try {
       await updateStatusPedido(orderId, next);
+      if (userId) {
+        try {
+          await notifyStatusChange(orderId, userId, next);
+        } catch {
+          /* notification is best-effort; status already saved */
+        }
+      }
       await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
     } catch {
       toast.error("Não foi possível atualizar o status.");

@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { ProductCard } from "@/components/ProductCard";
 import { CartSheet } from "@/components/CartSheet";
+import { NotificationBell } from "@/components/NotificationBell";
+import { PushPermissionBanner } from "@/components/PushPermissionBanner";
 
 export const Route = createFileRoute("/_authenticated/menu")({
   component: MenuPage,
@@ -82,6 +84,7 @@ function MenuPage() {
                   <Settings className="h-5 w-5" />
                 </Link>
               )}
+              <NotificationBell />
               <Link
                 to="/orders"
                 aria-label="Meus pedidos"
@@ -119,7 +122,11 @@ function MenuPage() {
           )}
         </header>
 
-        <main className="px-5 py-5">
+        <div className="pt-4">
+          <PushPermissionBanner />
+        </div>
+
+        <main className="px-5 py-5 pt-0">
           {isLoading && (
             <div className="flex justify-center py-20">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />

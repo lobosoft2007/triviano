@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, ClipboardList, CheckCircle2 } from "lucide-react";
 import { fetchOrders } from "@/lib/orders";
 import { formatBRL } from "@/lib/format";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export const Route = createFileRoute("/_authenticated/orders")({
   component: OrdersPage,
@@ -33,7 +34,8 @@ function OrdersPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="font-display text-xl font-bold">Meus pedidos</h1>
+          <h1 className="flex-1 font-display text-xl font-bold">Meus pedidos</h1>
+          <NotificationBell />
         </header>
 
         <main className="px-5 py-5">

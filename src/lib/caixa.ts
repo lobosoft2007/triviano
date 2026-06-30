@@ -64,6 +64,7 @@ export interface CaixaOrderItem {
 
 export interface CaixaOrder {
   id: string;
+  user_id: string;
   status: string;
   status_pedido: StatusPedido;
   total: number;
@@ -186,13 +187,14 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, status, status_pedido, total, discount, desconto_manual, delivery_address, phone, notes, observacoes_operador, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
+      "id, user_id, status, status_pedido, total, discount, desconto_manual, delivery_address, phone, notes, observacoes_operador, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
     )
     .not("status_pedido", "in", "(Entregue,Pago,Cancelado)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((o) => ({
     id: o.id,
+    user_id: (o as { user_id: string }).user_id,
     status: o.status,
     status_pedido: (o.status_pedido ?? "Recebido") as StatusPedido,
     total: Number(o.total),

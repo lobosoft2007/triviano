@@ -34,6 +34,8 @@ import { StatusControl } from "@/components/caixa/StatusControl";
 import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
 import { PaymentDialog } from "@/components/caixa/PaymentDialog";
 import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
+import { NotifyClient } from "@/components/caixa/NotifyClient";
+import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
@@ -361,6 +363,11 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
 
     try {
       await markPrintedCozinha(order.id);
+      try {
+        await notifyStatusChange(order.id, order.user_id, "Em preparação");
+      } catch {
+        /* best-effort */
+      }
       await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
       toast.success(
         `Impressões de preparo disparadas (${list.length} setor${
@@ -700,7 +707,7 @@ function MesasColumn({
                     </p>
                   )}
                   <div className="mt-2">
-                    <StatusControl orderId={o.id} status={o.status_pedido} />
+                    <StatusControl orderId={o.id} userId={o.user_id} status={o.status_pedido} />
                   </div>
                   {!o.impresso_cozinha && (
                     <Button
@@ -797,7 +804,7 @@ function OrderCard({
       </div>
 
       <div className="mt-3">
-        <StatusControl orderId={order.id} status={order.status_pedido} />
+        <StatusControl orderId={order.id} userId={order.user_id} status={order.status_pedido} />
       </div>
 
       {isNew ? (
@@ -811,6 +818,8 @@ function OrderCard({
       )}
 
       <OrderActions order={order} />
+
+      <NotifyClient order={order} />
     </div>
   );
 }
