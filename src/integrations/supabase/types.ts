@@ -462,6 +462,44 @@ export type Database = {
           },
         ]
       }
+      notificacoes_cliente: {
+        Row: {
+          created_at: string
+          id: string
+          id_pedido: string | null
+          id_usuario: string
+          lida: boolean
+          mensagem: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          id_pedido?: string | null
+          id_usuario: string
+          lida?: boolean
+          mensagem: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          id_pedido?: string | null
+          id_usuario?: string
+          lida?: boolean
+          mensagem?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_cliente_id_pedido_fkey"
+            columns: ["id_pedido"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           addons: Json
@@ -805,6 +843,7 @@ export type Database = {
           full_name: string
           id: string
           phone: string
+          push_token: string | null
           updated_at: string
         }
         Insert: {
@@ -813,6 +852,7 @@ export type Database = {
           full_name?: string
           id: string
           phone?: string
+          push_token?: string | null
           updated_at?: string
         }
         Update: {
@@ -821,6 +861,7 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string
+          push_token?: string | null
           updated_at?: string
         }
         Relationships: []
