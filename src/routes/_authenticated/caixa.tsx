@@ -574,6 +574,19 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
       </main>
 
 
+      {/* Close cash register dialog */}
+      {caixa && (
+        <CloseCaixaDialog
+          open={closeOpen}
+          onOpenChange={setCloseOpen}
+          caixaId={caixa.id}
+          saldoEsperado={saldo}
+          onClosed={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["caixa-open"] });
+          }}
+        />
+      )}
+
       {/* Hidden thermal print surface */}
       <div className="thermal-receipt">{printNode}</div>
     </div>
