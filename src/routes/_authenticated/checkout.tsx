@@ -247,9 +247,9 @@ function CheckoutPage() {
             <p className="mt-3 text-center text-xs text-muted-foreground">
               Favorecido:{" "}
               <span className="font-medium text-foreground">
-                {PIX_RECEIVER.merchantName}
+                {pixMerchantName}
               </span>{" "}
-              • {PIX_RECEIVER.merchantCity}
+              • {pixMerchantCity}
             </p>
           </section>
 
