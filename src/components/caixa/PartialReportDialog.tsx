@@ -69,7 +69,7 @@ export function PartialReportDialog({
                   {report.porMeio.map((m) => (
                     <Row
                       key={m.nome}
-                      label={m.informativo ? `${m.nome} (não-caixa)` : m.nome}
+                      label={meioLabel(m.nome, m.informativo)}
                       value={m.total}
                       muted
                     />
