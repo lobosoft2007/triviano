@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { ProductCard } from "@/components/ProductCard";
 import { CartSheet } from "@/components/CartSheet";
+import { NotificationBell } from "@/components/NotificationBell";
+import { PushPermissionBanner } from "@/components/PushPermissionBanner";
 
 export const Route = createFileRoute("/_authenticated/menu")({
   component: MenuPage,
