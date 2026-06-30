@@ -98,8 +98,6 @@ interface Insumo {
   custo_unitario: number;
   estocavel: boolean;
 }
-
-
 interface Subproduto {
   id: string;
   nome: string;
