@@ -223,6 +223,13 @@ export function ProductDetailFields({
         rows={value.free_addons}
         onChange={(rows) => patch({ free_addons: rows })}
       />
+
+      <FichaTecnicaEditor
+        value={value.ficha}
+        onChange={(rows) => patch({ ficha: rows })}
+        insumos={insumos}
+        subprodutos={subprodutos}
+      />
     </div>
   );
 }
