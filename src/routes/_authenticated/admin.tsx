@@ -12,6 +12,8 @@ import {
   Package,
   Boxes,
   UtensilsCrossed,
+  Layers,
+  Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +21,14 @@ import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
 import { resolveImageUrls, uploadMenuImage } from "@/lib/storage";
 import { compressImage } from "@/lib/imageCompression";
+import {
+  fetchProductDetail,
+  saveProductDetail,
+  listSetores,
+  listFornecedores,
+  parseNumberInput,
+  type ProductDetail,
+} from "@/lib/erp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +48,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SetoresCrud } from "@/components/admin/SetoresCrud";
+import { FornecedoresCrud } from "@/components/admin/FornecedoresCrud";
+import { InsumosCrud } from "@/components/admin/InsumosCrud";
+import { SubprodutosCrud } from "@/components/admin/SubprodutosCrud";
+import {
+  ProductDetailFields,
+  EMPTY_DETAIL,
+  NONE,
+  type ProductDetailForm,
+} from "@/components/admin/ProductDetailFields";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -55,9 +75,10 @@ interface AdminProduct {
   name: string;
   description: string;
   price: number;
-  image_url: string; // raw stored value (path or external URL)
-  display_url: string; // resolved displayable URL
+  image_url: string;
+  display_url: string;
   available: boolean;
+  free_addon_limit: number;
 }
 
 async function fetchAdminMenu() {
@@ -65,7 +86,9 @@ async function fetchAdminMenu() {
     supabase.from("categories").select("id, name, sort_order").order("sort_order"),
     supabase
       .from("products")
-      .select("id, category_id, name, description, price, image_url, available")
+      .select(
+        "id, category_id, name, description, price, image_url, available, free_addon_limit",
+      )
       .order("sort_order"),
   ]);
   if (catRes.error) throw catRes.error;
@@ -79,6 +102,7 @@ async function fetchAdminMenu() {
     price: Number(p.price),
     image_url: p.image_url ?? "",
     available: p.available,
+    free_addon_limit: Number(p.free_addon_limit ?? 0),
   }));
   const urlMap = await resolveImageUrls(raw.map((p) => p.image_url));
 
@@ -90,47 +114,6 @@ async function fetchAdminMenu() {
     })) as AdminProduct[],
   };
 }
-
-interface Insumo {
-  id: string;
-  nome: string;
-  unidade_medida: string;
-  custo_unitario: number;
-  estocavel: boolean;
-}
-interface Subproduto {
-  id: string;
-  nome: string;
-  rendimento_porcoes: number;
-  modo_preparo: string;
-}
-
-async function fetchInventory() {
-  const [insRes, subRes] = await Promise.all([
-    supabase
-      .from("insumos")
-      .select("id, nome, unidade_medida, custo_unitario, estocavel")
-      .order("nome"),
-    supabase
-      .from("subprodutos")
-      .select("id, nome, rendimento_porcoes, modo_preparo")
-      .order("nome"),
-  ]);
-  if (insRes.error) throw insRes.error;
-  if (subRes.error) throw subRes.error;
-  return {
-    insumos: (insRes.data ?? []).map((i) => ({
-      ...i,
-      custo_unitario: Number(i.custo_unitario),
-      estocavel: i.estocavel ?? true,
-    })) as Insumo[],
-    subprodutos: (subRes.data ?? []).map((s) => ({
-      ...s,
-      rendimento_porcoes: Number(s.rendimento_porcoes),
-    })) as Subproduto[],
-  };
-}
-
 
 function useIsAdmin(userId: string | undefined) {
   return useQuery({
@@ -157,6 +140,7 @@ interface FormState {
   price: string;
   available: boolean;
   image_url: string;
+  free_addon_limit: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -167,7 +151,67 @@ const EMPTY_FORM: FormState = {
   price: "",
   available: true,
   image_url: "",
+  free_addon_limit: "0",
 };
+
+type AdminTab =
+  | "cardapio"
+  | "insumos"
+  | "subprodutos"
+  | "setores"
+  | "fornecedores";
+
+const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
+  { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
+  { key: "insumos", label: "Insumos", icon: Package },
+  { key: "subprodutos", label: "Subprodutos", icon: Boxes },
+  { key: "setores", label: "Setores", icon: Layers },
+  { key: "fornecedores", label: "Fornecedores", icon: Truck },
+];
+
+function detailToForm(d: ProductDetail): ProductDetailForm {
+  return {
+    manipulado: d.manipulado,
+    setor_id: d.setor_id ?? NONE,
+    fornecedor_id: d.fornecedor_id ?? NONE,
+    ncm: d.ncm,
+    ean: d.ean,
+    price_options: d.price_options.map((o) => ({
+      label: o.tamanho,
+      preco: String(o.preco).replace(".", ","),
+    })),
+    addons: d.addons.map((a) => ({
+      label: a.nome,
+      preco: String(a.preco).replace(".", ","),
+    })),
+    free_addons: d.free_addons.map((a) => ({
+      label: a.nome,
+      preco: String(a.preco).replace(".", ","),
+    })),
+  };
+}
+
+function formToDetail(d: ProductDetailForm): ProductDetail {
+  return {
+    manipulado: d.manipulado,
+    setor_id: d.setor_id === NONE ? null : d.setor_id,
+    fornecedor_id: d.fornecedor_id === NONE ? null : d.fornecedor_id,
+    ncm: d.ncm,
+    ean: d.ean,
+    price_options: d.price_options.map((o) => ({
+      tamanho: o.label,
+      preco: parseNumberInput(o.preco),
+    })),
+    addons: d.addons.map((a) => ({
+      nome: a.label,
+      preco: parseNumberInput(a.preco),
+    })),
+    free_addons: d.free_addons.map((a) => ({
+      nome: a.label,
+      preco: parseNumberInput(a.preco),
+    })),
+  };
+}
 
 function AdminPage() {
   const { user } = useAuth();
@@ -179,18 +223,25 @@ function AdminPage() {
     enabled: isAdmin === true,
   });
 
-  const [tab, setTab] = useState<"cardapio" | "insumos">("cardapio");
-  const { data: inventory, isLoading: invLoading } = useQuery({
-    queryKey: ["admin-inventory"],
-    queryFn: fetchInventory,
-    enabled: isAdmin === true && tab === "insumos",
+  const [tab, setTab] = useState<AdminTab>("cardapio");
+  const { data: setores } = useQuery({
+    queryKey: ["erp-setores"],
+    queryFn: listSetores,
+    enabled: isAdmin === true,
+  });
+  const { data: fornecedores } = useQuery({
+    queryKey: ["erp-fornecedores"],
+    queryFn: listFornecedores,
+    enabled: isAdmin === true,
   });
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [detail, setDetail] = useState<ProductDetailForm>(EMPTY_DETAIL);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -202,12 +253,13 @@ function AdminPage() {
 
   const openNew = () => {
     setForm({ ...EMPTY_FORM, category_id: data?.categories[0]?.id ?? "" });
+    setDetail(EMPTY_DETAIL);
     setFile(null);
     setPreview("");
     setOpen(true);
   };
 
-  const openEdit = (p: AdminProduct) => {
+  const openEdit = async (p: AdminProduct) => {
     setForm({
       id: p.id,
       category_id: p.category_id,
@@ -216,10 +268,21 @@ function AdminPage() {
       price: String(p.price),
       available: p.available,
       image_url: p.image_url,
+      free_addon_limit: String(p.free_addon_limit),
     });
     setFile(null);
     setPreview(p.display_url);
+    setDetail(EMPTY_DETAIL);
     setOpen(true);
+    setLoadingDetail(true);
+    try {
+      const d = await fetchProductDetail(p.id);
+      setDetail(detailToForm(d));
+    } catch {
+      toast.error("Não foi possível carregar os detalhes do item.");
+    } finally {
+      setLoadingDetail(false);
+    }
   };
 
   const handleSave = async () => {
@@ -227,8 +290,8 @@ function AdminPage() {
       toast.error("Preencha o nome e a categoria.");
       return;
     }
-    const price = Number(form.price.replace(",", "."));
-    if (Number.isNaN(price) || price < 0) {
+    const price = parseNumberInput(form.price);
+    if (price < 0) {
       toast.error("Informe um preço válido.");
       return;
     }
@@ -248,21 +311,29 @@ function AdminPage() {
         price,
         available: form.available,
         image_url: imageRef,
+        free_addon_limit: Math.max(0, Math.trunc(Number(form.free_addon_limit) || 0)),
       };
 
-      if (form.id) {
+      let productId = form.id;
+      if (productId) {
         const { error } = await supabase
           .from("products")
           .update(payload)
-          .eq("id", form.id);
+          .eq("id", productId);
         if (error) throw error;
-        toast.success("Item atualizado!");
       } else {
-        const { error } = await supabase.from("products").insert(payload);
+        const { data: inserted, error } = await supabase
+          .from("products")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
-        toast.success("Item adicionado!");
+        productId = inserted.id;
       }
 
+      await saveProductDetail(productId!, formToDetail(detail));
+
+      toast.success(form.id ? "Item atualizado!" : "Item adicionado!");
       setOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["admin-menu"] });
       await queryClient.invalidateQueries({ queryKey: ["menu"] });
@@ -317,8 +388,8 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <div className="mx-auto max-w-md">
-        <header className="sticky top-0 z-20 border-b border-border bg-background/90 px-5 py-3.5 backdrop-blur-md">
+      <div className="mx-auto max-w-6xl">
+        <header className="sticky top-0 z-20 border-b border-border bg-background/90 px-4 py-3.5 backdrop-blur-md lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Link
@@ -329,120 +400,119 @@ function AdminPage() {
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <div>
-                <p className="text-xs text-muted-foreground">Administração</p>
+                <p className="text-xs text-muted-foreground">Retaguarda</p>
                 <h1 className="font-display text-xl font-bold leading-tight">
-                  {tab === "cardapio" ? "Cardápio" : "Insumos & Subprodutos"}
+                  Gerenciador
                 </h1>
               </div>
             </div>
             {tab === "cardapio" && (
               <Button size="sm" onClick={openNew}>
-                <Plus className="mr-1 h-4 w-4" /> Novo
+                <Plus className="mr-1 h-4 w-4" /> Novo produto
               </Button>
             )}
           </div>
 
-          <div className="mt-3 flex gap-1.5 rounded-xl bg-secondary p-1">
-            <button
-              onClick={() => setTab("cardapio")}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                tab === "cardapio"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              }`}
-            >
-              <UtensilsCrossed className="h-4 w-4" /> Cardápio
-            </button>
-            <button
-              onClick={() => setTab("insumos")}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                tab === "insumos"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              }`}
-            >
-              <Package className="h-4 w-4" /> Estoque
-            </button>
+          <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-xl bg-secondary p-1">
+            {TABS.map((t) => {
+              const Icon = t.icon;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                    tab === t.key
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" /> {t.label}
+                </button>
+              );
+            })}
           </div>
         </header>
 
-        <main className="px-5 py-5">
-          {tab === "insumos" ? (
-            <InventoryView loading={invLoading} inventory={inventory} />
-          ) : (
-          <>
-          {isLoading && (
-            <div className="flex justify-center py-20">
-              <Loader2 className="h-7 w-7 animate-spin text-primary" />
-            </div>
-          )}
+        <main className="px-4 py-5 lg:px-8">
+          {tab === "insumos" && <InsumosCrud />}
+          {tab === "subprodutos" && <SubprodutosCrud />}
+          {tab === "setores" && <SetoresCrud />}
+          {tab === "fornecedores" && <FornecedoresCrud />}
 
-          {data &&
-            data.categories.map((cat) => {
-              const products = data.products.filter(
-                (p) => p.category_id === cat.id,
-              );
-              if (products.length === 0) return null;
-              return (
-                <section key={cat.id} className="mb-7">
-                  <h2 className="mb-3 font-display text-base font-bold">
-                    {cat.name}
-                  </h2>
-                  <div className="space-y-2.5">
-                    {products.map((p) => (
-                      <div
-                        key={p.id}
-                        className="flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card"
-                      >
-                        <img
-                          src={p.display_url || "/icons/icon-192.png"}
-                          alt={p.name}
-                          loading="lazy"
-                          className="h-14 w-14 flex-shrink-0 rounded-xl bg-secondary object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold">
-                            {p.name}
-                            {!p.available && (
-                              <span className="ml-2 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                oculto
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-xs text-primary">
-                            {formatBRL(p.price)}
-                          </p>
-                        </div>
-                        <button
-                          aria-label={`Editar ${p.name}`}
-                          onClick={() => openEdit(p)}
-                          className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          aria-label={`Remover ${p.name}`}
-                          onClick={() => handleDelete(p)}
-                          className="flex h-9 w-9 items-center justify-center rounded-full text-destructive transition-colors hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+          {tab === "cardapio" && (
+            <>
+              {isLoading && (
+                <div className="flex justify-center py-20">
+                  <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                </div>
+              )}
+
+              {data &&
+                data.categories.map((cat) => {
+                  const products = data.products.filter(
+                    (p) => p.category_id === cat.id,
+                  );
+                  if (products.length === 0) return null;
+                  return (
+                    <section key={cat.id} className="mb-7">
+                      <h2 className="mb-3 font-display text-base font-bold">
+                        {cat.name}
+                      </h2>
+                      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                        {products.map((p) => (
+                          <div
+                            key={p.id}
+                            className="flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card"
+                          >
+                            <img
+                              src={p.display_url || "/icons/icon-192.png"}
+                              alt={p.name}
+                              loading="lazy"
+                              className="h-14 w-14 flex-shrink-0 rounded-xl bg-secondary object-cover"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold">
+                                {p.name}
+                                {!p.available && (
+                                  <span className="ml-2 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                    oculto
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-xs text-primary">
+                                {formatBRL(p.price)}
+                              </p>
+                            </div>
+                            <button
+                              aria-label={`Editar ${p.name}`}
+                              onClick={() => openEdit(p)}
+                              className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              aria-label={`Remover ${p.name}`}
+                              onClick={() => handleDelete(p)}
+                              className="flex h-9 w-9 items-center justify-center rounded-full text-destructive transition-colors hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
-          </>
+                    </section>
+                  );
+                })}
+            </>
           )}
         </main>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">
-              {form.id ? "Editar item" : "Novo item"}
+              {form.id ? "Editar produto" : "Novo produto"}
             </DialogTitle>
           </DialogHeader>
 
@@ -477,7 +547,7 @@ function AdminPage() {
                   {file
                     ? file.name
                     : preview
-                      ? "Toque para trocar a imagem"
+                      ? "Clique para trocar a imagem"
                       : "Selecionar imagem do dispositivo"}
                 </span>
               </button>
@@ -508,7 +578,7 @@ function AdminPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="prod-price">Preço (R$)</Label>
+                <Label htmlFor="prod-price">Preço base (R$)</Label>
                 <Input
                   id="prod-price"
                   inputMode="decimal"
@@ -537,134 +607,57 @@ function AdminPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5">
-              <Label htmlFor="prod-available" className="cursor-pointer">
-                Disponível no cardápio
-              </Label>
-              <Switch
-                id="prod-available"
-                checked={form.available}
-                onCheckedChange={(v) => setForm({ ...form, available: v })}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5">
+                <Label htmlFor="prod-available" className="cursor-pointer">
+                  Disponível
+                </Label>
+                <Switch
+                  id="prod-available"
+                  checked={form.available}
+                  onCheckedChange={(v) => setForm({ ...form, available: v })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="prod-free-limit">Adicionais grátis</Label>
+                <Input
+                  id="prod-free-limit"
+                  inputMode="numeric"
+                  value={form.free_addon_limit}
+                  onChange={(e) =>
+                    setForm({ ...form, free_addon_limit: e.target.value })
+                  }
+                  placeholder="0"
+                />
+              </div>
             </div>
+
+            {loadingDetail ? (
+              <div className="flex justify-center border-t border-border py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : (
+              <ProductDetailFields
+                value={detail}
+                onChange={setDetail}
+                setores={setores ?? []}
+                fornecedores={fornecedores ?? []}
+              />
+            )}
           </div>
 
           <DialogFooter>
-            <Button onClick={handleSave} disabled={saving} className="w-full">
+            <Button
+              onClick={handleSave}
+              disabled={saving || loadingDetail}
+              className="w-full"
+            >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {form.id ? "Salvar alterações" : "Adicionar item"}
+              {form.id ? "Salvar alterações" : "Adicionar produto"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function InventoryView({
-  loading,
-  inventory,
-}: {
-  loading: boolean;
-  inventory: { insumos: Insumo[]; subprodutos: Subproduto[] } | undefined;
-}) {
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="h-7 w-7 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  const insumos = inventory?.insumos ?? [];
-  const subprodutos = inventory?.subprodutos ?? [];
-
-  return (
-    <div className="space-y-7">
-      <p className="rounded-xl bg-secondary/60 px-3 py-2.5 text-xs text-muted-foreground">
-        Estrutura base do controle de custos (ERP). Cadastro detalhado de
-        insumos, fichas técnicas e dados fiscais chega em breve.
-      </p>
-
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <Package className="h-4 w-4 text-primary" />
-          <h2 className="font-display text-base font-bold">Insumos</h2>
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-            {insumos.length}
-          </span>
-        </div>
-        {insumos.length === 0 ? (
-          <p className="rounded-2xl bg-card p-4 text-sm text-muted-foreground shadow-card">
-            Nenhum insumo cadastrado ainda.
-          </p>
-        ) : (
-          <div className="space-y-2.5">
-            {insumos.map((i) => (
-              <div
-                key={i.id}
-                className="flex items-center justify-between gap-3 rounded-2xl bg-card p-3 shadow-card"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{i.nome}</p>
-                  <p className="text-xs text-muted-foreground">
-                    por {i.unidade_medida}
-                    <span
-                      className={`ml-2 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                        i.estocavel
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}
-                    >
-                      {i.estocavel ? "Estocável" : "Não estocável"}
-                    </span>
-                  </p>
-                </div>
-                <span className="whitespace-nowrap text-sm font-bold text-primary tabular-nums">
-                  {formatBRL(i.custo_unitario)}
-                </span>
-              </div>
-            ))}
-
-          </div>
-        )}
-      </section>
-
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <Boxes className="h-4 w-4 text-primary" />
-          <h2 className="font-display text-base font-bold">Subprodutos</h2>
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-            {subprodutos.length}
-          </span>
-        </div>
-        {subprodutos.length === 0 ? (
-          <p className="rounded-2xl bg-card p-4 text-sm text-muted-foreground shadow-card">
-            Nenhum subproduto cadastrado ainda.
-          </p>
-        ) : (
-          <div className="space-y-2.5">
-            {subprodutos.map((s) => (
-              <div
-                key={s.id}
-                className="rounded-2xl bg-card p-3 shadow-card"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="truncate text-sm font-semibold">{s.nome}</p>
-                  <span className="whitespace-nowrap text-xs text-muted-foreground">
-                    rende {s.rendimento_porcoes} porções
-                  </span>
-                </div>
-                {s.modo_preparo && (
-                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                    {s.modo_preparo}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }
