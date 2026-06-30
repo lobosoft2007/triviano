@@ -524,7 +524,13 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             active={tab === "config"}
             onClick={() => setTab("config")}
             icon={<Settings className="h-4 w-4" />}
-            label="Configurações"
+            label="Impressão"
+          />
+          <TabButton
+            active={tab === "pagamento"}
+            onClick={() => setTab("pagamento")}
+            icon={<CreditCard className="h-4 w-4" />}
+            label="Pagamento"
           />
         </div>
       </header>
