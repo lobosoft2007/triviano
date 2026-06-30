@@ -43,7 +43,7 @@ import { formatBRL } from "@/lib/format";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
 import {
   addMovimentacao,
-  closeCaixa,
+  
   fetchCaixaOrders,
   fetchMovimentacoes,
   fetchOpenCaixa,
