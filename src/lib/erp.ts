@@ -410,6 +410,15 @@ export async function fetchProductDetail(
     })),
     ncm: String(fiscais.ncm ?? ""),
     ean: String(fiscais.ean ?? ""),
+    ficha: (ingRes.data ?? []).map((r) => ({
+      tipo: (r.subproduto_id ? "subproduto" : "insumo") as
+        | "insumo"
+        | "subproduto",
+      ref_id: (r.subproduto_id ?? r.insumo_id ?? "") as string,
+      nome: String(r.nome ?? ""),
+      quantidade: Number(r.quantidade ?? 0),
+      permitir_exclusao: Boolean(r.permitir_exclusao),
+    })),
   };
 }
 
