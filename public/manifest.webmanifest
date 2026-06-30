@@ -1,12 +1,12 @@
 {
-  "name": "Sabor Express — Delivery de Comida",
-  "short_name": "Sabor Express",
+  "name": "Clube 23 — Delivery de Comida",
+  "short_name": "Clube 23",
   "description": "Cardápio variado com entrega rápida. Peça pratos, lanches, sobremesas e bebidas.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#fbf6ee",
-  "theme_color": "#e74a2e",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "lang": "pt-BR",
   "icons": [
     {

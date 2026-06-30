@@ -26,6 +26,8 @@ import {
   saveProductDetail,
   listSetores,
   listFornecedores,
+  listInsumos,
+  listSubprodutos,
   parseNumberInput,
   type ProductDetail,
 } from "@/lib/erp";
@@ -188,6 +190,13 @@ function detailToForm(d: ProductDetail): ProductDetailForm {
       label: a.nome,
       preco: String(a.preco).replace(".", ","),
     })),
+    ficha: d.ficha.map((f) => ({
+      tipo: f.tipo,
+      ref_id: f.ref_id,
+      nome: f.nome,
+      quantidade: f.quantidade ? String(f.quantidade).replace(".", ",") : "",
+      permitir_exclusao: f.permitir_exclusao,
+    })),
   };
 }
 
@@ -210,6 +219,15 @@ function formToDetail(d: ProductDetailForm): ProductDetail {
       nome: a.label,
       preco: parseNumberInput(a.preco),
     })),
+    ficha: d.ficha
+      .filter((f) => f.ref_id)
+      .map((f) => ({
+        tipo: f.tipo,
+        ref_id: f.ref_id,
+        nome: f.nome,
+        quantidade: parseNumberInput(f.quantidade),
+        permitir_exclusao: f.permitir_exclusao,
+      })),
   };
 }
 
@@ -232,6 +250,16 @@ function AdminPage() {
   const { data: fornecedores } = useQuery({
     queryKey: ["erp-fornecedores"],
     queryFn: listFornecedores,
+    enabled: isAdmin === true,
+  });
+  const { data: insumos } = useQuery({
+    queryKey: ["erp-insumos"],
+    queryFn: listInsumos,
+    enabled: isAdmin === true,
+  });
+  const { data: subprodutos } = useQuery({
+    queryKey: ["erp-subprodutos"],
+    queryFn: listSubprodutos,
     enabled: isAdmin === true,
   });
 
@@ -642,6 +670,8 @@ function AdminPage() {
                 onChange={setDetail}
                 setores={setores ?? []}
                 fornecedores={fornecedores ?? []}
+                insumos={insumos ?? []}
+                subprodutos={subprodutos ?? []}
               />
             )}
           </div>

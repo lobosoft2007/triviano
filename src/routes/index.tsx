@@ -6,13 +6,13 @@ const heroImg = "/images/hero.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Sabor Express — Delivery de Comida Variada" },
+      { title: "Clube 23 — Delivery de Comida Variada" },
       {
         name: "description",
         content:
-          "Peça pratos, lanches, sobremesas e bebidas com entrega rápida no Sabor Express. Cardápio variado e pedido em poucos toques.",
+          "Peça pratos, lanches, sobremesas e bebidas com entrega rápida no Clube 23. Cardápio variado e pedido em poucos toques.",
       },
-      { property: "og:title", content: "Sabor Express — Delivery de Comida" },
+      { property: "og:title", content: "Clube 23 — Delivery de Comida" },
       {
         property: "og:description",
         content: "Cardápio variado com entrega rápida. Peça em poucos toques.",
@@ -38,12 +38,16 @@ function Home() {
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
-          <div className="absolute left-5 top-6 flex items-center gap-2 text-primary-foreground">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-              <UtensilsCrossed className="h-5 w-5" />
-            </span>
+          <div className="absolute left-5 top-6 flex items-center gap-2 text-white">
+            <img
+              src="/logo.png"
+              alt="Clube 23"
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-xl object-cover ring-1 ring-white/20"
+            />
             <span className="font-display text-lg font-bold tracking-tight">
-              Sabor Express
+              Clube 23
             </span>
           </div>
 

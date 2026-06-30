@@ -324,6 +324,17 @@ export interface RelAddon {
   preco: number;
 }
 
+export interface FichaLine {
+  /** Whether this recipe line references a raw insumo or a subproduto. */
+  tipo: "insumo" | "subproduto";
+  /** insumo_id or subproduto_id depending on `tipo`. */
+  ref_id: string;
+  /** Display name snapshot (also used by the customer removal UI). */
+  nome: string;
+  quantidade: number;
+  permitir_exclusao: boolean;
+}
+
 export interface ProductDetail {
   manipulado: boolean;
   setor_id: string | null;
@@ -333,12 +344,14 @@ export interface ProductDetail {
   free_addons: RelAddon[];
   ncm: string;
   ean: string;
+  /** Ficha técnica: insumos / subprodutos that compose the product. */
+  ficha: FichaLine[];
 }
 
 export async function fetchProductDetail(
   productId: string,
 ): Promise<ProductDetail> {
-  const [poRes, addRes, freeRes, fichaRes, prodRes] = await Promise.all([
+  const [poRes, addRes, freeRes, fichaRes, prodRes, ingRes] = await Promise.all([
     supabase
       .from("produtos_price_options")
       .select("tamanho, preco, sort_order")
@@ -364,12 +377,18 @@ export async function fetchProductDetail(
       .select("manipulado, setor_id, fornecedor_id")
       .eq("id", productId)
       .single(),
+    supabase
+      .from("ingredientes_produto")
+      .select("insumo_id, subproduto_id, nome, quantidade, permitir_exclusao, sort_order")
+      .eq("product_id", productId)
+      .order("sort_order"),
   ]);
   if (poRes.error) throw poRes.error;
   if (addRes.error) throw addRes.error;
   if (freeRes.error) throw freeRes.error;
   if (fichaRes.error) throw fichaRes.error;
   if (prodRes.error) throw prodRes.error;
+  if (ingRes.error) throw ingRes.error;
 
   const fiscais = (fichaRes.data?.dados_fiscais ?? {}) as Record<string, unknown>;
 
@@ -391,6 +410,15 @@ export async function fetchProductDetail(
     })),
     ncm: String(fiscais.ncm ?? ""),
     ean: String(fiscais.ean ?? ""),
+    ficha: (ingRes.data ?? []).map((r) => ({
+      tipo: (r.subproduto_id ? "subproduto" : "insumo") as
+        | "insumo"
+        | "subproduto",
+      ref_id: (r.subproduto_id ?? r.insumo_id ?? "") as string,
+      nome: String(r.nome ?? ""),
+      quantidade: Number(r.quantidade ?? 0),
+      permitir_exclusao: Boolean(r.permitir_exclusao),
+    })),
   };
 }
 
@@ -474,6 +502,29 @@ export async function saveProductDetail(
     { onConflict: "product_id" },
   );
   if (fichaErr) throw fichaErr;
+
+  // ficha técnica — composição da receita (insumos / subprodutos)
+  await supabase
+    .from("ingredientes_produto")
+    .delete()
+    .eq("product_id", productId);
+  const fichaRows = detail.ficha
+    .filter((f) => f.ref_id && f.nome.trim())
+    .map((f, idx) => ({
+      product_id: productId,
+      nome: f.nome.trim(),
+      insumo_id: f.tipo === "insumo" ? f.ref_id : null,
+      subproduto_id: f.tipo === "subproduto" ? f.ref_id : null,
+      quantidade: round2(f.quantidade),
+      permitir_exclusao: f.permitir_exclusao,
+      sort_order: idx,
+    }));
+  if (fichaRows.length) {
+    const { error } = await supabase
+      .from("ingredientes_produto")
+      .insert(fichaRows);
+    if (error) throw error;
+  }
 }
 
 /* ------------------------------------------------------------------ */

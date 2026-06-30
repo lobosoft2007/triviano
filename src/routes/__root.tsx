@@ -97,14 +97,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Peça pratos, lanches, sobremesas e bebidas com entrega rápida. Cardápio variado e checkout simples no Sabor Express.",
+          "Peça pratos, lanches, sobremesas e bebidas com entrega rápida. Cardápio variado e checkout simples no Clube 23.",
       },
-      { name: "author", content: "Sabor Express" },
-      { name: "theme-color", content: "#e74a2e" },
+      { name: "author", content: "Clube 23" },
+      { name: "theme-color", content: "#000000" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-      { name: "apple-mobile-web-app-title", content: "Sabor Express" },
+      { name: "apple-mobile-web-app-title", content: "Clube 23" },
       { property: "og:title", content: "Clube 23 — Delivery" },
       {
         property: "og:description",

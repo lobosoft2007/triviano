@@ -10,6 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  FichaTecnicaEditor,
+  type FichaRow,
+} from "@/components/admin/FichaTecnicaEditor";
+import type { Insumo, Subproduto } from "@/lib/erp";
 
 export const NONE = "__none__";
 
@@ -27,6 +32,7 @@ export interface ProductDetailForm {
   free_addons: RelRow[];
   ncm: string;
   ean: string;
+  ficha: FichaRow[];
 }
 
 export const EMPTY_DETAIL: ProductDetailForm = {
@@ -38,6 +44,7 @@ export const EMPTY_DETAIL: ProductDetailForm = {
   free_addons: [],
   ncm: "",
   ean: "",
+  ficha: [],
 };
 
 function RelListEditor({
@@ -104,11 +111,15 @@ export function ProductDetailFields({
   onChange,
   setores,
   fornecedores,
+  insumos,
+  subprodutos,
 }: {
   value: ProductDetailForm;
   onChange: (v: ProductDetailForm) => void;
   setores: { id: string; setor: string }[];
   fornecedores: { id: string; fornecedor: string }[];
+  insumos: Insumo[];
+  subprodutos: Subproduto[];
 }) {
   const patch = (p: Partial<ProductDetailForm>) => onChange({ ...value, ...p });
 
@@ -211,6 +222,13 @@ export function ProductDetailFields({
         labelPlaceholder="Ex.: Granola"
         rows={value.free_addons}
         onChange={(rows) => patch({ free_addons: rows })}
+      />
+
+      <FichaTecnicaEditor
+        value={value.ficha}
+        onChange={(rows) => patch({ ficha: rows })}
+        insumos={insumos}
+        subprodutos={subprodutos}
       />
     </div>
   );

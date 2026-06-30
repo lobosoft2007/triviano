@@ -64,7 +64,7 @@ export const Route = createFileRoute("/_authenticated/caixa")({
 
 const PIX_KEY = "21993383918";
 const PIX_NAME = "Marcello Ribeiro Lobo Assumpção";
-const RESTAURANT = "Sabor Express — Clube23";
+const RESTAURANT = "Clube 23";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
