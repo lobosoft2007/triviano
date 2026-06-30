@@ -84,6 +84,7 @@ function MenuPage() {
                   <Settings className="h-5 w-5" />
                 </Link>
               )}
+              <NotificationBell />
               <Link
                 to="/orders"
                 aria-label="Meus pedidos"
