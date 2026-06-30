@@ -48,32 +48,7 @@ export interface Product {
   removable_ingredients: string[];
 }
 
-function normOptions(value: unknown): PriceOption[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((o) => ({
-      tamanho: String((o as PriceOption).tamanho ?? ""),
-      preco: Number((o as PriceOption).preco ?? 0),
-    }))
-    .filter((o) => o.tamanho);
-}
 
-function normAddons(value: unknown): Addon[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((a) => ({
-      nome: String((a as Addon).nome ?? ""),
-      preco: Number((a as Addon).preco ?? 0),
-    }))
-    .filter((a) => a.nome);
-}
-
-function normFreeAddons(value: unknown): FreeAddon[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((a) => ({ nome: String((a as FreeAddon).nome ?? "") }))
-    .filter((a) => a.nome);
-}
 
 export async function fetchMenu(): Promise<{
   categories: Category[];
