@@ -54,9 +54,9 @@ function MenuPage() {
               <img
                 src="/logo.png"
                 alt="Clube 23"
-                width={36}
-                height={36}
-                className="h-9 w-9 rounded-lg object-cover ring-1 ring-border"
+                width={72}
+                height={72}
+                className="h-[4.5rem] w-[4.5rem] rounded-lg object-cover ring-1 ring-border"
               />
               <div>
                 <p className="text-xs text-muted-foreground">Cardápio</p>
