@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Coins, Banknote } from "lucide-react";
-import { formatBRL } from "@/lib/caixa";
+import { formatBRL } from "@/lib/format";
 
 /* ------------------------------------------------------------------ */
 /* Denominations                                                       */
