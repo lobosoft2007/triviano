@@ -324,6 +324,17 @@ export interface RelAddon {
   preco: number;
 }
 
+export interface FichaLine {
+  /** Whether this recipe line references a raw insumo or a subproduto. */
+  tipo: "insumo" | "subproduto";
+  /** insumo_id or subproduto_id depending on `tipo`. */
+  ref_id: string;
+  /** Display name snapshot (also used by the customer removal UI). */
+  nome: string;
+  quantidade: number;
+  permitir_exclusao: boolean;
+}
+
 export interface ProductDetail {
   manipulado: boolean;
   setor_id: string | null;
@@ -333,6 +344,8 @@ export interface ProductDetail {
   free_addons: RelAddon[];
   ncm: string;
   ean: string;
+  /** Ficha técnica: insumos / subprodutos that compose the product. */
+  ficha: FichaLine[];
 }
 
 export async function fetchProductDetail(
