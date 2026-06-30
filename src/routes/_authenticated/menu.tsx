@@ -122,7 +122,11 @@ function MenuPage() {
           )}
         </header>
 
-        <main className="px-5 py-5">
+        <div className="pt-4">
+          <PushPermissionBanner />
+        </div>
+
+        <main className="px-5 py-5 pt-0">
           {isLoading && (
             <div className="flex justify-center py-20">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
