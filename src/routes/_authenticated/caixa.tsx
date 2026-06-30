@@ -261,8 +261,9 @@ function LockScreen({ userId }: { userId: string }) {
 function OperationalPanel({ caixaId }: { caixaId: string }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<
-    "delivery" | "mesas" | "config" | "pagamento" | "fiscal"
+    "delivery" | "mesas" | "config" | "pagamento" | "fiscal" | "fiado"
   >("delivery");
+  const [partialOpen, setPartialOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [printNode, setPrintNode] = useState<ReactNode>(null);
   const prevIdsRef = useRef<Set<string> | null>(null);
