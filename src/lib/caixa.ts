@@ -98,7 +98,8 @@ export interface CaixaOrder {
 export interface PagamentoPedido {
   id: string;
   id_pedido: string;
-  forma_pagamento: FormaPagamento;
+  id_meio_pagamento: string;
+  meio_nome: string;
   valor_pago: number;
   created_at: string;
 }
