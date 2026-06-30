@@ -361,6 +361,11 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
 
     try {
       await markPrintedCozinha(order.id);
+      try {
+        await notifyStatusChange(order.id, order.user_id, "Em preparação");
+      } catch {
+        /* best-effort */
+      }
       await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
       toast.success(
         `Impressões de preparo disparadas (${list.length} setor${
