@@ -48,11 +48,20 @@ function MenuPage() {
         {/* Header */}
         <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-md">
           <div className="flex items-center justify-between px-5 py-3.5">
-            <div>
-              <p className="text-xs text-muted-foreground">Cardápio</p>
-              <h1 className="font-display text-xl font-bold leading-tight">
-                Sabor Express
-              </h1>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/logo.png"
+                alt="Clube 23"
+                width={36}
+                height={36}
+                className="h-9 w-9 rounded-lg object-cover ring-1 ring-border"
+              />
+              <div>
+                <p className="text-xs text-muted-foreground">Cardápio</p>
+                <h1 className="font-display text-xl font-bold leading-tight">
+                  Clube 23
+                </h1>
+              </div>
             </div>
             <div className="flex items-center gap-1">
               {isAdmin && (
