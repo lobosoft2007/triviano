@@ -670,6 +670,8 @@ function AdminPage() {
                 onChange={setDetail}
                 setores={setores ?? []}
                 fornecedores={fornecedores ?? []}
+                insumos={insumos ?? []}
+                subprodutos={subprodutos ?? []}
               />
             )}
           </div>
