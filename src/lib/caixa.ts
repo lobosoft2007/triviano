@@ -388,7 +388,7 @@ export async function deletePagamento(id: string): Promise<void> {
 export async function finalizeOrderPaid(orderId: string): Promise<void> {
   const { error } = await supabase
     .from("orders")
-    .update({ status_pedido: "Pago", status: "delivered" })
+    .update({ status_pedido: "Encerrado e pago", status: "delivered" })
     .eq("id", orderId);
   if (error) throw error;
 }
