@@ -194,6 +194,7 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
   if (error) throw error;
   return (data ?? []).map((o) => ({
     id: o.id,
+    user_id: (o as { user_id: string }).user_id,
     status: o.status,
     status_pedido: (o.status_pedido ?? "Recebido") as StatusPedido,
     total: Number(o.total),
