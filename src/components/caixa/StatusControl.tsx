@@ -63,14 +63,17 @@ export function StatusControl({
     if (next === status) return;
     setSaving(true);
     try {
-      // 1. Persist the new status in the orders table.
+      // 1. Persist the new status in the orders table (mandatory).
       await updateStatusPedido(orderId, next);
-      // 2. Fire the client notification (insert + push) for the new status.
+      // 2. Insert the matching row in notificacoes_cliente (mandatory) — this
+      //    forces the client's bell to blink in real time via Realtime.
       if (userId) {
         try {
           await notifyStatusChange(orderId, userId, next);
         } catch {
-          /* notification is best-effort; status already saved */
+          toast.warning(
+            "Status salvo, mas o alerta no app falhou. Use o WhatsApp para avisar o cliente.",
+          );
         }
       }
       await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
