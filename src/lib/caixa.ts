@@ -430,7 +430,18 @@ export async function finalizeOrderPaid(orderId: string): Promise<number> {
   const { data, error } = await supabase.rpc("finalize_order_paid", {
     p_order_id: orderId,
   });
-  if (error) throw error;
+  if (error) {
+    // Surface the exact Postgres failure (constraint / FK / RLS) so we know
+    // precisely which column or rule broke the settlement transaction.
+    console.error("[finalizeOrderPaid] Postgres error", {
+      orderId,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw error;
+  }
   return Number(data ?? 0);
 }
 
