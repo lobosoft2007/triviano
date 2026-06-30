@@ -116,6 +116,14 @@ export function PartialReportDialog({
   );
 }
 
+/** Friendly label per payment method, flagging non-cash modalities. */
+function meioLabel(nome: string, informativo?: boolean): string {
+  if (nome === "Cashback") return "Cashback (uso de pontos)";
+  if (nome === "Fiado") return "Fiado (vendas a prazo)";
+  return informativo ? `${nome} (não-caixa)` : nome;
+}
+
+
 function Row({
   label,
   value,
