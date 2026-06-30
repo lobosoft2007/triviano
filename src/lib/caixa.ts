@@ -21,18 +21,27 @@ export type StatusPedido = (typeof ESTEIRA_STATUSES)[number] | "Cancelado";
  */
 export const TERMINAL_STATUSES: StatusPedido[] = ["Encerrado e pago", "Cancelado"];
 
-export type FormaPagamento =
-  | "PIX"
-  | "Dinheiro"
-  | "Cartão de Crédito"
-  | "Cartão de Débito";
+/** A dynamic, relational payment method (table `meios_pagamento`). */
+export interface MeioPagamento {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  exige_maquineta: boolean;
+}
 
-export const FORMAS_PAGAMENTO: FormaPagamento[] = [
-  "PIX",
-  "Dinheiro",
-  "Cartão de Crédito",
-  "Cartão de Débito",
-];
+/** Loads payment methods (active only by default), ordered by name. */
+export async function fetchMeiosPagamento(
+  activeOnly = true,
+): Promise<MeioPagamento[]> {
+  let q = supabase
+    .from("meios_pagamento")
+    .select("id, nome, ativo, exige_maquineta")
+    .order("nome");
+  if (activeOnly) q = q.eq("ativo", true);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as MeioPagamento[];
+}
 
 export interface Caixa {
   id: string;
