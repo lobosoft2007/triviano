@@ -360,14 +360,19 @@ export async function fetchPagamentos(
 ): Promise<PagamentoPedido[]> {
   const { data, error } = await supabase
     .from("pagamentos_pedido")
-    .select("id, id_pedido, forma_pagamento, valor_pago, created_at")
+    .select(
+      "id, id_pedido, id_meio_pagamento, valor_pago, created_at, meios_pagamento(nome)",
+    )
     .eq("id_pedido", orderId)
     .order("created_at");
   if (error) throw error;
   return (data ?? []).map((p) => ({
     id: p.id,
     id_pedido: p.id_pedido,
-    forma_pagamento: p.forma_pagamento as FormaPagamento,
+    id_meio_pagamento: p.id_meio_pagamento ?? "",
+    meio_nome:
+      (p as { meios_pagamento?: { nome?: string } | null }).meios_pagamento
+        ?.nome ?? "—",
     valor_pago: Number(p.valor_pago),
     created_at: p.created_at,
   }));
@@ -375,12 +380,12 @@ export async function fetchPagamentos(
 
 export async function addPagamento(input: {
   orderId: string;
-  forma: FormaPagamento;
+  meioId: string;
   valor: number;
 }): Promise<void> {
   const { error } = await supabase.from("pagamentos_pedido").insert({
     id_pedido: input.orderId,
-    forma_pagamento: input.forma,
+    id_meio_pagamento: input.meioId,
     valor_pago: round2(input.valor),
   });
   if (error) throw error;
@@ -394,11 +399,92 @@ export async function deletePagamento(id: string): Promise<void> {
   if (error) throw error;
 }
 
-/** Marks an order as fully paid once the split lines match the total. */
-export async function finalizeOrderPaid(orderId: string): Promise<void> {
-  const { error } = await supabase
-    .from("orders")
-    .update({ status_pedido: "Encerrado e pago", status: "delivered" })
-    .eq("id", orderId);
+/**
+ * Finalizes & settles an order via the secure RPC: posts revenue movements to
+ * the open caixa per payment method, validates fiado limit, debits cashback
+ * spent, and credits 5% cashback of the total. Returns the customer's
+ * resulting fiado debt balance (for the push message).
+ */
+export async function finalizeOrderPaid(orderId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("finalize_order_paid", {
+    p_order_id: orderId,
+  });
   if (error) throw error;
+  return Number(data ?? 0);
+}
+
+/* ------------------------------------------------------------------ */
+/* Partial cash report (X de caixa)                                    */
+/* ------------------------------------------------------------------ */
+
+export interface CaixaPartialReport {
+  valorAbertura: number;
+  /** Revenue grouped by payment method (only entries with a method). */
+  porMeio: { nome: string; total: number }[];
+  totalEntradas: number;
+  totalSangrias: number;
+  totalSuprimentos: number;
+  /** Total restaurant balance: opening + all entries - sangrias. */
+  saldoTotal: number;
+  /** Expected physical cash in drawer. */
+  saldoGavetaDinheiro: number;
+}
+
+/**
+ * Builds the partial ("X de caixa") financial audit for the current open
+ * shift, grouping movements dynamically by payment method.
+ */
+export async function buildPartialReport(
+  caixa: Caixa,
+  movs: Movimentacao[],
+): Promise<CaixaPartialReport> {
+  const meios = await fetchMeiosPagamento(false);
+  const nameById = new Map(meios.map((m) => [m.id, m.nome]));
+
+  const porMeioMap = new Map<string, number>();
+  let totalSangrias = 0;
+  let totalSuprimentos = 0;
+  let entradasComMeio = 0;
+  let dinheiroEntradas = 0;
+
+  for (const m of movs) {
+    if (m.tipo === "Sangria") {
+      totalSangrias += m.valor;
+      continue;
+    }
+    if (m.tipo === "Suprimento") {
+      totalSuprimentos += m.valor;
+    }
+    const meioId = (m as { id_meio_pagamento?: string | null })
+      .id_meio_pagamento;
+    if (meioId) {
+      const nome = nameById.get(meioId) ?? "Outro";
+      porMeioMap.set(nome, (porMeioMap.get(nome) ?? 0) + m.valor);
+      entradasComMeio += m.valor;
+      if (nome === "Dinheiro") dinheiroEntradas += m.valor;
+    }
+  }
+
+  const porMeio = [...porMeioMap.entries()]
+    .map(([nome, total]) => ({ nome, total: round2(total) }))
+    .sort((a, b) => b.total - a.total);
+
+  // Total entries = all non-sangria movements (tagged + manual suprimentos).
+  const totalEntradas = round2(entradasComMeio + totalSuprimentos);
+  const saldoTotal = round2(
+    caixa.valor_abertura + totalEntradas - totalSangrias,
+  );
+  const saldoGavetaDinheiro = round2(
+    caixa.valor_abertura + dinheiroEntradas + totalSuprimentos - totalSangrias,
+  );
+
+  return {
+    valorAbertura: round2(caixa.valor_abertura),
+    porMeio,
+    totalEntradas,
+    totalSangrias: round2(totalSangrias),
+    totalSuprimentos: round2(totalSuprimentos),
+    saldoTotal,
+    saldoGavetaDinheiro,
+  };
 }
