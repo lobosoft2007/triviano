@@ -404,12 +404,24 @@ export async function addPagamento(input: {
   meioId: string;
   valor: number;
 }): Promise<void> {
+  // `meioId` is the real UUID from `meios_pagamento` (never a text name),
+  // so the id_meio_pagamento FK always aligns.
   const { error } = await supabase.from("pagamentos_pedido").insert({
     id_pedido: input.orderId,
     id_meio_pagamento: input.meioId,
     valor_pago: round2(input.valor),
   });
-  if (error) throw error;
+  if (error) {
+    console.error("[addPagamento] Postgres error", {
+      orderId: input.orderId,
+      meioId: input.meioId,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw error;
+  }
 }
 
 export async function deletePagamento(id: string): Promise<void> {
@@ -430,7 +442,18 @@ export async function finalizeOrderPaid(orderId: string): Promise<number> {
   const { data, error } = await supabase.rpc("finalize_order_paid", {
     p_order_id: orderId,
   });
-  if (error) throw error;
+  if (error) {
+    // Surface the exact Postgres failure (constraint / FK / RLS) so we know
+    // precisely which column or rule broke the settlement transaction.
+    console.error("[finalizeOrderPaid] Postgres error", {
+      orderId,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw error;
+  }
   return Number(data ?? 0);
 }
 
