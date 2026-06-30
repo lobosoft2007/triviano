@@ -387,7 +387,7 @@ function CheckoutPage() {
               {submitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                `Confirmar pedido • ${formatBRL(totalPrice)}`
+                `Confirmar pedido • ${formatBRL(finalTotal)}`
               )}
             </Button>
           </form>
