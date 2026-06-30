@@ -351,7 +351,7 @@ export interface ProductDetail {
 export async function fetchProductDetail(
   productId: string,
 ): Promise<ProductDetail> {
-  const [poRes, addRes, freeRes, fichaRes, prodRes] = await Promise.all([
+  const [poRes, addRes, freeRes, fichaRes, prodRes, ingRes] = await Promise.all([
     supabase
       .from("produtos_price_options")
       .select("tamanho, preco, sort_order")
