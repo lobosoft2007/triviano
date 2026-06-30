@@ -503,7 +503,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             size="sm"
             variant="destructive"
             className="ml-auto rounded-full"
-            onClick={handleClose}
+            onClick={() => setCloseOpen(true)}
           >
             <DoorClosed className="mr-1.5 h-4 w-4" /> Fechar caixa
           </Button>
