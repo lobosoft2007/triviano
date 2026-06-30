@@ -10,6 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  FichaTecnicaEditor,
+  type FichaRow,
+} from "@/components/admin/FichaTecnicaEditor";
+import type { Insumo, Subproduto } from "@/lib/erp";
 
 export const NONE = "__none__";
 
