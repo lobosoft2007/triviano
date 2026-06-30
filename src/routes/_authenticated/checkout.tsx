@@ -252,7 +252,7 @@ function CheckoutPage() {
             <p className="text-xs text-muted-foreground">
               Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
               <span className="font-semibold text-foreground">
-                {formatBRL(totalPrice)}
+                {formatBRL(finalTotal)}
               </span>{" "}
               já vem preenchido.
             </p>
