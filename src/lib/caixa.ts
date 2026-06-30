@@ -404,12 +404,24 @@ export async function addPagamento(input: {
   meioId: string;
   valor: number;
 }): Promise<void> {
+  // `meioId` is the real UUID from `meios_pagamento` (never a text name),
+  // so the id_meio_pagamento FK always aligns.
   const { error } = await supabase.from("pagamentos_pedido").insert({
     id_pedido: input.orderId,
     id_meio_pagamento: input.meioId,
     valor_pago: round2(input.valor),
   });
-  if (error) throw error;
+  if (error) {
+    console.error("[addPagamento] Postgres error", {
+      orderId: input.orderId,
+      meioId: input.meioId,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw error;
+  }
 }
 
 export async function deletePagamento(id: string): Promise<void> {
