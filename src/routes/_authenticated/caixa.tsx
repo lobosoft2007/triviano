@@ -25,8 +25,15 @@ import {
   Network,
   Save,
   CreditCard,
+  Pencil,
+  HandCoins,
+  ReceiptText,
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
+import { StatusControl } from "@/components/caixa/StatusControl";
+import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
+import { PaymentDialog } from "@/components/caixa/PaymentDialog";
+import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
