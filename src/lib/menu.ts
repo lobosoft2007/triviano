@@ -161,7 +161,13 @@ export async function fetchMenu(): Promise<{
     free_addon_limit: Number((p as { free_addon_limit?: number }).free_addon_limit ?? 0),
     free_addon_price: freeAddonPriceMap.get(p.id) ?? 0,
     removable_ingredients: removableMap.get(p.id) ?? [],
+    manipulado: (p as { manipulado?: boolean }).manipulado ?? true,
+    setor_id: (p as { setor_id?: string | null }).setor_id ?? null,
+    fornecedor_id: (p as { fornecedor_id?: string | null }).fornecedor_id ?? null,
+    custo_anterior:
+      (p as { custo_anterior?: number | null }).custo_anterior ?? null,
   })) as Product[];
+
 
   const urlMap = await resolveImageUrls(rawProducts.map((p) => p.image_url));
   result.products = rawProducts.map((p) => ({
