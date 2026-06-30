@@ -598,7 +598,17 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         {tab === "config" && <ConfigTab />}
         {tab === "pagamento" && <PaymentConfigTab />}
         {tab === "fiscal" && <FiscalConfigTab />}
+        {tab === "fiado" && <ContaCorrenteTab />}
       </main>
+
+      {/* Partial cash report (X de caixa) */}
+      {caixa && (
+        <PartialReportDialog
+          caixa={caixa}
+          open={partialOpen}
+          onOpenChange={setPartialOpen}
+        />
+      )}
 
 
       {/* Close cash register dialog */}
