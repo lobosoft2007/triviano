@@ -804,7 +804,7 @@ function OrderCard({
       </div>
 
       <div className="mt-3">
-        <StatusControl orderId={order.id} status={order.status_pedido} />
+        <StatusControl orderId={order.id} userId={order.user_id} status={order.status_pedido} />
       </div>
 
       {isNew ? (
