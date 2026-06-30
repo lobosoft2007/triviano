@@ -39,6 +39,7 @@ import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
+import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
 import {
   addMovimentacao,
   closeCaixa,
