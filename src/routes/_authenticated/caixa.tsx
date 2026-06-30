@@ -24,7 +24,9 @@ import {
   Usb,
   Network,
   Save,
+  CreditCard,
 } from "lucide-react";
+import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
