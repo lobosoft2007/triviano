@@ -695,6 +695,14 @@ function MesasColumn({
               {group.map((o) => (
                 <div key={o.id}>
                   <OrderItems order={o} resolveSector={resolveSector} />
+                  {o.observacoes_operador && (
+                    <p className="mt-1 rounded-lg bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
+                      Operador: {o.observacoes_operador}
+                    </p>
+                  )}
+                  <div className="mt-2">
+                    <StatusControl orderId={o.id} status={o.status_pedido} />
+                  </div>
                   {!o.impresso_cozinha && (
                     <Button
                       size="sm"
@@ -709,6 +717,7 @@ function MesasColumn({
                       ✓ Preparo disparado
                     </p>
                   )}
+                  <OrderActions order={o} />
                 </div>
               ))}
             </div>
