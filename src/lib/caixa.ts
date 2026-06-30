@@ -64,6 +64,7 @@ export interface CaixaOrderItem {
 
 export interface CaixaOrder {
   id: string;
+  user_id: string;
   status: string;
   status_pedido: StatusPedido;
   total: number;
