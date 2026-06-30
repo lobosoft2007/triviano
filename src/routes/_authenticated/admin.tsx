@@ -96,7 +96,9 @@ interface Insumo {
   nome: string;
   unidade_medida: string;
   custo_unitario: number;
+  estocavel: boolean;
 }
+
 
 interface Subproduto {
   id: string;
