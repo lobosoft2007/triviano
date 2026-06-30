@@ -503,6 +503,15 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             size="sm"
             variant="outline"
             className="rounded-full"
+            onClick={() => setPartialOpen(true)}
+          >
+            <FileBarChart className="mr-1.5 h-4 w-4 text-primary" /> Consultar
+            Caixa do Momento (Parcial)
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
             onClick={() => handleMov("Recebimento Pedido")}
           >
             <Wallet className="mr-1.5 h-4 w-4 text-primary" /> Recebimento
