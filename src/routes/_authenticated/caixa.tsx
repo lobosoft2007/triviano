@@ -24,7 +24,9 @@ import {
   Usb,
   Network,
   Save,
+  CreditCard,
 } from "lucide-react";
+import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
@@ -239,7 +241,9 @@ function LockScreen({ userId }: { userId: string }) {
 
 function OperationalPanel({ caixaId }: { caixaId: string }) {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"delivery" | "mesas" | "config">("delivery");
+  const [tab, setTab] = useState<
+    "delivery" | "mesas" | "config" | "pagamento"
+  >("delivery");
   const [soundOn, setSoundOn] = useState(true);
   const [printNode, setPrintNode] = useState<ReactNode>(null);
   const prevIdsRef = useRef<Set<string> | null>(null);
@@ -520,13 +524,19 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             active={tab === "config"}
             onClick={() => setTab("config")}
             icon={<Settings className="h-4 w-4" />}
-            label="Configurações"
+            label="Impressão"
+          />
+          <TabButton
+            active={tab === "pagamento"}
+            onClick={() => setTab("pagamento")}
+            icon={<CreditCard className="h-4 w-4" />}
+            label="Pagamento"
           />
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-5 lg:px-8">
-        {tab !== "config" && !orders && (
+        {tab !== "config" && tab !== "pagamento" && !orders && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
           </div>
@@ -550,6 +560,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         )}
 
         {tab === "config" && <ConfigTab />}
+        {tab === "pagamento" && <PaymentConfigTab />}
       </main>
 
 

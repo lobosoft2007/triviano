@@ -9,7 +9,7 @@ import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
 import { formatBRL } from "@/lib/format";
-import { usePixPayment, PIX_RECEIVER } from "@/hooks/usePixPayment";
+import { usePixPayment } from "@/hooks/usePixPayment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,8 +39,13 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
 
-  const { payload: pixPayload, copied, copy: copyPixPayload } =
-    usePixPayment(totalPrice);
+  const {
+    payload: pixPayload,
+    copied,
+    copy: copyPixPayload,
+    merchantName: pixMerchantName,
+    merchantCity: pixMerchantCity,
+  } = usePixPayment(totalPrice);
 
 
   const { data: profile } = useQuery({
@@ -242,9 +247,9 @@ function CheckoutPage() {
             <p className="mt-3 text-center text-xs text-muted-foreground">
               Favorecido:{" "}
               <span className="font-medium text-foreground">
-                {PIX_RECEIVER.merchantName}
+                {pixMerchantName}
               </span>{" "}
-              • {PIX_RECEIVER.merchantCity}
+              • {pixMerchantCity}
             </p>
           </section>
 
