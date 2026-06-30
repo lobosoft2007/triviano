@@ -642,3 +642,93 @@ export async function fetchActivePixConfig(): Promise<ActivePixConfig | null> {
 }
 
 export { num as parseNumberInput };
+
+/* ------------------------------------------------------------------ */
+/* Dados fiscais & Certificado Digital A1 (NFC-e)                     */
+/* ------------------------------------------------------------------ */
+
+export type AmbienteEmissao = "Homologação/Testes" | "Produção";
+
+export interface FiscalConfig {
+  id: string | null;
+  certificado_a1_nome: string;
+  certificado_a1_validade: string | null;
+  certificado_a1_senha: string;
+  certificado_a1_path: string;
+  ambiente_emissao: AmbienteEmissao;
+}
+
+/** Light at-rest obfuscation for the A1 password (unicode-safe base64). */
+function encodeSenha(value: string): string {
+  if (!value) return "";
+  try {
+    return btoa(unescape(encodeURIComponent(value)));
+  } catch {
+    return value;
+  }
+}
+function decodeSenha(value: string): string {
+  if (!value) return "";
+  try {
+    return decodeURIComponent(escape(atob(value)));
+  } catch {
+    return value;
+  }
+}
+
+export async function fetchFiscalConfig(): Promise<FiscalConfig> {
+  const { data, error } = await supabase
+    .from("config_pagamentos")
+    .select(
+      "id, certificado_a1_nome, certificado_a1_validade, certificado_a1_senha_criptografada, certificado_a1_path, ambiente_emissao, ativo, updated_at",
+    )
+    .order("ativo", { ascending: false })
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    return {
+      id: null,
+      certificado_a1_nome: "",
+      certificado_a1_validade: null,
+      certificado_a1_senha: "",
+      certificado_a1_path: "",
+      ambiente_emissao: "Homologação/Testes",
+    };
+  }
+  return {
+    id: data.id,
+    certificado_a1_nome: data.certificado_a1_nome ?? "",
+    certificado_a1_validade: data.certificado_a1_validade ?? null,
+    certificado_a1_senha: decodeSenha(
+      data.certificado_a1_senha_criptografada ?? "",
+    ),
+    certificado_a1_path: data.certificado_a1_path ?? "",
+    ambiente_emissao:
+      (data.ambiente_emissao as AmbienteEmissao) ?? "Homologação/Testes",
+  };
+}
+
+export async function saveFiscalConfig(input: FiscalConfig): Promise<void> {
+  const payload = {
+    certificado_a1_nome: input.certificado_a1_nome.trim(),
+    certificado_a1_validade: input.certificado_a1_validade || null,
+    certificado_a1_senha_criptografada: encodeSenha(input.certificado_a1_senha),
+    certificado_a1_path: input.certificado_a1_path,
+    ambiente_emissao: input.ambiente_emissao,
+  };
+  if (input.id) {
+    const { error } = await supabase
+      .from("config_pagamentos")
+      .update(payload)
+      .eq("id", input.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("config_pagamentos")
+      .insert({ ...payload, gateway_banco: "Fiscal", ativo: true });
+    if (error) throw error;
+  }
+}
+
