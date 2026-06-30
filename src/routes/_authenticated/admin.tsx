@@ -26,6 +26,8 @@ import {
   saveProductDetail,
   listSetores,
   listFornecedores,
+  listInsumos,
+  listSubprodutos,
   parseNumberInput,
   type ProductDetail,
 } from "@/lib/erp";
