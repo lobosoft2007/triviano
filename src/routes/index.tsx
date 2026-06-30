@@ -42,9 +42,9 @@ function Home() {
             <img
               src="/logo.png"
               alt="Clube 23"
-              width={40}
-              height={40}
-              className="h-10 w-10 rounded-xl object-cover ring-1 ring-white/20"
+              width={80}
+              height={80}
+              className="h-20 w-20 rounded-xl object-cover ring-1 ring-white/20"
             />
             <span className="font-display text-lg font-bold tracking-tight">
               Clube 23

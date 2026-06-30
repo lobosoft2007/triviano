@@ -32,6 +32,7 @@ import {
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { StatusControl } from "@/components/caixa/StatusControl";
 import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
+import { CloseCaixaDialog } from "@/components/caixa/CloseCaixaDialog";
 import { PaymentDialog } from "@/components/caixa/PaymentDialog";
 import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { NotifyClient } from "@/components/caixa/NotifyClient";
@@ -39,9 +40,10 @@ import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
+import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
 import {
   addMovimentacao,
-  closeCaixa,
+  
   fetchCaixaOrders,
   fetchMovimentacoes,
   fetchOpenCaixa,
@@ -169,19 +171,23 @@ function CaixaPage() {
 function LockScreen({ userId }: { userId: string }) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [valor, setValor] = useState("");
+  const [counts, setCounts] = useState<MoneyCount>({});
+  const [total, setTotal] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleOpen(e: React.FormEvent) {
     e.preventDefault();
-    const v = Number(valor.replace(",", "."));
-    if (Number.isNaN(v) || v < 0) {
+    if (total < 0) {
       toast.error("Informe um valor de abertura válido.");
       return;
     }
     setSubmitting(true);
     try {
-      await openCaixa({ userId, valorAbertura: v });
+      await openCaixa({
+        userId,
+        valorAbertura: total,
+        metadados: Object.keys(counts).length ? counts : null,
+      });
       await queryClient.invalidateQueries({ queryKey: ["caixa-open"] });
       toast.success("Caixa aberto!");
     } catch (err) {
@@ -192,15 +198,15 @@ function LockScreen({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-5">
-      <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-7 shadow-card">
+    <div className="flex min-h-screen items-center justify-center bg-background px-5 py-8">
+      <div className="w-full max-w-xl rounded-3xl border border-border bg-card p-7 shadow-card">
         <div className="mb-5 flex flex-col items-center gap-2 text-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Lock className="h-7 w-7" />
           </span>
           <h1 className="font-display text-2xl font-bold">Caixa fechado</h1>
           <p className="text-sm text-muted-foreground">
-            Informe o valor de abertura para iniciar o turno.
+            Conte o dinheiro físico em caixa para iniciar o turno.
           </p>
         </div>
 
@@ -214,15 +220,13 @@ function LockScreen({ userId }: { userId: string }) {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="abertura">Valor de abertura (R$)</Label>
-            <Input
-              id="abertura"
-              inputMode="decimal"
-              autoFocus
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              placeholder="0,00"
-              className="h-12 rounded-xl text-lg"
+            <Label>Contagem de abertura</Label>
+            <MoneyCounter
+              value={counts}
+              onChange={(c, t) => {
+                setCounts(c);
+                setTotal(t);
+              }}
             />
           </div>
           <Button
@@ -234,7 +238,7 @@ function LockScreen({ userId }: { userId: string }) {
             {submitting ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              "Abrir caixa"
+              `Confirmar abertura · ${formatBRL(total)}`
             )}
           </Button>
         </form>
@@ -242,6 +246,7 @@ function LockScreen({ userId }: { userId: string }) {
     </div>
   );
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Operational panel (caixa aberto)                                    */
@@ -422,22 +427,8 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     }
   }
 
-  async function handleClose() {
-    if (!caixa) return;
-    if (
-      !window.confirm(
-        `Fechar o caixa? Saldo calculado: ${formatBRL(saldo)}. Esta ação encerra o turno.`,
-      )
-    )
-      return;
-    try {
-      await closeCaixa({ id: caixa.id, valorFechamento: saldo });
-      await queryClient.invalidateQueries({ queryKey: ["caixa-open"] });
-      toast.success("Caixa fechado.");
-    } catch {
-      toast.error("Não foi possível fechar o caixa.");
-    }
-  }
+  const [closeOpen, setCloseOpen] = useState(false);
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -513,7 +504,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             size="sm"
             variant="destructive"
             className="ml-auto rounded-full"
-            onClick={handleClose}
+            onClick={() => setCloseOpen(true)}
           >
             <DoorClosed className="mr-1.5 h-4 w-4" /> Fechar caixa
           </Button>
@@ -583,6 +574,19 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         {tab === "fiscal" && <FiscalConfigTab />}
       </main>
 
+
+      {/* Close cash register dialog */}
+      {caixa && (
+        <CloseCaixaDialog
+          open={closeOpen}
+          onOpenChange={setCloseOpen}
+          caixaId={caixa.id}
+          saldoEsperado={saldo}
+          onClosed={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["caixa-open"] });
+          }}
+        />
+      )}
 
       {/* Hidden thermal print surface */}
       <div className="thermal-receipt">{printNode}</div>

@@ -114,12 +114,14 @@ export async function fetchOpenCaixa(): Promise<Caixa | null> {
 export async function openCaixa(input: {
   userId: string;
   valorAbertura: number;
+  metadados?: Record<string, number> | null;
 }): Promise<Caixa> {
   const { data, error } = await supabase
     .from("fluxo_caixa")
     .insert({
       id_usuario: input.userId,
       valor_abertura: input.valorAbertura,
+      metadados_abertura: input.metadados ?? null,
       status: "Aberto",
     })
     .select(
@@ -133,12 +135,14 @@ export async function openCaixa(input: {
 export async function closeCaixa(input: {
   id: string;
   valorFechamento: number;
+  metadados?: Record<string, number> | null;
 }): Promise<void> {
   const { error } = await supabase
     .from("fluxo_caixa")
     .update({
       status: "Fechado",
       valor_fechamento: input.valorFechamento,
+      metadados_fechamento: input.metadados ?? null,
       data_hora_fechamento: new Date().toISOString(),
     })
     .eq("id", input.id);
