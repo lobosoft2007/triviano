@@ -67,7 +67,12 @@ export function PartialReportDialog({
               ) : (
                 <div className="space-y-1.5">
                   {report.porMeio.map((m) => (
-                    <Row key={m.nome} label={m.nome} value={m.total} muted />
+                    <Row
+                      key={m.nome}
+                      label={m.informativo ? `${m.nome} (não-caixa)` : m.nome}
+                      value={m.total}
+                      muted
+                    />
                   ))}
                 </div>
               )}
