@@ -707,7 +707,7 @@ function MesasColumn({
                     </p>
                   )}
                   <div className="mt-2">
-                    <StatusControl orderId={o.id} status={o.status_pedido} />
+                    <StatusControl orderId={o.id} userId={o.user_id} status={o.status_pedido} />
                   </div>
                   {!o.impresso_cozinha && (
                     <Button
