@@ -219,6 +219,15 @@ function formToDetail(d: ProductDetailForm): ProductDetail {
       nome: a.label,
       preco: parseNumberInput(a.preco),
     })),
+    ficha: d.ficha
+      .filter((f) => f.ref_id)
+      .map((f) => ({
+        tipo: f.tipo,
+        ref_id: f.ref_id,
+        nome: f.nome,
+        quantidade: parseNumberInput(f.quantidade),
+        permitir_exclusao: f.permitir_exclusao,
+      })),
   };
 }
 
