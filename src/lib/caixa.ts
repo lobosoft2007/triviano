@@ -169,13 +169,15 @@ export async function fetchMovimentacoes(
 ): Promise<Movimentacao[]> {
   const { data, error } = await supabase
     .from("movimentacoes_caixa")
-    .select("id, id_caixa, tipo, valor, motivo, created_at")
+    .select("id, id_caixa, tipo, valor, motivo, id_meio_pagamento, created_at")
     .eq("id_caixa", caixaId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((m) => ({
     ...m,
     valor: Number(m.valor),
+    id_meio_pagamento:
+      (m as { id_meio_pagamento?: string | null }).id_meio_pagamento ?? null,
   })) as Movimentacao[];
 }
 
