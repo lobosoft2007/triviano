@@ -190,6 +190,13 @@ function detailToForm(d: ProductDetail): ProductDetailForm {
       label: a.nome,
       preco: String(a.preco).replace(".", ","),
     })),
+    ficha: d.ficha.map((f) => ({
+      tipo: f.tipo,
+      ref_id: f.ref_id,
+      nome: f.nome,
+      quantidade: f.quantidade ? String(f.quantidade).replace(".", ",") : "",
+      permitir_exclusao: f.permitir_exclusao,
+    })),
   };
 }
 
