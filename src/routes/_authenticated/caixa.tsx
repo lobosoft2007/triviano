@@ -426,22 +426,8 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     }
   }
 
-  async function handleClose() {
-    if (!caixa) return;
-    if (
-      !window.confirm(
-        `Fechar o caixa? Saldo calculado: ${formatBRL(saldo)}. Esta ação encerra o turno.`,
-      )
-    )
-      return;
-    try {
-      await closeCaixa({ id: caixa.id, valorFechamento: saldo });
-      await queryClient.invalidateQueries({ queryKey: ["caixa-open"] });
-      toast.success("Caixa fechado.");
-    } catch {
-      toast.error("Não foi possível fechar o caixa.");
-    }
-  }
+  const [closeOpen, setCloseOpen] = useState(false);
+
 
   return (
     <div className="min-h-screen bg-background">
