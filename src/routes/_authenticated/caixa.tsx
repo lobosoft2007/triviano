@@ -25,8 +25,15 @@ import {
   Network,
   Save,
   CreditCard,
+  Pencil,
+  HandCoins,
+  ReceiptText,
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
+import { StatusControl } from "@/components/caixa/StatusControl";
+import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
+import { PaymentDialog } from "@/components/caixa/PaymentDialog";
+import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
@@ -40,7 +47,6 @@ import {
   markPrintedCozinha,
   openCaixa,
   saldoAtual,
-  updateOrderStatus,
   type CaixaOrder,
   type CaixaOrderItem,
   type MovimentacaoTipo,
@@ -242,7 +248,7 @@ function LockScreen({ userId }: { userId: string }) {
 function OperationalPanel({ caixaId }: { caixaId: string }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<
-    "delivery" | "mesas" | "config" | "pagamento"
+    "delivery" | "mesas" | "config" | "pagamento" | "fiscal"
   >("delivery");
   const [soundOn, setSoundOn] = useState(true);
   const [printNode, setPrintNode] = useState<ReactNode>(null);
@@ -532,11 +538,17 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             icon={<CreditCard className="h-4 w-4" />}
             label="Pagamento"
           />
+          <TabButton
+            active={tab === "fiscal"}
+            onClick={() => setTab("fiscal")}
+            icon={<ReceiptText className="h-4 w-4" />}
+            label="Fiscal"
+          />
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-5 lg:px-8">
-        {tab !== "config" && tab !== "pagamento" && !orders && (
+        {tab !== "config" && tab !== "pagamento" && tab !== "fiscal" && !orders && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
           </div>
@@ -561,6 +573,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
 
         {tab === "config" && <ConfigTab />}
         {tab === "pagamento" && <PaymentConfigTab />}
+        {tab === "fiscal" && <FiscalConfigTab />}
       </main>
 
 
@@ -681,6 +694,14 @@ function MesasColumn({
               {group.map((o) => (
                 <div key={o.id}>
                   <OrderItems order={o} resolveSector={resolveSector} />
+                  {o.observacoes_operador && (
+                    <p className="mt-1 rounded-lg bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
+                      Operador: {o.observacoes_operador}
+                    </p>
+                  )}
+                  <div className="mt-2">
+                    <StatusControl orderId={o.id} status={o.status_pedido} />
+                  </div>
                   {!o.impresso_cozinha && (
                     <Button
                       size="sm"
@@ -695,6 +716,7 @@ function MesasColumn({
                       ✓ Preparo disparado
                     </p>
                   )}
+                  <OrderActions order={o} />
                 </div>
               ))}
             </div>
@@ -761,12 +783,21 @@ function OrderCard({
           Obs.: {order.notes}
         </p>
       )}
+      {order.observacoes_operador && (
+        <p className="mt-2 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary">
+          Operador: {order.observacoes_operador}
+        </p>
+      )}
 
       <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
         <span className="text-sm font-semibold">Total</span>
         <span className="font-display font-bold text-primary">
           {formatBRL(order.total)}
         </span>
+      </div>
+
+      <div className="mt-3">
+        <StatusControl orderId={order.id} status={order.status_pedido} />
       </div>
 
       {isNew ? (
@@ -778,7 +809,45 @@ function OrderCard({
           ✓ Impressões de preparo disparadas
         </p>
       )}
+
+      <OrderActions order={order} />
     </div>
+  );
+}
+
+function OrderActions({ order }: { order: CaixaOrder }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
+  return (
+    <>
+      <div className="mt-2 flex gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="flex-1 rounded-xl"
+          onClick={() => setEditOpen(true)}
+        >
+          <Pencil className="mr-1.5 h-4 w-4" /> Editar
+        </Button>
+        <Button
+          size="sm"
+          className="flex-1 rounded-xl"
+          onClick={() => setPayOpen(true)}
+        >
+          <HandCoins className="mr-1.5 h-4 w-4" /> Pagamento
+        </Button>
+      </div>
+      {editOpen && (
+        <OrderEditDialog
+          order={order}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
+      )}
+      {payOpen && (
+        <PaymentDialog order={order} open={payOpen} onOpenChange={setPayOpen} />
+      )}
+    </>
   );
 }
 

@@ -3,6 +3,33 @@ import { supabase } from "@/integrations/supabase/client";
 export type CaixaStatus = "Aberto" | "Fechado";
 export type MovimentacaoTipo = "Sangria" | "Suprimento" | "Recebimento Pedido";
 
+/** Production conveyor (esteira) statuses for an order. */
+export const ESTEIRA_STATUSES = [
+  "Recebido",
+  "Em preparação",
+  "Aguardando entregador",
+  "Em entrega",
+  "Entregue",
+  "Pago",
+] as const;
+export type StatusPedido = (typeof ESTEIRA_STATUSES)[number] | "Cancelado";
+
+/** Terminal statuses that drop an order off the active operational board. */
+export const TERMINAL_STATUSES: StatusPedido[] = ["Entregue", "Pago", "Cancelado"];
+
+export type FormaPagamento =
+  | "PIX"
+  | "Dinheiro"
+  | "Cartão de Crédito"
+  | "Cartão de Débito";
+
+export const FORMAS_PAGAMENTO: FormaPagamento[] = [
+  "PIX",
+  "Dinheiro",
+  "Cartão de Crédito",
+  "Cartão de Débito",
+];
+
 export interface Caixa {
   id: string;
   id_usuario: string;
@@ -38,17 +65,28 @@ export interface CaixaOrderItem {
 export interface CaixaOrder {
   id: string;
   status: string;
+  status_pedido: StatusPedido;
   total: number;
   discount: number;
+  desconto_manual: number;
   delivery_address: string;
   phone: string;
   notes: string;
+  observacoes_operador: string;
   created_at: string;
   tipo_atendimento: "Delivery" | "Presencial";
   numero_mesa: number | null;
   impresso_cozinha: boolean;
   impresso_conta: boolean;
   order_items: CaixaOrderItem[];
+}
+
+export interface PagamentoPedido {
+  id: string;
+  id_pedido: string;
+  forma_pagamento: FormaPagamento;
+  valor_pago: number;
+  created_at: string;
 }
 
 /** Returns the currently open cash register (if any). */
@@ -148,20 +186,25 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, status, total, discount, delivery_address, phone, notes, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
+      "id, status, status_pedido, total, discount, desconto_manual, delivery_address, phone, notes, observacoes_operador, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
     )
-    .neq("status", "delivered")
-    .neq("status", "cancelled")
+    .not("status_pedido", "in", "(Entregue,Pago,Cancelado)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((o) => ({
     id: o.id,
     status: o.status,
+    status_pedido: (o.status_pedido ?? "Recebido") as StatusPedido,
     total: Number(o.total),
     discount: Number(o.discount ?? 0),
+    desconto_manual: Number(
+      (o as { desconto_manual?: number }).desconto_manual ?? 0,
+    ),
     delivery_address: o.delivery_address ?? "",
     phone: (o as { phone?: string }).phone ?? "",
     notes: (o as { notes?: string }).notes ?? "",
+    observacoes_operador:
+      (o as { observacoes_operador?: string }).observacoes_operador ?? "",
     created_at: o.created_at,
     tipo_atendimento: o.tipo_atendimento,
     numero_mesa: o.numero_mesa,
@@ -189,7 +232,7 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
 export async function markPrintedCozinha(orderId: string): Promise<void> {
   const { error } = await supabase
     .from("orders")
-    .update({ impresso_cozinha: true, status: "preparing" })
+    .update({ impresso_cozinha: true, status: "preparing", status_pedido: "Em preparação" })
     .eq("id", orderId);
   if (error) throw error;
 }
@@ -209,6 +252,133 @@ export async function updateOrderStatus(
   const { error } = await supabase
     .from("orders")
     .update({ status })
+    .eq("id", orderId);
+  if (error) throw error;
+}
+
+/** Updates the production-conveyor status of an order (realtime to /caixa). */
+export async function updateStatusPedido(
+  orderId: string,
+  status: StatusPedido,
+): Promise<void> {
+  const { error } = await supabase
+    .from("orders")
+    .update({ status_pedido: status })
+    .eq("id", orderId);
+  if (error) throw error;
+}
+
+/* ------------------------------------------------------------------ */
+/* Order editing (operator)                                            */
+/* ------------------------------------------------------------------ */
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Items subtotal (already includes addons baked into unit_price snapshot). */
+export function itemsSubtotal(items: CaixaOrderItem[]): number {
+  return items.reduce((s, it) => s + it.unit_price * it.quantity, 0);
+}
+
+/** Final total = items subtotal - automatic discount - manual discount (>= 0). */
+export function recalcOrderTotal(
+  items: CaixaOrderItem[],
+  discount: number,
+  descontoManual: number,
+): number {
+  const t = itemsSubtotal(items) - (discount || 0) - (descontoManual || 0);
+  return round2(Math.max(0, t));
+}
+
+export interface SaveOrderEditsInput {
+  orderId: string;
+  /** Final list of items (kept ones with their quantities). */
+  items: { id: string; quantity: number }[];
+  /** Ids of items removed from the order. */
+  removedItemIds: string[];
+  observacoesOperador: string;
+  descontoManual: number;
+  total: number;
+}
+
+export async function saveOrderEdits(
+  input: SaveOrderEditsInput,
+): Promise<void> {
+  // Delete removed items.
+  if (input.removedItemIds.length > 0) {
+    const { error } = await supabase
+      .from("order_items")
+      .delete()
+      .in("id", input.removedItemIds);
+    if (error) throw error;
+  }
+  // Update quantities for the remaining items.
+  for (const it of input.items) {
+    const { error } = await supabase
+      .from("order_items")
+      .update({ quantity: it.quantity })
+      .eq("id", it.id);
+    if (error) throw error;
+  }
+  // Update order meta + recalculated total.
+  const { error: ordErr } = await supabase
+    .from("orders")
+    .update({
+      observacoes_operador: input.observacoesOperador,
+      desconto_manual: round2(input.descontoManual),
+      total: round2(input.total),
+    })
+    .eq("id", input.orderId);
+  if (ordErr) throw ordErr;
+}
+
+/* ------------------------------------------------------------------ */
+/* Split payments                                                      */
+/* ------------------------------------------------------------------ */
+
+export async function fetchPagamentos(
+  orderId: string,
+): Promise<PagamentoPedido[]> {
+  const { data, error } = await supabase
+    .from("pagamentos_pedido")
+    .select("id, id_pedido, forma_pagamento, valor_pago, created_at")
+    .eq("id_pedido", orderId)
+    .order("created_at");
+  if (error) throw error;
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    id_pedido: p.id_pedido,
+    forma_pagamento: p.forma_pagamento as FormaPagamento,
+    valor_pago: Number(p.valor_pago),
+    created_at: p.created_at,
+  }));
+}
+
+export async function addPagamento(input: {
+  orderId: string;
+  forma: FormaPagamento;
+  valor: number;
+}): Promise<void> {
+  const { error } = await supabase.from("pagamentos_pedido").insert({
+    id_pedido: input.orderId,
+    forma_pagamento: input.forma,
+    valor_pago: round2(input.valor),
+  });
+  if (error) throw error;
+}
+
+export async function deletePagamento(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("pagamentos_pedido")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Marks an order as fully paid once the split lines match the total. */
+export async function finalizeOrderPaid(orderId: string): Promise<void> {
+  const { error } = await supabase
+    .from("orders")
+    .update({ status_pedido: "Pago", status: "delivered" })
     .eq("id", orderId);
   if (error) throw error;
 }

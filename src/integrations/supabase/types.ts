@@ -141,7 +141,12 @@ export type Database = {
       }
       config_pagamentos: {
         Row: {
+          ambiente_emissao: Database["public"]["Enums"]["ambiente_emissao_tipo"]
           ativo: boolean
+          certificado_a1_nome: string
+          certificado_a1_path: string
+          certificado_a1_senha_criptografada: string
+          certificado_a1_validade: string | null
           chave_pix_padrao: string
           cidade_recebedor: string
           client_id: string
@@ -153,7 +158,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ambiente_emissao?: Database["public"]["Enums"]["ambiente_emissao_tipo"]
           ativo?: boolean
+          certificado_a1_nome?: string
+          certificado_a1_path?: string
+          certificado_a1_senha_criptografada?: string
+          certificado_a1_validade?: string | null
           chave_pix_padrao?: string
           cidade_recebedor?: string
           client_id?: string
@@ -165,7 +175,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ambiente_emissao?: Database["public"]["Enums"]["ambiente_emissao_tipo"]
           ativo?: boolean
+          certificado_a1_nome?: string
+          certificado_a1_path?: string
+          certificado_a1_senha_criptografada?: string
+          certificado_a1_validade?: string | null
           chave_pix_padrao?: string
           cidade_recebedor?: string
           client_id?: string
@@ -508,14 +523,17 @@ export type Database = {
         Row: {
           created_at: string
           delivery_address: string
+          desconto_manual: number
           discount: number
           id: string
           impresso_conta: boolean
           impresso_cozinha: boolean
           notes: string
           numero_mesa: number | null
+          observacoes_operador: string
           phone: string
           status: string
+          status_pedido: string
           tipo_atendimento: Database["public"]["Enums"]["attendance_type"]
           total: number
           user_id: string
@@ -523,14 +541,17 @@ export type Database = {
         Insert: {
           created_at?: string
           delivery_address?: string
+          desconto_manual?: number
           discount?: number
           id?: string
           impresso_conta?: boolean
           impresso_cozinha?: boolean
           notes?: string
           numero_mesa?: number | null
+          observacoes_operador?: string
           phone?: string
           status?: string
+          status_pedido?: string
           tipo_atendimento?: Database["public"]["Enums"]["attendance_type"]
           total: number
           user_id: string
@@ -538,19 +559,54 @@ export type Database = {
         Update: {
           created_at?: string
           delivery_address?: string
+          desconto_manual?: number
           discount?: number
           id?: string
           impresso_conta?: boolean
           impresso_cozinha?: boolean
           notes?: string
           numero_mesa?: number | null
+          observacoes_operador?: string
           phone?: string
           status?: string
+          status_pedido?: string
           tipo_atendimento?: Database["public"]["Enums"]["attendance_type"]
           total?: number
           user_id?: string
         }
         Relationships: []
+      }
+      pagamentos_pedido: {
+        Row: {
+          created_at: string
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento_tipo"]
+          id: string
+          id_pedido: string
+          valor_pago: number
+        }
+        Insert: {
+          created_at?: string
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento_tipo"]
+          id?: string
+          id_pedido: string
+          valor_pago?: number
+        }
+        Update: {
+          created_at?: string
+          forma_pagamento?: Database["public"]["Enums"]["forma_pagamento_tipo"]
+          id?: string
+          id_pedido?: string
+          valor_pago?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_pedido_id_pedido_fkey"
+            columns: ["id_pedido"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -864,8 +920,14 @@ export type Database = {
       }
     }
     Enums: {
+      ambiente_emissao_tipo: "Homologação/Testes" | "Produção"
       app_role: "admin" | "user"
       attendance_type: "Delivery" | "Presencial"
+      forma_pagamento_tipo:
+        | "PIX"
+        | "Dinheiro"
+        | "Cartão de Crédito"
+        | "Cartão de Débito"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -993,8 +1055,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ambiente_emissao_tipo: ["Homologação/Testes", "Produção"],
       app_role: ["admin", "user"],
       attendance_type: ["Delivery", "Presencial"],
+      forma_pagamento_tipo: [
+        "PIX",
+        "Dinheiro",
+        "Cartão de Crédito",
+        "Cartão de Débito",
+      ],
     },
   },
 } as const
