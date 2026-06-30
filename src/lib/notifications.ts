@@ -42,7 +42,7 @@ export const STATUS_NOTIFICATION_MESSAGES: Record<
     mensagem:
       "Pedido finalizado. Muito obrigado por escolher o Clube 23! Bom apetite!",
   },
-  Pago: {
+  "Encerrado e pago": {
     titulo: "Pedido finalizado",
     mensagem:
       "Pedido finalizado. Muito obrigado por escolher o Clube 23! Bom apetite!",
