@@ -10,12 +10,16 @@ export const ESTEIRA_STATUSES = [
   "Aguardando entregador",
   "Em entrega",
   "Entregue",
-  "Pago",
+  "Encerrado e pago",
 ] as const;
 export type StatusPedido = (typeof ESTEIRA_STATUSES)[number] | "Cancelado";
 
-/** Terminal statuses that drop an order off the active operational board. */
-export const TERMINAL_STATUSES: StatusPedido[] = ["Entregue", "Pago", "Cancelado"];
+/**
+ * Terminal statuses that drop an order off the active operational board.
+ * "Entregue" stays on the board so the operator can still finalize payment
+ * ("Encerrado e pago"); only a closed/paid or cancelled order leaves the board.
+ */
+export const TERMINAL_STATUSES: StatusPedido[] = ["Encerrado e pago", "Cancelado"];
 
 export type FormaPagamento =
   | "PIX"
