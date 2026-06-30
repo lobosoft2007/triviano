@@ -194,14 +194,42 @@ function CheckoutPage() {
                   <span className="tabular-nums">− {formatBRL(discount)}</span>
                 </div>
               )}
+              {cashbackApplied > 0 && (
+                <div className="flex justify-between text-sm text-success">
+                  <span>Cashback aplicado</span>
+                  <span className="tabular-nums">
+                    − {formatBRL(cashbackApplied)}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between pt-1">
                 <span className="font-semibold">Total</span>
                 <span className="font-display text-lg font-bold text-primary">
-                  {formatBRL(totalPrice)}
+                  {formatBRL(finalTotal)}
                 </span>
               </div>
             </div>
+
+            {saldoCashback > 0 && (
+              <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2.5">
+                <span className="text-sm">
+                  <span className="font-semibold text-foreground">
+                    Usar meu cashback
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    Saldo disponível: {formatBRL(saldoCashback)}
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={useCashback}
+                  onChange={(e) => setUseCashback(e.target.checked)}
+                  className="h-5 w-5 accent-[hsl(var(--primary))]"
+                />
+              </label>
+            )}
           </section>
+
 
           {shortfalls.map((s) => (
             <p
