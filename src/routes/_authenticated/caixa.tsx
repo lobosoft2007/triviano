@@ -775,12 +775,21 @@ function OrderCard({
           Obs.: {order.notes}
         </p>
       )}
+      {order.observacoes_operador && (
+        <p className="mt-2 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary">
+          Operador: {order.observacoes_operador}
+        </p>
+      )}
 
       <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
         <span className="text-sm font-semibold">Total</span>
         <span className="font-display font-bold text-primary">
           {formatBRL(order.total)}
         </span>
+      </div>
+
+      <div className="mt-3">
+        <StatusControl orderId={order.id} status={order.status_pedido} />
       </div>
 
       {isNew ? (
@@ -792,7 +801,45 @@ function OrderCard({
           ✓ Impressões de preparo disparadas
         </p>
       )}
+
+      <OrderActions order={order} />
     </div>
+  );
+}
+
+function OrderActions({ order }: { order: CaixaOrder }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
+  return (
+    <>
+      <div className="mt-2 flex gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="flex-1 rounded-xl"
+          onClick={() => setEditOpen(true)}
+        >
+          <Pencil className="mr-1.5 h-4 w-4" /> Editar
+        </Button>
+        <Button
+          size="sm"
+          className="flex-1 rounded-xl"
+          onClick={() => setPayOpen(true)}
+        >
+          <HandCoins className="mr-1.5 h-4 w-4" /> Pagamento
+        </Button>
+      </div>
+      {editOpen && (
+        <OrderEditDialog
+          order={order}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
+      )}
+      {payOpen && (
+        <PaymentDialog order={order} open={payOpen} onOpenChange={setPayOpen} />
+      )}
+    </>
   );
 }
 
