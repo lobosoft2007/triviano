@@ -59,6 +59,7 @@ export interface Movimentacao {
   tipo: MovimentacaoTipo;
   valor: number;
   motivo: string;
+  id_meio_pagamento: string | null;
   created_at: string;
 }
 
