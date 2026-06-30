@@ -111,11 +111,15 @@ export function ProductDetailFields({
   onChange,
   setores,
   fornecedores,
+  insumos,
+  subprodutos,
 }: {
   value: ProductDetailForm;
   onChange: (v: ProductDetailForm) => void;
   setores: { id: string; setor: string }[];
   fornecedores: { id: string; fornecedor: string }[];
+  insumos: Insumo[];
+  subprodutos: Subproduto[];
 }) {
   const patch = (p: Partial<ProductDetailForm>) => onChange({ ...value, ...p });
 
