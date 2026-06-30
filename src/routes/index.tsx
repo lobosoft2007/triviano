@@ -6,13 +6,13 @@ const heroImg = "/images/hero.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Sabor Express — Delivery de Comida Variada" },
+      { title: "Clube 23 — Delivery de Comida Variada" },
       {
         name: "description",
         content:
-          "Peça pratos, lanches, sobremesas e bebidas com entrega rápida no Sabor Express. Cardápio variado e pedido em poucos toques.",
+          "Peça pratos, lanches, sobremesas e bebidas com entrega rápida no Clube 23. Cardápio variado e pedido em poucos toques.",
       },
-      { property: "og:title", content: "Sabor Express — Delivery de Comida" },
+      { property: "og:title", content: "Clube 23 — Delivery de Comida" },
       {
         property: "og:description",
         content: "Cardápio variado com entrega rápida. Peça em poucos toques.",
