@@ -124,10 +124,14 @@ function AuthPage() {
         </Link>
 
         <div className="mb-8 flex flex-col items-center text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-float">
-            <UtensilsCrossed className="h-7 w-7" />
-          </span>
-          <h1 className="mt-4 font-display text-2xl font-bold">Sabor Express</h1>
+          <img
+            src="/logo.png"
+            alt="Clube 23"
+            width={64}
+            height={64}
+            className="h-16 w-16 rounded-2xl object-cover shadow-float ring-1 ring-border"
+          />
+          <h1 className="mt-4 font-display text-2xl font-bold">Clube 23</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Entre para fazer seu pedido
           </p>
