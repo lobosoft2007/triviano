@@ -69,7 +69,7 @@ export function PartialReportDialog({
                   {report.porMeio.map((m) => (
                     <Row
                       key={m.nome}
-                      label={m.informativo ? `${m.nome} (não-caixa)` : m.nome}
+                      label={meioLabel(m.nome, m.informativo)}
                       value={m.total}
                       muted
                     />
@@ -115,6 +115,14 @@ export function PartialReportDialog({
     </Dialog>
   );
 }
+
+/** Friendly label per payment method, flagging non-cash modalities. */
+function meioLabel(nome: string, informativo?: boolean): string {
+  if (nome === "Cashback") return "Cashback (uso de pontos)";
+  if (nome === "Fiado") return "Fiado (vendas a prazo)";
+  return informativo ? `${nome} (não-caixa)` : nome;
+}
+
 
 function Row({
   label,
