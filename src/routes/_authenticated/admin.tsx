@@ -111,7 +111,7 @@ async function fetchInventory() {
   const [insRes, subRes] = await Promise.all([
     supabase
       .from("insumos")
-      .select("id, nome, unidade_medida, custo_unitario")
+      .select("id, nome, unidade_medida, custo_unitario, estocavel")
       .order("nome"),
     supabase
       .from("subprodutos")
@@ -124,6 +124,7 @@ async function fetchInventory() {
     insumos: (insRes.data ?? []).map((i) => ({
       ...i,
       custo_unitario: Number(i.custo_unitario),
+      estocavel: i.estocavel ?? true,
     })) as Insumo[],
     subprodutos: (subRes.data ?? []).map((s) => ({
       ...s,
@@ -131,6 +132,7 @@ async function fetchInventory() {
     })) as Subproduto[],
   };
 }
+
 
 function useIsAdmin(userId: string | undefined) {
   return useQuery({
