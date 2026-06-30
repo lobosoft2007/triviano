@@ -818,6 +818,8 @@ function OrderCard({
       )}
 
       <OrderActions order={order} />
+
+      <NotifyClient order={order} />
     </div>
   );
 }
