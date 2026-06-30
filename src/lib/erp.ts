@@ -502,6 +502,29 @@ export async function saveProductDetail(
     { onConflict: "product_id" },
   );
   if (fichaErr) throw fichaErr;
+
+  // ficha técnica — composição da receita (insumos / subprodutos)
+  await supabase
+    .from("ingredientes_produto")
+    .delete()
+    .eq("product_id", productId);
+  const fichaRows = detail.ficha
+    .filter((f) => f.ref_id && f.nome.trim())
+    .map((f, idx) => ({
+      product_id: productId,
+      nome: f.nome.trim(),
+      insumo_id: f.tipo === "insumo" ? f.ref_id : null,
+      subproduto_id: f.tipo === "subproduto" ? f.ref_id : null,
+      quantidade: round2(f.quantidade),
+      permitir_exclusao: f.permitir_exclusao,
+      sort_order: idx,
+    }));
+  if (fichaRows.length) {
+    const { error } = await supabase
+      .from("ingredientes_produto")
+      .insert(fichaRows);
+    if (error) throw error;
+  }
 }
 
 /* ------------------------------------------------------------------ */
