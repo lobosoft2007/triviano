@@ -479,6 +479,31 @@ export async function buildPartialReport(
     .map(([nome, total]) => ({ nome, total: round2(total) }))
     .sort((a, b) => b.total - a.total);
 
+  // Informational (non-cash) modalities settled during this shift.
+  const since = caixa.data_hora_abertura;
+  const [{ data: cbRows }, { data: fiadoRows }] = await Promise.all([
+    supabase
+      .from("historico_cashback")
+      .select("valor")
+      .eq("tipo", "Debito")
+      .gte("created_at", since),
+    supabase
+      .from("extrato_fiado")
+      .select("valor")
+      .eq("tipo", "Debito_Compra")
+      .gte("created_at", since),
+  ]);
+  const cashbackTotal = round2(
+    (cbRows ?? []).reduce((s, r) => s + Number(r.valor), 0),
+  );
+  const fiadoTotal = round2(
+    (fiadoRows ?? []).reduce((s, r) => s + Number(r.valor), 0),
+  );
+  if (fiadoTotal > 0)
+    porMeio.push({ nome: "Fiado", total: fiadoTotal, informativo: true });
+  if (cashbackTotal > 0)
+    porMeio.push({ nome: "Cashback", total: cashbackTotal, informativo: true });
+
   const totalEntradas = round2(totalEntradasRaw);
   const saldoTotal = round2(
     caixa.valor_abertura + totalEntradas - totalSangrias,
