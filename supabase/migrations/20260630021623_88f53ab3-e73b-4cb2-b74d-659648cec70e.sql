@@ -1,0 +1,1 @@
+ALTER TABLE public.insumos ADD COLUMN IF NOT EXISTS estocavel boolean NOT NULL DEFAULT true;
