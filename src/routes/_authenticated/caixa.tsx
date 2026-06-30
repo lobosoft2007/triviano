@@ -329,9 +329,21 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     prevIdsRef.current = ids;
   }, [orders, soundOn]);
 
+  const nonCashMeioIds = useMemo(
+    () =>
+      new Set(
+        (meios ?? [])
+          .filter((m) => NON_CASH_MEIOS.has(m.nome))
+          .map((m) => m.id),
+      ),
+    [meios],
+  );
   const saldo = useMemo(
-    () => (caixa && movs ? saldoAtual(caixa, movs) : caixa?.valor_abertura ?? 0),
-    [caixa, movs],
+    () =>
+      caixa && movs
+        ? saldoAtual(caixa, movs, nonCashMeioIds)
+        : caixa?.valor_abertura ?? 0,
+    [caixa, movs, nonCashMeioIds],
   );
 
   const deliveryOrders = useMemo(
