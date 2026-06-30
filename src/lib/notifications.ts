@@ -116,7 +116,7 @@ export async function enableWebPush(userId: string): Promise<PushEnableResult> {
         (await reg.pushManager.getSubscription()) ??
         (await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapid),
+          applicationServerKey: urlBase64ToUint8Array(vapid) as BufferSource,
         }));
       if (sub) token = JSON.stringify(sub.toJSON());
     }
