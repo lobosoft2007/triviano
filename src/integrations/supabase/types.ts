@@ -210,6 +210,54 @@ export type Database = {
         }
         Relationships: []
       }
+      fornecedores: {
+        Row: {
+          ativo: boolean
+          cnpj: string | null
+          contato: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          fornecedor: string
+          i_estadual: string | null
+          id: string
+          prazo: number | null
+          site: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj?: string | null
+          contato?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          fornecedor: string
+          i_estadual?: string | null
+          id?: string
+          prazo?: number | null
+          site?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj?: string | null
+          contato?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          fornecedor?: string
+          i_estadual?: string | null
+          id?: string
+          prazo?: number | null
+          site?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ingredientes_produto: {
         Row: {
           created_at: string
@@ -271,29 +319,56 @@ export type Database = {
       insumos: {
         Row: {
           created_at: string
+          custo_anterior: number | null
+          custo_anterior_at: string | null
           custo_unitario: number
+          fornecedor_id: string | null
           id: string
           nome: string
+          setor_id: string | null
           unidade_medida: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          custo_anterior?: number | null
+          custo_anterior_at?: string | null
           custo_unitario?: number
+          fornecedor_id?: string | null
           id?: string
           nome: string
+          setor_id?: string | null
           unidade_medida?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          custo_anterior?: number | null
+          custo_anterior_at?: string | null
           custo_unitario?: number
+          fornecedor_id?: string | null
           id?: string
           nome?: string
+          setor_id?: string | null
           unidade_medida?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "insumos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insumos_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "setores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       movimentacoes_caixa: {
         Row: {
@@ -437,51 +512,54 @@ export type Database = {
       }
       products: {
         Row: {
-          addons: Json
           available: boolean
           category_id: string
           created_at: string
+          custo_anterior: number | null
+          custo_anterior_at: string | null
           description: string
+          fornecedor_id: string | null
           free_addon_limit: number
-          free_addon_price: number
-          free_addons: Json
           id: string
           image_url: string
+          manipulado: boolean
           name: string
           price: number
-          price_options: Json
+          setor_id: string | null
           sort_order: number
         }
         Insert: {
-          addons?: Json
           available?: boolean
           category_id: string
           created_at?: string
+          custo_anterior?: number | null
+          custo_anterior_at?: string | null
           description?: string
+          fornecedor_id?: string | null
           free_addon_limit?: number
-          free_addon_price?: number
-          free_addons?: Json
           id?: string
           image_url?: string
+          manipulado?: boolean
           name: string
           price: number
-          price_options?: Json
+          setor_id?: string | null
           sort_order?: number
         }
         Update: {
-          addons?: Json
           available?: boolean
           category_id?: string
           created_at?: string
+          custo_anterior?: number | null
+          custo_anterior_at?: string | null
           description?: string
+          fornecedor_id?: string | null
           free_addon_limit?: number
-          free_addon_price?: number
-          free_addons?: Json
           id?: string
           image_url?: string
+          manipulado?: boolean
           name?: string
           price?: number
-          price_options?: Json
+          setor_id?: string | null
           sort_order?: number
         }
         Relationships: [
@@ -490,6 +568,134 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos_addons: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          preco: number
+          produto_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          preco?: number
+          produto_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          preco?: number
+          produto_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_addons_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos_free_addons: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          preco: number
+          produto_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          preco?: number
+          produto_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          preco?: number
+          produto_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_free_addons_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos_price_options: {
+        Row: {
+          created_at: string
+          id: string
+          preco: number
+          produto_id: string
+          sort_order: number
+          tamanho: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preco?: number
+          produto_id: string
+          sort_order?: number
+          tamanho: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preco?: number
+          produto_id?: string
+          sort_order?: number
+          tamanho?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_price_options_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -517,6 +723,30 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      setores: {
+        Row: {
+          created_at: string
+          id: string
+          ordem_exibicao: number
+          setor: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordem_exibicao?: number
+          setor: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordem_exibicao?: number
+          setor?: string
           updated_at?: string
         }
         Relationships: []
