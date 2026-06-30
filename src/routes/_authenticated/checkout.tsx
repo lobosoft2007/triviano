@@ -39,8 +39,13 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
 
-  const { payload: pixPayload, copied, copy: copyPixPayload } =
-    usePixPayment(totalPrice);
+  const {
+    payload: pixPayload,
+    copied,
+    copy: copyPixPayload,
+    merchantName: pixMerchantName,
+    merchantCity: pixMerchantCity,
+  } = usePixPayment(totalPrice);
 
 
   const { data: profile } = useQuery({
