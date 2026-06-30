@@ -21,18 +21,27 @@ export type StatusPedido = (typeof ESTEIRA_STATUSES)[number] | "Cancelado";
  */
 export const TERMINAL_STATUSES: StatusPedido[] = ["Encerrado e pago", "Cancelado"];
 
-export type FormaPagamento =
-  | "PIX"
-  | "Dinheiro"
-  | "Cartão de Crédito"
-  | "Cartão de Débito";
+/** A dynamic, relational payment method (table `meios_pagamento`). */
+export interface MeioPagamento {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  exige_maquineta: boolean;
+}
 
-export const FORMAS_PAGAMENTO: FormaPagamento[] = [
-  "PIX",
-  "Dinheiro",
-  "Cartão de Crédito",
-  "Cartão de Débito",
-];
+/** Loads payment methods (active only by default), ordered by name. */
+export async function fetchMeiosPagamento(
+  activeOnly = true,
+): Promise<MeioPagamento[]> {
+  let q = supabase
+    .from("meios_pagamento")
+    .select("id, nome, ativo, exige_maquineta")
+    .order("nome");
+  if (activeOnly) q = q.eq("ativo", true);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as MeioPagamento[];
+}
 
 export interface Caixa {
   id: string;
@@ -50,6 +59,7 @@ export interface Movimentacao {
   tipo: MovimentacaoTipo;
   valor: number;
   motivo: string;
+  id_meio_pagamento: string | null;
   created_at: string;
 }
 
@@ -89,7 +99,8 @@ export interface CaixaOrder {
 export interface PagamentoPedido {
   id: string;
   id_pedido: string;
-  forma_pagamento: FormaPagamento;
+  id_meio_pagamento: string;
+  meio_nome: string;
   valor_pago: number;
   created_at: string;
 }
@@ -158,13 +169,15 @@ export async function fetchMovimentacoes(
 ): Promise<Movimentacao[]> {
   const { data, error } = await supabase
     .from("movimentacoes_caixa")
-    .select("id, id_caixa, tipo, valor, motivo, created_at")
+    .select("id, id_caixa, tipo, valor, motivo, id_meio_pagamento, created_at")
     .eq("id_caixa", caixaId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((m) => ({
     ...m,
     valor: Number(m.valor),
+    id_meio_pagamento:
+      (m as { id_meio_pagamento?: string | null }).id_meio_pagamento ?? null,
   })) as Movimentacao[];
 }
 
@@ -350,14 +363,19 @@ export async function fetchPagamentos(
 ): Promise<PagamentoPedido[]> {
   const { data, error } = await supabase
     .from("pagamentos_pedido")
-    .select("id, id_pedido, forma_pagamento, valor_pago, created_at")
+    .select(
+      "id, id_pedido, id_meio_pagamento, valor_pago, created_at, meios_pagamento(nome)",
+    )
     .eq("id_pedido", orderId)
     .order("created_at");
   if (error) throw error;
   return (data ?? []).map((p) => ({
     id: p.id,
     id_pedido: p.id_pedido,
-    forma_pagamento: p.forma_pagamento as FormaPagamento,
+    id_meio_pagamento: p.id_meio_pagamento ?? "",
+    meio_nome:
+      (p as { meios_pagamento?: { nome?: string } | null }).meios_pagamento
+        ?.nome ?? "—",
     valor_pago: Number(p.valor_pago),
     created_at: p.created_at,
   }));
@@ -365,12 +383,12 @@ export async function fetchPagamentos(
 
 export async function addPagamento(input: {
   orderId: string;
-  forma: FormaPagamento;
+  meioId: string;
   valor: number;
 }): Promise<void> {
   const { error } = await supabase.from("pagamentos_pedido").insert({
     id_pedido: input.orderId,
-    forma_pagamento: input.forma,
+    id_meio_pagamento: input.meioId,
     valor_pago: round2(input.valor),
   });
   if (error) throw error;
@@ -384,11 +402,126 @@ export async function deletePagamento(id: string): Promise<void> {
   if (error) throw error;
 }
 
-/** Marks an order as fully paid once the split lines match the total. */
-export async function finalizeOrderPaid(orderId: string): Promise<void> {
-  const { error } = await supabase
-    .from("orders")
-    .update({ status_pedido: "Encerrado e pago", status: "delivered" })
-    .eq("id", orderId);
+/**
+ * Finalizes & settles an order via the secure RPC: posts revenue movements to
+ * the open caixa per payment method, validates fiado limit, debits cashback
+ * spent, and credits 5% cashback of the total. Returns the customer's
+ * resulting fiado debt balance (for the push message).
+ */
+export async function finalizeOrderPaid(orderId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("finalize_order_paid", {
+    p_order_id: orderId,
+  });
   if (error) throw error;
+  return Number(data ?? 0);
+}
+
+/* ------------------------------------------------------------------ */
+/* Partial cash report (X de caixa)                                    */
+/* ------------------------------------------------------------------ */
+
+export interface CaixaPartialReport {
+  valorAbertura: number;
+  /**
+   * Revenue grouped dynamically by payment method. Cash/PIX/card lines are
+   * real money; Fiado and Cashback are informational (`informativo: true`)
+   * and excluded from the monetary totals below.
+   */
+  porMeio: { nome: string; total: number; informativo?: boolean }[];
+  totalEntradas: number;
+  totalSangrias: number;
+  totalSuprimentos: number;
+  /** Total restaurant balance: opening + cash entries - sangrias. */
+  saldoTotal: number;
+  /** Expected physical cash in drawer. */
+  saldoGavetaDinheiro: number;
+}
+
+/**
+ * Builds the partial ("X de caixa") financial audit for the current open
+ * shift, grouping movements dynamically by payment method.
+ */
+export async function buildPartialReport(
+  caixa: Caixa,
+  movs: Movimentacao[],
+): Promise<CaixaPartialReport> {
+  const meios = await fetchMeiosPagamento(false);
+  const nameById = new Map(meios.map((m) => [m.id, m.nome]));
+
+  const porMeioMap = new Map<string, number>();
+  let totalSangrias = 0;
+  let totalSuprimentos = 0;
+  let totalEntradasRaw = 0;
+  let dinheiroEntradas = 0;
+  let untaggedEntradas = 0;
+
+  for (const m of movs) {
+    if (m.tipo === "Sangria") {
+      totalSangrias += m.valor;
+      continue;
+    }
+    // Every non-sangria movement is an entry.
+    totalEntradasRaw += m.valor;
+    if (m.tipo === "Suprimento") totalSuprimentos += m.valor;
+
+    const meioId = m.id_meio_pagamento;
+    if (meioId) {
+      const nome = nameById.get(meioId) ?? "Outro";
+      porMeioMap.set(nome, (porMeioMap.get(nome) ?? 0) + m.valor);
+      if (nome === "Dinheiro") dinheiroEntradas += m.valor;
+    } else {
+      // Untagged entries (manual suprimentos/recebimentos) count as cash.
+      untaggedEntradas += m.valor;
+    }
+  }
+
+  const porMeio: { nome: string; total: number; informativo?: boolean }[] = [
+    ...porMeioMap.entries(),
+  ]
+    .map(([nome, total]) => ({ nome, total: round2(total) }))
+    .sort((a, b) => b.total - a.total);
+
+  // Informational (non-cash) modalities settled during this shift.
+  const since = caixa.data_hora_abertura;
+  const [{ data: cbRows }, { data: fiadoRows }] = await Promise.all([
+    supabase
+      .from("historico_cashback")
+      .select("valor")
+      .eq("tipo", "Debito")
+      .gte("created_at", since),
+    supabase
+      .from("extrato_fiado")
+      .select("valor")
+      .eq("tipo", "Debito_Compra")
+      .gte("created_at", since),
+  ]);
+  const cashbackTotal = round2(
+    (cbRows ?? []).reduce((s, r) => s + Number(r.valor), 0),
+  );
+  const fiadoTotal = round2(
+    (fiadoRows ?? []).reduce((s, r) => s + Number(r.valor), 0),
+  );
+  if (fiadoTotal > 0)
+    porMeio.push({ nome: "Fiado", total: fiadoTotal, informativo: true });
+  if (cashbackTotal > 0)
+    porMeio.push({ nome: "Cashback", total: cashbackTotal, informativo: true });
+
+  const totalEntradas = round2(totalEntradasRaw);
+  const saldoTotal = round2(
+    caixa.valor_abertura + totalEntradas - totalSangrias,
+  );
+  const saldoGavetaDinheiro = round2(
+    caixa.valor_abertura + dinheiroEntradas + untaggedEntradas - totalSangrias,
+  );
+
+
+  return {
+    valorAbertura: round2(caixa.valor_abertura),
+    porMeio,
+    totalEntradas,
+    totalSangrias: round2(totalSangrias),
+    totalSuprimentos: round2(totalSuprimentos),
+    saldoTotal,
+    saldoGavetaDinheiro,
+  };
 }

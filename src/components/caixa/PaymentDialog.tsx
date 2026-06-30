@@ -1,16 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
+  fetchMeiosPagamento,
   fetchPagamentos,
   addPagamento,
   deletePagamento,
   finalizeOrderPaid,
-  FORMAS_PAGAMENTO,
   type CaixaOrder,
-  type FormaPagamento,
 } from "@/lib/caixa";
+import { insertNotification } from "@/lib/notifications";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+/** Integer cents to avoid floating-point comparison drift. */
+const toCents = (n: number) => Math.round(n * 100);
+
 export function PaymentDialog({
   order,
   open,
@@ -33,23 +36,36 @@ export function PaymentDialog({
   onOpenChange: (v: boolean) => void;
 }) {
   const queryClient = useQueryClient();
+
+  const { data: meios } = useQuery({
+    queryKey: ["meios-pagamento"],
+    queryFn: () => fetchMeiosPagamento(true),
+    enabled: open,
+  });
   const { data: pagamentos, isLoading } = useQuery({
     queryKey: ["pagamentos", order.id],
     queryFn: () => fetchPagamentos(order.id),
     enabled: open,
   });
 
-  const [forma, setForma] = useState<FormaPagamento>("Dinheiro");
+  const [meioId, setMeioId] = useState("");
   const [valor, setValor] = useState("");
   const [busy, setBusy] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
 
-  const totalPago = useMemo(
-    () => (pagamentos ?? []).reduce((s, p) => s + p.valor_pago, 0),
+  // Default the selector to the first active method once they load.
+  useEffect(() => {
+    if (!meioId && meios && meios.length > 0) setMeioId(meios[0].id);
+  }, [meios, meioId]);
+
+  const totalPagoCents = useMemo(
+    () => (pagamentos ?? []).reduce((s, p) => s + toCents(p.valor_pago), 0),
     [pagamentos],
   );
-  const restante = Math.round((order.total - totalPago) * 100) / 100;
-  const matches = Math.abs(restante) < 0.005;
+  const totalCents = toCents(order.total);
+  const restanteCents = totalCents - totalPagoCents;
+  const restante = restanteCents / 100;
+  const matches = restanteCents === 0;
 
   async function handleAdd() {
     const v = Number(valor.replace(",", "."));
@@ -57,9 +73,13 @@ export function PaymentDialog({
       toast.error("Informe um valor válido.");
       return;
     }
+    if (!meioId) {
+      toast.error("Selecione um meio de pagamento.");
+      return;
+    }
     setBusy(true);
     try {
-      await addPagamento({ orderId: order.id, forma, valor: v });
+      await addPagamento({ orderId: order.id, meioId, valor: v });
       await queryClient.invalidateQueries({ queryKey: ["pagamentos", order.id] });
       setValor("");
     } catch (err) {
@@ -70,7 +90,7 @@ export function PaymentDialog({
   }
 
   function fillRemaining() {
-    if (restante > 0) setValor(restante.toFixed(2));
+    if (restanteCents > 0) setValor((restanteCents / 100).toFixed(2));
   }
 
   async function handleRemove(id: string) {
@@ -84,10 +104,32 @@ export function PaymentDialog({
 
   async function handleFinalize() {
     if (!matches) return;
+    const usouFiado = (pagamentos ?? []).some((p) => p.meio_nome === "Fiado");
     setFinalizing(true);
     try {
-      await finalizeOrderPaid(order.id);
+      const saldoDevedor = await finalizeOrderPaid(order.id);
+      // Fiado purchase -> instant push notification to the customer.
+      if (usouFiado && order.user_id) {
+        const valorFiado = (pagamentos ?? [])
+          .filter((p) => p.meio_nome === "Fiado")
+          .reduce((s, p) => s + p.valor_pago, 0);
+        try {
+          await insertNotification({
+            idPedido: order.id,
+            idUsuario: order.user_id,
+            titulo: "Compra no Fiado registrada",
+            mensagem: `Clube 23: Compra de ${formatBRL(
+              valorFiado,
+            )} registrada no Fiado. Seu saldo devedor atual é ${formatBRL(
+              saldoDevedor,
+            )}.`,
+          });
+        } catch {
+          /* best-effort; bell/whatsapp fallback */
+        }
+      }
       await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
       toast.success(`Pedido #${order.id.slice(0, 6).toUpperCase()} baixado.`);
       onOpenChange(false);
     } catch (err) {
@@ -112,13 +154,13 @@ export function PaymentDialog({
             <Label>Adicionar pagamento</Label>
             <div className="flex gap-2">
               <select
-                value={forma}
-                onChange={(e) => setForma(e.target.value as FormaPagamento)}
+                value={meioId}
+                onChange={(e) => setMeioId(e.target.value)}
                 className="h-10 flex-1 rounded-lg border border-border bg-background px-2 text-sm"
               >
-                {FORMAS_PAGAMENTO.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
+                {(meios ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome}
                   </option>
                 ))}
               </select>
@@ -137,7 +179,7 @@ export function PaymentDialog({
                 )}
               </Button>
             </div>
-            {restante > 0 && (
+            {restanteCents > 0 && (
               <button
                 onClick={fillRemaining}
                 className="text-xs font-semibold text-primary hover:underline"
@@ -163,7 +205,7 @@ export function PaymentDialog({
                   key={p.id}
                   className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-3 py-2 text-sm"
                 >
-                  <span className="font-medium">{p.forma_pagamento}</span>
+                  <span className="font-medium">{p.meio_nome}</span>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold tabular-nums">
                       {formatBRL(p.valor_pago)}
@@ -189,14 +231,16 @@ export function PaymentDialog({
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total pago</span>
-              <span className="tabular-nums">{formatBRL(totalPago)}</span>
+              <span className="tabular-nums">
+                {formatBRL(totalPagoCents / 100)}
+              </span>
             </div>
             <div
               className={`flex justify-between border-t border-border pt-1 font-display font-bold ${
                 matches ? "text-success" : "text-destructive"
               }`}
             >
-              <span>{restante >= 0 ? "Restante" : "Excedente"}</span>
+              <span>{restanteCents >= 0 ? "Restante" : "Excedente"}</span>
               <span className="tabular-nums">{formatBRL(Math.abs(restante))}</span>
             </div>
           </div>

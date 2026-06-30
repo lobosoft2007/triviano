@@ -28,6 +28,9 @@ import {
   Pencil,
   HandCoins,
   ReceiptText,
+  Users,
+  FileBarChart,
+
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { StatusControl } from "@/components/caixa/StatusControl";
@@ -37,6 +40,8 @@ import { PaymentDialog } from "@/components/caixa/PaymentDialog";
 import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { NotifyClient } from "@/components/caixa/NotifyClient";
 import { WhatsAppStatusButton } from "@/components/caixa/WhatsAppStatusButton";
+import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
+import { PartialReportDialog } from "@/components/caixa/PartialReportDialog";
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -256,8 +261,9 @@ function LockScreen({ userId }: { userId: string }) {
 function OperationalPanel({ caixaId }: { caixaId: string }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<
-    "delivery" | "mesas" | "config" | "pagamento" | "fiscal"
+    "delivery" | "mesas" | "config" | "pagamento" | "fiscal" | "fiado"
   >("delivery");
+  const [partialOpen, setPartialOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [printNode, setPrintNode] = useState<ReactNode>(null);
   const prevIdsRef = useRef<Set<string> | null>(null);
@@ -497,6 +503,15 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             size="sm"
             variant="outline"
             className="rounded-full"
+            onClick={() => setPartialOpen(true)}
+          >
+            <FileBarChart className="mr-1.5 h-4 w-4 text-primary" /> Consultar
+            Caixa do Momento (Parcial)
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
             onClick={() => handleMov("Recebimento Pedido")}
           >
             <Wallet className="mr-1.5 h-4 w-4 text-primary" /> Recebimento
@@ -543,11 +558,21 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             icon={<ReceiptText className="h-4 w-4" />}
             label="Fiscal"
           />
+          <TabButton
+            active={tab === "fiado"}
+            onClick={() => setTab("fiado")}
+            icon={<Users className="h-4 w-4" />}
+            label="Conta Corrente"
+          />
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-5 lg:px-8">
-        {tab !== "config" && tab !== "pagamento" && tab !== "fiscal" && !orders && (
+        {tab !== "config" &&
+          tab !== "pagamento" &&
+          tab !== "fiscal" &&
+          tab !== "fiado" &&
+          !orders && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
           </div>
@@ -573,7 +598,17 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         {tab === "config" && <ConfigTab />}
         {tab === "pagamento" && <PaymentConfigTab />}
         {tab === "fiscal" && <FiscalConfigTab />}
+        {tab === "fiado" && <ContaCorrenteTab />}
       </main>
+
+      {/* Partial cash report (X de caixa) */}
+      {caixa && (
+        <PartialReportDialog
+          caixa={caixa}
+          open={partialOpen}
+          onOpenChange={setPartialOpen}
+        />
+      )}
 
 
       {/* Close cash register dialog */}

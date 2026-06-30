@@ -38,6 +38,20 @@ function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [useCashback, setUseCashback] = useState(false);
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => fetchProfile(user!.id),
+    enabled: !!user,
+  });
+
+  const saldoCashback = profile?.saldo_cashback ?? 0;
+  const cashbackApplied = useCashback
+    ? Math.min(Math.round(saldoCashback * 100), Math.round(totalPrice * 100)) /
+      100
+    : 0;
+  const finalTotal = Math.round((totalPrice - cashbackApplied) * 100) / 100;
 
   const {
     payload: pixPayload,
@@ -45,14 +59,9 @@ function CheckoutPage() {
     copy: copyPixPayload,
     merchantName: pixMerchantName,
     merchantCity: pixMerchantCity,
-  } = usePixPayment(totalPrice);
+  } = usePixPayment(finalTotal);
 
 
-  const { data: profile } = useQuery({
-    queryKey: ["profile", user?.id],
-    queryFn: () => fetchProfile(user!.id),
-    enabled: !!user,
-  });
 
   useEffect(() => {
     if (profile) {
@@ -112,13 +121,14 @@ function CheckoutPage() {
       await placeOrder({
         userId: user.id,
         items,
-        total: totalPrice,
+        total: finalTotal,
         discount,
         deliveryAddress: parsed.data.address,
         phone: parsed.data.phone,
         notes: parsed.data.notes ?? "",
         tipoAtendimento: tipo,
         numeroMesa: mesaNumber,
+        cashbackUsed: cashbackApplied,
       });
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -184,14 +194,42 @@ function CheckoutPage() {
                   <span className="tabular-nums">− {formatBRL(discount)}</span>
                 </div>
               )}
+              {cashbackApplied > 0 && (
+                <div className="flex justify-between text-sm text-success">
+                  <span>Cashback aplicado</span>
+                  <span className="tabular-nums">
+                    − {formatBRL(cashbackApplied)}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between pt-1">
                 <span className="font-semibold">Total</span>
                 <span className="font-display text-lg font-bold text-primary">
-                  {formatBRL(totalPrice)}
+                  {formatBRL(finalTotal)}
                 </span>
               </div>
             </div>
+
+            {saldoCashback > 0 && (
+              <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2.5">
+                <span className="text-sm">
+                  <span className="font-semibold text-foreground">
+                    Usar meu cashback
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    Saldo disponível: {formatBRL(saldoCashback)}
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={useCashback}
+                  onChange={(e) => setUseCashback(e.target.checked)}
+                  className="h-5 w-5 accent-[hsl(var(--primary))]"
+                />
+              </label>
+            )}
           </section>
+
 
           {shortfalls.map((s) => (
             <p
@@ -214,7 +252,7 @@ function CheckoutPage() {
             <p className="text-xs text-muted-foreground">
               Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
               <span className="font-semibold text-foreground">
-                {formatBRL(totalPrice)}
+                {formatBRL(finalTotal)}
               </span>{" "}
               já vem preenchido.
             </p>
@@ -349,7 +387,7 @@ function CheckoutPage() {
               {submitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                `Confirmar pedido • ${formatBRL(totalPrice)}`
+                `Confirmar pedido • ${formatBRL(finalTotal)}`
               )}
             </Button>
           </form>

@@ -193,6 +193,44 @@ export type Database = {
         }
         Relationships: []
       }
+      extrato_fiado: {
+        Row: {
+          created_at: string
+          id: string
+          id_pedido: string | null
+          id_usuario: string
+          saldo_devedor_momento: number
+          tipo: Database["public"]["Enums"]["fiado_tipo"]
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          id_pedido?: string | null
+          id_usuario: string
+          saldo_devedor_momento?: number
+          tipo: Database["public"]["Enums"]["fiado_tipo"]
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          id_pedido?: string | null
+          id_usuario?: string
+          saldo_devedor_momento?: number
+          tipo?: Database["public"]["Enums"]["fiado_tipo"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extrato_fiado_id_pedido_fkey"
+            columns: ["id_pedido"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fichas_tecnicas: {
         Row: {
           created_at: string
@@ -318,6 +356,44 @@ export type Database = {
         }
         Relationships: []
       }
+      historico_cashback: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          id_pedido: string | null
+          id_usuario: string
+          tipo: Database["public"]["Enums"]["cashback_tipo"]
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          id_pedido?: string | null
+          id_usuario: string
+          tipo: Database["public"]["Enums"]["cashback_tipo"]
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          id_pedido?: string | null
+          id_usuario?: string
+          tipo?: Database["public"]["Enums"]["cashback_tipo"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_cashback_id_pedido_fkey"
+            columns: ["id_pedido"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredientes_produto: {
         Row: {
           created_at: string
@@ -433,11 +509,39 @@ export type Database = {
           },
         ]
       }
+      meios_pagamento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          exige_maquineta: boolean
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          exige_maquineta?: boolean
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          exige_maquineta?: boolean
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       movimentacoes_caixa: {
         Row: {
           created_at: string
           id: string
           id_caixa: string
+          id_meio_pagamento: string | null
           motivo: string
           tipo: string
           valor: number
@@ -446,6 +550,7 @@ export type Database = {
           created_at?: string
           id?: string
           id_caixa: string
+          id_meio_pagamento?: string | null
           motivo?: string
           tipo: string
           valor?: number
@@ -454,6 +559,7 @@ export type Database = {
           created_at?: string
           id?: string
           id_caixa?: string
+          id_meio_pagamento?: string | null
           motivo?: string
           tipo?: string
           valor?: number
@@ -464,6 +570,13 @@ export type Database = {
             columns: ["id_caixa"]
             isOneToOne: false
             referencedRelation: "fluxo_caixa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_caixa_id_meio_pagamento_fkey"
+            columns: ["id_meio_pagamento"]
+            isOneToOne: false
+            referencedRelation: "meios_pagamento"
             referencedColumns: ["id"]
           },
         ]
@@ -565,6 +678,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          cashback_usado: number
           created_at: string
           delivery_address: string
           desconto_manual: number
@@ -583,6 +697,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cashback_usado?: number
           created_at?: string
           delivery_address?: string
           desconto_manual?: number
@@ -601,6 +716,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cashback_usado?: number
           created_at?: string
           delivery_address?: string
           desconto_manual?: number
@@ -623,26 +739,33 @@ export type Database = {
       pagamentos_pedido: {
         Row: {
           created_at: string
-          forma_pagamento: Database["public"]["Enums"]["forma_pagamento_tipo"]
           id: string
+          id_meio_pagamento: string | null
           id_pedido: string
           valor_pago: number
         }
         Insert: {
           created_at?: string
-          forma_pagamento: Database["public"]["Enums"]["forma_pagamento_tipo"]
           id?: string
+          id_meio_pagamento?: string | null
           id_pedido: string
           valor_pago?: number
         }
         Update: {
           created_at?: string
-          forma_pagamento?: Database["public"]["Enums"]["forma_pagamento_tipo"]
           id?: string
+          id_meio_pagamento?: string | null
           id_pedido?: string
           valor_pago?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "pagamentos_pedido_id_meio_pagamento_fkey"
+            columns: ["id_meio_pagamento"]
+            isOneToOne: false
+            referencedRelation: "meios_pagamento"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pagamentos_pedido_id_pedido_fkey"
             columns: ["id_pedido"]
@@ -846,28 +969,40 @@ export type Database = {
         Row: {
           address: string
           created_at: string
+          fiado_autorizado: boolean
           full_name: string
           id: string
+          limite_fiado: number
           phone: string
           push_token: string | null
+          saldo_cashback: number
+          saldo_devedor_fiado: number
           updated_at: string
         }
         Insert: {
           address?: string
           created_at?: string
+          fiado_autorizado?: boolean
           full_name?: string
           id: string
+          limite_fiado?: number
           phone?: string
           push_token?: string | null
+          saldo_cashback?: number
+          saldo_devedor_fiado?: number
           updated_at?: string
         }
         Update: {
           address?: string
           created_at?: string
+          fiado_autorizado?: boolean
           full_name?: string
           id?: string
+          limite_fiado?: number
           phone?: string
           push_token?: string | null
+          saldo_cashback?: number
+          saldo_devedor_fiado?: number
           updated_at?: string
         }
         Relationships: []
@@ -949,6 +1084,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      finalize_order_paid: { Args: { p_order_id: string }; Returns: number }
       get_active_pix_config: {
         Args: never
         Returns: {
@@ -965,16 +1101,30 @@ export type Database = {
         }
         Returns: boolean
       }
+      pay_fiado: {
+        Args: {
+          p_descricao: string
+          p_id_meio: string
+          p_user_id: string
+          p_valor: number
+        }
+        Returns: number
+      }
+      redeem_cashback_for_order: {
+        Args: { p_amount: number; p_order_id: string }
+        Returns: number
+      }
+      set_fiado_config: {
+        Args: { p_autorizado: boolean; p_limite: number; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       ambiente_emissao_tipo: "Homologação/Testes" | "Produção"
       app_role: "admin" | "user"
       attendance_type: "Delivery" | "Presencial"
-      forma_pagamento_tipo:
-        | "PIX"
-        | "Dinheiro"
-        | "Cartão de Crédito"
-        | "Cartão de Débito"
+      cashback_tipo: "Credito" | "Debito"
+      fiado_tipo: "Debito_Compra" | "Credito_Pagamento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1105,12 +1255,8 @@ export const Constants = {
       ambiente_emissao_tipo: ["Homologação/Testes", "Produção"],
       app_role: ["admin", "user"],
       attendance_type: ["Delivery", "Presencial"],
-      forma_pagamento_tipo: [
-        "PIX",
-        "Dinheiro",
-        "Cartão de Crédito",
-        "Cartão de Débito",
-      ],
+      cashback_tipo: ["Credito", "Debito"],
+      fiado_tipo: ["Debito_Compra", "Credito_Pagamento"],
     },
   },
 } as const
