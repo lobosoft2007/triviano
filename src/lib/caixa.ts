@@ -475,7 +475,9 @@ export async function buildPartialReport(
     }
   }
 
-  const porMeio = [...porMeioMap.entries()]
+  const porMeio: { nome: string; total: number; informativo?: boolean }[] = [
+    ...porMeioMap.entries(),
+  ]
     .map(([nome, total]) => ({ nome, total: round2(total) }))
     .sort((a, b) => b.total - a.total);
 
