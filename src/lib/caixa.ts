@@ -196,13 +196,31 @@ export async function addMovimentacao(input: {
   if (error) throw error;
 }
 
-/** Net balance: opening + suprimentos + recebimentos - sangrias. */
-export function saldoAtual(caixa: Caixa, movs: Movimentacao[]): number {
+/**
+ * Net balance: opening + suprimentos + recebimentos - sangrias.
+ * Non-cash methods (Cashback/Fiado) are now recorded in movimentacoes_caixa
+ * for reconciliation, so pass their ids in `excludeMeioIds` to keep this from
+ * inflating the real money balance.
+ */
+export function saldoAtual(
+  caixa: Caixa,
+  movs: Movimentacao[],
+  excludeMeioIds?: Set<string>,
+): number {
   return movs.reduce((acc, m) => {
     if (m.tipo === "Sangria") return acc - m.valor;
+    if (
+      excludeMeioIds &&
+      m.id_meio_pagamento &&
+      excludeMeioIds.has(m.id_meio_pagamento)
+    )
+      return acc;
     return acc + m.valor;
   }, caixa.valor_abertura);
 }
+
+/** Payment-method names that are not physical money (informational only). */
+export const NON_CASH_MEIOS = new Set(["Cashback", "Fiado"]);
 
 export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
   const { data, error } = await supabase
@@ -439,7 +457,10 @@ export interface CaixaPartialReport {
 
 /**
  * Builds the partial ("X de caixa") financial audit for the current open
- * shift, grouping movements dynamically by payment method.
+ * shift. Groups every movement of the shift by payment method (single source
+ * of truth: movimentacoes_caixa, where finalize_order_paid now records a line
+ * for every method including Cashback and Fiado). Cashback/Fiado are flagged
+ * `informativo` and excluded from the real-money totals and the drawer.
  */
 export async function buildPartialReport(
   caixa: Caixa,
@@ -451,69 +472,63 @@ export async function buildPartialReport(
   const porMeioMap = new Map<string, number>();
   let totalSangrias = 0;
   let totalSuprimentos = 0;
-  let totalEntradasRaw = 0;
+  let realEntradas = 0; // real money only (excludes Cashback/Fiado)
   let dinheiroEntradas = 0;
-  let untaggedEntradas = 0;
 
   for (const m of movs) {
     if (m.tipo === "Sangria") {
       totalSangrias += m.valor;
       continue;
     }
-    // Every non-sangria movement is an entry.
-    totalEntradasRaw += m.valor;
     if (m.tipo === "Suprimento") totalSuprimentos += m.valor;
 
-    const meioId = m.id_meio_pagamento;
-    if (meioId) {
-      const nome = nameById.get(meioId) ?? "Outro";
-      porMeioMap.set(nome, (porMeioMap.get(nome) ?? 0) + m.valor);
+    // Untagged entries (manual suprimentos/recebimentos) count as cash.
+    const nome = m.id_meio_pagamento
+      ? nameById.get(m.id_meio_pagamento) ?? "Outro"
+      : "Dinheiro";
+    porMeioMap.set(nome, (porMeioMap.get(nome) ?? 0) + m.valor);
+
+    if (!NON_CASH_MEIOS.has(nome)) {
+      realEntradas += m.valor;
       if (nome === "Dinheiro") dinheiroEntradas += m.valor;
-    } else {
-      // Untagged entries (manual suprimentos/recebimentos) count as cash.
-      untaggedEntradas += m.valor;
     }
   }
 
-  const porMeio: { nome: string; total: number; informativo?: boolean }[] = [
-    ...porMeioMap.entries(),
-  ]
-    .map(([nome, total]) => ({ nome, total: round2(total) }))
-    .sort((a, b) => b.total - a.total);
+  // Always surface the standard six lines (even at zero), then any extras.
+  const STANDARD = [
+    "Dinheiro",
+    "PIX",
+    "Cartão de Crédito",
+    "Cartão de Débito",
+    "Cashback",
+    "Fiado",
+  ];
+  const seen = new Set<string>();
+  const porMeio: { nome: string; total: number; informativo?: boolean }[] = [];
+  for (const nome of STANDARD) {
+    seen.add(nome);
+    porMeio.push({
+      nome,
+      total: round2(porMeioMap.get(nome) ?? 0),
+      informativo: NON_CASH_MEIOS.has(nome),
+    });
+  }
+  for (const [nome, total] of porMeioMap.entries()) {
+    if (seen.has(nome)) continue;
+    porMeio.push({
+      nome,
+      total: round2(total),
+      informativo: NON_CASH_MEIOS.has(nome),
+    });
+  }
 
-  // Informational (non-cash) modalities settled during this shift.
-  const since = caixa.data_hora_abertura;
-  const [{ data: cbRows }, { data: fiadoRows }] = await Promise.all([
-    supabase
-      .from("historico_cashback")
-      .select("valor")
-      .eq("tipo", "Debito")
-      .gte("created_at", since),
-    supabase
-      .from("extrato_fiado")
-      .select("valor")
-      .eq("tipo", "Debito_Compra")
-      .gte("created_at", since),
-  ]);
-  const cashbackTotal = round2(
-    (cbRows ?? []).reduce((s, r) => s + Number(r.valor), 0),
-  );
-  const fiadoTotal = round2(
-    (fiadoRows ?? []).reduce((s, r) => s + Number(r.valor), 0),
-  );
-  if (fiadoTotal > 0)
-    porMeio.push({ nome: "Fiado", total: fiadoTotal, informativo: true });
-  if (cashbackTotal > 0)
-    porMeio.push({ nome: "Cashback", total: cashbackTotal, informativo: true });
-
-  const totalEntradas = round2(totalEntradasRaw);
+  const totalEntradas = round2(realEntradas);
   const saldoTotal = round2(
     caixa.valor_abertura + totalEntradas - totalSangrias,
   );
   const saldoGavetaDinheiro = round2(
-    caixa.valor_abertura + dinheiroEntradas + untaggedEntradas - totalSangrias,
+    caixa.valor_abertura + dinheiroEntradas - totalSangrias,
   );
-
 
   return {
     valorAbertura: round2(caixa.valor_abertura),

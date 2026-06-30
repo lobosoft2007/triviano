@@ -49,14 +49,15 @@ import { formatBRL } from "@/lib/format";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
 import {
   addMovimentacao,
-  
   fetchCaixaOrders,
+  fetchMeiosPagamento,
   fetchMovimentacoes,
   fetchOpenCaixa,
   markPrintedConta,
   markPrintedCozinha,
   openCaixa,
   saldoAtual,
+  NON_CASH_MEIOS,
   type CaixaOrder,
   type CaixaOrderItem,
   type MovimentacaoTipo,
@@ -288,6 +289,10 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
   const { data: catRouting } = useQuery({
     queryKey: ["categories-routing"],
     queryFn: fetchCategoriesRouting,
+  });
+  const { data: meios } = useQuery({
+    queryKey: ["meios-pagamento-all"],
+    queryFn: () => fetchMeiosPagamento(false),
   });
 
   const resolveSector = useMemo(
