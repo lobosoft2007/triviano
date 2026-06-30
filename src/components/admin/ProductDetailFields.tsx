@@ -32,6 +32,7 @@ export interface ProductDetailForm {
   free_addons: RelRow[];
   ncm: string;
   ean: string;
+  ficha: FichaRow[];
 }
 
 export const EMPTY_DETAIL: ProductDetailForm = {
@@ -43,6 +44,7 @@ export const EMPTY_DETAIL: ProductDetailForm = {
   free_addons: [],
   ncm: "",
   ean: "",
+  ficha: [],
 };
 
 function RelListEditor({
