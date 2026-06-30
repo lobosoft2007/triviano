@@ -135,12 +135,14 @@ export async function openCaixa(input: {
 export async function closeCaixa(input: {
   id: string;
   valorFechamento: number;
+  metadados?: Record<string, number> | null;
 }): Promise<void> {
   const { error } = await supabase
     .from("fluxo_caixa")
     .update({
       status: "Fechado",
       valor_fechamento: input.valorFechamento,
+      metadados_fechamento: input.metadados ?? null,
       data_hora_fechamento: new Date().toISOString(),
     })
     .eq("id", input.id);
