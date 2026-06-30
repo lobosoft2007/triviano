@@ -9,14 +9,42 @@ import {
 } from "@/lib/caixa";
 import { notifyStatusChange } from "@/lib/notifications";
 
-const STATUS_COLOR: Record<StatusPedido, string> = {
-  Recebido: "#6366f1",
-  "Em preparação": "#f59e0b",
-  "Aguardando entregador": "#0ea5e9",
-  "Em entrega": "#8b5cf6",
-  Entregue: "#10b981",
-  Pago: "#059669",
-  Cancelado: "#ef4444",
+/**
+ * Subtle, operator-friendly Tailwind tints per esteira status so the operator
+ * can read the kitchen/delivery situation at a glance.
+ */
+const STATUS_STYLE: Record<
+  StatusPedido,
+  { dot: string; select: string }
+> = {
+  Recebido: {
+    dot: "bg-amber-400",
+    select: "border-amber-400/60 bg-amber-400/10 text-amber-300",
+  },
+  "Em preparação": {
+    dot: "bg-blue-400",
+    select: "border-blue-400/60 bg-blue-400/10 text-blue-300",
+  },
+  "Aguardando entregador": {
+    dot: "bg-sky-400",
+    select: "border-sky-400/60 bg-sky-400/10 text-sky-300",
+  },
+  "Em entrega": {
+    dot: "bg-violet-400",
+    select: "border-violet-400/60 bg-violet-400/10 text-violet-300",
+  },
+  Entregue: {
+    dot: "bg-emerald-400",
+    select: "border-emerald-400/60 bg-emerald-400/10 text-emerald-300",
+  },
+  "Encerrado e pago": {
+    dot: "bg-emerald-500",
+    select: "border-emerald-500/70 bg-emerald-500/15 text-emerald-200",
+  },
+  Cancelado: {
+    dot: "bg-red-500",
+    select: "border-red-500/60 bg-red-500/10 text-red-300",
+  },
 };
 
 export function StatusControl({
@@ -35,7 +63,9 @@ export function StatusControl({
     if (next === status) return;
     setSaving(true);
     try {
+      // 1. Persist the new status in the orders table.
       await updateStatusPedido(orderId, next);
+      // 2. Fire the client notification (insert + push) for the new status.
       if (userId) {
         try {
           await notifyStatusChange(orderId, userId, next);
@@ -51,26 +81,27 @@ export function StatusControl({
     }
   }
 
+  const style = STATUS_STYLE[status] ?? STATUS_STYLE.Recebido;
+
   return (
     <div className="flex items-center gap-2">
       <span
-        className="h-2.5 w-2.5 shrink-0 rounded-full"
-        style={{ backgroundColor: STATUS_COLOR[status] }}
+        className={`h-2.5 w-2.5 shrink-0 rounded-full ${style.dot}`}
         aria-hidden
       />
       <select
         value={status}
         onChange={(e) => handleChange(e.target.value as StatusPedido)}
         disabled={saving}
-        className="h-9 flex-1 rounded-lg border-2 px-2 text-sm font-semibold"
-        style={{ borderColor: STATUS_COLOR[status], color: STATUS_COLOR[status] }}
+        aria-label="Status do pedido"
+        className={`h-9 flex-1 rounded-lg border-2 px-2 text-sm font-semibold transition-colors disabled:opacity-60 ${style.select}`}
       >
         {ESTEIRA_STATUSES.map((s) => (
-          <option key={s} value={s} className="text-foreground">
+          <option key={s} value={s} className="bg-background text-foreground">
             {s}
           </option>
         ))}
-        <option value="Cancelado" className="text-foreground">
+        <option value="Cancelado" className="bg-background text-foreground">
           Cancelado
         </option>
       </select>

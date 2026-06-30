@@ -10,12 +10,16 @@ export const ESTEIRA_STATUSES = [
   "Aguardando entregador",
   "Em entrega",
   "Entregue",
-  "Pago",
+  "Encerrado e pago",
 ] as const;
 export type StatusPedido = (typeof ESTEIRA_STATUSES)[number] | "Cancelado";
 
-/** Terminal statuses that drop an order off the active operational board. */
-export const TERMINAL_STATUSES: StatusPedido[] = ["Entregue", "Pago", "Cancelado"];
+/**
+ * Terminal statuses that drop an order off the active operational board.
+ * "Entregue" stays on the board so the operator can still finalize payment
+ * ("Encerrado e pago"); only a closed/paid or cancelled order leaves the board.
+ */
+export const TERMINAL_STATUSES: StatusPedido[] = ["Encerrado e pago", "Cancelado"];
 
 export type FormaPagamento =
   | "PIX"
@@ -193,7 +197,7 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
     .select(
       "id, user_id, status, status_pedido, total, discount, desconto_manual, delivery_address, phone, notes, observacoes_operador, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
     )
-    .not("status_pedido", "in", "(Entregue,Pago,Cancelado)")
+    .not("status_pedido", "in", '("Encerrado e pago",Cancelado)')
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((o) => ({
@@ -384,7 +388,7 @@ export async function deletePagamento(id: string): Promise<void> {
 export async function finalizeOrderPaid(orderId: string): Promise<void> {
   const { error } = await supabase
     .from("orders")
-    .update({ status_pedido: "Pago", status: "delivered" })
+    .update({ status_pedido: "Encerrado e pago", status: "delivered" })
     .eq("id", orderId);
   if (error) throw error;
 }

@@ -13,7 +13,7 @@ export interface NotificacaoCliente {
 
 /**
  * Automatic message for each production-conveyor status. Some statuses share
- * the same final message ("Entregue" and "Pago").
+ * the same final message ("Entregue" and "Encerrado e pago").
  */
 export const STATUS_NOTIFICATION_MESSAGES: Record<
   StatusPedido,
@@ -42,7 +42,7 @@ export const STATUS_NOTIFICATION_MESSAGES: Record<
     mensagem:
       "Pedido finalizado. Muito obrigado por escolher o Clube 23! Bom apetite!",
   },
-  Pago: {
+  "Encerrado e pago": {
     titulo: "Pedido finalizado",
     mensagem:
       "Pedido finalizado. Muito obrigado por escolher o Clube 23! Bom apetite!",
