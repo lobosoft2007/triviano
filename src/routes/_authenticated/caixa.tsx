@@ -568,7 +568,11 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-5 lg:px-8">
-        {tab !== "config" && tab !== "pagamento" && tab !== "fiscal" && !orders && (
+        {tab !== "config" &&
+          tab !== "pagamento" &&
+          tab !== "fiscal" &&
+          tab !== "fiado" &&
+          !orders && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
           </div>
