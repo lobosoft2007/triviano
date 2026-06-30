@@ -40,8 +40,8 @@
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
 
-  --shadow-card: 0 4px 20px -8px oklch(0.4 0.08 40 / 0.18);
-  --shadow-float: 0 12px 40px -12px oklch(0.4 0.08 40 / 0.28);
+  --shadow-card: 0 4px 20px -8px oklch(0 0 0 / 0.55);
+  --shadow-float: 0 12px 40px -12px oklch(0 0 0 / 0.7);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
