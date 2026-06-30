@@ -823,6 +823,8 @@ function OrderCard({
 
       <OrderActions order={order} />
 
+      <WhatsAppStatusButton order={order} />
+
       <NotifyClient order={order} />
     </div>
   );
