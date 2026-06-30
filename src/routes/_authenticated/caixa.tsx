@@ -47,7 +47,6 @@ import {
   markPrintedCozinha,
   openCaixa,
   saldoAtual,
-  updateOrderStatus,
   type CaixaOrder,
   type CaixaOrderItem,
   type MovimentacaoTipo,
