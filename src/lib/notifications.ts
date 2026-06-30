@@ -237,3 +237,32 @@ export function buildWhatsAppLink(
   const full = digits.length <= 11 ? `55${digits}` : digits;
   return `https://wa.me/${full}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * Status-aware WhatsApp message, perfectly formatted for the operator to send
+ * as the infalible fallback channel when the browser push fails.
+ */
+export function statusWhatsAppMessage(
+  status: StatusPedido,
+  name: string,
+  orderNo: string,
+): string {
+  const cliente = name?.trim() || "Cliente";
+  switch (status) {
+    case "Recebido":
+      return `Olá ${cliente}! Recebemos o seu pedido nº ${orderNo} aqui no Clube 23 e já está na nossa fila. Em breve começamos o preparo! 🍔`;
+    case "Em preparação":
+      return `Olá ${cliente}! Boas notícias: o seu pedido nº ${orderNo} do Clube 23 já está sendo preparado pela nossa cozinha. 👨‍🍳`;
+    case "Aguardando entregador":
+      return `Olá ${cliente}! O seu pedido nº ${orderNo} do Clube 23 está pronto e embalado, aguardando o nosso motoboy. 📦`;
+    case "Em entrega":
+      return `Olá ${cliente}! Seu pedido nº ${orderNo} do Clube 23 acabou de sair para entrega com o nosso motoboy! 🛵`;
+    case "Entregue":
+    case "Encerrado e pago":
+      return `Olá ${cliente}! Seu pedido nº ${orderNo} do Clube 23 foi finalizado. Muito obrigado pela preferência e bom apetite! 🙏`;
+    case "Cancelado":
+      return `Olá ${cliente}! Sobre o seu pedido nº ${orderNo} do Clube 23, precisamos falar com você. Pode nos responder por aqui? 🙏`;
+    default:
+      return `Olá ${cliente}! Atualização sobre o seu pedido nº ${orderNo} do Clube 23.`;
+  }
+}
