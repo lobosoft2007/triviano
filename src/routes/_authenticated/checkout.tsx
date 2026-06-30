@@ -121,13 +121,14 @@ function CheckoutPage() {
       await placeOrder({
         userId: user.id,
         items,
-        total: totalPrice,
+        total: finalTotal,
         discount,
         deliveryAddress: parsed.data.address,
         phone: parsed.data.phone,
         notes: parsed.data.notes ?? "",
         tipoAtendimento: tipo,
         numeroMesa: mesaNumber,
+        cashbackUsed: cashbackApplied,
       });
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
