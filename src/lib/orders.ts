@@ -7,16 +7,24 @@ export interface Profile {
   full_name: string;
   phone: string;
   address: string;
+  saldo_cashback: number;
 }
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, phone, address")
+    .select("id, full_name, phone, address, saldo_cashback")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;
-  return data as Profile | null;
+  if (!data) return null;
+  return {
+    id: data.id,
+    full_name: data.full_name ?? "",
+    phone: data.phone ?? "",
+    address: data.address ?? "",
+    saldo_cashback: Number((data as { saldo_cashback?: number }).saldo_cashback ?? 0),
+  };
 }
 
 export interface PlaceOrderInput {
@@ -29,6 +37,8 @@ export interface PlaceOrderInput {
   notes: string;
   tipoAtendimento: "Delivery" | "Presencial";
   numeroMesa: number | null;
+  /** Cashback the customer chose to redeem on this order. */
+  cashbackUsed?: number;
 }
 
 export async function placeOrder(input: PlaceOrderInput): Promise<string> {
@@ -70,6 +80,15 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
     .insert(itemsPayload);
 
   if (itemsError) throw itemsError;
+
+  // Redeem cashback (secure RPC: debits the customer's own wallet + ledger).
+  if (input.cashbackUsed && input.cashbackUsed > 0) {
+    const { error: cbError } = await supabase.rpc("redeem_cashback_for_order", {
+      p_order_id: orderId,
+      p_amount: input.cashbackUsed,
+    });
+    if (cbError) throw cbError;
+  }
 
   return orderId;
 }
