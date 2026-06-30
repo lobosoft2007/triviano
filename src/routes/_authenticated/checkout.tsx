@@ -9,7 +9,7 @@ import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
 import { formatBRL } from "@/lib/format";
-import { usePixPayment, PIX_RECEIVER } from "@/hooks/usePixPayment";
+import { usePixPayment } from "@/hooks/usePixPayment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
