@@ -422,12 +422,16 @@ export async function finalizeOrderPaid(orderId: string): Promise<number> {
 
 export interface CaixaPartialReport {
   valorAbertura: number;
-  /** Revenue grouped by payment method (only entries with a method). */
-  porMeio: { nome: string; total: number }[];
+  /**
+   * Revenue grouped dynamically by payment method. Cash/PIX/card lines are
+   * real money; Fiado and Cashback are informational (`informativo: true`)
+   * and excluded from the monetary totals below.
+   */
+  porMeio: { nome: string; total: number; informativo?: boolean }[];
   totalEntradas: number;
   totalSangrias: number;
   totalSuprimentos: number;
-  /** Total restaurant balance: opening + all entries - sangrias. */
+  /** Total restaurant balance: opening + cash entries - sangrias. */
   saldoTotal: number;
   /** Expected physical cash in drawer. */
   saldoGavetaDinheiro: number;
