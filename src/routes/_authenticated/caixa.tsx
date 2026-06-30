@@ -36,6 +36,7 @@ import { CloseCaixaDialog } from "@/components/caixa/CloseCaixaDialog";
 import { PaymentDialog } from "@/components/caixa/PaymentDialog";
 import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { NotifyClient } from "@/components/caixa/NotifyClient";
+import { WhatsAppStatusButton } from "@/components/caixa/WhatsAppStatusButton";
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -822,6 +823,8 @@ function OrderCard({
       )}
 
       <OrderActions order={order} />
+
+      <WhatsAppStatusButton order={order} />
 
       <NotifyClient order={order} />
     </div>
