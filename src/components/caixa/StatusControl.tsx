@@ -7,6 +7,7 @@ import {
   ESTEIRA_STATUSES,
   type StatusPedido,
 } from "@/lib/caixa";
+import { notifyStatusChange } from "@/lib/notifications";
 
 const STATUS_COLOR: Record<StatusPedido, string> = {
   Recebido: "#6366f1",
