@@ -252,6 +252,16 @@ function AdminPage() {
     queryFn: listFornecedores,
     enabled: isAdmin === true,
   });
+  const { data: insumos } = useQuery({
+    queryKey: ["erp-insumos"],
+    queryFn: listInsumos,
+    enabled: isAdmin === true,
+  });
+  const { data: subprodutos } = useQuery({
+    queryKey: ["erp-subprodutos"],
+    queryFn: listSubprodutos,
+    enabled: isAdmin === true,
+  });
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
