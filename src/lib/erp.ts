@@ -377,12 +377,18 @@ export async function fetchProductDetail(
       .select("manipulado, setor_id, fornecedor_id")
       .eq("id", productId)
       .single(),
+    supabase
+      .from("ingredientes_produto")
+      .select("insumo_id, subproduto_id, nome, quantidade, permitir_exclusao, sort_order")
+      .eq("product_id", productId)
+      .order("sort_order"),
   ]);
   if (poRes.error) throw poRes.error;
   if (addRes.error) throw addRes.error;
   if (freeRes.error) throw freeRes.error;
   if (fichaRes.error) throw fichaRes.error;
   if (prodRes.error) throw prodRes.error;
+  if (ingRes.error) throw ingRes.error;
 
   const fiscais = (fichaRes.data?.dados_fiscais ?? {}) as Record<string, unknown>;
 
