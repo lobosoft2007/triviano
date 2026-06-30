@@ -447,24 +447,27 @@ export async function buildPartialReport(
   const porMeioMap = new Map<string, number>();
   let totalSangrias = 0;
   let totalSuprimentos = 0;
-  let entradasComMeio = 0;
+  let totalEntradasRaw = 0;
   let dinheiroEntradas = 0;
+  let untaggedEntradas = 0;
 
   for (const m of movs) {
     if (m.tipo === "Sangria") {
       totalSangrias += m.valor;
       continue;
     }
-    if (m.tipo === "Suprimento") {
-      totalSuprimentos += m.valor;
-    }
-    const meioId = (m as { id_meio_pagamento?: string | null })
-      .id_meio_pagamento;
+    // Every non-sangria movement is an entry.
+    totalEntradasRaw += m.valor;
+    if (m.tipo === "Suprimento") totalSuprimentos += m.valor;
+
+    const meioId = m.id_meio_pagamento;
     if (meioId) {
       const nome = nameById.get(meioId) ?? "Outro";
       porMeioMap.set(nome, (porMeioMap.get(nome) ?? 0) + m.valor);
-      entradasComMeio += m.valor;
       if (nome === "Dinheiro") dinheiroEntradas += m.valor;
+    } else {
+      // Untagged entries (manual suprimentos/recebimentos) count as cash.
+      untaggedEntradas += m.valor;
     }
   }
 
@@ -472,14 +475,14 @@ export async function buildPartialReport(
     .map(([nome, total]) => ({ nome, total: round2(total) }))
     .sort((a, b) => b.total - a.total);
 
-  // Total entries = all non-sangria movements (tagged + manual suprimentos).
-  const totalEntradas = round2(entradasComMeio + totalSuprimentos);
+  const totalEntradas = round2(totalEntradasRaw);
   const saldoTotal = round2(
     caixa.valor_abertura + totalEntradas - totalSangrias,
   );
   const saldoGavetaDinheiro = round2(
-    caixa.valor_abertura + dinheiroEntradas + totalSuprimentos - totalSangrias,
+    caixa.valor_abertura + dinheiroEntradas + untaggedEntradas - totalSangrias,
   );
+
 
   return {
     valorAbertura: round2(caixa.valor_abertura),
