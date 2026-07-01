@@ -470,6 +470,8 @@ function AdminPage() {
         </header>
 
         <main className="px-4 py-5 lg:px-8">
+          {tab === "financeiro" && <TesourariaView />}
+          {tab === "estoque" && <EntradaEstoqueView />}
           {tab === "insumos" && <InsumosCrud />}
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}
