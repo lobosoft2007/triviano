@@ -304,7 +304,6 @@ function DetailModal({
       unitPrice: options[0].preco,
       image_url: product.image_url,
     };
-    makeLineId(line);
     addLine(line);
     onClose();
   }
