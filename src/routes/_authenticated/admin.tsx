@@ -320,6 +320,9 @@ function AdminPage() {
       available: p.available,
       image_url: p.image_url,
       free_addon_limit: String(p.free_addon_limit),
+      saldo_estoque: String(p.saldo_estoque).replace(".", ","),
+      estoque_minimo: String(p.estoque_minimo).replace(".", ","),
+      estoque_maximo: String(p.estoque_maximo).replace(".", ","),
     });
     setFile(null);
     setPreview(p.display_url);
