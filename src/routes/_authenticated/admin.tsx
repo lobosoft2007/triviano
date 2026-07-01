@@ -162,6 +162,8 @@ const EMPTY_FORM: FormState = {
 
 type AdminTab =
   | "cardapio"
+  | "financeiro"
+  | "estoque"
   | "insumos"
   | "subprodutos"
   | "setores"
@@ -169,6 +171,8 @@ type AdminTab =
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
+  { key: "financeiro", label: "Financeiro", icon: TrendingUp },
+  { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
   { key: "insumos", label: "Insumos", icon: Package },
   { key: "subprodutos", label: "Subprodutos", icon: Boxes },
   { key: "setores", label: "Setores", icon: Layers },
