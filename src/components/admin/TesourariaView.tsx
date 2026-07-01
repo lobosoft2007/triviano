@@ -253,8 +253,8 @@ export function TesourariaView() {
                 labelFormatter={(l) => `Dia ${l}`}
                 contentStyle={{
                   borderRadius: 12,
-                  border: "1px solid hsl(var(--border))",
-                  background: "hsl(var(--card))",
+                  border: "1px solid var(--border)",
+                  background: "var(--card)",
                   fontSize: 12,
                 }}
               />
@@ -262,7 +262,7 @@ export function TesourariaView() {
                 type="monotone"
                 dataKey="saldoAcumulado"
                 name="Saldo projetado"
-                stroke="hsl(var(--primary))"
+                stroke="var(--primary)"
                 strokeWidth={2.5}
                 dot={false}
               />
