@@ -16,6 +16,7 @@ import {
   Truck,
   TrendingUp,
   PackagePlus,
+  ShoppingCart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
