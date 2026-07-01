@@ -96,6 +96,8 @@ export function InsumosCrud() {
       estocavel: i.estocavel,
       fornecedor_id: i.fornecedor_id ?? NONE,
       setor_id: i.setor_id ?? NONE,
+      estoque_minimo: String(i.estoque_minimo).replace(".", ","),
+      estoque_maximo: String(i.estoque_maximo).replace(".", ","),
     });
     setOpen(true);
   };
