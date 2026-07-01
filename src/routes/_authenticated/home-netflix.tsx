@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import {
   ShoppingBag,
   Loader2,
-  Plus,
   ChevronLeft,
   ChevronRight,
   X,
