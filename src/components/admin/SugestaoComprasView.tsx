@@ -1,0 +1,553 @@
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Loader2,
+  ShoppingCart,
+  Plus,
+  X,
+  Wallet,
+  AlertTriangle,
+  FileText,
+  Send,
+} from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { formatBRL } from "@/lib/format";
+import {
+  fetchPatrimonioEstoque,
+  fetchSugestaoCompras,
+  criarOrdemCompra,
+  listOrdensCompra,
+  type SugestaoItem,
+  type ItemTipo,
+  type OrdemCompraItemInput,
+} from "@/lib/estoque";
+import {
+  listSetores,
+  listFornecedores,
+  listInsumos,
+  parseNumberInput,
+} from "@/lib/erp";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Field } from "./FornecedoresCrud";
+
+const NONE = "__none__";
+
+/** Row model for the manual purchase order editor. */
+interface ManualRow {
+  tipo: ItemTipo;
+  ref_id: string;
+  nome: string;
+  quantidade: string;
+  custo_unitario: string;
+}
+
+export function SugestaoComprasView() {
+  const queryClient = useQueryClient();
+
+  const { data: patrimonio } = useQuery({
+    queryKey: ["patrimonio-estoque"],
+    queryFn: fetchPatrimonioEstoque,
+  });
+  const { data: sugestao, isLoading } = useQuery({
+    queryKey: ["sugestao-compras"],
+    queryFn: fetchSugestaoCompras,
+  });
+  const { data: setores } = useQuery({
+    queryKey: ["erp-setores"],
+    queryFn: listSetores,
+  });
+  const { data: fornecedores } = useQuery({
+    queryKey: ["erp-fornecedores"],
+    queryFn: listFornecedores,
+  });
+  const { data: insumos } = useQuery({
+    queryKey: ["erp-insumos"],
+    queryFn: listInsumos,
+  });
+  const { data: ordens } = useQuery({
+    queryKey: ["ordens-compra"],
+    queryFn: () => listOrdensCompra(20),
+  });
+
+  // Realtime: recalcula patrimônio e sugestão quando o estoque muda.
+  useEffect(() => {
+    const channel = supabase
+      .channel("estoque-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "insumos" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["patrimonio-estoque"] });
+          queryClient.invalidateQueries({ queryKey: ["sugestao-compras"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["patrimonio-estoque"] });
+          queryClient.invalidateQueries({ queryKey: ["sugestao-compras"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  const fornMap = useMemo(
+    () => new Map((fornecedores ?? []).map((f) => [f.id, f.fornecedor])),
+    [fornecedores],
+  );
+  const setorMap = useMemo(
+    () => new Map((setores ?? []).map((s) => [s.id, s.setor])),
+    [setores],
+  );
+  const setorOrdem = useMemo(
+    () => new Map((setores ?? []).map((s) => [s.id, s.ordem_exibicao])),
+    [setores],
+  );
+
+  // Agrupa por fornecedor, e dentro do fornecedor organiza por setor.
+  const grupos = useMemo(() => {
+    const byForn = new Map<string, SugestaoItem[]>();
+    for (const item of sugestao ?? []) {
+      const key = item.fornecedor_id ?? NONE;
+      const arr = byForn.get(key) ?? [];
+      arr.push(item);
+      byForn.set(key, arr);
+    }
+    return Array.from(byForn.entries())
+      .map(([fornId, itens]) => {
+        itens.sort((a, b) => {
+          const oa = setorOrdem.get(a.setor_id ?? "") ?? 999;
+          const ob = setorOrdem.get(b.setor_id ?? "") ?? 999;
+          if (oa !== ob) return oa - ob;
+          return a.nome.localeCompare(b.nome);
+        });
+        const total = itens.reduce(
+          (s, i) => s + i.quantidade_comprar * i.custo_unitario,
+          0,
+        );
+        return {
+          fornId: fornId === NONE ? null : fornId,
+          fornNome: fornId === NONE ? "Sem fornecedor" : fornMap.get(fornId) ?? "—",
+          itens,
+          total,
+        };
+      })
+      .sort((a, b) => a.fornNome.localeCompare(b.fornNome));
+  }, [sugestao, fornMap, setorOrdem]);
+
+  const totalGeral = useMemo(
+    () =>
+      (sugestao ?? []).reduce(
+        (s, i) => s + i.quantidade_comprar * i.custo_unitario,
+        0,
+      ),
+    [sugestao],
+  );
+
+  /* ---------------- Gerar ordem a partir de um grupo sugerido -------- */
+  async function gerarOrdemGrupo(grupo: {
+    fornId: string | null;
+    fornNome: string;
+    itens: SugestaoItem[];
+  }) {
+    try {
+      const itens: OrdemCompraItemInput[] = grupo.itens.map((i) => ({
+        tipo: i.tipo,
+        ref_id: i.ref_id,
+        nome: i.nome,
+        quantidade: i.quantidade_comprar,
+        custo_unitario: i.custo_unitario,
+      }));
+      const numero = await criarOrdemCompra({
+        id_fornecedor: grupo.fornId,
+        observacao: `Reposição automática (${grupo.fornNome})`,
+        origem: "Sugestão",
+        itens,
+      });
+      toast.success(`Ordem de compra nº ${numero} gerada!`);
+      await queryClient.invalidateQueries({ queryKey: ["ordens-compra"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar ordem.");
+    }
+  }
+
+  /* ---------------- Manual order dialog ----------------------------- */
+  const [open, setOpen] = useState(false);
+  const [manualForn, setManualForn] = useState<string>(NONE);
+  const [manualObs, setManualObs] = useState("");
+  const [rows, setRows] = useState<ManualRow[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const openManual = () => {
+    setManualForn(NONE);
+    setManualObs("");
+    setRows([{ tipo: "insumo", ref_id: "", nome: "", quantidade: "", custo_unitario: "" }]);
+    setOpen(true);
+  };
+
+  const addRow = () =>
+    setRows((r) => [
+      ...r,
+      { tipo: "insumo", ref_id: "", nome: "", quantidade: "", custo_unitario: "" },
+    ]);
+  const updateRow = (idx: number, patch: Partial<ManualRow>) =>
+    setRows((r) => r.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
+  const removeRow = (idx: number) =>
+    setRows((r) => r.filter((_, i) => i !== idx));
+
+  const onPickInsumo = (idx: number, insumoId: string) => {
+    const ins = insumos?.find((i) => i.id === insumoId);
+    updateRow(idx, {
+      tipo: "insumo",
+      ref_id: insumoId,
+      nome: ins?.nome ?? "",
+      custo_unitario: ins ? String(ins.custo_unitario).replace(".", ",") : "",
+    });
+  };
+
+  const manualTotal = rows.reduce(
+    (s, r) => s + parseNumberInput(r.quantidade) * parseNumberInput(r.custo_unitario),
+    0,
+  );
+
+  async function handleManualSave() {
+    setSaving(true);
+    try {
+      const itens: OrdemCompraItemInput[] = rows
+        .filter((r) => r.nome.trim() && parseNumberInput(r.quantidade) > 0)
+        .map((r) => ({
+          tipo: r.tipo,
+          ref_id: r.ref_id || null,
+          nome: r.nome.trim(),
+          quantidade: parseNumberInput(r.quantidade),
+          custo_unitario: parseNumberInput(r.custo_unitario),
+        }));
+      if (itens.length === 0) {
+        toast.error("Adicione ao menos um item com quantidade.");
+        setSaving(false);
+        return;
+      }
+      const numero = await criarOrdemCompra({
+        id_fornecedor: manualForn === NONE ? null : manualForn,
+        observacao: manualObs,
+        origem: "Manual",
+        itens,
+      });
+      toast.success(`Ordem de compra nº ${numero} gerada!`);
+      setOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["ordens-compra"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar ordem.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="space-y-6">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="h-5 w-5 text-primary" />
+          <h2 className="font-display text-lg font-bold">
+            Sugestão de Compras por Demanda
+          </h2>
+        </div>
+        <Button size="sm" onClick={openManual}>
+          <Plus className="mr-1 h-4 w-4" /> Gerar Ordem de Compra Manual / Avulsa
+        </Button>
+      </header>
+
+      {/* Cards */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Wallet className="h-3.5 w-3.5" /> Patrimônio Líquido em Estoque
+          </p>
+          <p className="mt-1 font-display text-2xl font-bold tabular-nums text-primary">
+            {formatBRL(patrimonio ?? 0)}
+          </p>
+          <p className="text-[11px] text-muted-foreground">Atualizado em tempo real</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <AlertTriangle className="h-3.5 w-3.5" /> Itens abaixo do mínimo
+          </p>
+          <p className="mt-1 font-display text-2xl font-bold tabular-nums text-amber-600 dark:text-amber-400">
+            {sugestao?.length ?? 0}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <ShoppingCart className="h-3.5 w-3.5" /> Custo total sugerido
+          </p>
+          <p className="mt-1 font-display text-2xl font-bold tabular-nums">
+            {formatBRL(totalGeral)}
+          </p>
+        </div>
+      </div>
+
+      {/* Lista agrupada por fornecedor / setor */}
+      {isLoading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : grupos.length === 0 ? (
+        <p className="rounded-2xl bg-card p-5 text-sm text-muted-foreground shadow-card">
+          Nenhum item abaixo do estoque mínimo. Cadastre estoque mínimo/máximo nos
+          insumos e produtos de revenda para ativar a sugestão automática.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {grupos.map((g) => (
+            <div
+              key={g.fornId ?? "none"}
+              className="overflow-hidden rounded-2xl border border-border bg-card shadow-card"
+            >
+              <div className="flex items-center justify-between gap-2 border-b border-border bg-secondary/60 px-4 py-2.5">
+                <div>
+                  <p className="text-sm font-bold">{g.fornNome}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {g.itens.length} item(ns) · {formatBRL(g.total)}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => gerarOrdemGrupo(g)}
+                >
+                  <Send className="mr-1 h-4 w-4" /> Gerar ordem
+                </Button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-sm">
+                  <thead className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-2 font-semibold">Item</th>
+                      <th className="px-4 py-2 font-semibold">Setor</th>
+                      <th className="px-4 py-2 text-right font-semibold">Atual</th>
+                      <th className="px-4 py-2 text-right font-semibold">Mín</th>
+                      <th className="px-4 py-2 text-right font-semibold">Máx</th>
+                      <th className="px-4 py-2 text-right font-semibold">Comprar</th>
+                      <th className="px-4 py-2 text-right font-semibold">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {g.itens.map((i) => (
+                      <tr key={`${i.tipo}-${i.ref_id}`} className="border-t border-border">
+                        <td className="px-4 py-2 font-medium">
+                          {i.nome}
+                          <span className="ml-1.5 rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                            {i.tipo === "insumo" ? "insumo" : "revenda"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-muted-foreground">
+                          {setorMap.get(i.setor_id ?? "") ?? "—"}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums text-destructive">
+                          {i.estoque_atual}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
+                          {i.estoque_minimo}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
+                          {i.estoque_maximo}
+                        </td>
+                        <td className="px-4 py-2 text-right font-bold tabular-nums text-primary">
+                          {i.quantidade_comprar} {i.unidade}
+                        </td>
+                        <td className="px-4 py-2 text-right font-semibold tabular-nums">
+                          {formatBRL(i.quantidade_comprar * i.custo_unitario)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Ordens recentes */}
+      <div>
+        <h3 className="mb-3 flex items-center gap-1.5 text-sm font-bold">
+          <FileText className="h-4 w-4 text-primary" /> Ordens de compra recentes
+        </h3>
+        {(ordens?.length ?? 0) === 0 ? (
+          <p className="rounded-2xl bg-card p-5 text-sm text-muted-foreground shadow-card">
+            Nenhuma ordem gerada ainda.
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2.5 font-semibold">Nº</th>
+                  <th className="px-4 py-2.5 font-semibold">Fornecedor</th>
+                  <th className="px-4 py-2.5 font-semibold">Origem</th>
+                  <th className="px-4 py-2.5 font-semibold">Data</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ordens!.map((o, idx) => (
+                  <tr key={o.id} className={idx > 0 ? "border-t border-border" : ""}>
+                    <td className="px-4 py-2.5 font-semibold tabular-nums">#{o.numero}</td>
+                    <td className="px-4 py-2.5">{o.fornecedor_nome}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{o.origem}</td>
+                    <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
+                      {new Date(o.created_at).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-primary">
+                      {formatBRL(o.valor_total)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Manual order dialog */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Ordem de Compra Manual / Avulsa
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Fornecedor">
+                <Select value={manualForn} onValueChange={setManualForn}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Sem fornecedor</SelectItem>
+                    {fornecedores?.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.fornecedor}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Observação">
+                <Input
+                  value={manualObs}
+                  onChange={(e) => setManualObs(e.target.value)}
+                  placeholder="Ex.: compra emergencial"
+                />
+              </Field>
+            </div>
+
+            <div className="space-y-2">
+              {rows.map((row, idx) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-[1fr_90px_100px_32px] items-center gap-2"
+                >
+                  <Select
+                    value={row.ref_id || NONE}
+                    onValueChange={(v) =>
+                      v === NONE
+                        ? updateRow(idx, { ref_id: "", nome: "" })
+                        : onPickInsumo(idx, v)
+                    }
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Insumo (ou digite abaixo)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>Item livre (digitar)</SelectItem>
+                      {insumos?.map((i) => (
+                        <SelectItem key={i.id} value={i.id}>
+                          {i.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    className="h-9"
+                    inputMode="decimal"
+                    value={row.quantidade}
+                    onChange={(e) => updateRow(idx, { quantidade: e.target.value })}
+                    placeholder="Qtd"
+                  />
+                  <Input
+                    className="h-9"
+                    inputMode="decimal"
+                    value={row.custo_unitario}
+                    onChange={(e) =>
+                      updateRow(idx, { custo_unitario: e.target.value })
+                    }
+                    placeholder="R$ un."
+                  />
+                  <button
+                    type="button"
+                    aria-label="Remover"
+                    onClick={() => removeRow(idx)}
+                    className="flex h-8 w-8 items-center justify-center justify-self-end rounded-full text-destructive transition-colors hover:bg-destructive/10"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  {!row.ref_id && (
+                    <Input
+                      className="col-span-4 h-9"
+                      value={row.nome}
+                      onChange={(e) => updateRow(idx, { nome: e.target.value })}
+                      placeholder="Nome do item livre"
+                    />
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={addRow}
+              >
+                <Plus className="mr-1 h-4 w-4" /> Adicionar item
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5">
+              <span className="text-sm font-semibold">Total da ordem</span>
+              <span className="font-display text-base font-bold tabular-nums text-primary">
+                {formatBRL(manualTotal)}
+              </span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleManualSave} disabled={saving} className="w-full">
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Gerar ordem de compra
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </section>
+  );
+}

@@ -43,6 +43,8 @@ interface FormState {
   estocavel: boolean;
   fornecedor_id: string;
   setor_id: string;
+  estoque_minimo: string;
+  estoque_maximo: string;
 }
 
 const EMPTY: FormState = {
@@ -53,6 +55,8 @@ const EMPTY: FormState = {
   estocavel: true,
   fornecedor_id: NONE,
   setor_id: NONE,
+  estoque_minimo: "0",
+  estoque_maximo: "0",
 };
 
 export function InsumosCrud() {
@@ -92,6 +96,8 @@ export function InsumosCrud() {
       estocavel: i.estocavel,
       fornecedor_id: i.fornecedor_id ?? NONE,
       setor_id: i.setor_id ?? NONE,
+      estoque_minimo: String(i.estoque_minimo).replace(".", ","),
+      estoque_maximo: String(i.estoque_maximo).replace(".", ","),
     });
     setOpen(true);
   };
@@ -111,6 +117,8 @@ export function InsumosCrud() {
         estocavel: form.estocavel,
         fornecedor_id: form.fornecedor_id === NONE ? null : form.fornecedor_id,
         setor_id: form.setor_id === NONE ? null : form.setor_id,
+        estoque_minimo: parseNumberInput(form.estoque_minimo),
+        estoque_maximo: parseNumberInput(form.estoque_maximo),
       });
       setOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["erp-insumos"] });
@@ -166,6 +174,7 @@ export function InsumosCrud() {
                 <th className="px-4 py-2.5 font-semibold">Custo</th>
                 <th className="px-4 py-2.5 font-semibold">Fornecedor</th>
                 <th className="px-4 py-2.5 font-semibold">Setor</th>
+                <th className="px-4 py-2.5 font-semibold">Saldo (mín/máx)</th>
                 <th className="px-4 py-2.5 font-semibold">Estoque</th>
                 <th className="w-24 px-4 py-2.5" />
               </tr>
@@ -187,6 +196,21 @@ export function InsumosCrud() {
                     {setorName(i.setor_id)}
                   </td>
                   <td className="px-4 py-2.5">
+                    <span
+                      className={`font-semibold tabular-nums ${
+                        i.estoque_minimo > 0 && i.saldo_estoque < i.estoque_minimo
+                          ? "text-destructive"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {i.saldo_estoque}
+                    </span>
+                    <span className="ml-1 text-[11px] text-muted-foreground">
+                      ({i.estoque_minimo}/{i.estoque_maximo})
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+
                     <span
                       className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                         i.estocavel
@@ -287,6 +311,26 @@ export function InsumosCrud() {
                   ))}
                 </SelectContent>
               </Select>
+            </Field>
+            <Field label="Estoque mínimo">
+              <Input
+                inputMode="decimal"
+                value={form.estoque_minimo}
+                onChange={(e) =>
+                  setForm({ ...form, estoque_minimo: e.target.value })
+                }
+                placeholder="0"
+              />
+            </Field>
+            <Field label="Estoque máximo">
+              <Input
+                inputMode="decimal"
+                value={form.estoque_maximo}
+                onChange={(e) =>
+                  setForm({ ...form, estoque_maximo: e.target.value })
+                }
+                placeholder="0"
+              />
             </Field>
             <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5 sm:col-span-2">
               <div>

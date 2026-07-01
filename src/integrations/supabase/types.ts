@@ -541,6 +541,8 @@ export type Database = {
           custo_anterior_at: string | null
           custo_unitario: number
           estocavel: boolean
+          estoque_maximo: number
+          estoque_minimo: number
           fornecedor_id: string | null
           id: string
           nome: string
@@ -555,6 +557,8 @@ export type Database = {
           custo_anterior_at?: string | null
           custo_unitario?: number
           estocavel?: boolean
+          estoque_maximo?: number
+          estoque_minimo?: number
           fornecedor_id?: string | null
           id?: string
           nome: string
@@ -569,6 +573,8 @@ export type Database = {
           custo_anterior_at?: string | null
           custo_unitario?: number
           estocavel?: boolean
+          estoque_maximo?: number
+          estoque_minimo?: number
           fornecedor_id?: string | null
           id?: string
           nome?: string
@@ -632,6 +638,47 @@ export type Database = {
             columns: ["id_insumo"]
             isOneToOne: false
             referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itens_ordem_compra: {
+        Row: {
+          created_at: string
+          custo_unitario: number
+          id: string
+          id_ordem_compra: string
+          nome: string
+          quantidade: number
+          ref_id: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          id_ordem_compra: string
+          nome: string
+          quantidade?: number
+          ref_id?: string | null
+          tipo?: string
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          id_ordem_compra?: string
+          nome?: string
+          quantidade?: number
+          ref_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_ordem_compra_id_ordem_compra_fkey"
+            columns: ["id_ordem_compra"]
+            isOneToOne: false
+            referencedRelation: "ordens_compra"
             referencedColumns: ["id"]
           },
         ]
@@ -800,6 +847,50 @@ export type Database = {
           },
         ]
       }
+      ordens_compra: {
+        Row: {
+          created_at: string
+          id: string
+          id_fornecedor: string | null
+          numero: number
+          observacao: string
+          origem: string
+          status: string
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          id_fornecedor?: string | null
+          numero?: number
+          observacao?: string
+          origem?: string
+          status?: string
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          id_fornecedor?: string | null
+          numero?: number
+          observacao?: string
+          origem?: string
+          status?: string
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_compra_id_fornecedor_fkey"
+            columns: ["id_fornecedor"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           addons: Json
@@ -964,6 +1055,8 @@ export type Database = {
           custo_anterior: number | null
           custo_anterior_at: string | null
           description: string
+          estoque_maximo: number
+          estoque_minimo: number
           fornecedor_id: string | null
           free_addon_limit: number
           id: string
@@ -971,6 +1064,7 @@ export type Database = {
           manipulado: boolean
           name: string
           price: number
+          saldo_estoque: number
           setor_id: string | null
           sort_order: number
         }
@@ -981,6 +1075,8 @@ export type Database = {
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           description?: string
+          estoque_maximo?: number
+          estoque_minimo?: number
           fornecedor_id?: string | null
           free_addon_limit?: number
           id?: string
@@ -988,6 +1084,7 @@ export type Database = {
           manipulado?: boolean
           name: string
           price: number
+          saldo_estoque?: number
           setor_id?: string | null
           sort_order?: number
         }
@@ -998,6 +1095,8 @@ export type Database = {
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           description?: string
+          estoque_maximo?: number
+          estoque_minimo?: number
           fornecedor_id?: string | null
           free_addon_limit?: number
           id?: string
@@ -1005,6 +1104,7 @@ export type Database = {
           manipulado?: boolean
           name?: string
           price?: number
+          saldo_estoque?: number
           setor_id?: string | null
           sort_order?: number
         }
@@ -1265,6 +1365,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      criar_ordem_compra: {
+        Args: {
+          p_fornecedor: string
+          p_itens: Json
+          p_observacao: string
+          p_origem: string
+        }
+        Returns: number
+      }
+      explode_order_stock: { Args: { p_order_id: string }; Returns: undefined }
       finalize_order_paid: { Args: { p_order_id: string }; Returns: number }
       get_active_pix_config: {
         Args: never
@@ -1275,6 +1385,7 @@ export type Database = {
           nome_recebedor: string
         }[]
       }
+      get_patrimonio_estoque: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -16,6 +16,7 @@ import {
   Truck,
   TrendingUp,
   PackagePlus,
+  ShoppingCart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +59,7 @@ import { InsumosCrud } from "@/components/admin/InsumosCrud";
 import { SubprodutosCrud } from "@/components/admin/SubprodutosCrud";
 import { TesourariaView } from "@/components/admin/TesourariaView";
 import { EntradaEstoqueView } from "@/components/admin/EntradaEstoqueView";
+import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
@@ -85,6 +87,9 @@ interface AdminProduct {
   display_url: string;
   available: boolean;
   free_addon_limit: number;
+  saldo_estoque: number;
+  estoque_minimo: number;
+  estoque_maximo: number;
 }
 
 async function fetchAdminMenu() {
@@ -93,7 +98,7 @@ async function fetchAdminMenu() {
     supabase
       .from("products")
       .select(
-        "id, category_id, name, description, price, image_url, available, free_addon_limit",
+        "id, category_id, name, description, price, image_url, available, free_addon_limit, saldo_estoque, estoque_minimo, estoque_maximo",
       )
       .order("sort_order"),
   ]);
@@ -109,6 +114,9 @@ async function fetchAdminMenu() {
     image_url: p.image_url ?? "",
     available: p.available,
     free_addon_limit: Number(p.free_addon_limit ?? 0),
+    saldo_estoque: Number(p.saldo_estoque ?? 0),
+    estoque_minimo: Number(p.estoque_minimo ?? 0),
+    estoque_maximo: Number(p.estoque_maximo ?? 0),
   }));
   const urlMap = await resolveImageUrls(raw.map((p) => p.image_url));
 
@@ -147,6 +155,9 @@ interface FormState {
   available: boolean;
   image_url: string;
   free_addon_limit: string;
+  saldo_estoque: string;
+  estoque_minimo: string;
+  estoque_maximo: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -158,12 +169,16 @@ const EMPTY_FORM: FormState = {
   available: true,
   image_url: "",
   free_addon_limit: "0",
+  saldo_estoque: "0",
+  estoque_minimo: "0",
+  estoque_maximo: "0",
 };
 
 type AdminTab =
   | "cardapio"
   | "financeiro"
   | "estoque"
+  | "compras"
   | "insumos"
   | "subprodutos"
   | "setores"
@@ -173,6 +188,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
   { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
+  { key: "compras", label: "Sugestão de Compras", icon: ShoppingCart },
   { key: "insumos", label: "Insumos", icon: Package },
   { key: "subprodutos", label: "Subprodutos", icon: Boxes },
   { key: "setores", label: "Setores", icon: Layers },
@@ -305,6 +321,9 @@ function AdminPage() {
       available: p.available,
       image_url: p.image_url,
       free_addon_limit: String(p.free_addon_limit),
+      saldo_estoque: String(p.saldo_estoque).replace(".", ","),
+      estoque_minimo: String(p.estoque_minimo).replace(".", ","),
+      estoque_maximo: String(p.estoque_maximo).replace(".", ","),
     });
     setFile(null);
     setPreview(p.display_url);
@@ -348,6 +367,9 @@ function AdminPage() {
         available: form.available,
         image_url: imageRef,
         free_addon_limit: Math.max(0, Math.trunc(Number(form.free_addon_limit) || 0)),
+        saldo_estoque: parseNumberInput(form.saldo_estoque),
+        estoque_minimo: parseNumberInput(form.estoque_minimo),
+        estoque_maximo: parseNumberInput(form.estoque_maximo),
       };
 
       let productId = form.id;
@@ -472,6 +494,7 @@ function AdminPage() {
         <main className="px-4 py-5 lg:px-8">
           {tab === "financeiro" && <TesourariaView />}
           {tab === "estoque" && <EntradaEstoqueView />}
+          {tab === "compras" && <SugestaoComprasView />}
           {tab === "insumos" && <InsumosCrud />}
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}
@@ -669,6 +692,61 @@ function AdminPage() {
                 />
               </div>
             </div>
+
+            {!detail.manipulado && (
+              <div className="rounded-xl border border-border p-3">
+                <Label className="text-sm font-semibold">
+                  Controle de estoque (item de revenda)
+                </Label>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Usado na baixa automática por venda e na sugestão de compras.
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="prod-saldo" className="text-xs">
+                      Saldo atual
+                    </Label>
+                    <Input
+                      id="prod-saldo"
+                      inputMode="decimal"
+                      value={form.saldo_estoque}
+                      onChange={(e) =>
+                        setForm({ ...form, saldo_estoque: e.target.value })
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="prod-min" className="text-xs">
+                      Mínimo
+                    </Label>
+                    <Input
+                      id="prod-min"
+                      inputMode="decimal"
+                      value={form.estoque_minimo}
+                      onChange={(e) =>
+                        setForm({ ...form, estoque_minimo: e.target.value })
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="prod-max" className="text-xs">
+                      Máximo
+                    </Label>
+                    <Input
+                      id="prod-max"
+                      inputMode="decimal"
+                      value={form.estoque_maximo}
+                      onChange={(e) =>
+                        setForm({ ...form, estoque_maximo: e.target.value })
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {loadingDetail ? (
               <div className="flex justify-center border-t border-border py-6">
