@@ -56,6 +56,8 @@ import { SetoresCrud } from "@/components/admin/SetoresCrud";
 import { FornecedoresCrud } from "@/components/admin/FornecedoresCrud";
 import { InsumosCrud } from "@/components/admin/InsumosCrud";
 import { SubprodutosCrud } from "@/components/admin/SubprodutosCrud";
+import { TesourariaView } from "@/components/admin/TesourariaView";
+import { EntradaEstoqueView } from "@/components/admin/EntradaEstoqueView";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
