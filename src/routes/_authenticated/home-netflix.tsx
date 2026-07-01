@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import {
   ShoppingBag,
   Loader2,
-  Plus,
   ChevronLeft,
   ChevronRight,
   X,
@@ -216,47 +215,38 @@ function NetflixCard({
   onOpen: (product: Product) => void;
 }) {
   return (
-    <div className="relative flex h-52 w-36 shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-card text-center ring-1 ring-border/70 transition-transform duration-200 hover:-translate-y-1 hover:ring-primary sm:h-60 sm:w-44">
-      {/* Background image with dark overlay */}
-      <ProductImage
-        src={product.image_url}
-        alt={product.name}
-        categorySlug={category.slug}
-        width={352}
-        height={480}
-        className="absolute inset-0 h-full w-full object-cover opacity-40"
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-black/80" />
-
+    <div className="flex h-60 w-36 shrink-0 snap-start flex-col items-center gap-2 sm:h-72 sm:w-44">
       {/* Name — top */}
-      <div className="relative z-10 px-2.5 pt-4">
-        <h3 className="line-clamp-2 font-display text-sm font-bold leading-tight text-white">
-          {product.name}
-        </h3>
-      </div>
+      <h3 className="line-clamp-2 w-full text-center font-display text-sm font-bold leading-tight text-foreground">
+        {product.name}
+      </h3>
 
-      {/* Central floating action icon */}
-      <div className="relative z-10 flex flex-1 items-center justify-center">
-        <button
-          aria-label={`Ver detalhes de ${product.name}`}
-          onClick={() => onOpen(product)}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-float ring-2 ring-white/20 transition-transform duration-200 hover:scale-110 active:scale-95"
-        >
-          <Plus className="h-6 w-6" strokeWidth={2.5} />
-        </button>
-      </div>
+      {/* Square product image — clean, clickable */}
+      <button
+        type="button"
+        aria-label={`Ver detalhes de ${product.name}`}
+        onClick={() => onOpen(product)}
+        className="aspect-square w-full overflow-hidden rounded-2xl bg-card ring-1 ring-border/70 transition-transform duration-200 hover:scale-[1.02] hover:ring-primary focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        <ProductImage
+          src={product.image_url}
+          alt={product.name}
+          categorySlug={category.slug}
+          width={352}
+          height={352}
+          className="h-full w-full object-cover"
+        />
+      </button>
 
       {/* Price — bottom */}
-      <div className="relative z-10 px-2.5 pb-4">
-        <p className="font-display text-base font-bold text-white">
-          {product.price_options.length > 1 && (
-            <span className="mr-1 text-[10px] font-normal text-white/70">
-              a partir de
-            </span>
-          )}
-          {formatBRL(product.price)}
-        </p>
-      </div>
+      <p className="w-full text-center font-display text-base font-bold text-primary">
+        {product.price_options.length > 1 && (
+          <span className="mr-1 text-[10px] font-normal text-muted-foreground">
+            a partir de
+          </span>
+        )}
+        {formatBRL(product.price)}
+      </p>
     </div>
   );
 }
