@@ -691,6 +691,61 @@ function AdminPage() {
               </div>
             </div>
 
+            {!detail.manipulado && (
+              <div className="rounded-xl border border-border p-3">
+                <Label className="text-sm font-semibold">
+                  Controle de estoque (item de revenda)
+                </Label>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Usado na baixa automática por venda e na sugestão de compras.
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="prod-saldo" className="text-xs">
+                      Saldo atual
+                    </Label>
+                    <Input
+                      id="prod-saldo"
+                      inputMode="decimal"
+                      value={form.saldo_estoque}
+                      onChange={(e) =>
+                        setForm({ ...form, saldo_estoque: e.target.value })
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="prod-min" className="text-xs">
+                      Mínimo
+                    </Label>
+                    <Input
+                      id="prod-min"
+                      inputMode="decimal"
+                      value={form.estoque_minimo}
+                      onChange={(e) =>
+                        setForm({ ...form, estoque_minimo: e.target.value })
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="prod-max" className="text-xs">
+                      Máximo
+                    </Label>
+                    <Input
+                      id="prod-max"
+                      inputMode="decimal"
+                      value={form.estoque_maximo}
+                      onChange={(e) =>
+                        setForm({ ...form, estoque_maximo: e.target.value })
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {loadingDetail ? (
               <div className="flex justify-center border-t border-border py-6">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
