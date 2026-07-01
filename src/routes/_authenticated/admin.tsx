@@ -85,6 +85,9 @@ interface AdminProduct {
   display_url: string;
   available: boolean;
   free_addon_limit: number;
+  saldo_estoque: number;
+  estoque_minimo: number;
+  estoque_maximo: number;
 }
 
 async function fetchAdminMenu() {
@@ -93,7 +96,7 @@ async function fetchAdminMenu() {
     supabase
       .from("products")
       .select(
-        "id, category_id, name, description, price, image_url, available, free_addon_limit",
+        "id, category_id, name, description, price, image_url, available, free_addon_limit, saldo_estoque, estoque_minimo, estoque_maximo",
       )
       .order("sort_order"),
   ]);
@@ -109,6 +112,9 @@ async function fetchAdminMenu() {
     image_url: p.image_url ?? "",
     available: p.available,
     free_addon_limit: Number(p.free_addon_limit ?? 0),
+    saldo_estoque: Number(p.saldo_estoque ?? 0),
+    estoque_minimo: Number(p.estoque_minimo ?? 0),
+    estoque_maximo: Number(p.estoque_maximo ?? 0),
   }));
   const urlMap = await resolveImageUrls(raw.map((p) => p.image_url));
 
