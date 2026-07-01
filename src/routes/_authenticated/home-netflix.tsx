@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
-import { useCart, makeLineId, type NewCartItem } from "@/lib/cart";
+import { useCart, type NewCartItem } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductCustomizer } from "@/components/ProductCustomizer";
