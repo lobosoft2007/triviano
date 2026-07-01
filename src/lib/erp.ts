@@ -154,6 +154,8 @@ export interface Insumo {
   custo_unitario: number;
   custo_anterior: number | null;
   saldo_estoque: number;
+  estoque_minimo: number;
+  estoque_maximo: number;
   estocavel: boolean;
   fornecedor_id: string | null;
   setor_id: string | null;
@@ -162,7 +164,7 @@ export interface Insumo {
 export async function listInsumos(): Promise<Insumo[]> {
   const { data, error } = await supabase
     .from("insumos")
-    .select("id, nome, unidade_medida, custo_unitario, custo_anterior, saldo_estoque, estocavel, fornecedor_id, setor_id")
+    .select("id, nome, unidade_medida, custo_unitario, custo_anterior, saldo_estoque, estoque_minimo, estoque_maximo, estocavel, fornecedor_id, setor_id")
     .order("nome");
   if (error) throw error;
   return (data ?? []).map((i) => ({
@@ -175,6 +177,8 @@ export async function listInsumos(): Promise<Insumo[]> {
         ? null
         : Number(i.custo_anterior),
     saldo_estoque: Number(i.saldo_estoque ?? 0),
+    estoque_minimo: Number(i.estoque_minimo ?? 0),
+    estoque_maximo: Number(i.estoque_maximo ?? 0),
     estocavel: i.estocavel ?? true,
     fornecedor_id: i.fornecedor_id ?? null,
     setor_id: i.setor_id ?? null,
@@ -190,6 +194,8 @@ export async function saveInsumo(input: {
   estocavel: boolean;
   fornecedor_id: string | null;
   setor_id: string | null;
+  estoque_minimo?: number;
+  estoque_maximo?: number;
 }): Promise<void> {
   const payload = {
     nome: input.nome.trim(),
@@ -198,6 +204,12 @@ export async function saveInsumo(input: {
     estocavel: input.estocavel,
     fornecedor_id: input.fornecedor_id,
     setor_id: input.setor_id,
+    ...(input.estoque_minimo !== undefined
+      ? { estoque_minimo: round2(input.estoque_minimo) }
+      : {}),
+    ...(input.estoque_maximo !== undefined
+      ? { estoque_maximo: round2(input.estoque_maximo) }
+      : {}),
   };
   if (input.id) {
     const { error } = await supabase
