@@ -216,10 +216,7 @@ function NetflixCard({
   onOpen: (product: Product) => void;
 }) {
   return (
-    <button
-      onClick={() => onOpen(product)}
-      className="relative flex h-52 w-36 shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-card text-center ring-1 ring-border/70 transition-transform duration-200 hover:-translate-y-1 hover:ring-primary sm:h-60 sm:w-44"
-    >
+    <div className="relative flex h-52 w-36 shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-card text-center ring-1 ring-border/70 transition-transform duration-200 hover:-translate-y-1 hover:ring-primary sm:h-60 sm:w-44">
       {/* Background image with dark overlay */}
       <ProductImage
         src={product.image_url}
@@ -232,21 +229,25 @@ function NetflixCard({
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-black/80" />
 
       {/* Name — top */}
-      <div className="relative z-10 px-2.5 pt-3">
+      <div className="relative z-10 px-2.5 pt-4">
         <h3 className="line-clamp-2 font-display text-sm font-bold leading-tight text-white">
           {product.name}
         </h3>
       </div>
 
-      {/* Central icon */}
+      {/* Central floating action icon */}
       <div className="relative z-10 flex flex-1 items-center justify-center">
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-lg ring-2 ring-white/20 transition-transform duration-200 group-hover:scale-110">
-          <Eye className="h-5 w-5" />
-        </span>
+        <button
+          aria-label={`Ver detalhes de ${product.name}`}
+          onClick={() => onOpen(product)}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-float ring-2 ring-white/20 transition-transform duration-200 hover:scale-110 active:scale-95"
+        >
+          <Plus className="h-6 w-6" strokeWidth={2.5} />
+        </button>
       </div>
 
       {/* Price — bottom */}
-      <div className="relative z-10 px-2.5 pb-3">
+      <div className="relative z-10 px-2.5 pb-4">
         <p className="font-display text-base font-bold text-white">
           {product.price_options.length > 1 && (
             <span className="mr-1 text-[10px] font-normal text-white/70">
@@ -256,7 +257,7 @@ function NetflixCard({
           {formatBRL(product.price)}
         </p>
       </div>
-    </button>
+    </div>
   );
 }
 
