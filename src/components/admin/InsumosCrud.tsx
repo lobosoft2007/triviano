@@ -296,6 +296,26 @@ export function InsumosCrud() {
                 </SelectContent>
               </Select>
             </Field>
+            <Field label="Estoque mínimo">
+              <Input
+                inputMode="decimal"
+                value={form.estoque_minimo}
+                onChange={(e) =>
+                  setForm({ ...form, estoque_minimo: e.target.value })
+                }
+                placeholder="0"
+              />
+            </Field>
+            <Field label="Estoque máximo">
+              <Input
+                inputMode="decimal"
+                value={form.estoque_maximo}
+                onChange={(e) =>
+                  setForm({ ...form, estoque_maximo: e.target.value })
+                }
+                placeholder="0"
+              />
+            </Field>
             <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5 sm:col-span-2">
               <div>
                 <Label className="cursor-pointer">Item estocável</Label>
