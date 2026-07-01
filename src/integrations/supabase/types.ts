@@ -193,6 +193,88 @@ export type Database = {
         }
         Relationships: []
       }
+      contas_financeiras: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          dias_liquidacao: number
+          id: string
+          id_meio_pagamento: string | null
+          nome: string
+          saldo_atual: number
+          taxa_percentual: number
+          tipo_conta: Database["public"]["Enums"]["tipo_conta_financeira"]
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          dias_liquidacao?: number
+          id?: string
+          id_meio_pagamento?: string | null
+          nome: string
+          saldo_atual?: number
+          taxa_percentual?: number
+          tipo_conta?: Database["public"]["Enums"]["tipo_conta_financeira"]
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          dias_liquidacao?: number
+          id?: string
+          id_meio_pagamento?: string | null
+          nome?: string
+          saldo_atual?: number
+          taxa_percentual?: number
+          tipo_conta?: Database["public"]["Enums"]["tipo_conta_financeira"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_financeiras_id_meio_pagamento_fkey"
+            columns: ["id_meio_pagamento"]
+            isOneToOne: false
+            referencedRelation: "meios_pagamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entradas_avulsas_estoque: {
+        Row: {
+          created_at: string
+          id: string
+          id_fornecedor: string | null
+          numero_documento_interno: number
+          observacao: string
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          id_fornecedor?: string | null
+          numero_documento_interno?: number
+          observacao?: string
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          id_fornecedor?: string | null
+          numero_documento_interno?: number
+          observacao?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entradas_avulsas_estoque_id_fornecedor_fkey"
+            columns: ["id_fornecedor"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extrato_fiado: {
         Row: {
           created_at: string
@@ -462,6 +544,7 @@ export type Database = {
           fornecedor_id: string | null
           id: string
           nome: string
+          saldo_estoque: number
           setor_id: string | null
           unidade_medida: string
           updated_at: string
@@ -475,6 +558,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           nome: string
+          saldo_estoque?: number
           setor_id?: string | null
           unidade_medida?: string
           updated_at?: string
@@ -488,6 +572,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           nome?: string
+          saldo_estoque?: number
           setor_id?: string | null
           unidade_medida?: string
           updated_at?: string
@@ -505,6 +590,102 @@ export type Database = {
             columns: ["setor_id"]
             isOneToOne: false
             referencedRelation: "setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itens_entrada_avulsa: {
+        Row: {
+          custo_anterior_momento: number
+          custo_unitario_momento: number
+          id: string
+          id_entrada_avulsa: string
+          id_insumo: string
+          quantidade: number
+        }
+        Insert: {
+          custo_anterior_momento?: number
+          custo_unitario_momento?: number
+          id?: string
+          id_entrada_avulsa: string
+          id_insumo: string
+          quantidade?: number
+        }
+        Update: {
+          custo_anterior_momento?: number
+          custo_unitario_momento?: number
+          id?: string
+          id_entrada_avulsa?: string
+          id_insumo?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_entrada_avulsa_id_entrada_avulsa_fkey"
+            columns: ["id_entrada_avulsa"]
+            isOneToOne: false
+            referencedRelation: "entradas_avulsas_estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_entrada_avulsa_id_insumo_fkey"
+            columns: ["id_insumo"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lancamentos_tesouraria: {
+        Row: {
+          categoria_fluxo: string
+          created_at: string
+          data_competencia: string
+          data_liquidacao: string
+          descricao: string
+          id: string
+          id_conta_financeira: string
+          id_pedido: string | null
+          tipo: Database["public"]["Enums"]["tipo_lancamento_tesouraria"]
+          valor: number
+        }
+        Insert: {
+          categoria_fluxo?: string
+          created_at?: string
+          data_competencia?: string
+          data_liquidacao?: string
+          descricao?: string
+          id?: string
+          id_conta_financeira: string
+          id_pedido?: string | null
+          tipo: Database["public"]["Enums"]["tipo_lancamento_tesouraria"]
+          valor?: number
+        }
+        Update: {
+          categoria_fluxo?: string
+          created_at?: string
+          data_competencia?: string
+          data_liquidacao?: string
+          descricao?: string
+          id?: string
+          id_conta_financeira?: string
+          id_pedido?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_lancamento_tesouraria"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_tesouraria_id_conta_financeira_fkey"
+            columns: ["id_conta_financeira"]
+            isOneToOne: false
+            referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_tesouraria_id_pedido_fkey"
+            columns: ["id_pedido"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -1114,6 +1295,15 @@ export type Database = {
         Args: { p_amount: number; p_order_id: string }
         Returns: number
       }
+      registrar_entrada_avulsa: {
+        Args: {
+          p_conta_financeira: string
+          p_fornecedor: string
+          p_itens: Json
+          p_observacao: string
+        }
+        Returns: number
+      }
       set_fiado_config: {
         Args: { p_autorizado: boolean; p_limite: number; p_user_id: string }
         Returns: undefined
@@ -1125,6 +1315,8 @@ export type Database = {
       attendance_type: "Delivery" | "Presencial"
       cashback_tipo: "Credito" | "Debito"
       fiado_tipo: "Debito_Compra" | "Credito_Pagamento"
+      tipo_conta_financeira: "Físico" | "Banco" | "Recebível_Futuro"
+      tipo_lancamento_tesouraria: "Entrada" | "Saída"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1257,6 +1449,8 @@ export const Constants = {
       attendance_type: ["Delivery", "Presencial"],
       cashback_tipo: ["Credito", "Debito"],
       fiado_tipo: ["Debito_Compra", "Credito_Pagamento"],
+      tipo_conta_financeira: ["Físico", "Banco", "Recebível_Futuro"],
+      tipo_lancamento_tesouraria: ["Entrada", "Saída"],
     },
   },
 } as const

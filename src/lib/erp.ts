@@ -152,6 +152,8 @@ export interface Insumo {
   nome: string;
   unidade_medida: string;
   custo_unitario: number;
+  custo_anterior: number | null;
+  saldo_estoque: number;
   estocavel: boolean;
   fornecedor_id: string | null;
   setor_id: string | null;
@@ -160,7 +162,7 @@ export interface Insumo {
 export async function listInsumos(): Promise<Insumo[]> {
   const { data, error } = await supabase
     .from("insumos")
-    .select("id, nome, unidade_medida, custo_unitario, estocavel, fornecedor_id, setor_id")
+    .select("id, nome, unidade_medida, custo_unitario, custo_anterior, saldo_estoque, estocavel, fornecedor_id, setor_id")
     .order("nome");
   if (error) throw error;
   return (data ?? []).map((i) => ({
@@ -168,11 +170,17 @@ export async function listInsumos(): Promise<Insumo[]> {
     nome: i.nome,
     unidade_medida: i.unidade_medida ?? "un",
     custo_unitario: Number(i.custo_unitario ?? 0),
+    custo_anterior:
+      i.custo_anterior === null || i.custo_anterior === undefined
+        ? null
+        : Number(i.custo_anterior),
+    saldo_estoque: Number(i.saldo_estoque ?? 0),
     estocavel: i.estocavel ?? true,
     fornecedor_id: i.fornecedor_id ?? null,
     setor_id: i.setor_id ?? null,
   }));
 }
+
 
 export async function saveInsumo(input: {
   id?: string | null;

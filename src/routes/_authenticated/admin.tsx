@@ -14,6 +14,8 @@ import {
   UtensilsCrossed,
   Layers,
   Truck,
+  TrendingUp,
+  PackagePlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +56,8 @@ import { SetoresCrud } from "@/components/admin/SetoresCrud";
 import { FornecedoresCrud } from "@/components/admin/FornecedoresCrud";
 import { InsumosCrud } from "@/components/admin/InsumosCrud";
 import { SubprodutosCrud } from "@/components/admin/SubprodutosCrud";
+import { TesourariaView } from "@/components/admin/TesourariaView";
+import { EntradaEstoqueView } from "@/components/admin/EntradaEstoqueView";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
@@ -158,6 +162,8 @@ const EMPTY_FORM: FormState = {
 
 type AdminTab =
   | "cardapio"
+  | "financeiro"
+  | "estoque"
   | "insumos"
   | "subprodutos"
   | "setores"
@@ -165,6 +171,8 @@ type AdminTab =
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
+  { key: "financeiro", label: "Financeiro", icon: TrendingUp },
+  { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
   { key: "insumos", label: "Insumos", icon: Package },
   { key: "subprodutos", label: "Subprodutos", icon: Boxes },
   { key: "setores", label: "Setores", icon: Layers },
@@ -462,6 +470,8 @@ function AdminPage() {
         </header>
 
         <main className="px-4 py-5 lg:px-8">
+          {tab === "financeiro" && <TesourariaView />}
+          {tab === "estoque" && <EntradaEstoqueView />}
           {tab === "insumos" && <InsumosCrud />}
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}
