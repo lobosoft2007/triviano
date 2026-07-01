@@ -174,6 +174,7 @@ export function InsumosCrud() {
                 <th className="px-4 py-2.5 font-semibold">Custo</th>
                 <th className="px-4 py-2.5 font-semibold">Fornecedor</th>
                 <th className="px-4 py-2.5 font-semibold">Setor</th>
+                <th className="px-4 py-2.5 font-semibold">Saldo (mín/máx)</th>
                 <th className="px-4 py-2.5 font-semibold">Estoque</th>
                 <th className="w-24 px-4 py-2.5" />
               </tr>
