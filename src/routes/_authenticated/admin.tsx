@@ -366,6 +366,9 @@ function AdminPage() {
         available: form.available,
         image_url: imageRef,
         free_addon_limit: Math.max(0, Math.trunc(Number(form.free_addon_limit) || 0)),
+        saldo_estoque: parseNumberInput(form.saldo_estoque),
+        estoque_minimo: parseNumberInput(form.estoque_minimo),
+        estoque_maximo: parseNumberInput(form.estoque_maximo),
       };
 
       let productId = form.id;
