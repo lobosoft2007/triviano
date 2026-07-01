@@ -243,8 +243,8 @@ export async function registrarEntradaAvulsa(input: {
   }
 
   const { data, error } = await supabase.rpc("registrar_entrada_avulsa", {
-    p_fornecedor: input.id_fornecedor,
-    p_conta_financeira: input.id_conta_financeira,
+    p_fornecedor: input.id_fornecedor as string,
+    p_conta_financeira: input.id_conta_financeira as string,
     p_observacao: input.observacao,
     p_itens: itens,
   });
