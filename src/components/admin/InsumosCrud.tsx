@@ -43,6 +43,8 @@ interface FormState {
   estocavel: boolean;
   fornecedor_id: string;
   setor_id: string;
+  estoque_minimo: string;
+  estoque_maximo: string;
 }
 
 const EMPTY: FormState = {
@@ -53,6 +55,8 @@ const EMPTY: FormState = {
   estocavel: true,
   fornecedor_id: NONE,
   setor_id: NONE,
+  estoque_minimo: "0",
+  estoque_maximo: "0",
 };
 
 export function InsumosCrud() {
