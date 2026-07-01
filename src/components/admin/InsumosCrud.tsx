@@ -117,6 +117,8 @@ export function InsumosCrud() {
         estocavel: form.estocavel,
         fornecedor_id: form.fornecedor_id === NONE ? null : form.fornecedor_id,
         setor_id: form.setor_id === NONE ? null : form.setor_id,
+        estoque_minimo: parseNumberInput(form.estoque_minimo),
+        estoque_maximo: parseNumberInput(form.estoque_maximo),
       });
       setOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["erp-insumos"] });
