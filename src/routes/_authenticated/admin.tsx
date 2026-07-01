@@ -153,6 +153,9 @@ interface FormState {
   available: boolean;
   image_url: string;
   free_addon_limit: string;
+  saldo_estoque: string;
+  estoque_minimo: string;
+  estoque_maximo: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -164,12 +167,16 @@ const EMPTY_FORM: FormState = {
   available: true,
   image_url: "",
   free_addon_limit: "0",
+  saldo_estoque: "0",
+  estoque_minimo: "0",
+  estoque_maximo: "0",
 };
 
 type AdminTab =
   | "cardapio"
   | "financeiro"
   | "estoque"
+  | "compras"
   | "insumos"
   | "subprodutos"
   | "setores"
@@ -179,6 +186,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
   { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
+  { key: "compras", label: "Sugestão de Compras", icon: ShoppingCart },
   { key: "insumos", label: "Insumos", icon: Package },
   { key: "subprodutos", label: "Subprodutos", icon: Boxes },
   { key: "setores", label: "Setores", icon: Layers },
