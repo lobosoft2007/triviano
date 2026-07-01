@@ -197,6 +197,21 @@ export function InsumosCrud() {
                   </td>
                   <td className="px-4 py-2.5">
                     <span
+                      className={`font-semibold tabular-nums ${
+                        i.estoque_minimo > 0 && i.saldo_estoque < i.estoque_minimo
+                          ? "text-destructive"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {i.saldo_estoque}
+                    </span>
+                    <span className="ml-1 text-[11px] text-muted-foreground">
+                      ({i.estoque_minimo}/{i.estoque_maximo})
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+
+                    <span
                       className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                         i.estocavel
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
