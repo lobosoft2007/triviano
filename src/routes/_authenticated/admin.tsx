@@ -476,6 +476,7 @@ function AdminPage() {
           {tab === "estoque" && <EntradaEstoqueView />}
           {tab === "compras" && <SugestaoComprasView />}
           {tab === "categorias" && <CategoriasCrud />}
+          {tab === "combos" && <CombosCrud />}
           {tab === "insumos" && <InsumosCrud />}
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}
