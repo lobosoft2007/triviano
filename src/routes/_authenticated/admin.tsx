@@ -14,6 +14,7 @@ import {
   UtensilsCrossed,
   Layers,
   Layers3,
+  Megaphone,
   Truck,
   TrendingUp,
   PackagePlus,
