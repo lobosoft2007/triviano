@@ -1,15 +1,31 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Search, Ban, ShieldCheck, User } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  Ban,
+  ShieldCheck,
+  User,
+  Pencil,
+  Save,
+  X,
+} from "lucide-react";
 import {
   fetchClientes,
   setClienteBloqueado,
+  adminUpdateCliente,
   type Cliente,
 } from "@/lib/clientes";
 import { composeAddress } from "@/lib/profile";
+import { geocodeAddress } from "@/lib/cep";
 import { formatBRL } from "@/lib/format";
+import {
+  AddressFields,
+  type AddressState,
+} from "@/components/AddressFields";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
