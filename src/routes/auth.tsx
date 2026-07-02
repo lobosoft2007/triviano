@@ -128,19 +128,22 @@ function AuthPage() {
 
         <div className="mb-8 flex flex-col items-center text-center">
           <img
-            src="/logo.png"
-            alt="Clube 23"
+            src={empresa?.logo_display_url || "/logo.png"}
+            alt={empresa?.nome_fantasia || "Logotipo"}
             width={128}
             height={128}
             className="h-32 w-32 rounded-2xl object-cover shadow-float ring-1 ring-border"
           />
-          <h1 className="mt-4 font-display text-2xl font-bold">Clube 23</h1>
+          <h1 className="mt-4 font-display text-2xl font-bold">
+            {empresa?.nome_fantasia ?? ""}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Entre para fazer seu pedido
           </p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">
+
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Entrar</TabsTrigger>
             <TabsTrigger value="signup">Criar conta</TabsTrigger>
