@@ -146,8 +146,8 @@ function CheckoutPage() {
       <div className="mx-auto max-w-md">
         <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/90 px-5 py-3.5 backdrop-blur-md">
           <Link
-            to="/menu"
-            aria-label="Voltar ao cardápio"
+            to="/"
+            aria-label="Voltar à início"
             className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary"
           >
             <ArrowLeft className="h-5 w-5" />
