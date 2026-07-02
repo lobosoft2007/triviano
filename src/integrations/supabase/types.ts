@@ -1294,6 +1294,64 @@ export type Database = {
         }
         Relationships: []
       }
+      regras_combos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          id_categoria_1: string | null
+          id_categoria_2: string | null
+          id_categoria_3: string | null
+          nome_combo: string
+          updated_at: string
+          valor_desconto: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          id_categoria_1?: string | null
+          id_categoria_2?: string | null
+          id_categoria_3?: string | null
+          nome_combo: string
+          updated_at?: string
+          valor_desconto?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          id_categoria_1?: string | null
+          id_categoria_2?: string | null
+          id_categoria_3?: string | null
+          nome_combo?: string
+          updated_at?: string
+          valor_desconto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regras_combos_id_categoria_1_fkey"
+            columns: ["id_categoria_1"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regras_combos_id_categoria_2_fkey"
+            columns: ["id_categoria_2"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regras_combos_id_categoria_3_fkey"
+            columns: ["id_categoria_3"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       setores: {
         Row: {
           created_at: string
