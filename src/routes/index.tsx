@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Settings,
   Wallet,
+  User,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
 import { empresaQueryOptions } from "@/lib/empresa";
