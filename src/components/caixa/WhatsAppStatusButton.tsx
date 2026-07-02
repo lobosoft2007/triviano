@@ -15,6 +15,7 @@ import type { CaixaOrder } from "@/lib/caixa";
  * message perfectly formatted for the order's CURRENT status.
  */
 export function WhatsAppStatusButton({ order }: { order: CaixaOrder }) {
+  const { data: empresa } = useQuery(empresaQueryOptions);
   const { data: profile } = useQuery({
     queryKey: ["customer-profile", order.user_id],
     enabled: !!order.user_id,
