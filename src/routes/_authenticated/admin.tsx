@@ -482,6 +482,7 @@ function AdminPage() {
           {tab === "compras" && <SugestaoComprasView />}
           {tab === "categorias" && <CategoriasCrud />}
           {tab === "combos" && <CombosCrud />}
+          {tab === "empresa" && <EmpresaConfigTab />}
           {tab === "insumos" && <InsumosCrud />}
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}
