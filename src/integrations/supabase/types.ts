@@ -355,9 +355,54 @@ export type Database = {
           },
         ]
       }
+      extrato_conta_corrente: {
+        Row: {
+          created_at: string
+          descricao: string
+          empresa_id: string
+          id: string
+          id_pedido: string | null
+          saldo_devedor_momento: number
+          tipo: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string
+          empresa_id?: string
+          id?: string
+          id_pedido?: string | null
+          saldo_devedor_momento?: number
+          tipo: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          empresa_id?: string
+          id?: string
+          id_pedido?: string | null
+          saldo_devedor_momento?: number
+          tipo?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extrato_conta_corrente_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extrato_fiado: {
         Row: {
           created_at: string
+          empresa_id: string | null
           id: string
           id_pedido: string | null
           id_usuario: string
@@ -367,6 +412,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          empresa_id?: string | null
           id?: string
           id_pedido?: string | null
           id_usuario: string
@@ -376,6 +422,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          empresa_id?: string | null
           id?: string
           id_pedido?: string | null
           id_usuario?: string
@@ -384,6 +431,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "extrato_fiado_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "extrato_fiado_id_pedido_fkey"
             columns: ["id_pedido"]
@@ -522,6 +576,7 @@ export type Database = {
         Row: {
           created_at: string
           descricao: string
+          empresa_id: string | null
           id: string
           id_pedido: string | null
           id_usuario: string
@@ -531,6 +586,7 @@ export type Database = {
         Insert: {
           created_at?: string
           descricao?: string
+          empresa_id?: string | null
           id?: string
           id_pedido?: string | null
           id_usuario: string
@@ -540,6 +596,7 @@ export type Database = {
         Update: {
           created_at?: string
           descricao?: string
+          empresa_id?: string | null
           id?: string
           id_pedido?: string | null
           id_usuario?: string
@@ -547,6 +604,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "historico_cashback_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "historico_cashback_id_pedido_fkey"
             columns: ["id_pedido"]
@@ -1370,44 +1434,91 @@ export type Database = {
       profiles: {
         Row: {
           address: string
+          bairro: string
+          cep: string
+          complemento: string
           created_at: string
+          ddd: string
+          empresa_id: string | null
+          estado: string
           fiado_autorizado: boolean
           full_name: string
           id: string
+          latitude: number | null
           limite_fiado: number
+          logradouro: string
+          longitude: number | null
+          municipio: string
+          numero: string
           phone: string
           push_token: string | null
           saldo_cashback: number
           saldo_devedor_fiado: number
+          telefone: string
+          tipo_logradouro: string
           updated_at: string
         }
         Insert: {
           address?: string
+          bairro?: string
+          cep?: string
+          complemento?: string
           created_at?: string
+          ddd?: string
+          empresa_id?: string | null
+          estado?: string
           fiado_autorizado?: boolean
           full_name?: string
           id: string
+          latitude?: number | null
           limite_fiado?: number
+          logradouro?: string
+          longitude?: number | null
+          municipio?: string
+          numero?: string
           phone?: string
           push_token?: string | null
           saldo_cashback?: number
           saldo_devedor_fiado?: number
+          telefone?: string
+          tipo_logradouro?: string
           updated_at?: string
         }
         Update: {
           address?: string
+          bairro?: string
+          cep?: string
+          complemento?: string
           created_at?: string
+          ddd?: string
+          empresa_id?: string | null
+          estado?: string
           fiado_autorizado?: boolean
           full_name?: string
           id?: string
+          latitude?: number | null
           limite_fiado?: number
+          logradouro?: string
+          longitude?: number | null
+          municipio?: string
+          numero?: string
           phone?: string
           push_token?: string | null
           saldo_cashback?: number
           saldo_devedor_fiado?: number
+          telefone?: string
+          tipo_logradouro?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       regras_combos: {
         Row: {
