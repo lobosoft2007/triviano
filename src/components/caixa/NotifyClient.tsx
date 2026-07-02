@@ -68,7 +68,7 @@ export function NotifyClient({ order }: { order: CaixaOrder }) {
 
   function handleWhatsApp() {
     const text = message.trim();
-    const body = `Olá ${customerName}! Sobre o seu pedido ${orderNo} no Clube 23:${
+    const body = `Olá ${customerName}! Sobre o seu pedido ${orderNo} no ${brand}:${
       text ? `\n\n${text}` : ""
     }`;
     const link = buildWhatsAppLink(phone, body);
