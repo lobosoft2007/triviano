@@ -41,6 +41,7 @@ import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { NotifyClient } from "@/components/caixa/NotifyClient";
 import { WhatsAppStatusButton } from "@/components/caixa/WhatsAppStatusButton";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
+import { ClientesView } from "@/components/admin/ClientesView";
 import { PartialReportDialog } from "@/components/caixa/PartialReportDialog";
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
