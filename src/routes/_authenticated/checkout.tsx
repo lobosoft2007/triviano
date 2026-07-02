@@ -55,12 +55,22 @@ function CheckoutPage() {
     enabled: !!user,
   });
 
+  const { data: empresa } = useQuery(empresaQueryOptions);
+
+  // Taxa de serviço aplicada automaticamente em pedidos presenciais (mesa).
+  const serviceRate = empresa?.taxa_servico_mesa ?? 0;
+  const serviceFee =
+    tipo === "Presencial" && serviceRate > 0
+      ? Math.round(subtotal * serviceRate) / 100
+      : 0;
+
+  const baseTotal = Math.round((totalPrice + serviceFee) * 100) / 100;
   const saldoCashback = profile?.saldo_cashback ?? 0;
   const cashbackApplied = useCashback
-    ? Math.min(Math.round(saldoCashback * 100), Math.round(totalPrice * 100)) /
+    ? Math.min(Math.round(saldoCashback * 100), Math.round(baseTotal * 100)) /
       100
     : 0;
-  const finalTotal = Math.round((totalPrice - cashbackApplied) * 100) / 100;
+  const finalTotal = Math.round((baseTotal - cashbackApplied) * 100) / 100;
 
   const {
     payload: pixPayload,
