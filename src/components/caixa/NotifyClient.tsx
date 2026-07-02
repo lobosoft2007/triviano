@@ -8,6 +8,7 @@ import {
   insertNotification,
   buildWhatsAppLink,
 } from "@/lib/notifications";
+import { empresaQueryOptions } from "@/lib/empresa";
 import type { CaixaOrder } from "@/lib/caixa";
 
 /**
