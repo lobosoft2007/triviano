@@ -5,7 +5,9 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Megaphone,
   Layers3,
+  Package,
   CheckCircle2,
   XCircle,
 } from "lucide-react";
@@ -17,6 +19,7 @@ import {
   listAdminCategories,
   parseNumberInput,
   type ComboRule,
+  type TipoPromocao,
 } from "@/lib/erp";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -43,6 +46,8 @@ const NONE = "__none__";
 interface FormState {
   id: string | null;
   nome_combo: string;
+  tipo_promocao: TipoPromocao;
+  quantidade_requerida: number;
   id_categoria_1: string;
   id_categoria_2: string;
   id_categoria_3: string;
@@ -53,6 +58,8 @@ interface FormState {
 const EMPTY: FormState = {
   id: null,
   nome_combo: "",
+  tipo_promocao: "Combo",
+  quantidade_requerida: 1,
   id_categoria_1: NONE,
   id_categoria_2: NONE,
   id_categoria_3: NONE,
@@ -88,6 +95,8 @@ export function CombosCrud() {
     setForm({
       id: c.id,
       nome_combo: c.nome_combo,
+      tipo_promocao: c.tipo_promocao,
+      quantidade_requerida: c.quantidade_requerida,
       id_categoria_1: c.id_categoria_1 ?? NONE,
       id_categoria_2: c.id_categoria_2 ?? NONE,
       id_categoria_3: c.id_categoria_3 ?? NONE,
@@ -110,15 +119,20 @@ export function CombosCrud() {
       await saveCombo({
         id: form.id,
         nome_combo: form.nome_combo,
-        id_categoria_1: form.id_categoria_1 === NONE ? null : form.id_categoria_1,
-        id_categoria_2: form.id_categoria_2 === NONE ? null : form.id_categoria_2,
-        id_categoria_3: form.id_categoria_3 === NONE ? null : form.id_categoria_3,
+        tipo_promocao: form.tipo_promocao,
+        quantidade_requerida: form.quantidade_requerida,
+        id_categoria_1:
+          form.id_categoria_1 === NONE ? null : form.id_categoria_1,
+        id_categoria_2:
+          form.id_categoria_2 === NONE ? null : form.id_categoria_2,
+        id_categoria_3:
+          form.id_categoria_3 === NONE ? null : form.id_categoria_3,
         valor_desconto: parseNumberInput(form.valor_desconto),
         ativo: form.ativo,
       });
       setOpen(false);
       await invalidate();
-      toast.success("Combo salvo!");
+      toast.success("Campanha salva!");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao salvar.");
     } finally {
@@ -127,11 +141,11 @@ export function CombosCrud() {
   }
 
   async function handleDelete(c: ComboRule) {
-    if (!confirm(`Remover o combo "${c.nome_combo}"?`)) return;
+    if (!confirm(`Remover a campanha "${c.nome_combo}"?`)) return;
     try {
       await deleteCombo(c.id);
       await invalidate();
-      toast.success("Combo removido.");
+      toast.success("Campanha removida.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao remover.");
     }
@@ -141,6 +155,7 @@ export function CombosCrud() {
     value: string,
     onChange: (v: string) => void,
     label: string,
+    withNone = true,
   ) => (
     <div className="space-y-1.5">
       <Label>{label}</Label>
@@ -149,7 +164,7 @@ export function CombosCrud() {
           <SelectValue placeholder="Selecione a categoria" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE}>— Nenhuma —</SelectItem>
+          {withNone && <SelectItem value={NONE}>— Nenhuma —</SelectItem>}
           {categories?.map((c) => (
             <SelectItem key={c.id} value={c.id}>
               {c.name}
@@ -160,22 +175,27 @@ export function CombosCrud() {
     </div>
   );
 
+  const isPack = form.tipo_promocao === "Pack";
+
   return (
     <section>
       <header className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Layers3 className="h-5 w-5 text-primary" />
-          <h2 className="font-display text-lg font-bold">Gerenciador de Combos</h2>
+          <Megaphone className="h-5 w-5 text-primary" />
+          <h2 className="font-display text-lg font-bold">
+            Gerenciador de Campanhas
+          </h2>
         </div>
         <Button size="sm" onClick={openNew}>
-          <Plus className="mr-1 h-4 w-4" /> Novo combo
+          <Plus className="mr-1 h-4 w-4" /> Nova campanha
         </Button>
       </header>
 
       <p className="mb-4 text-sm text-muted-foreground">
-        Regra: se o cliente adicionar ao menos 1 item de cada categoria vinculada,
-        o desconto é aplicado automaticamente sobre o total. Vários combos podem
-        ser aplicados ao mesmo tempo.
+        <strong>Combo:</strong> ao menos 1 item de cada categoria vinculada
+        libera o desconto. <strong>Pack:</strong> atingir a quantidade exigida de
+        uma mesma categoria libera o desconto. Várias campanhas podem ser
+        aplicadas ao mesmo tempo.
       </p>
 
       {isLoading && (
@@ -186,15 +206,21 @@ export function CombosCrud() {
 
       {combos && combos.length === 0 && (
         <p className="py-10 text-center text-sm text-muted-foreground">
-          Nenhum combo cadastrado.
+          Nenhuma campanha cadastrada.
         </p>
       )}
 
       <div className="space-y-2">
         {combos?.map((c) => {
+          const pack = c.tipo_promocao === "Pack";
           const cats = [c.id_categoria_1, c.id_categoria_2, c.id_categoria_3]
             .map(catName)
             .filter(Boolean) as string[];
+          const detail = pack
+            ? `${c.quantidade_requerida}x ${cats[0] ?? "categoria"}`
+            : cats.length
+              ? cats.join(" + ")
+              : "Sem categorias";
           return (
             <div
               key={c.id}
@@ -215,9 +241,25 @@ export function CombosCrud() {
               </span>
 
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{c.nome_combo}</p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate font-semibold">{c.nome_combo}</p>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                      pack
+                        ? "bg-primary/12 text-primary"
+                        : "bg-secondary text-secondary-foreground"
+                    }`}
+                  >
+                    {pack ? (
+                      <Package className="h-3 w-3" />
+                    ) : (
+                      <Layers3 className="h-3 w-3" />
+                    )}
+                    {c.tipo_promocao}
+                  </span>
+                </div>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  {cats.length ? cats.join(" + ") : "Sem categorias"}
+                  {detail}
                 </p>
               </div>
 
@@ -247,36 +289,102 @@ export function CombosCrud() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{form.id ? "Editar combo" : "Novo combo"}</DialogTitle>
+            <DialogTitle>
+              {form.id ? "Editar campanha" : "Nova campanha"}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            {/* Type toggle */}
             <div className="space-y-1.5">
-              <Label htmlFor="combo-name">Nome do combo</Label>
+              <Label>Tipo de promoção</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["Combo", "Pack"] as TipoPromocao[]).map((t) => {
+                  const active = form.tipo_promocao === t;
+                  const Icon = t === "Pack" ? Package : Layers3;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setForm({ ...form, tipo_promocao: t })}
+                      className={`flex flex-col items-center gap-1 rounded-xl border px-3 py-3 text-sm font-semibold transition-colors ${
+                        active
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background text-muted-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                      {t}
+                      <span className="text-[10px] font-normal">
+                        {t === "Pack"
+                          ? "Nº de itens de 1 categoria"
+                          : "1 item de cada categoria"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="combo-name">Nome da campanha</Label>
               <Input
                 id="combo-name"
                 value={form.nome_combo}
                 onChange={(e) =>
                   setForm({ ...form, nome_combo: e.target.value })
                 }
-                placeholder="Ex: Combo Família"
+                placeholder={isPack ? "Ex: Pack 3 Pastéis" : "Ex: Combo Família"}
               />
             </div>
 
-            {catSelect(
-              form.id_categoria_1,
-              (v) => setForm({ ...form, id_categoria_1: v }),
-              "Categoria 1",
-            )}
-            {catSelect(
-              form.id_categoria_2,
-              (v) => setForm({ ...form, id_categoria_2: v }),
-              "Categoria 2",
-            )}
-            {catSelect(
-              form.id_categoria_3,
-              (v) => setForm({ ...form, id_categoria_3: v }),
-              "Categoria 3 (opcional)",
+            {isPack ? (
+              <>
+                {catSelect(
+                  form.id_categoria_1 === NONE ? "" : form.id_categoria_1,
+                  (v) => setForm({ ...form, id_categoria_1: v }),
+                  "Categoria do pack",
+                  false,
+                )}
+                <div className="space-y-1.5">
+                  <Label>Quantidade necessária</Label>
+                  <Select
+                    value={String(form.quantidade_requerida)}
+                    onValueChange={(v) =>
+                      setForm({ ...form, quantidade_requerida: Number(v) })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3].map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n} {n === 1 ? "produto" : "produtos"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            ) : (
+              <>
+                {catSelect(
+                  form.id_categoria_1,
+                  (v) => setForm({ ...form, id_categoria_1: v }),
+                  "Categoria 1",
+                )}
+                {catSelect(
+                  form.id_categoria_2,
+                  (v) => setForm({ ...form, id_categoria_2: v }),
+                  "Categoria 2",
+                )}
+                {catSelect(
+                  form.id_categoria_3,
+                  (v) => setForm({ ...form, id_categoria_3: v }),
+                  "Categoria 3 (opcional)",
+                )}
+              </>
             )}
 
             <div className="space-y-1.5">
@@ -294,9 +402,9 @@ export function CombosCrud() {
 
             <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5">
               <div>
-                <p className="text-sm font-medium">Combo ativo</p>
+                <p className="text-sm font-medium">Campanha ativa</p>
                 <p className="text-xs text-muted-foreground">
-                  Só combos ativos aplicam desconto no carrinho.
+                  Só campanhas ativas aplicam desconto no carrinho.
                 </p>
               </div>
               <Switch
