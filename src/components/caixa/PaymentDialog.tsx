@@ -122,7 +122,7 @@ export function PaymentDialog({
             idPedido: order.id,
             idUsuario: order.user_id,
             titulo: "Compra no Fiado registrada",
-            mensagem: `Clube 23: Compra de ${formatBRL(
+            mensagem: `${brand}: Compra de ${formatBRL(
               valorFiado,
             )} registrada no Fiado. Seu saldo devedor atual é ${formatBRL(
               saldoDevedor,
