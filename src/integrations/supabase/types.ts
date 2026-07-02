@@ -274,6 +274,7 @@ export type Database = {
           cidade: string
           complemento: string
           created_at: string
+          dominio_customizado: string | null
           estado: string
           id: string
           logotipo_url: string
@@ -290,6 +291,7 @@ export type Database = {
           cidade?: string
           complemento?: string
           created_at?: string
+          dominio_customizado?: string | null
           estado?: string
           id?: string
           logotipo_url?: string
@@ -306,6 +308,7 @@ export type Database = {
           cidade?: string
           complemento?: string
           created_at?: string
+          dominio_customizado?: string | null
           estado?: string
           id?: string
           logotipo_url?: string
