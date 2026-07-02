@@ -18,7 +18,6 @@ import {
   fetchExtratoContaCorrente,
 } from "@/lib/profile";
 import { geocodeAddress } from "@/lib/cep";
-import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { AddressFields, type AddressState } from "@/components/AddressFields";
 import { Button } from "@/components/ui/button";
