@@ -13,6 +13,7 @@ import {
   Boxes,
   UtensilsCrossed,
   Layers,
+  Layers3,
   Truck,
   TrendingUp,
   PackagePlus,
@@ -50,6 +51,7 @@ import { TesourariaView } from "@/components/admin/TesourariaView";
 import { EntradaEstoqueView } from "@/components/admin/EntradaEstoqueView";
 import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
+import { CombosCrud } from "@/components/admin/CombosCrud";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
@@ -167,6 +169,7 @@ const EMPTY_FORM: FormState = {
 type AdminTab =
   | "cardapio"
   | "categorias"
+  | "combos"
   | "financeiro"
   | "estoque"
   | "compras"
@@ -178,6 +181,7 @@ type AdminTab =
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
+  { key: "combos", label: "Combos", icon: Layers3 },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
   { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
   { key: "compras", label: "Sugestão de Compras", icon: ShoppingCart },
@@ -186,6 +190,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "setores", label: "Setores", icon: Layers },
   { key: "fornecedores", label: "Fornecedores", icon: Truck },
 ];
+
 
 function detailToForm(d: ProductDetail): ProductDetailForm {
   return {
@@ -471,6 +476,7 @@ function AdminPage() {
           {tab === "estoque" && <EntradaEstoqueView />}
           {tab === "compras" && <SugestaoComprasView />}
           {tab === "categorias" && <CategoriasCrud />}
+          {tab === "combos" && <CombosCrud />}
           {tab === "insumos" && <InsumosCrud />}
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}

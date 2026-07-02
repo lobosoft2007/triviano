@@ -26,6 +26,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     totalItems,
     subtotal,
     discount,
+    appliedCombos,
     totalPrice,
     shortfalls,
     canCheckout,
@@ -142,7 +143,22 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                 </div>
               ))}
 
-              {discount > 0 && (
+              {appliedCombos.map((c) => (
+                <div
+                  key={c.id}
+                  className="mb-2 flex items-center justify-between text-sm text-success"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <BadgePercent className="h-4 w-4" />
+                    {c.nome_combo}
+                  </span>
+                  <span className="font-semibold tabular-nums">
+                    − {formatBRL(c.valor_desconto)}
+                  </span>
+                </div>
+              ))}
+
+              {discount > 0 && appliedCombos.length === 0 && (
                 <div className="mb-2 flex items-center justify-between text-sm text-success">
                   <span className="flex items-center gap-1.5">
                     <BadgePercent className="h-4 w-4" />

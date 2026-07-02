@@ -7,12 +7,18 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
-  comboDiscount,
   minOrderShortfalls,
   subtotalOf,
   type MinShortfall,
 } from "@/lib/pricing";
+import {
+  fetchActiveCombos,
+  matchedCombos,
+  type AppliedCombo,
+} from "@/lib/combos";
+
 
 export interface CartAddon {
   name: string;
@@ -51,6 +57,7 @@ interface CartContextValue {
   totalItems: number;
   subtotal: number;
   discount: number;
+  appliedCombos: AppliedCombo[];
   totalPrice: number;
   shortfalls: MinShortfall[];
   canCheckout: boolean;
@@ -60,6 +67,7 @@ interface CartContextValue {
   removeItem: (lineId: string) => void;
   clear: () => void;
 }
+
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
@@ -138,7 +146,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [items],
   );
   const subtotal = useMemo(() => subtotalOf(items), [items]);
-  const discount = useMemo(() => comboDiscount(items), [items]);
+
+  // Dynamic combo engine: read active rules from the database and apply the
+  // sum of every rule satisfied by the current cart (multiple combos stack).
+  const { data: comboRules = [] } = useQuery({
+    queryKey: ["active-combos"],
+    queryFn: fetchActiveCombos,
+    staleTime: 60_000,
+  });
+  const appliedCombos = useMemo(
+    () => matchedCombos(items, comboRules),
+    [items, comboRules],
+  );
+  const discount = useMemo(
+    () => appliedCombos.reduce((sum, c) => sum + c.valor_desconto, 0),
+    [appliedCombos],
+  );
+
   const totalPrice = useMemo(
     () => Math.max(0, subtotal - discount),
     [subtotal, discount],
@@ -152,6 +176,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       totalItems,
       subtotal,
       discount,
+      appliedCombos,
       totalPrice,
       shortfalls,
       canCheckout,
@@ -166,6 +191,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       totalItems,
       subtotal,
       discount,
+      appliedCombos,
       totalPrice,
       shortfalls,
       canCheckout,
@@ -176,6 +202,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       clear,
     ],
   );
+
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
