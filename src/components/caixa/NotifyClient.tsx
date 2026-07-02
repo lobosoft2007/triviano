@@ -18,6 +18,8 @@ import type { CaixaOrder } from "@/lib/caixa";
 export function NotifyClient({ order }: { order: CaixaOrder }) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const { data: empresa } = useQuery(empresaQueryOptions);
+  const brand = empresa?.nome_fantasia || "";
 
   const { data: profile } = useQuery({
     queryKey: ["customer-profile", order.user_id],
