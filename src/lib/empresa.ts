@@ -11,6 +11,7 @@ export interface Empresa {
   /** Storage path OR external URL as stored in the database. */
   logotipo_url: string;
   taxa_servico_mesa: number;
+  dominio_customizado: string | null;
   cep: string;
   logradouro: string;
   numero: string;
@@ -27,7 +28,7 @@ export interface EmpresaBranding extends Empresa {
 }
 
 const EMPRESA_COLS =
-  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo";
+  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo";
 
 /** Fetch the active company (branding + config) and resolve a displayable logo URL. */
 export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
