@@ -1,7 +1,11 @@
 import type { CartItem } from "@/lib/cart";
 
-/** Combo: 1 Burger + 1 Acompanhamento/Petisco grants R$7 off a beverage. */
-export const COMBO_DISCOUNT_PER_PAIR = 7;
+/*
+ * NOTE: The old static combo rule (fixed "1 Burger + 1 Side = R$7 off a
+ * beverage") was removed. Combo discounts are now driven by the dynamic,
+ * rules-based engine in `src/lib/combos.ts`, backed by the `regras_combos`
+ * table and managed from the admin panel.
+ */
 
 export interface MinRule {
   slug: string;
@@ -14,32 +18,7 @@ export const MIN_ORDER_RULES: MinRule[] = [
   { slug: "pasteis", min: 3, name: "Pastéis" },
 ];
 
-function qtyByRole(items: CartItem[], role: CartItem["comboRole"]): number {
-  return items
-    .filter((i) => i.comboRole === role)
-    .reduce((sum, i) => sum + i.quantity, 0);
-}
 
-function totalByRole(items: CartItem[], role: CartItem["comboRole"]): number {
-  return items
-    .filter((i) => i.comboRole === role)
-    .reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-}
-
-/**
- * Combo discount: for each Burger + Side pair, apply R$7 off beverages,
- * capped at the total beverage value (never negative).
- */
-export function comboDiscount(items: CartItem[]): number {
-  const burgers = qtyByRole(items, "burger");
-  const sides = qtyByRole(items, "side");
-  const pairs = Math.min(burgers, sides);
-  if (pairs <= 0) return 0;
-  const beverageTotal = totalByRole(items, "beverage");
-  if (beverageTotal <= 0) return 0;
-  const raw = pairs * COMBO_DISCOUNT_PER_PAIR;
-  return Math.min(raw, beverageTotal);
-}
 
 export interface MinShortfall {
   slug: string;
