@@ -33,11 +33,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const RESTAURANT = "Clube 23";
 const toCents = (n: number) => Math.round(n * 100);
 
 export function ContaCorrenteTab() {
   const queryClient = useQueryClient();
+  const { data: empresa } = useQuery(empresaQueryOptions);
+  const RESTAURANT = empresa?.nome_fantasia ?? "";
   const [search, setSearch] = useState("");
   const [payTarget, setPayTarget] = useState<FiadoClient | null>(null);
   const [printRows, setPrintRows] = useState<ExtratoFiadoRow[] | null>(null);
