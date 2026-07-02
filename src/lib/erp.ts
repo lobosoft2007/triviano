@@ -752,3 +752,150 @@ export async function saveFiscalConfig(input: FiscalConfig): Promise<void> {
   }
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Categorias do Cardápio                                             */
+/* ------------------------------------------------------------------ */
+
+export interface AdminCategory {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+  cor_fonte: string;
+  tamanho_fonte: string;
+  min_items: number;
+  allows_half: boolean;
+  combo_role: string;
+  product_count: number;
+}
+
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+export async function listAdminCategories(): Promise<AdminCategory[]> {
+  const [catRes, prodRes] = await Promise.all([
+    supabase
+      .from("categories")
+      .select(
+        "id, name, slug, sort_order, cor_fonte, tamanho_fonte, min_items, allows_half, combo_role",
+      )
+      .order("sort_order"),
+    supabase.from("products").select("category_id"),
+  ]);
+  if (catRes.error) throw catRes.error;
+  if (prodRes.error) throw prodRes.error;
+
+  const counts = new Map<string, number>();
+  for (const p of prodRes.data ?? []) {
+    if (!p.category_id) continue;
+    counts.set(p.category_id, (counts.get(p.category_id) ?? 0) + 1);
+  }
+
+  return (catRes.data ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    sort_order: Number(c.sort_order ?? 0),
+    cor_fonte: (c as { cor_fonte?: string }).cor_fonte ?? "text-white",
+    tamanho_fonte: (c as { tamanho_fonte?: string }).tamanho_fonte ?? "text-base",
+    min_items: Number((c as { min_items?: number }).min_items ?? 0),
+    allows_half: (c as { allows_half?: boolean }).allows_half ?? false,
+    combo_role: (c as { combo_role?: string }).combo_role ?? "",
+    product_count: counts.get(c.id) ?? 0,
+  }));
+}
+
+export async function saveCategory(input: {
+  id?: string | null;
+  name: string;
+  cor_fonte: string;
+  tamanho_fonte: string;
+}): Promise<void> {
+  const name = input.name.trim();
+  if (!name) throw new Error("O nome da categoria é obrigatório.");
+
+  if (input.id) {
+    const { error } = await supabase
+      .from("categories")
+      .update({
+        name,
+        cor_fonte: input.cor_fonte,
+        tamanho_fonte: input.tamanho_fonte,
+      })
+      .eq("id", input.id);
+    if (error) throw error;
+  } else {
+    // Compute next sort_order (append to end).
+    const { data: last } = await supabase
+      .from("categories")
+      .select("sort_order")
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextOrder = Number(last?.sort_order ?? -1) + 1;
+
+    const { error } = await supabase.from("categories").insert({
+      name,
+      slug: slugify(name) || `cat-${Date.now()}`,
+      cor_fonte: input.cor_fonte,
+      tamanho_fonte: input.tamanho_fonte,
+      sort_order: nextOrder,
+    });
+    if (error) throw error;
+  }
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  // Safety lock: block deletion when any product is linked to the category.
+  const { count, error: countErr } = await supabase
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", id);
+  if (countErr) throw countErr;
+  if ((count ?? 0) > 0) {
+    throw new Error(
+      "Não é possível excluir: existem produtos vinculados a esta categoria.",
+    );
+  }
+  const { error } = await supabase.from("categories").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Swap the sort_order of a category with its neighbour in the given direction.
+ * Persists the new ordering in bulk.
+ */
+export async function moveCategory(
+  ordered: AdminCategory[],
+  id: string,
+  direction: "up" | "down",
+): Promise<void> {
+  const idx = ordered.findIndex((c) => c.id === id);
+  if (idx < 0) return;
+  const target = direction === "up" ? idx - 1 : idx + 1;
+  if (target < 0 || target >= ordered.length) return;
+
+  const reordered = [...ordered];
+  [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
+
+  // Reassign sequential sort_order to the whole list and persist changed rows.
+  const updates = reordered
+    .map((c, i) => ({ id: c.id, sort_order: i }))
+    .filter((u, i) => reordered[i].sort_order !== u.sort_order);
+
+  await Promise.all(
+    updates.map((u) =>
+      supabase
+        .from("categories")
+        .update({ sort_order: u.sort_order })
+        .eq("id", u.id),
+    ),
+  );
+}

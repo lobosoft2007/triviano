@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           allows_half: boolean
           combo_role: string
+          cor_fonte: string
           created_at: string
           id: string
           id_impressora_destino: string | null
@@ -25,10 +26,12 @@ export type Database = {
           name: string
           slug: string
           sort_order: number
+          tamanho_fonte: string
         }
         Insert: {
           allows_half?: boolean
           combo_role?: string
+          cor_fonte?: string
           created_at?: string
           id?: string
           id_impressora_destino?: string | null
@@ -36,10 +39,12 @@ export type Database = {
           name: string
           slug: string
           sort_order?: number
+          tamanho_fonte?: string
         }
         Update: {
           allows_half?: boolean
           combo_role?: string
+          cor_fonte?: string
           created_at?: string
           id?: string
           id_impressora_destino?: string | null
@@ -47,6 +52,7 @@ export type Database = {
           name?: string
           slug?: string
           sort_order?: number
+          tamanho_fonte?: string
         }
         Relationships: [
           {
