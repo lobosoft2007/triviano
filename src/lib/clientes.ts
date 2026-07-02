@@ -68,3 +68,44 @@ export async function setClienteBloqueado(
   });
   if (error) throw error;
 }
+
+export interface AdminClienteUpdate {
+  full_name: string;
+  tipo_logradouro: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  municipio: string;
+  estado: string;
+  cep: string;
+  ddd: string;
+  telefone: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+/** Admin edits a customer's name/address/contact via secure RPC (bypasses RLS). */
+export async function adminUpdateCliente(
+  userId: string,
+  patch: AdminClienteUpdate,
+): Promise<void> {
+  const { error } = await supabase.rpc("admin_update_cliente", {
+    p_user_id: userId,
+    p_full_name: patch.full_name,
+    p_tipo_logradouro: patch.tipo_logradouro,
+    p_logradouro: patch.logradouro,
+    p_numero: patch.numero,
+    p_complemento: patch.complemento,
+    p_bairro: patch.bairro,
+    p_municipio: patch.municipio,
+    p_estado: patch.estado,
+    p_cep: patch.cep,
+    p_ddd: patch.ddd,
+    p_telefone: patch.telefone,
+    // DB param is nullable numeric; generated types mark it non-null, so cast.
+    p_latitude: patch.latitude as number,
+    p_longitude: patch.longitude as number,
+  });
+  if (error) throw error;
+}

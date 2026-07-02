@@ -1,15 +1,31 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Search, Ban, ShieldCheck, User } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  Ban,
+  ShieldCheck,
+  User,
+  Pencil,
+  Save,
+  X,
+} from "lucide-react";
 import {
   fetchClientes,
   setClienteBloqueado,
+  adminUpdateCliente,
   type Cliente,
 } from "@/lib/clientes";
 import { composeAddress } from "@/lib/profile";
+import { geocodeAddress } from "@/lib/cep";
 import { formatBRL } from "@/lib/format";
+import {
+  AddressFields,
+  type AddressState,
+} from "@/components/AddressFields";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -137,6 +153,20 @@ function ClienteDetailDialog({
 }) {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [fullName, setFullName] = useState(cliente.full_name);
+  const [address, setAddress] = useState<AddressState>({
+    cep: cliente.cep,
+    tipo_logradouro: cliente.tipo_logradouro,
+    logradouro: cliente.logradouro,
+    numero: cliente.numero,
+    complemento: cliente.complemento,
+    bairro: cliente.bairro,
+    municipio: cliente.municipio,
+    estado: cliente.estado,
+    ddd: cliente.ddd,
+    telefone: cliente.telefone,
+  });
 
   async function toggleBlock() {
     const next = !cliente.bloqueado;
@@ -161,6 +191,48 @@ function ClienteDetailDialog({
     }
   }
 
+  async function handleSave() {
+    if (!fullName.trim()) {
+      toast.error("Informe o nome do cliente.");
+      return;
+    }
+    setBusy(true);
+    try {
+      // Background geocoding to keep lat/long in sync with the new address.
+      const geo = await geocodeAddress({
+        logradouro: address.logradouro,
+        numero: address.numero,
+        bairro: address.bairro,
+        municipio: address.municipio,
+        estado: address.estado,
+        cep: address.cep,
+      });
+      await adminUpdateCliente(cliente.id, {
+        full_name: fullName.trim(),
+        ...address,
+        latitude: geo?.latitude ?? null,
+        longitude: geo?.longitude ?? null,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["clientes"] });
+      await queryClient.invalidateQueries({ queryKey: ["fiado-clients"] });
+      const phone = [address.ddd, address.telefone].filter(Boolean).join(" ").trim();
+      const next: Cliente = {
+        ...cliente,
+        full_name: fullName.trim(),
+        ...address,
+        phone,
+        address: composeAddress(address),
+      };
+      onUpdated(next);
+      toast.success("Dados do cliente atualizados.");
+      setEditing(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
@@ -170,70 +242,116 @@ function ClienteDetailDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {cliente.bloqueado && (
-            <div className="rounded-xl bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive">
-              Cliente bloqueado
+        {editing ? (
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit_full_name">Nome completo</Label>
+              <Input
+                id="edit_full_name"
+                className="h-12 rounded-xl"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
             </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Nome" value={cliente.full_name} />
-            <Field label="Telefone" value={cliente.phone || cliente.telefone} />
-            <Field label="CEP" value={cliente.cep} />
-            <Field label="Cidade" value={cliente.municipio} />
-            <Field label="Bairro" value={cliente.bairro} />
-            <Field label="Estado" value={cliente.estado} />
-          </div>
-
-          <div className="rounded-xl border border-border p-3">
-            <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-              Endereço
-            </p>
-            <p className="text-sm">
-              {composeAddress(cliente) || cliente.address || "—"}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 rounded-xl bg-secondary p-3">
-            <div className="flex flex-col">
-              <span className="text-[11px] text-muted-foreground">Fiado</span>
-              <span className="text-sm font-semibold">
-                {cliente.fiado_autorizado ? "Autorizado" : "Não"}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[11px] text-muted-foreground">Devedor</span>
-              <span className="text-sm font-semibold tabular-nums text-destructive">
-                {formatBRL(cliente.saldo_devedor_fiado)}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[11px] text-muted-foreground">Cashback</span>
-              <span className="text-sm font-semibold tabular-nums text-primary">
-                {formatBRL(cliente.saldo_cashback)}
-              </span>
+            <AddressFields value={address} onChange={setAddress} />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 rounded-xl"
+                disabled={busy}
+                onClick={() => setEditing(false)}
+              >
+                <X className="mr-2 h-4 w-4" /> Cancelar
+              </Button>
+              <Button
+                className="flex-1 rounded-xl"
+                disabled={busy}
+                onClick={handleSave}
+              >
+                {busy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Salvar
+              </Button>
             </div>
           </div>
+        ) : (
+          <div className="space-y-4">
+            {cliente.bloqueado && (
+              <div className="rounded-xl bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive">
+                Cliente bloqueado
+              </div>
+            )}
 
-          {canBlock && (
-            <Button
-              variant={cliente.bloqueado ? "outline" : "destructive"}
-              className="w-full rounded-xl"
-              disabled={busy}
-              onClick={toggleBlock}
-            >
-              {busy ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : cliente.bloqueado ? (
-                <ShieldCheck className="mr-2 h-4 w-4" />
-              ) : (
-                <Ban className="mr-2 h-4 w-4" />
-              )}
-              {cliente.bloqueado ? "Desbloquear cliente" : "Bloquear cliente"}
-            </Button>
-          )}
-        </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Nome" value={cliente.full_name} />
+              <Field label="Telefone" value={cliente.phone || cliente.telefone} />
+              <Field label="CEP" value={cliente.cep} />
+              <Field label="Cidade" value={cliente.municipio} />
+              <Field label="Bairro" value={cliente.bairro} />
+              <Field label="Estado" value={cliente.estado} />
+            </div>
+
+            <div className="rounded-xl border border-border p-3">
+              <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                Endereço
+              </p>
+              <p className="text-sm">
+                {composeAddress(cliente) || cliente.address || "—"}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 rounded-xl bg-secondary p-3">
+              <div className="flex flex-col">
+                <span className="text-[11px] text-muted-foreground">Fiado</span>
+                <span className="text-sm font-semibold">
+                  {cliente.fiado_autorizado ? "Autorizado" : "Não"}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[11px] text-muted-foreground">Devedor</span>
+                <span className="text-sm font-semibold tabular-nums text-destructive">
+                  {formatBRL(cliente.saldo_devedor_fiado)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[11px] text-muted-foreground">Cashback</span>
+                <span className="text-sm font-semibold tabular-nums text-primary">
+                  {formatBRL(cliente.saldo_cashback)}
+                </span>
+              </div>
+            </div>
+
+            {canBlock && (
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="secondary"
+                  className="w-full rounded-xl"
+                  onClick={() => setEditing(true)}
+                >
+                  <Pencil className="mr-2 h-4 w-4" /> Editar dados e endereço
+                </Button>
+                <Button
+                  variant={cliente.bloqueado ? "outline" : "destructive"}
+                  className="w-full rounded-xl"
+                  disabled={busy}
+                  onClick={toggleBlock}
+                >
+                  {busy ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : cliente.bloqueado ? (
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Ban className="mr-2 h-4 w-4" />
+                  )}
+                  {cliente.bloqueado ? "Desbloquear cliente" : "Bloquear cliente"}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

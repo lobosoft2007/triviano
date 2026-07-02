@@ -14,6 +14,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthUpdatePasswordRouteImport } from './routes/auth_.update-password'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedOrdersRouteImport } from './routes/_authenticated/orders'
@@ -45,6 +46,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthUpdatePasswordRoute = AuthUpdatePasswordRouteImport.update({
+  id: '/auth_/update-password',
+  path: '/auth/update-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSuperadminRoute = AuthenticatedSuperadminRouteImport.update({
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/orders': typeof AuthenticatedOrdersRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
+  '/auth/update-password': typeof AuthUpdatePasswordRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/orders': typeof AuthenticatedOrdersRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
+  '/auth/update-password': typeof AuthUpdatePasswordRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/_authenticated/orders': typeof AuthenticatedOrdersRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRoute
+  '/auth_/update-password': typeof AuthUpdatePasswordRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/perfil'
     | '/superadmin'
+    | '/auth/update-password'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/perfil'
     | '/superadmin'
+    | '/auth/update-password'
   id:
     | '__root__'
     | '/'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/_authenticated/orders'
     | '/_authenticated/perfil'
     | '/_authenticated/superadmin'
+    | '/auth_/update-password'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -185,6 +197,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AuthUpdatePasswordRoute: typeof AuthUpdatePasswordRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -222,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth_/update-password': {
+      id: '/auth_/update-password'
+      path: '/auth/update-password'
+      fullPath: '/auth/update-password'
+      preLoaderRoute: typeof AuthUpdatePasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/superadmin': {
@@ -314,6 +334,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AuthUpdatePasswordRoute: AuthUpdatePasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -192,6 +192,29 @@ export async function notifyStatusChange(
   });
 }
 
+/**
+ * Order cancellation notification, carrying the dynamic brand (nome_fantasia).
+ * Persists the realtime bell alert and fires a native OS push banner when the
+ * customer's device has granted permission.
+ */
+export async function notifyOrderCanceled(
+  orderId: string,
+  userId: string,
+  brand = "",
+): Promise<void> {
+  if (!userId) return;
+  const b = brand?.trim() || "Estabelecimento";
+  const titulo = "Pedido cancelado";
+  const mensagem = `${b}: Seu pedido foi cancelado pelo estabelecimento.`;
+  await insertNotification({
+    idPedido: orderId,
+    idUsuario: userId,
+    titulo,
+    mensagem,
+  });
+  showLocalNotification(titulo, mensagem);
+}
+
 /** Client: list own notifications, newest first. */
 export async function fetchMyNotifications(): Promise<NotificacaoCliente[]> {
   const { data, error } = await supabase

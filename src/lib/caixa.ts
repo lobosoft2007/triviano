@@ -324,6 +324,25 @@ export async function updateStatusPedido(
   if (error) throw error;
 }
 
+/**
+ * Cancels an order via secure RPC (admin only): reverses the exact stock
+ * movements (Kardex return of insumos + ready products) and sets the order to
+ * Cancelado / canceled.
+ */
+export async function cancelOrder(orderId: string): Promise<void> {
+  const { error } = await supabase.rpc("cancel_order", { p_order_id: orderId });
+  if (error) {
+    console.error("[cancelOrder] Postgres error", {
+      orderId,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw error;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Order editing (operator)                                            */
 /* ------------------------------------------------------------------ */
