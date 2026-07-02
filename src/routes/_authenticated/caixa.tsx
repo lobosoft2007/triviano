@@ -708,9 +708,9 @@ function DeliveryColumn({
     return <EmptyState label="Nenhum pedido de delivery em aberto." />;
   }
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="mx-auto max-w-2xl space-y-3">
       {orders.map((o) => (
-        <OrderCard
+        <CompactOrderRow
           key={o.id}
           order={o}
           onDispatch={onDispatch}
@@ -718,6 +718,121 @@ function DeliveryColumn({
         />
       ))}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Wait time helper                                                    */
+/* ------------------------------------------------------------------ */
+
+/** Live "tempo de espera" since the order was created, updated each minute. */
+function useWaitTime(createdAt: string): string {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+  const mins = Math.max(0, Math.floor((now - new Date(createdAt).getTime()) / 60000));
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h}h${m.toString().padStart(2, "0")}`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Compact order row (single column) + detail dialog                   */
+/* ------------------------------------------------------------------ */
+
+function CompactOrderRow({
+  order,
+  onDispatch,
+  resolveSector,
+}: {
+  order: CaixaOrder;
+  onDispatch: (o: CaixaOrder) => void;
+  resolveSector: ResolveFn;
+}) {
+  const [detailOpen, setDetailOpen] = useState(false);
+  const wait = useWaitTime(order.created_at);
+  const isNew = !order.impresso_cozinha;
+  const hora = new Date(order.created_at).toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setDetailOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") setDetailOpen(true);
+        }}
+        className={`cursor-pointer rounded-2xl border bg-card p-3.5 shadow-card transition-colors hover:bg-secondary/50 ${
+          isNew ? "border-primary ring-1 ring-primary/30" : "border-border"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-display text-sm font-bold">
+              {order.customer_name || "Cliente"}
+              {order.tipo_atendimento === "Presencial" && (
+                <span className="ml-1 text-muted-foreground">
+                  · Mesa {order.numero_mesa ?? "—"}
+                </span>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              #{order.id.slice(0, 6).toUpperCase()} · {hora} · espera {wait}
+            </p>
+          </div>
+          <span className="shrink-0 font-display text-base font-bold tabular-nums text-primary">
+            {formatBRL(order.total)}
+          </span>
+        </div>
+
+        <div className="mt-2.5 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <div className="min-w-0 flex-1">
+            <StatusControl
+              orderId={order.id}
+              userId={order.user_id}
+              status={order.status_pedido}
+            />
+          </div>
+          {isNew ? (
+            <Button
+              size="sm"
+              className="shrink-0 rounded-xl"
+              onClick={() => onDispatch(order)}
+            >
+              <Printer className="mr-1.5 h-4 w-4" /> Imprimir
+            </Button>
+          ) : (
+            <span className="shrink-0 text-[11px] font-semibold text-success">
+              ✓ impresso
+            </span>
+          )}
+        </div>
+      </div>
+
+      {detailOpen && (
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto p-4">
+            <DialogHeader>
+              <DialogTitle className="font-display">
+                Pedido #{order.id.slice(0, 6).toUpperCase()} · espera {wait}
+              </DialogTitle>
+            </DialogHeader>
+            <OrderCard
+              order={order}
+              onDispatch={onDispatch}
+              resolveSector={resolveSector}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
 
