@@ -133,6 +133,7 @@ export function CombosCrud() {
           form.id_categoria_3 === NONE ? null : form.id_categoria_3,
         valor_desconto: parseNumberInput(form.valor_desconto),
         ativo: form.ativo,
+        frase_promocional: form.frase_promocional,
       });
       setOpen(false);
       await invalidate();
