@@ -395,16 +395,33 @@ export function CombosCrud() {
             )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="combo-desc">Valor do desconto (R$)</Label>
-              <Input
-                id="combo-desc"
-                inputMode="decimal"
-                value={form.valor_desconto}
-                onChange={(e) =>
-                  setForm({ ...form, valor_desconto: e.target.value })
-                }
-                placeholder="0,00"
-              />
+              <Label htmlFor="combo-desc">
+                {isPack
+                  ? "Percentual de desconto (%)"
+                  : "Valor do desconto (R$)"}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="combo-desc"
+                  inputMode="decimal"
+                  value={form.valor_desconto}
+                  onChange={(e) =>
+                    setForm({ ...form, valor_desconto: e.target.value })
+                  }
+                  placeholder={isPack ? "0" : "0,00"}
+                  className={isPack ? "pr-8" : undefined}
+                />
+                {isPack && (
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">
+                    %
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {isPack
+                  ? "Aplicado sobre o valor dos itens da categoria do pack (0 a 100%)."
+                  : "Valor fixo em reais abatido do pedido."}
+              </p>
             </div>
 
             <div className="space-y-1.5">
