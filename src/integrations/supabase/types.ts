@@ -307,6 +307,93 @@ export type Database = {
           },
         ]
       }
+      email_send_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message_id: string | null
+          metadata: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email?: string
+          status?: string
+          template_name?: string
+        }
+        Relationships: []
+      }
+      email_send_state: {
+        Row: {
+          auth_email_ttl_minutes: number
+          batch_size: number
+          id: number
+          retry_after_until: string | null
+          send_delay_ms: number
+          transactional_email_ttl_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_unsubscribe_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       empresas: {
         Row: {
           ativo: boolean
@@ -521,6 +608,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fichas_tecnicas_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "view_products_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       fluxo_caixa: {
@@ -708,6 +802,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredientes_produto_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "view_products_public"
             referencedColumns: ["id"]
           },
           {
@@ -1151,6 +1252,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "view_products_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       orders: {
@@ -1397,6 +1505,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "produtos_addons_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "view_products_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       produtos_free_addons: {
@@ -1435,6 +1550,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "produtos_free_addons_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "view_products_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       produtos_price_options: {
@@ -1471,6 +1593,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_price_options_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "view_products_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1695,6 +1824,30 @@ export type Database = {
         }
         Relationships: []
       }
+      suppressed_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          metadata: Json | null
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1718,7 +1871,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      view_products_public: {
+        Row: {
+          available: boolean | null
+          category_id: string | null
+          description: string | null
+          empresa_id: string | null
+          free_addon_limit: number | null
+          id: string | null
+          image_url: string | null
+          name: string | null
+          price: number | null
+          sort_order: number | null
+        }
+        Insert: {
+          available?: boolean | null
+          category_id?: string | null
+          description?: string | null
+          empresa_id?: string | null
+          free_addon_limit?: number | null
+          id?: string | null
+          image_url?: string | null
+          name?: string | null
+          price?: number | null
+          sort_order?: number | null
+        }
+        Update: {
+          available?: boolean | null
+          category_id?: string | null
+          description?: string | null
+          empresa_id?: string | null
+          free_addon_limit?: number | null
+          id?: string | null
+          image_url?: string | null
+          name?: string | null
+          price?: number | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_update_cliente: {
@@ -1750,6 +1956,15 @@ export type Database = {
         }
         Returns: number
       }
+      delete_email: {
+        Args: { message_id: number; queue_name: string }
+        Returns: boolean
+      }
+      email_queue_dispatch: { Args: never; Returns: undefined }
+      enqueue_email: {
+        Args: { payload: Json; queue_name: string }
+        Returns: number
+      }
       explode_order_stock: { Args: { p_order_id: string }; Returns: undefined }
       finalize_order_paid: { Args: { p_order_id: string }; Returns: number }
       get_active_pix_config: {
@@ -1769,6 +1984,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      move_to_dlq: {
+        Args: {
+          dlq_name: string
+          message_id: number
+          payload: Json
+          source_queue: string
+        }
+        Returns: number
+      }
       pay_fiado: {
         Args: {
           p_descricao: string
@@ -1777,6 +2001,14 @@ export type Database = {
           p_valor: number
         }
         Returns: number
+      }
+      read_email_batch: {
+        Args: { batch_size: number; queue_name: string; vt: number }
+        Returns: {
+          message: Json
+          msg_id: number
+          read_ct: number
+        }[]
       }
       redeem_cashback_for_order: {
         Args: { p_amount: number; p_order_id: string }
