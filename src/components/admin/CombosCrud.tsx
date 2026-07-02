@@ -105,6 +105,7 @@ export function CombosCrud() {
       id_categoria_3: c.id_categoria_3 ?? NONE,
       valor_desconto: String(c.valor_desconto).replace(".", ","),
       ativo: c.ativo,
+      frase_promocional: c.frase_promocional ?? "",
     });
     setOpen(true);
   };
