@@ -54,6 +54,7 @@ import { EntradaEstoqueView } from "@/components/admin/EntradaEstoqueView";
 import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
 import { CombosCrud } from "@/components/admin/CombosCrud";
+import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
