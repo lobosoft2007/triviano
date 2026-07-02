@@ -157,27 +157,30 @@ export async function fetchMenu(): Promise<{
     products: [] as Product[],
   };
 
-  const rawProducts = (prodRes.data ?? []).map((p) => ({
-    id: p.id,
-    category_id: p.category_id,
-    name: p.name,
-    description: p.description,
-    price: Number(p.price),
-    image_url: p.image_url,
-    available: p.available,
-    sort_order: p.sort_order,
-    price_options: priceOptionsMap.get(p.id) ?? [],
-    addons: addonsMap.get(p.id) ?? [],
-    free_addons: freeAddonsMap.get(p.id) ?? [],
-    free_addon_limit: Number((p as { free_addon_limit?: number }).free_addon_limit ?? 0),
-    free_addon_price: freeAddonPriceMap.get(p.id) ?? 0,
-    removable_ingredients: removableMap.get(p.id) ?? [],
-    manipulado: (p as { manipulado?: boolean }).manipulado ?? true,
-    setor_id: (p as { setor_id?: string | null }).setor_id ?? null,
-    fornecedor_id: (p as { fornecedor_id?: string | null }).fornecedor_id ?? null,
-    custo_anterior:
-      (p as { custo_anterior?: number | null }).custo_anterior ?? null,
-  })) as Product[];
+  const rawProducts = (prodRes.data ?? []).map((p) => {
+    const pid = p.id ?? "";
+    return {
+      id: pid,
+      category_id: p.category_id ?? "",
+      name: p.name ?? "",
+      description: p.description ?? "",
+      price: Number(p.price),
+      image_url: p.image_url ?? "",
+      available: p.available ?? true,
+      sort_order: p.sort_order ?? 0,
+      price_options: priceOptionsMap.get(pid) ?? [],
+      addons: addonsMap.get(pid) ?? [],
+      free_addons: freeAddonsMap.get(pid) ?? [],
+      free_addon_limit: Number(p.free_addon_limit ?? 0),
+      free_addon_price: freeAddonPriceMap.get(pid) ?? 0,
+      removable_ingredients: removableMap.get(pid) ?? [],
+      // Internal fields are intentionally NOT exposed by the public view.
+      manipulado: true,
+      setor_id: null,
+      fornecedor_id: null,
+      custo_anterior: null,
+    };
+  }) as Product[];
 
 
   const urlMap = await resolveImageUrls(rawProducts.map((p) => p.image_url));
