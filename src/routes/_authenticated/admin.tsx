@@ -168,6 +168,7 @@ const EMPTY_FORM: FormState = {
 type AdminTab =
   | "cardapio"
   | "categorias"
+  | "combos"
   | "financeiro"
   | "estoque"
   | "compras"
@@ -179,6 +180,7 @@ type AdminTab =
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
+  { key: "combos", label: "Combos", icon: Layers3 },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
   { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
   { key: "compras", label: "Sugestão de Compras", icon: ShoppingCart },
@@ -187,6 +189,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "setores", label: "Setores", icon: Layers },
   { key: "fornecedores", label: "Fornecedores", icon: Truck },
 ];
+
 
 function detailToForm(d: ProductDetail): ProductDetailForm {
   return {
