@@ -52,11 +52,11 @@ export async function fetchActiveCombos(): Promise<ActiveComboRule[]> {
 }
 
 /**
- * A promotional rule that is currently satisfied by the cart contents.
- * `valor_desconto` is ALWAYS the final monetary discount (in R$) applied to the
- * order — for Packs it is already resolved from the configured percentage.
- * `percentual` is the raw percentage for Packs (null for Combos), kept for
- * display purposes.
+ * A promotional rule that ended up applied to the cart.
+ * `valor_desconto` is ALWAYS the final monetary discount (in R$) granted by this
+ * rule — for Packs it is already resolved from the configured percentage, and it
+ * aggregates every time the rule was applied (`vezes`).
+ * `percentual` is the raw percentage for Packs (null for Combos), for display.
  */
 export interface AppliedCombo {
   id: string;
@@ -64,81 +64,148 @@ export interface AppliedCombo {
   valor_desconto: number;
   tipo_promocao: TipoPromocao;
   percentual: number | null;
+  /** How many times this rule was applied (identical combos can stack). */
+  vezes: number;
 }
 
-/** Total quantity of cart items grouped by their category slug. */
-function quantityByCategory(items: CartItem[]): Map<string, number> {
-  const map = new Map<string, number>();
-  for (const i of items) {
-    map.set(i.categorySlug, (map.get(i.categorySlug) ?? 0) + i.quantity);
-  }
-  return map;
-}
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Total monetary value of cart items grouped by their category slug. */
-function valueByCategory(items: CartItem[]): Map<string, number> {
-  const map = new Map<string, number>();
-  for (const i of items) {
-    map.set(
-      i.categorySlug,
-      (map.get(i.categorySlug) ?? 0) + i.unitPrice * i.quantity,
-    );
-  }
-  return map;
+/**
+ * A single promotion "instance" that could be formed with the units currently
+ * available in the pool.
+ */
+interface Candidate {
+  /** Monetary discount (R$) this instance would grant right now. */
+  discount: number;
+  /** Removes the exact units this instance consumes from the live pool. */
+  consume: () => void;
 }
 
 /**
- * Returns every active rule currently satisfied by the cart, already resolving
- * the final monetary discount for each rule.
- * - Combo: at least one item per tied category → fixed R$ discount.
- * - Pack: summed quantity in the single tied category ≥ quantidade_requerida →
- *   percentage discount applied over the value of that category's items.
- * Multiple rules can apply at once.
+ * Builds a pool of individual unit prices per category slug (each cart unit is
+ * expanded into its own entry), sorted ascending so combos can take the
+ * cheapest units and packs the most valuable ones.
+ */
+function buildPricePool(items: CartItem[]): Map<string, number[]> {
+  const pool = new Map<string, number[]>();
+  for (const i of items) {
+    const arr = pool.get(i.categorySlug) ?? [];
+    for (let n = 0; n < i.quantity; n++) arr.push(i.unitPrice);
+    pool.set(i.categorySlug, arr);
+  }
+  for (const arr of pool.values()) arr.sort((a, b) => a - b);
+  return pool;
+}
+
+/** Best combo instance formable now: 1 unit from each tied category. */
+function comboCandidate(
+  rule: ActiveComboRule,
+  pool: Map<string, number[]>,
+): Candidate | null {
+  for (const slug of rule.categorySlugs) {
+    if ((pool.get(slug)?.length ?? 0) < 1) return null;
+  }
+  return {
+    discount: rule.valor_desconto,
+    // Consume the cheapest available unit per category, leaving the pricier
+    // ones for potential percentage-based packs.
+    consume: () => {
+      for (const slug of rule.categorySlugs) pool.get(slug)!.shift();
+    },
+  };
+}
+
+/** Best pack instance formable now: N units of the single tied category. */
+function packCandidate(
+  rule: ActiveComboRule,
+  pool: Map<string, number[]>,
+): Candidate | null {
+  const slug = rule.categorySlugs[0];
+  const arr = pool.get(slug);
+  const n = rule.quantidade_requerida;
+  if (!arr || arr.length < n) return null;
+
+  // Consume the most expensive units to maximise the percentage discount.
+  const value = arr.slice(arr.length - n).reduce((a, b) => a + b, 0);
+  const percentual = Math.min(100, Math.max(0, rule.valor_desconto));
+  const discount = round2(value * (percentual / 100));
+  if (discount <= 0) return null;
+
+  return {
+    discount,
+    consume: () => {
+      for (let k = 0; k < n; k++) arr.pop();
+    },
+  };
+}
+
+/**
+ * Resolves which promotions apply to the cart with conflict protection.
+ *
+ * Every unit of every product can back at most ONE promotion instance. On each
+ * pass the engine simulates the best instance of every active rule against the
+ * remaining units and commits only the single most valuable one (in R$),
+ * consuming its units. Repeating until nothing else pays out yields:
+ * - "Maior vantagem": when a Combo and a Pack fight over the same items, only
+ *   the one granting the larger R$ discount is applied; the loser is voided
+ *   because its items are gone.
+ * - Item isolation: units already spent on one promotion cannot be reused by
+ *   another; identical combos may still stack when there are enough distinct
+ *   repeated items to back each one.
  */
 export function matchedCombos(
   items: CartItem[],
   combos: ActiveComboRule[],
 ): AppliedCombo[] {
-  const qtyByCat = quantityByCategory(items);
-  const valByCat = valueByCategory(items);
-  const out: AppliedCombo[] = [];
+  const pool = buildPricePool(items);
+  const rules = combos.filter(
+    (c) => c.categorySlugs.length > 0 && c.valor_desconto > 0,
+  );
+  const applied = new Map<string, AppliedCombo>();
 
-  for (const c of combos) {
-    if (c.categorySlugs.length === 0 || c.valor_desconto <= 0) continue;
+  // Greedy: on each round, commit the single highest-value promotion instance
+  // still formable from the remaining unit pool.
+  // Bounded by total units to guarantee termination.
+  const maxRounds = items.reduce((s, i) => s + i.quantity, 0) + 1;
+  for (let round = 0; round < maxRounds; round++) {
+    let best: { rule: ActiveComboRule; cand: Candidate } | null = null;
 
-    if (c.tipo_promocao === "Pack") {
-      const slug = c.categorySlugs[0];
-      if ((qtyByCat.get(slug) ?? 0) < c.quantidade_requerida) continue;
-      const packValue = valByCat.get(slug) ?? 0;
-      const percentual = Math.min(100, Math.max(0, c.valor_desconto));
-      const desconto =
-        Math.round(packValue * (percentual / 100) * 100) / 100;
-      if (desconto <= 0) continue;
-      out.push({
-        id: c.id,
-        nome_combo: c.nome_combo,
-        valor_desconto: desconto,
-        tipo_promocao: "Pack",
-        percentual,
-      });
+    for (const rule of rules) {
+      const cand =
+        rule.tipo_promocao === "Pack"
+          ? packCandidate(rule, pool)
+          : comboCandidate(rule, pool);
+      if (cand && cand.discount > (best?.cand.discount ?? 0)) {
+        best = { rule, cand };
+      }
+    }
+
+    if (!best || best.cand.discount <= 0) break;
+
+    best.cand.consume();
+    const rec = applied.get(best.rule.id);
+    if (rec) {
+      rec.valor_desconto = round2(rec.valor_desconto + best.cand.discount);
+      rec.vezes += 1;
     } else {
-      const satisfied = c.categorySlugs.every(
-        (s) => (qtyByCat.get(s) ?? 0) > 0,
-      );
-      if (!satisfied) continue;
-      out.push({
-        id: c.id,
-        nome_combo: c.nome_combo,
-        valor_desconto: c.valor_desconto,
-        tipo_promocao: "Combo",
-        percentual: null,
+      applied.set(best.rule.id, {
+        id: best.rule.id,
+        nome_combo: best.rule.nome_combo,
+        valor_desconto: round2(best.cand.discount),
+        tipo_promocao: best.rule.tipo_promocao,
+        percentual:
+          best.rule.tipo_promocao === "Pack"
+            ? Math.min(100, Math.max(0, best.rule.valor_desconto))
+            : null,
+        vezes: 1,
       });
     }
   }
-  return out;
+
+  return Array.from(applied.values());
 }
 
-/** Total discount from all simultaneously-satisfied promotional rules. */
+/** Total discount from every promotion the engine applied to the cart. */
 export function comboDiscountFromRules(
   items: CartItem[],
   combos: ActiveComboRule[],

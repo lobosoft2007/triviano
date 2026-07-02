@@ -30,8 +30,16 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { items, subtotal, discount, totalPrice, canCheckout, shortfalls, clear } =
-    useCart();
+  const {
+    items,
+    subtotal,
+    discount,
+    appliedCombos,
+    totalPrice,
+    canCheckout,
+    shortfalls,
+    clear,
+  } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [tipo, setTipo] = useState<"Delivery" | "Presencial">("Delivery");
   const [mesa, setMesa] = useState("");
@@ -188,7 +196,21 @@ function CheckoutPage() {
                 <span>Subtotal</span>
                 <span className="tabular-nums">{formatBRL(subtotal)}</span>
               </div>
-              {discount > 0 && (
+              {appliedCombos.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex justify-between text-sm text-success"
+                >
+                  <span className="min-w-0 truncate pr-2">
+                    Desconto aplicado: {c.nome_combo}
+                    {c.vezes > 1 ? ` (${c.vezes}x)` : ""}
+                  </span>
+                  <span className="tabular-nums whitespace-nowrap">
+                    − {formatBRL(c.valor_desconto)}
+                  </span>
+                </div>
+              ))}
+              {discount > 0 && appliedCombos.length === 0 && (
                 <div className="flex justify-between text-sm text-success">
                   <span>Desconto combo</span>
                   <span className="tabular-nums">− {formatBRL(discount)}</span>
