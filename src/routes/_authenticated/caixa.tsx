@@ -159,10 +159,10 @@ function CaixaPage() {
           O painel CAIXA é exclusivo para operadores autorizados.
         </p>
         <Link
-          to="/menu"
+          to="/"
           className="mt-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
         >
-          Voltar ao cardápio
+          Voltar ao início
         </Link>
       </div>
     );
@@ -461,7 +461,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8">
           <div className="flex items-center gap-3">
             <Link
-              to="/menu"
+              to="/"
               aria-label="Voltar"
               className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary"
             >

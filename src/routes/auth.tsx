@@ -43,7 +43,7 @@ function AuthPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate({ to: "/menu", replace: true });
+      navigate({ to: "/", replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -66,7 +66,7 @@ function AuthPage() {
       return;
     }
     toast.success("Bem-vindo de volta!");
-    navigate({ to: "/menu", replace: true });
+    navigate({ to: "/", replace: true });
   }
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
@@ -109,7 +109,7 @@ function AuthPage() {
       return;
     }
     toast.success("Conta criada com sucesso!");
-    navigate({ to: "/menu", replace: true });
+    navigate({ to: "/", replace: true });
   }
 
   return (

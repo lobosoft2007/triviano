@@ -417,7 +417,7 @@ function AdminPage() {
           <p className="mt-1 text-sm text-muted-foreground">Esta área é exclusiva para administradores.</p>
         </div>
         <Button asChild variant="secondary">
-          <Link to="/menu">Voltar ao cardápio</Link>
+          <Link to="/">Voltar ao início</Link>
         </Button>
       </div>
     );
@@ -430,7 +430,7 @@ function AdminPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Link
-                to="/menu"
+                to="/"
                 aria-label="Voltar"
                 className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
               >

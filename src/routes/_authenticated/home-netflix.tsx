@@ -62,10 +62,10 @@ function HomeNetflixPage() {
             </div>
           </div>
           <Link
-            to="/menu"
+            to="/"
             className="rounded-full border border-border px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary"
           >
-            Cardápio clássico
+            Home oficial
           </Link>
         </div>
       </header>
