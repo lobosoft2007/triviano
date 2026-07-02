@@ -63,6 +63,8 @@ import {
   type ProductDetailForm,
 } from "@/components/admin/ProductDetailFields";
 import { useIsSuperAdmin } from "@/lib/superadmin";
+import { ClientesView } from "@/components/admin/ClientesView";
+import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
