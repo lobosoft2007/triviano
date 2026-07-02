@@ -37,6 +37,9 @@ export function PaymentDialog({
   onOpenChange: (v: boolean) => void;
 }) {
   const queryClient = useQueryClient();
+  const { data: empresa } = useQuery(empresaQueryOptions);
+  const brand = empresa?.nome_fantasia || "";
+
 
   const { data: meios } = useQuery({
     queryKey: ["meios-pagamento"],
