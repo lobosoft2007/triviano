@@ -904,9 +904,13 @@ export async function moveCategory(
 /* Regras de Combos (Motor de combos dinâmicos)                        */
 /* ------------------------------------------------------------------ */
 
+export type TipoPromocao = "Combo" | "Pack";
+
 export interface ComboRule {
   id: string;
   nome_combo: string;
+  tipo_promocao: TipoPromocao;
+  quantidade_requerida: number;
   id_categoria_1: string | null;
   id_categoria_2: string | null;
   id_categoria_3: string | null;
@@ -918,13 +922,15 @@ export async function listCombos(): Promise<ComboRule[]> {
   const { data, error } = await supabase
     .from("regras_combos")
     .select(
-      "id, nome_combo, id_categoria_1, id_categoria_2, id_categoria_3, valor_desconto, ativo",
+      "id, nome_combo, tipo_promocao, quantidade_requerida, id_categoria_1, id_categoria_2, id_categoria_3, valor_desconto, ativo",
     )
     .order("created_at", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((c) => ({
     id: c.id,
     nome_combo: c.nome_combo,
+    tipo_promocao: (c.tipo_promocao as TipoPromocao) ?? "Combo",
+    quantidade_requerida: Math.max(1, Number(c.quantidade_requerida ?? 1)),
     id_categoria_1: c.id_categoria_1,
     id_categoria_2: c.id_categoria_2,
     id_categoria_3: c.id_categoria_3,
@@ -936,6 +942,8 @@ export async function listCombos(): Promise<ComboRule[]> {
 export async function saveCombo(input: {
   id?: string | null;
   nome_combo: string;
+  tipo_promocao: TipoPromocao;
+  quantidade_requerida: number;
   id_categoria_1: string | null;
   id_categoria_2: string | null;
   id_categoria_3: string | null;
@@ -943,23 +951,59 @@ export async function saveCombo(input: {
   ativo: boolean;
 }): Promise<void> {
   const nome = input.nome_combo.trim();
-  if (!nome) throw new Error("Informe o nome do combo.");
-  const cats = [
-    input.id_categoria_1,
-    input.id_categoria_2,
-    input.id_categoria_3,
-  ].filter(Boolean);
-  if (cats.length < 2) {
-    throw new Error("Selecione ao menos 2 categorias para o combo.");
+  if (!nome) throw new Error("Informe o nome da campanha.");
+
+  if (input.valor_desconto <= 0) {
+    throw new Error("Informe um valor de desconto maior que zero.");
   }
-  const payload = {
-    nome_combo: nome,
-    id_categoria_1: input.id_categoria_1,
-    id_categoria_2: input.id_categoria_2,
-    id_categoria_3: input.id_categoria_3,
-    valor_desconto: round2(input.valor_desconto),
-    ativo: input.ativo,
+
+  let payload: {
+    nome_combo: string;
+    tipo_promocao: TipoPromocao;
+    quantidade_requerida: number;
+    id_categoria_1: string | null;
+    id_categoria_2: string | null;
+    id_categoria_3: string | null;
+    valor_desconto: number;
+    ativo: boolean;
   };
+
+  if (input.tipo_promocao === "Pack") {
+    if (!input.id_categoria_1) {
+      throw new Error("Selecione a categoria do pack.");
+    }
+    const qtd = Math.max(1, Math.round(input.quantidade_requerida || 1));
+    payload = {
+      nome_combo: nome,
+      tipo_promocao: "Pack",
+      quantidade_requerida: qtd,
+      id_categoria_1: input.id_categoria_1,
+      id_categoria_2: null,
+      id_categoria_3: null,
+      valor_desconto: round2(input.valor_desconto),
+      ativo: input.ativo,
+    };
+  } else {
+    const cats = [
+      input.id_categoria_1,
+      input.id_categoria_2,
+      input.id_categoria_3,
+    ].filter(Boolean);
+    if (cats.length < 2) {
+      throw new Error("Selecione ao menos 2 categorias para o combo.");
+    }
+    payload = {
+      nome_combo: nome,
+      tipo_promocao: "Combo",
+      quantidade_requerida: 1,
+      id_categoria_1: input.id_categoria_1,
+      id_categoria_2: input.id_categoria_2,
+      id_categoria_3: input.id_categoria_3,
+      valor_desconto: round2(input.valor_desconto),
+      ativo: input.ativo,
+    };
+  }
+
   if (input.id) {
     const { error } = await supabase
       .from("regras_combos")
@@ -976,3 +1020,4 @@ export async function deleteCombo(id: string): Promise<void> {
   const { error } = await supabase.from("regras_combos").delete().eq("id", id);
   if (error) throw error;
 }
+

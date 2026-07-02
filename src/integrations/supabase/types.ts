@@ -1303,6 +1303,8 @@ export type Database = {
           id_categoria_2: string | null
           id_categoria_3: string | null
           nome_combo: string
+          quantidade_requerida: number
+          tipo_promocao: Database["public"]["Enums"]["tipo_promocao_enum"]
           updated_at: string
           valor_desconto: number
         }
@@ -1314,6 +1316,8 @@ export type Database = {
           id_categoria_2?: string | null
           id_categoria_3?: string | null
           nome_combo: string
+          quantidade_requerida?: number
+          tipo_promocao?: Database["public"]["Enums"]["tipo_promocao_enum"]
           updated_at?: string
           valor_desconto?: number
         }
@@ -1325,6 +1329,8 @@ export type Database = {
           id_categoria_2?: string | null
           id_categoria_3?: string | null
           nome_combo?: string
+          quantidade_requerida?: number
+          tipo_promocao?: Database["public"]["Enums"]["tipo_promocao_enum"]
           updated_at?: string
           valor_desconto?: number
         }
@@ -1492,6 +1498,7 @@ export type Database = {
       fiado_tipo: "Debito_Compra" | "Credito_Pagamento"
       tipo_conta_financeira: "Físico" | "Banco" | "Recebível_Futuro"
       tipo_lancamento_tesouraria: "Entrada" | "Saída"
+      tipo_promocao_enum: "Combo" | "Pack"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1626,6 +1633,7 @@ export const Constants = {
       fiado_tipo: ["Debito_Compra", "Credito_Pagamento"],
       tipo_conta_financeira: ["Físico", "Banco", "Recebível_Futuro"],
       tipo_lancamento_tesouraria: ["Entrada", "Saída"],
+      tipo_promocao_enum: ["Combo", "Pack"],
     },
   },
 } as const
