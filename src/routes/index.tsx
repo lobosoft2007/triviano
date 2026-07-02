@@ -56,6 +56,22 @@ interface Selection {
 function HomePage() {
   const { data, isLoading, isError } = useQuery(menuQueryOptions);
   const { totalItems, totalPrice } = useCart();
+  const { user, signOut } = useAuth();
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+  });
 
   // Product currently shown in the details modal.
   const [detail, setDetail] = useState<Selection | null>(null);
@@ -64,7 +80,7 @@ function HomePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Top bar — opaque black, above everything */}
+      {/* Barra Superior Corporativa — fixa, opaca, acima de tudo */}
       <header className="fixed inset-x-0 top-0 z-50 h-20 border-b border-border/60 bg-background">
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2.5">
@@ -84,12 +100,55 @@ function HomePage() {
               </h1>
             </div>
           </div>
-          <Link
-            to="/menu"
-            className="rounded-full border border-border px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary"
-          >
-            Cardápio clássico
-          </Link>
+
+          <div className="flex items-center gap-1">
+            {user ? (
+              <>
+                {isAdmin && (
+                  <Link
+                    to="/caixa"
+                    aria-label="Painel do caixa"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                  >
+                    <Wallet className="h-5 w-5" />
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    aria-label="Administração do cardápio"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                  >
+                    <Settings className="h-5 w-5" />
+                  </Link>
+                )}
+                <NotificationBell />
+                <Link
+                  to="/orders"
+                  aria-label="Meus pedidos"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                >
+                  <ClipboardList className="h-5 w-5" />
+                </Link>
+                <button
+                  aria-label="Sair"
+                  onClick={() => signOut()}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                >
+                  <LogOut className="h-5 w-5" />
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/auth"
+                aria-label="Entrar"
+                className="flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary"
+              >
+                <LogIn className="h-4 w-4" />
+                Entrar
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 
