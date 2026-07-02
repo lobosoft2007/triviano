@@ -177,6 +177,7 @@ type AdminTab =
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
+  { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
   { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
   { key: "compras", label: "Sugestão de Compras", icon: ShoppingCart },
