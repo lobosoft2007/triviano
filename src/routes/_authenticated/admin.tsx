@@ -39,20 +39,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SetoresCrud } from "@/components/admin/SetoresCrud";
 import { FornecedoresCrud } from "@/components/admin/FornecedoresCrud";
 import { InsumosCrud } from "@/components/admin/InsumosCrud";
@@ -374,17 +362,10 @@ function AdminPage() {
 
       let productId = form.id;
       if (productId) {
-        const { error } = await supabase
-          .from("products")
-          .update(payload)
-          .eq("id", productId);
+        const { error } = await supabase.from("products").update(payload).eq("id", productId);
         if (error) throw error;
       } else {
-        const { data: inserted, error } = await supabase
-          .from("products")
-          .insert(payload)
-          .select("id")
-          .single();
+        const { data: inserted, error } = await supabase.from("products").insert(payload).select("id").single();
         if (error) throw error;
         productId = inserted.id;
       }
@@ -396,9 +377,7 @@ function AdminPage() {
       await queryClient.invalidateQueries({ queryKey: ["admin-menu"] });
       await queryClient.invalidateQueries({ queryKey: ["menu"] });
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Não foi possível salvar o item.",
-      );
+      toast.error(err instanceof Error ? err.message : "Não foi possível salvar o item.");
     } finally {
       setSaving(false);
     }
@@ -413,9 +392,7 @@ function AdminPage() {
       await queryClient.invalidateQueries({ queryKey: ["admin-menu"] });
       await queryClient.invalidateQueries({ queryKey: ["menu"] });
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Não foi possível remover.",
-      );
+      toast.error(err instanceof Error ? err.message : "Não foi possível remover.");
     }
   };
 
@@ -433,9 +410,7 @@ function AdminPage() {
         <ShieldAlert className="h-10 w-10 text-muted-foreground" />
         <div>
           <h1 className="font-display text-lg font-bold">Acesso restrito</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Esta área é exclusiva para administradores.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Esta área é exclusiva para administradores.</p>
         </div>
         <Button asChild variant="secondary">
           <Link to="/menu">Voltar ao cardápio</Link>
@@ -459,9 +434,7 @@ function AdminPage() {
               </Link>
               <div>
                 <p className="text-xs text-muted-foreground">Retaguarda</p>
-                <h1 className="font-display text-xl font-bold leading-tight">
-                  Gerenciador
-                </h1>
+                <h1 className="font-display text-xl font-bold leading-tight">Gerenciador</h1>
               </div>
             </div>
             {tab === "cardapio" && (
@@ -479,9 +452,7 @@ function AdminPage() {
                   key={t.key}
                   onClick={() => setTab(t.key)}
                   className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                    tab === t.key
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground"
+                    tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                   }`}
                 >
                   <Icon className="h-4 w-4" /> {t.label}
@@ -510,21 +481,14 @@ function AdminPage() {
 
               {data &&
                 data.categories.map((cat) => {
-                  const products = data.products.filter(
-                    (p) => p.category_id === cat.id,
-                  );
+                  const products = data.products.filter((p) => p.category_id === cat.id);
                   if (products.length === 0) return null;
                   return (
                     <section key={cat.id} className="mb-7">
-                      <h2 className="mb-3 font-display text-base font-bold">
-                        {cat.name}
-                      </h2>
+                      <h2 className="mb-3 font-display text-base font-bold">{cat.name}</h2>
                       <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                         {products.map((p) => (
-                          <div
-                            key={p.id}
-                            className="flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card"
-                          >
+                          <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card">
                             <img
                               src={p.display_url || "/icons/icon-192.png"}
                               alt={p.name}
@@ -540,9 +504,7 @@ function AdminPage() {
                                   </span>
                                 )}
                               </p>
-                              <p className="text-xs text-primary">
-                                {formatBRL(p.price)}
-                              </p>
+                              <p className="text-xs text-primary">{formatBRL(p.price)}</p>
                             </div>
                             <button
                               aria-label={`Editar ${p.name}`}
@@ -570,11 +532,9 @@ function AdminPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">
-              {form.id ? "Editar produto" : "Novo produto"}
-            </DialogTitle>
+            <DialogTitle className="font-display">{form.id ? "Editar produto" : "Novo produto"}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -605,11 +565,7 @@ function AdminPage() {
                   </span>
                 )}
                 <span className="text-sm text-muted-foreground">
-                  {file
-                    ? file.name
-                    : preview
-                      ? "Clique para trocar a imagem"
-                      : "Selecionar imagem do dispositivo"}
+                  {file ? file.name : preview ? "Clique para trocar a imagem" : "Selecionar imagem do dispositivo"}
                 </span>
               </button>
             </div>
@@ -629,9 +585,7 @@ function AdminPage() {
               <Textarea
                 id="prod-desc"
                 value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Ingredientes, detalhes..."
                 rows={2}
               />
@@ -650,10 +604,7 @@ function AdminPage() {
               </div>
               <div className="space-y-2">
                 <Label>Categoria</Label>
-                <Select
-                  value={form.category_id}
-                  onValueChange={(v) => setForm({ ...form, category_id: v })}
-                >
+                <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -685,9 +636,7 @@ function AdminPage() {
                   id="prod-free-limit"
                   inputMode="numeric"
                   value={form.free_addon_limit}
-                  onChange={(e) =>
-                    setForm({ ...form, free_addon_limit: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, free_addon_limit: e.target.value })}
                   placeholder="0"
                 />
               </div>
@@ -695,9 +644,7 @@ function AdminPage() {
 
             {!detail.manipulado && (
               <div className="rounded-xl border border-border p-3">
-                <Label className="text-sm font-semibold">
-                  Controle de estoque (item de revenda)
-                </Label>
+                <Label className="text-sm font-semibold">Controle de estoque (item de revenda)</Label>
                 <p className="mb-2 text-xs text-muted-foreground">
                   Usado na baixa automática por venda e na sugestão de compras.
                 </p>
@@ -710,9 +657,7 @@ function AdminPage() {
                       id="prod-saldo"
                       inputMode="decimal"
                       value={form.saldo_estoque}
-                      onChange={(e) =>
-                        setForm({ ...form, saldo_estoque: e.target.value })
-                      }
+                      onChange={(e) => setForm({ ...form, saldo_estoque: e.target.value })}
                       placeholder="0"
                     />
                   </div>
@@ -724,9 +669,7 @@ function AdminPage() {
                       id="prod-min"
                       inputMode="decimal"
                       value={form.estoque_minimo}
-                      onChange={(e) =>
-                        setForm({ ...form, estoque_minimo: e.target.value })
-                      }
+                      onChange={(e) => setForm({ ...form, estoque_minimo: e.target.value })}
                       placeholder="0"
                     />
                   </div>
@@ -738,9 +681,7 @@ function AdminPage() {
                       id="prod-max"
                       inputMode="decimal"
                       value={form.estoque_maximo}
-                      onChange={(e) =>
-                        setForm({ ...form, estoque_maximo: e.target.value })
-                      }
+                      onChange={(e) => setForm({ ...form, estoque_maximo: e.target.value })}
                       placeholder="0"
                     />
                   </div>
@@ -765,11 +706,7 @@ function AdminPage() {
           </div>
 
           <DialogFooter>
-            <Button
-              onClick={handleSave}
-              disabled={saving || loadingDetail}
-              className="w-full"
-            >
+            <Button onClick={handleSave} disabled={saving || loadingDetail} className="w-full">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {form.id ? "Salvar alterações" : "Adicionar produto"}
             </Button>
