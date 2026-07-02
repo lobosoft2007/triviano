@@ -68,3 +68,18 @@ export async function uploadMenuImage(file: File): Promise<string> {
   if (error) throw error;
   return path;
 }
+
+/** Upload a company logo to the (private) menu bucket and return its storage path. */
+export async function uploadEmpresaLogo(file: File): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const path = `logos/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from(MENU_IMAGE_BUCKET)
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || undefined,
+    });
+  if (error) throw error;
+  return path;
+}

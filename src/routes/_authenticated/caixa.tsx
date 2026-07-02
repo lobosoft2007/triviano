@@ -45,6 +45,7 @@ import { PartialReportDialog } from "@/components/caixa/PartialReportDialog";
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
 import {
@@ -81,7 +82,8 @@ export const Route = createFileRoute("/_authenticated/caixa")({
 
 const PIX_KEY = "21993383918";
 const PIX_NAME = "Marcello Ribeiro Lobo Assumpção";
-const RESTAURANT = "Clube 23";
+// Nome da empresa para os cupons impressos — sincronizado da empresa ativa.
+let RESTAURANT = "";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -135,6 +137,11 @@ function playBeep() {
 function CaixaPage() {
   const { user } = useAuth();
   const { data: isAdmin, isLoading: roleLoading } = useIsAdmin(user?.id);
+  const { data: empresa } = useQuery(empresaQueryOptions);
+
+  useEffect(() => {
+    if (empresa?.nome_fantasia) RESTAURANT = empresa.nome_fantasia;
+  }, [empresa]);
 
   const { data: caixa, isLoading: caixaLoading } = useQuery({
     queryKey: ["caixa-open"],

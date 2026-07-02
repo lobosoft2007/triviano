@@ -11,6 +11,7 @@ import {
   type CaixaOrder,
 } from "@/lib/caixa";
 import { insertNotification } from "@/lib/notifications";
+import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,9 @@ export function PaymentDialog({
   onOpenChange: (v: boolean) => void;
 }) {
   const queryClient = useQueryClient();
+  const { data: empresa } = useQuery(empresaQueryOptions);
+  const brand = empresa?.nome_fantasia || "";
+
 
   const { data: meios } = useQuery({
     queryKey: ["meios-pagamento"],
@@ -118,7 +122,7 @@ export function PaymentDialog({
             idPedido: order.id,
             idUsuario: order.user_id,
             titulo: "Compra no Fiado registrada",
-            mensagem: `Clube 23: Compra de ${formatBRL(
+            mensagem: `${brand}: Compra de ${formatBRL(
               valorFiado,
             )} registrada no Fiado. Seu saldo devedor atual é ${formatBRL(
               saldoDevedor,

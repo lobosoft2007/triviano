@@ -20,6 +20,7 @@ export type Database = {
           combo_role: string
           cor_fonte: string
           created_at: string
+          empresa_id: string
           id: string
           id_impressora_destino: string | null
           min_items: number
@@ -33,6 +34,7 @@ export type Database = {
           combo_role?: string
           cor_fonte?: string
           created_at?: string
+          empresa_id?: string
           id?: string
           id_impressora_destino?: string | null
           min_items?: number
@@ -46,6 +48,7 @@ export type Database = {
           combo_role?: string
           cor_fonte?: string
           created_at?: string
+          empresa_id?: string
           id?: string
           id_impressora_destino?: string | null
           min_items?: number
@@ -55,6 +58,13 @@ export type Database = {
           tamanho_fonte?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "categories_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "categories_id_impressora_destino_fkey"
             columns: ["id_impressora_destino"]
@@ -204,6 +214,7 @@ export type Database = {
           ativo: boolean
           created_at: string
           dias_liquidacao: number
+          empresa_id: string
           id: string
           id_meio_pagamento: string | null
           nome: string
@@ -216,6 +227,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           dias_liquidacao?: number
+          empresa_id?: string
           id?: string
           id_meio_pagamento?: string | null
           nome: string
@@ -228,6 +240,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           dias_liquidacao?: number
+          empresa_id?: string
           id?: string
           id_meio_pagamento?: string | null
           nome?: string
@@ -238,6 +251,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "contas_financeiras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contas_financeiras_id_meio_pagamento_fkey"
             columns: ["id_meio_pagamento"]
             isOneToOne: false
@@ -245,6 +265,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      empresas: {
+        Row: {
+          ativo: boolean
+          bairro: string
+          cep: string
+          cidade: string
+          complemento: string
+          created_at: string
+          estado: string
+          id: string
+          logotipo_url: string
+          logradouro: string
+          nome_fantasia: string
+          numero: string
+          taxa_servico_mesa: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          bairro?: string
+          cep?: string
+          cidade?: string
+          complemento?: string
+          created_at?: string
+          estado?: string
+          id?: string
+          logotipo_url?: string
+          logradouro?: string
+          nome_fantasia?: string
+          numero?: string
+          taxa_servico_mesa?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          bairro?: string
+          cep?: string
+          cidade?: string
+          complemento?: string
+          created_at?: string
+          estado?: string
+          id?: string
+          logotipo_url?: string
+          logradouro?: string
+          nome_fantasia?: string
+          numero?: string
+          taxa_servico_mesa?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       entradas_avulsas_estoque: {
         Row: {
@@ -546,6 +617,7 @@ export type Database = {
           custo_anterior: number | null
           custo_anterior_at: string | null
           custo_unitario: number
+          empresa_id: string
           estocavel: boolean
           estoque_maximo: number
           estoque_minimo: number
@@ -562,6 +634,7 @@ export type Database = {
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           custo_unitario?: number
+          empresa_id?: string
           estocavel?: boolean
           estoque_maximo?: number
           estoque_minimo?: number
@@ -578,6 +651,7 @@ export type Database = {
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           custo_unitario?: number
+          empresa_id?: string
           estocavel?: boolean
           estoque_maximo?: number
           estoque_minimo?: number
@@ -590,6 +664,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "insumos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "insumos_fornecedor_id_fkey"
             columns: ["fornecedor_id"]
@@ -696,6 +777,7 @@ export type Database = {
           data_competencia: string
           data_liquidacao: string
           descricao: string
+          empresa_id: string
           id: string
           id_conta_financeira: string
           id_pedido: string | null
@@ -708,6 +790,7 @@ export type Database = {
           data_competencia?: string
           data_liquidacao?: string
           descricao?: string
+          empresa_id?: string
           id?: string
           id_conta_financeira: string
           id_pedido?: string | null
@@ -720,6 +803,7 @@ export type Database = {
           data_competencia?: string
           data_liquidacao?: string
           descricao?: string
+          empresa_id?: string
           id?: string
           id_conta_financeira?: string
           id_pedido?: string | null
@@ -727,6 +811,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "lancamentos_tesouraria_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lancamentos_tesouraria_id_conta_financeira_fkey"
             columns: ["id_conta_financeira"]
@@ -961,6 +1052,7 @@ export type Database = {
           delivery_address: string
           desconto_manual: number
           discount: number
+          empresa_id: string
           id: string
           impresso_conta: boolean
           impresso_cozinha: boolean
@@ -980,6 +1072,7 @@ export type Database = {
           delivery_address?: string
           desconto_manual?: number
           discount?: number
+          empresa_id?: string
           id?: string
           impresso_conta?: boolean
           impresso_cozinha?: boolean
@@ -999,6 +1092,7 @@ export type Database = {
           delivery_address?: string
           desconto_manual?: number
           discount?: number
+          empresa_id?: string
           id?: string
           impresso_conta?: boolean
           impresso_cozinha?: boolean
@@ -1012,7 +1106,15 @@ export type Database = {
           total?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pagamentos_pedido: {
         Row: {
@@ -1061,6 +1163,7 @@ export type Database = {
           custo_anterior: number | null
           custo_anterior_at: string | null
           description: string
+          empresa_id: string
           estoque_maximo: number
           estoque_minimo: number
           fornecedor_id: string | null
@@ -1081,6 +1184,7 @@ export type Database = {
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           description?: string
+          empresa_id?: string
           estoque_maximo?: number
           estoque_minimo?: number
           fornecedor_id?: string | null
@@ -1101,6 +1205,7 @@ export type Database = {
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           description?: string
+          empresa_id?: string
           estoque_maximo?: number
           estoque_minimo?: number
           fornecedor_id?: string | null
@@ -1120,6 +1225,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
           {
@@ -1298,6 +1410,7 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          empresa_id: string
           frase_promocional: string | null
           id: string
           id_categoria_1: string | null
@@ -1312,6 +1425,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          empresa_id?: string
           frase_promocional?: string | null
           id?: string
           id_categoria_1?: string | null
@@ -1326,6 +1440,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          empresa_id?: string
           frase_promocional?: string | null
           id?: string
           id_categoria_1?: string | null
@@ -1338,6 +1453,13 @@ export type Database = {
           valor_desconto?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "regras_combos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "regras_combos_id_categoria_1_fkey"
             columns: ["id_categoria_1"]

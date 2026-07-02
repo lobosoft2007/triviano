@@ -8,6 +8,7 @@ import {
   insertNotification,
   buildWhatsAppLink,
 } from "@/lib/notifications";
+import { empresaQueryOptions } from "@/lib/empresa";
 import type { CaixaOrder } from "@/lib/caixa";
 
 /**
@@ -17,6 +18,8 @@ import type { CaixaOrder } from "@/lib/caixa";
 export function NotifyClient({ order }: { order: CaixaOrder }) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const { data: empresa } = useQuery(empresaQueryOptions);
+  const brand = empresa?.nome_fantasia || "";
 
   const { data: profile } = useQuery({
     queryKey: ["customer-profile", order.user_id],
@@ -51,7 +54,7 @@ export function NotifyClient({ order }: { order: CaixaOrder }) {
       await insertNotification({
         idPedido: order.id,
         idUsuario: order.user_id,
-        titulo: `Clube 23 · Pedido ${orderNo}`,
+        titulo: `${brand} · Pedido ${orderNo}`,
         mensagem: text,
       });
       toast.success("Alerta enviado ao cliente.");
@@ -65,7 +68,7 @@ export function NotifyClient({ order }: { order: CaixaOrder }) {
 
   function handleWhatsApp() {
     const text = message.trim();
-    const body = `Olá ${customerName}! Sobre o seu pedido ${orderNo} no Clube 23:${
+    const body = `Olá ${customerName}! Sobre o seu pedido ${orderNo} no ${brand}:${
       text ? `\n\n${text}` : ""
     }`;
     const link = buildWhatsAppLink(phone, body);

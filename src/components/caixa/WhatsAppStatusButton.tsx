@@ -6,6 +6,7 @@ import {
   buildWhatsAppLink,
   statusWhatsAppMessage,
 } from "@/lib/notifications";
+import { empresaQueryOptions } from "@/lib/empresa";
 import type { CaixaOrder } from "@/lib/caixa";
 
 /**
@@ -14,6 +15,7 @@ import type { CaixaOrder } from "@/lib/caixa";
  * message perfectly formatted for the order's CURRENT status.
  */
 export function WhatsAppStatusButton({ order }: { order: CaixaOrder }) {
+  const { data: empresa } = useQuery(empresaQueryOptions);
   const { data: profile } = useQuery({
     queryKey: ["customer-profile", order.user_id],
     enabled: !!order.user_id,
@@ -32,7 +34,12 @@ export function WhatsAppStatusButton({ order }: { order: CaixaOrder }) {
     const orderNo = `#${order.id.slice(0, 6).toUpperCase()}`;
     const name = profile?.full_name || "Cliente";
     const phone = profile?.phone || order.phone || "";
-    const message = statusWhatsAppMessage(order.status_pedido, name, orderNo);
+    const message = statusWhatsAppMessage(
+      order.status_pedido,
+      name,
+      orderNo,
+      empresa?.nome_fantasia || "",
+    );
     const link = buildWhatsAppLink(phone, message);
     if (!link) {
       toast.error("Cliente sem telefone cadastrado para o WhatsApp.");

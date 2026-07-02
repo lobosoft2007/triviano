@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
+import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { usePixPayment } from "@/hooks/usePixPayment";
 import { Button } from "@/components/ui/button";
@@ -54,12 +55,22 @@ function CheckoutPage() {
     enabled: !!user,
   });
 
+  const { data: empresa } = useQuery(empresaQueryOptions);
+
+  // Taxa de serviço aplicada automaticamente em pedidos presenciais (mesa).
+  const serviceRate = empresa?.taxa_servico_mesa ?? 0;
+  const serviceFee =
+    tipo === "Presencial" && serviceRate > 0
+      ? Math.round(subtotal * serviceRate) / 100
+      : 0;
+
+  const baseTotal = Math.round((totalPrice + serviceFee) * 100) / 100;
   const saldoCashback = profile?.saldo_cashback ?? 0;
   const cashbackApplied = useCashback
-    ? Math.min(Math.round(saldoCashback * 100), Math.round(totalPrice * 100)) /
+    ? Math.min(Math.round(saldoCashback * 100), Math.round(baseTotal * 100)) /
       100
     : 0;
-  const finalTotal = Math.round((totalPrice - cashbackApplied) * 100) / 100;
+  const finalTotal = Math.round((baseTotal - cashbackApplied) * 100) / 100;
 
   const {
     payload: pixPayload,
@@ -214,6 +225,12 @@ function CheckoutPage() {
                 <div className="flex justify-between text-sm text-success">
                   <span>Desconto combo</span>
                   <span className="tabular-nums">− {formatBRL(discount)}</span>
+                </div>
+              )}
+              {serviceFee > 0 && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Taxa de serviço ({serviceRate}%)</span>
+                  <span className="tabular-nums">+ {formatBRL(serviceFee)}</span>
                 </div>
               )}
               {cashbackApplied > 0 && (

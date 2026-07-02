@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
+import { empresaQueryOptions } from "@/lib/empresa";
 import { useCart, type NewCartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +56,7 @@ interface Selection {
 
 function HomePage() {
   const { data, isLoading, isError } = useQuery(menuQueryOptions);
+  const { data: empresa } = useQuery(empresaQueryOptions);
   const { totalItems, totalPrice } = useCart();
   const { user, signOut } = useAuth();
 
@@ -83,11 +85,19 @@ function HomePage() {
       {/* Barra Superior Corporativa — fixa, opaca, acima de tudo */}
       <header className="fixed inset-x-0 top-0 z-50 h-20 border-b border-border/60 bg-background">
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center">
-            <div>
-              <h1 className="font-display text-xl font-bold leading-tight text-white">Clube 23</h1>
-            </div>
+          <div className="flex items-center gap-2.5">
+            {empresa?.logo_display_url && (
+              <img
+                src={empresa.logo_display_url}
+                alt={empresa.nome_fantasia || "Logotipo"}
+                className="h-11 w-11 rounded-lg object-contain"
+              />
+            )}
+            <h1 className="font-display text-xl font-bold leading-tight text-white">
+              {empresa?.nome_fantasia ?? ""}
+            </h1>
           </div>
+
 
           <div className="flex items-center gap-1">
             {user ? (

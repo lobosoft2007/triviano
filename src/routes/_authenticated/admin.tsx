@@ -20,6 +20,7 @@ import {
   PackagePlus,
   ShoppingCart,
   Tags,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +54,7 @@ import { EntradaEstoqueView } from "@/components/admin/EntradaEstoqueView";
 import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
 import { CombosCrud } from "@/components/admin/CombosCrud";
+import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
@@ -171,6 +173,7 @@ type AdminTab =
   | "cardapio"
   | "categorias"
   | "combos"
+  | "empresa"
   | "financeiro"
   | "estoque"
   | "compras"
@@ -183,6 +186,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
   { key: "combos", label: "Campanhas", icon: Megaphone },
+  { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
   { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
   { key: "compras", label: "Sugestão de Compras", icon: ShoppingCart },
@@ -478,6 +482,7 @@ function AdminPage() {
           {tab === "compras" && <SugestaoComprasView />}
           {tab === "categorias" && <CategoriasCrud />}
           {tab === "combos" && <CombosCrud />}
+          {tab === "empresa" && <EmpresaConfigTab />}
           {tab === "insumos" && <InsumosCrud />}
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}
