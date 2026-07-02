@@ -54,6 +54,7 @@ interface FormState {
   id_categoria_3: string;
   valor_desconto: string;
   ativo: boolean;
+  frase_promocional: string;
 }
 
 const EMPTY: FormState = {
@@ -66,6 +67,7 @@ const EMPTY: FormState = {
   id_categoria_3: NONE,
   valor_desconto: "",
   ativo: true,
+  frase_promocional: "",
 };
 
 const COMBOS_QK = ["admin-combos"];
