@@ -22,6 +22,8 @@ import {
   Tags,
   Building2,
   Crown,
+  Users,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,6 +65,8 @@ import {
   type ProductDetailForm,
 } from "@/components/admin/ProductDetailFields";
 import { useIsSuperAdmin } from "@/lib/superadmin";
+import { ClientesView } from "@/components/admin/ClientesView";
+import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -176,6 +180,8 @@ type AdminTab =
   | "categorias"
   | "combos"
   | "empresa"
+  | "clientes"
+  | "conta"
   | "financeiro"
   | "estoque"
   | "compras"
@@ -189,6 +195,8 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
   { key: "combos", label: "Campanhas", icon: Megaphone },
   { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
+  { key: "clientes", label: "Clientes", icon: Users },
+  { key: "conta", label: "Conta Corrente", icon: Wallet },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
   { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
   { key: "compras", label: "Sugestão de Compras", icon: ShoppingCart },
@@ -495,6 +503,8 @@ function AdminPage() {
           {tab === "categorias" && <CategoriasCrud />}
           {tab === "combos" && <CombosCrud />}
           {tab === "empresa" && <EmpresaConfigTab />}
+          {tab === "clientes" && <ClientesView canBlock />}
+          {tab === "conta" && <ContaCorrenteTab mode="admin" />}
           {tab === "insumos" && <InsumosCrud />}
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}

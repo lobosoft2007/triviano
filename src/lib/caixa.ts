@@ -79,6 +79,7 @@ export interface CaixaOrderItem {
 export interface CaixaOrder {
   id: string;
   user_id: string;
+  customer_name: string;
   status: string;
   status_pedido: StatusPedido;
   total: number;
@@ -231,9 +232,23 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
     .not("status_pedido", "in", '("Encerrado e pago",Cancelado)')
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((o) => ({
+
+  // Resolve customer names in a second query (no FK embed orders->profiles).
+  const rows = data ?? [];
+  const userIds = [...new Set(rows.map((o) => (o as { user_id: string }).user_id).filter(Boolean))];
+  const nameById = new Map<string, string>();
+  if (userIds.length > 0) {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", userIds);
+    for (const p of profs ?? []) nameById.set(p.id, p.full_name ?? "");
+  }
+
+  return rows.map((o) => ({
     id: o.id,
     user_id: (o as { user_id: string }).user_id,
+    customer_name: nameById.get((o as { user_id: string }).user_id) ?? "",
     status: o.status,
     status_pedido: (o.status_pedido ?? "Recebido") as StatusPedido,
     total: Number(o.total),

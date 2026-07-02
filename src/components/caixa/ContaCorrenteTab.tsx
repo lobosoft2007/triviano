@@ -35,7 +35,16 @@ import {
 
 const toCents = (n: number) => Math.round(n * 100);
 
-export function ContaCorrenteTab() {
+export type ContaCorrenteMode = "caixa" | "admin";
+
+/**
+ * Customer account (conta corrente) panel.
+ * - mode="caixa": operator can register payments and print statements, but
+ *   cannot change the credit limit or authorize fiado.
+ * - mode="admin": manager can change the credit limit and authorize fiado and
+ *   print statements, but cannot register payments (done at the cash register).
+ */
+export function ContaCorrenteTab({ mode = "caixa" }: { mode?: ContaCorrenteMode }) {
   const queryClient = useQueryClient();
   const { data: empresa } = useQuery(empresaQueryOptions);
   const RESTAURANT = empresa?.nome_fantasia ?? "";
@@ -102,6 +111,7 @@ export function ContaCorrenteTab() {
             <ClientRow
               key={c.id}
               client={c}
+              mode={mode}
               onPay={() => setPayTarget(c)}
               onExtrato={() => handlePrintExtrato(c)}
             />
@@ -178,13 +188,16 @@ export function ContaCorrenteTab() {
 
 function ClientRow({
   client,
+  mode,
   onPay,
   onExtrato,
 }: {
   client: FiadoClient;
+  mode: ContaCorrenteMode;
   onPay: () => void;
   onExtrato: () => void;
 }) {
+  const isAdmin = mode === "admin";
   const queryClient = useQueryClient();
   const [autorizado, setAutorizado] = useState(client.fiado_autorizado);
   const [limite, setLimite] = useState(String(client.limite_fiado));
@@ -244,19 +257,37 @@ function ClientRow({
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <label className="flex items-center gap-2 text-sm">
-          <Switch checked={autorizado} onCheckedChange={setAutorizado} />
-          <span>Autorizado</span>
-        </label>
-        <div className="flex flex-col gap-1">
-          <Label className="text-[11px]">Limite (R$)</Label>
-          <Input
-            inputMode="decimal"
-            value={limite}
-            onChange={(e) => setLimite(e.target.value)}
-            className="h-9 rounded-lg"
-          />
-        </div>
+        {isAdmin ? (
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={autorizado} onCheckedChange={setAutorizado} />
+            <span>Autorizado</span>
+          </label>
+        ) : (
+          <div className="flex flex-col justify-center">
+            <span className="text-[11px] text-muted-foreground">Fiado</span>
+            <span className="font-semibold">
+              {client.fiado_autorizado ? "Autorizado" : "Não autorizado"}
+            </span>
+          </div>
+        )}
+        {isAdmin ? (
+          <div className="flex flex-col gap-1">
+            <Label className="text-[11px]">Limite (R$)</Label>
+            <Input
+              inputMode="decimal"
+              value={limite}
+              onChange={(e) => setLimite(e.target.value)}
+              className="h-9 rounded-lg"
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col justify-center">
+            <span className="text-[11px] text-muted-foreground">Limite</span>
+            <span className="font-semibold tabular-nums">
+              {formatBRL(client.limite_fiado)}
+            </span>
+          </div>
+        )}
         <div className="flex flex-col justify-center">
           <span className="text-[11px] text-muted-foreground">Disponível</span>
           <span className="font-semibold tabular-nums">
@@ -272,28 +303,32 @@ function ClientRow({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          className="rounded-full"
-          disabled={!dirty || saving}
-          onClick={handleSave}
-        >
-          {saving ? (
-            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="mr-1.5 h-4 w-4" />
-          )}
-          Salvar
-        </Button>
-        <Button
-          size="sm"
-          className="rounded-full"
-          disabled={client.saldo_devedor_fiado <= 0}
-          onClick={onPay}
-        >
-          <HandCoins className="mr-1.5 h-4 w-4" /> Registrar pagamento
-        </Button>
+        {isAdmin && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            disabled={!dirty || saving}
+            onClick={handleSave}
+          >
+            {saving ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-1.5 h-4 w-4" />
+            )}
+            Salvar
+          </Button>
+        )}
+        {!isAdmin && (
+          <Button
+            size="sm"
+            className="rounded-full"
+            disabled={client.saldo_devedor_fiado <= 0}
+            onClick={onPay}
+          >
+            <HandCoins className="mr-1.5 h-4 w-4" /> Registrar pagamento
+          </Button>
+        )}
         <Button
           size="sm"
           variant="outline"

@@ -1435,6 +1435,7 @@ export type Database = {
         Row: {
           address: string
           bairro: string
+          bloqueado: boolean
           cep: string
           complemento: string
           created_at: string
@@ -1461,6 +1462,7 @@ export type Database = {
         Insert: {
           address?: string
           bairro?: string
+          bloqueado?: boolean
           cep?: string
           complemento?: string
           created_at?: string
@@ -1487,6 +1489,7 @@ export type Database = {
         Update: {
           address?: string
           bairro?: string
+          bloqueado?: boolean
           cep?: string
           complemento?: string
           created_at?: string
@@ -1723,6 +1726,10 @@ export type Database = {
           p_observacao: string
         }
         Returns: number
+      }
+      set_cliente_bloqueado: {
+        Args: { p_bloqueado: boolean; p_user_id: string }
+        Returns: undefined
       }
       set_fiado_config: {
         Args: { p_autorizado: boolean; p_limite: number; p_user_id: string }
