@@ -246,23 +246,26 @@ export function statusWhatsAppMessage(
   status: StatusPedido,
   name: string,
   orderNo: string,
+  brand = "",
 ): string {
   const cliente = name?.trim() || "Cliente";
+  const at = brand ? ` no ${brand}` : "";
+  const of = brand ? ` do ${brand}` : "";
   switch (status) {
     case "Recebido":
-      return `Olá ${cliente}! Recebemos o seu pedido nº ${orderNo} aqui no Clube 23 e já está na nossa fila. Em breve começamos o preparo! 🍔`;
+      return `Olá ${cliente}! Recebemos o seu pedido nº ${orderNo}${at} e já está na nossa fila. Em breve começamos o preparo! 🍔`;
     case "Em preparação":
-      return `Olá ${cliente}! Boas notícias: o seu pedido nº ${orderNo} do Clube 23 já está sendo preparado pela nossa cozinha. 👨‍🍳`;
+      return `Olá ${cliente}! Boas notícias: o seu pedido nº ${orderNo}${of} já está sendo preparado pela nossa cozinha. 👨‍🍳`;
     case "Aguardando entregador":
-      return `Olá ${cliente}! O seu pedido nº ${orderNo} do Clube 23 está pronto e embalado, aguardando o nosso motoboy. 📦`;
+      return `Olá ${cliente}! O seu pedido nº ${orderNo}${of} está pronto e embalado, aguardando o nosso motoboy. 📦`;
     case "Em entrega":
-      return `Olá ${cliente}! Seu pedido nº ${orderNo} do Clube 23 acabou de sair para entrega com o nosso motoboy! 🛵`;
+      return `Olá ${cliente}! Seu pedido nº ${orderNo}${of} acabou de sair para entrega com o nosso motoboy! 🛵`;
     case "Entregue":
     case "Encerrado e pago":
-      return `Olá ${cliente}! Seu pedido nº ${orderNo} do Clube 23 foi finalizado. Muito obrigado pela preferência e bom apetite! 🙏`;
+      return `Olá ${cliente}! Seu pedido nº ${orderNo}${of} foi finalizado. Muito obrigado pela preferência e bom apetite! 🙏`;
     case "Cancelado":
-      return `Olá ${cliente}! Sobre o seu pedido nº ${orderNo} do Clube 23, precisamos falar com você. Pode nos responder por aqui? 🙏`;
+      return `Olá ${cliente}! Sobre o seu pedido nº ${orderNo}${of}, precisamos falar com você. Pode nos responder por aqui? 🙏`;
     default:
-      return `Olá ${cliente}! Atualização sobre o seu pedido nº ${orderNo} do Clube 23.`;
+      return `Olá ${cliente}! Atualização sobre o seu pedido nº ${orderNo}${of}.`;
   }
 }
