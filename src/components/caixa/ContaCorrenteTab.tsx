@@ -35,7 +35,16 @@ import {
 
 const toCents = (n: number) => Math.round(n * 100);
 
-export function ContaCorrenteTab() {
+export type ContaCorrenteMode = "caixa" | "admin";
+
+/**
+ * Customer account (conta corrente) panel.
+ * - mode="caixa": operator can register payments and print statements, but
+ *   cannot change the credit limit or authorize fiado.
+ * - mode="admin": manager can change the credit limit and authorize fiado and
+ *   print statements, but cannot register payments (done at the cash register).
+ */
+export function ContaCorrenteTab({ mode = "caixa" }: { mode?: ContaCorrenteMode }) {
   const queryClient = useQueryClient();
   const { data: empresa } = useQuery(empresaQueryOptions);
   const RESTAURANT = empresa?.nome_fantasia ?? "";
