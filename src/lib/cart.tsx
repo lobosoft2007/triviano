@@ -7,12 +7,18 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
-  comboDiscount,
   minOrderShortfalls,
   subtotalOf,
   type MinShortfall,
 } from "@/lib/pricing";
+import {
+  fetchActiveCombos,
+  matchedCombos,
+  type AppliedCombo,
+} from "@/lib/combos";
+
 
 export interface CartAddon {
   name: string;
