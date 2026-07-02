@@ -21,6 +21,7 @@ import {
   ShoppingCart,
   Tags,
   Building2,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
