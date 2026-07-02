@@ -503,6 +503,8 @@ function AdminPage() {
           {tab === "categorias" && <CategoriasCrud />}
           {tab === "combos" && <CombosCrud />}
           {tab === "empresa" && <EmpresaConfigTab />}
+          {tab === "clientes" && <ClientesView canBlock />}
+          {tab === "conta" && <ContaCorrenteTab mode="admin" />}
           {tab === "insumos" && <InsumosCrud />}
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}
