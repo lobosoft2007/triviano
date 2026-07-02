@@ -33,6 +33,7 @@ interface Selection {
 
 function HomeNetflixPage() {
   const { data, isLoading, isError } = useQuery(menuQueryOptions);
+  const { data: empresa } = useQuery(empresaQueryOptions);
   const { totalItems, totalPrice } = useCart();
 
   // Product currently shown in the details modal.
