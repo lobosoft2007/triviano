@@ -26,6 +26,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     totalItems,
     subtotal,
     discount,
+    appliedCombos,
     totalPrice,
     shortfalls,
     canCheckout,
