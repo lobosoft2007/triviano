@@ -48,8 +48,8 @@ function HomeNetflixPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
           <div className="flex items-center gap-2.5">
             <img
-              src="/logo.png"
-              alt="Clube 23"
+              src={empresa?.logo_display_url || "/logo.png"}
+              alt={empresa?.nome_fantasia || "Logotipo"}
               width={56}
               height={56}
               className="h-12 w-12 rounded-lg object-cover ring-1 ring-border"
@@ -59,7 +59,7 @@ function HomeNetflixPage() {
                 Preview
               </p>
               <h1 className="font-display text-lg font-bold leading-tight">
-                Clube 23
+                {empresa?.nome_fantasia ?? ""}
               </h1>
             </div>
           </div>
