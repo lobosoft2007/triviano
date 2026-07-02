@@ -21,7 +21,7 @@ export const STATUS_NOTIFICATION_MESSAGES: Record<
 > = {
   Recebido: {
     titulo: "Pedido recebido",
-    mensagem: "Seu pedido foi recebido pelo Clube 23 e já está na nossa fila!",
+    mensagem: "Seu pedido foi recebido e já está na nossa fila!",
   },
   "Em preparação": {
     titulo: "Em preparação",
@@ -40,12 +40,12 @@ export const STATUS_NOTIFICATION_MESSAGES: Record<
   Entregue: {
     titulo: "Pedido finalizado",
     mensagem:
-      "Pedido finalizado. Muito obrigado por escolher o Clube 23! Bom apetite!",
+      "Pedido finalizado. Muito obrigado pela preferência! Bom apetite!",
   },
   "Encerrado e pago": {
     titulo: "Pedido finalizado",
     mensagem:
-      "Pedido finalizado. Muito obrigado por escolher o Clube 23! Bom apetite!",
+      "Pedido finalizado. Muito obrigado pela preferência! Bom apetite!",
   },
   Cancelado: null,
 };
