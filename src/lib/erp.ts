@@ -916,13 +916,14 @@ export interface ComboRule {
   id_categoria_3: string | null;
   valor_desconto: number;
   ativo: boolean;
+  frase_promocional: string | null;
 }
 
 export async function listCombos(): Promise<ComboRule[]> {
   const { data, error } = await supabase
     .from("regras_combos")
     .select(
-      "id, nome_combo, tipo_promocao, quantidade_requerida, id_categoria_1, id_categoria_2, id_categoria_3, valor_desconto, ativo",
+      "id, nome_combo, tipo_promocao, quantidade_requerida, id_categoria_1, id_categoria_2, id_categoria_3, valor_desconto, ativo, frase_promocional",
     )
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -936,6 +937,7 @@ export async function listCombos(): Promise<ComboRule[]> {
     id_categoria_3: c.id_categoria_3,
     valor_desconto: Number(c.valor_desconto ?? 0),
     ativo: c.ativo,
+    frase_promocional: c.frase_promocional ?? null,
   }));
 }
 
@@ -949,6 +951,7 @@ export async function saveCombo(input: {
   id_categoria_3: string | null;
   valor_desconto: number;
   ativo: boolean;
+  frase_promocional?: string | null;
 }): Promise<void> {
   const nome = input.nome_combo.trim();
   if (!nome) throw new Error("Informe o nome da campanha.");
@@ -956,6 +959,8 @@ export async function saveCombo(input: {
   if (input.valor_desconto <= 0) {
     throw new Error("Informe um valor de desconto maior que zero.");
   }
+
+  const frase = input.frase_promocional?.trim() || null;
 
   let payload: {
     nome_combo: string;
@@ -966,6 +971,7 @@ export async function saveCombo(input: {
     id_categoria_3: string | null;
     valor_desconto: number;
     ativo: boolean;
+    frase_promocional: string | null;
   };
 
   if (input.tipo_promocao === "Pack") {
@@ -982,6 +988,7 @@ export async function saveCombo(input: {
       id_categoria_3: null,
       valor_desconto: round2(input.valor_desconto),
       ativo: input.ativo,
+      frase_promocional: frase,
     };
   } else {
     const cats = [
@@ -1001,6 +1008,7 @@ export async function saveCombo(input: {
       id_categoria_3: input.id_categoria_3,
       valor_desconto: round2(input.valor_desconto),
       ativo: input.ativo,
+      frase_promocional: frase,
     };
   }
 
