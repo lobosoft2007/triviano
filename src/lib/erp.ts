@@ -978,6 +978,9 @@ export async function saveCombo(input: {
     if (!input.id_categoria_1) {
       throw new Error("Selecione a categoria do pack.");
     }
+    if (input.valor_desconto > 100) {
+      throw new Error("O percentual do pack deve ser de 0 a 100%.");
+    }
     const qtd = Math.max(1, Math.round(input.quantidade_requerida || 1));
     payload = {
       nome_combo: nome,

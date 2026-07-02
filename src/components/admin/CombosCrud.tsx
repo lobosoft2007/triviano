@@ -198,8 +198,9 @@ export function CombosCrud() {
 
       <p className="mb-4 text-sm text-muted-foreground">
         <strong>Combo:</strong> ao menos 1 item de cada categoria vinculada
-        libera o desconto. <strong>Pack:</strong> atingir a quantidade exigida de
-        uma mesma categoria libera o desconto. Várias campanhas podem ser
+        libera um desconto fixo em reais. <strong>Pack:</strong> atingir a
+        quantidade exigida de uma mesma categoria libera um desconto em
+        percentual sobre o valor desses itens. Várias campanhas podem ser
         aplicadas ao mesmo tempo.
       </p>
 
@@ -269,7 +270,9 @@ export function CombosCrud() {
               </div>
 
               <span className="whitespace-nowrap font-display font-bold text-primary">
-                − {formatBRL(c.valor_desconto)}
+                {pack
+                  ? `− ${String(c.valor_desconto).replace(".", ",")}%`
+                  : `− ${formatBRL(c.valor_desconto)}`}
               </span>
 
               <button
@@ -393,16 +396,33 @@ export function CombosCrud() {
             )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="combo-desc">Valor do desconto (R$)</Label>
-              <Input
-                id="combo-desc"
-                inputMode="decimal"
-                value={form.valor_desconto}
-                onChange={(e) =>
-                  setForm({ ...form, valor_desconto: e.target.value })
-                }
-                placeholder="0,00"
-              />
+              <Label htmlFor="combo-desc">
+                {isPack
+                  ? "Percentual de desconto (%)"
+                  : "Valor do desconto (R$)"}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="combo-desc"
+                  inputMode="decimal"
+                  value={form.valor_desconto}
+                  onChange={(e) =>
+                    setForm({ ...form, valor_desconto: e.target.value })
+                  }
+                  placeholder={isPack ? "0" : "0,00"}
+                  className={isPack ? "pr-8" : undefined}
+                />
+                {isPack && (
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">
+                    %
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {isPack
+                  ? "Aplicado sobre o valor dos itens da categoria do pack (0 a 100%)."
+                  : "Valor fixo em reais abatido do pedido."}
+              </p>
             </div>
 
             <div className="space-y-1.5">

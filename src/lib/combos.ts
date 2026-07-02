@@ -51,12 +51,19 @@ export async function fetchActiveCombos(): Promise<ActiveComboRule[]> {
   });
 }
 
-/** A promotional rule that is currently satisfied by the cart contents. */
+/**
+ * A promotional rule that is currently satisfied by the cart contents.
+ * `valor_desconto` is ALWAYS the final monetary discount (in R$) applied to the
+ * order — for Packs it is already resolved from the configured percentage.
+ * `percentual` is the raw percentage for Packs (null for Combos), kept for
+ * display purposes.
+ */
 export interface AppliedCombo {
   id: string;
   nome_combo: string;
   valor_desconto: number;
   tipo_promocao: TipoPromocao;
+  percentual: number | null;
 }
 
 /** Total quantity of cart items grouped by their category slug. */
@@ -68,10 +75,24 @@ function quantityByCategory(items: CartItem[]): Map<string, number> {
   return map;
 }
 
+/** Total monetary value of cart items grouped by their category slug. */
+function valueByCategory(items: CartItem[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const i of items) {
+    map.set(
+      i.categorySlug,
+      (map.get(i.categorySlug) ?? 0) + i.unitPrice * i.quantity,
+    );
+  }
+  return map;
+}
+
 /**
- * Returns every active rule currently satisfied by the cart.
- * - Combo: at least one item per tied category.
- * - Pack: summed quantity in the single tied category ≥ quantidade_requerida.
+ * Returns every active rule currently satisfied by the cart, already resolving
+ * the final monetary discount for each rule.
+ * - Combo: at least one item per tied category → fixed R$ discount.
+ * - Pack: summed quantity in the single tied category ≥ quantidade_requerida →
+ *   percentage discount applied over the value of that category's items.
  * Multiple rules can apply at once.
  */
 export function matchedCombos(
@@ -79,25 +100,38 @@ export function matchedCombos(
   combos: ActiveComboRule[],
 ): AppliedCombo[] {
   const qtyByCat = quantityByCategory(items);
+  const valByCat = valueByCategory(items);
   const out: AppliedCombo[] = [];
 
   for (const c of combos) {
     if (c.categorySlugs.length === 0 || c.valor_desconto <= 0) continue;
 
-    let satisfied = false;
     if (c.tipo_promocao === "Pack") {
       const slug = c.categorySlugs[0];
-      satisfied = (qtyByCat.get(slug) ?? 0) >= c.quantidade_requerida;
+      if ((qtyByCat.get(slug) ?? 0) < c.quantidade_requerida) continue;
+      const packValue = valByCat.get(slug) ?? 0;
+      const percentual = Math.min(100, Math.max(0, c.valor_desconto));
+      const desconto =
+        Math.round(packValue * (percentual / 100) * 100) / 100;
+      if (desconto <= 0) continue;
+      out.push({
+        id: c.id,
+        nome_combo: c.nome_combo,
+        valor_desconto: desconto,
+        tipo_promocao: "Pack",
+        percentual,
+      });
     } else {
-      satisfied = c.categorySlugs.every((s) => (qtyByCat.get(s) ?? 0) > 0);
-    }
-
-    if (satisfied) {
+      const satisfied = c.categorySlugs.every(
+        (s) => (qtyByCat.get(s) ?? 0) > 0,
+      );
+      if (!satisfied) continue;
       out.push({
         id: c.id,
         nome_combo: c.nome_combo,
         valor_desconto: c.valor_desconto,
-        tipo_promocao: c.tipo_promocao,
+        tipo_promocao: "Combo",
+        percentual: null,
       });
     }
   }
