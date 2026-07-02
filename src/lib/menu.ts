@@ -21,6 +21,10 @@ export interface Category {
   min_items: number;
   allows_half: boolean;
   combo_role: ComboRole;
+  /** Tailwind text-color class applied to the category title (e.g. text-white). */
+  cor_fonte: string;
+  /** Tailwind font-size class applied to the category title (e.g. text-base). */
+  tamanho_fonte: string;
 }
 
 export interface FreeAddon {
