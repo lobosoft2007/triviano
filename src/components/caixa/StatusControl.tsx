@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   updateStatusPedido,
+  cancelOrder,
   ESTEIRA_STATUSES,
   type StatusPedido,
 } from "@/lib/caixa";
-import { notifyStatusChange } from "@/lib/notifications";
+import { notifyStatusChange, notifyOrderCanceled } from "@/lib/notifications";
+import { empresaQueryOptions } from "@/lib/empresa";
 
 /**
  * Subtle, operator-friendly Tailwind tints per esteira status so the operator
@@ -57,10 +59,49 @@ export function StatusControl({
   status: StatusPedido;
 }) {
   const queryClient = useQueryClient();
+  const { data: empresa } = useQuery(empresaQueryOptions);
   const [saving, setSaving] = useState(false);
 
   async function handleChange(next: StatusPedido) {
     if (next === status) return;
+
+    // Cancellation is a special, reversible operation: reverse the Kardex
+    // stock and push a branded cancellation alert to the customer.
+    if (next === "Cancelado") {
+      if (
+        !confirm(
+          "Cancelar este pedido? O estoque abatido será estornado e o cliente será avisado.",
+        )
+      )
+        return;
+      setSaving(true);
+      try {
+        await cancelOrder(orderId);
+        if (userId) {
+          try {
+            await notifyOrderCanceled(
+              orderId,
+              userId,
+              empresa?.nome_fantasia ?? "",
+            );
+          } catch {
+            toast.warning(
+              "Pedido cancelado, mas o alerta no app falhou. Avise o cliente pelo WhatsApp.",
+            );
+          }
+        }
+        await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+        toast.success("Pedido cancelado e estoque estornado.");
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Não foi possível cancelar o pedido.",
+        );
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     setSaving(true);
     try {
       // 1. Persist the new status in the orders table (mandatory).

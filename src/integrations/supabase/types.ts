@@ -74,6 +74,47 @@ export type Database = {
           },
         ]
       }
+      clientes_fiado: {
+        Row: {
+          ativo: boolean
+          autorizado_fiado: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          limite_credito: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          autorizado_fiado?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          limite_credito?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          autorizado_fiado?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          limite_credito?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_fiado_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       composicao_subproduto: {
         Row: {
           created_at: string
@@ -1120,6 +1161,7 @@ export type Database = {
           desconto_manual: number
           discount: number
           empresa_id: string
+          estoque_baixado: boolean
           id: string
           impresso_conta: boolean
           impresso_cozinha: boolean
@@ -1140,6 +1182,7 @@ export type Database = {
           desconto_manual?: number
           discount?: number
           empresa_id?: string
+          estoque_baixado?: boolean
           id?: string
           impresso_conta?: boolean
           impresso_cozinha?: boolean
@@ -1160,6 +1203,7 @@ export type Database = {
           desconto_manual?: number
           discount?: number
           empresa_id?: string
+          estoque_baixado?: boolean
           id?: string
           impresso_conta?: boolean
           impresso_cozinha?: boolean
@@ -1677,6 +1721,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_update_cliente: {
+        Args: {
+          p_bairro: string
+          p_cep: string
+          p_complemento: string
+          p_ddd: string
+          p_estado: string
+          p_full_name: string
+          p_latitude: number
+          p_logradouro: string
+          p_longitude: number
+          p_municipio: string
+          p_numero: string
+          p_telefone: string
+          p_tipo_logradouro: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      cancel_order: { Args: { p_order_id: string }; Returns: undefined }
       criar_ordem_compra: {
         Args: {
           p_fornecedor: string
@@ -1727,6 +1791,7 @@ export type Database = {
         }
         Returns: number
       }
+      reverse_order_stock: { Args: { p_order_id: string }; Returns: undefined }
       set_cliente_bloqueado: {
         Args: { p_bloqueado: boolean; p_user_id: string }
         Returns: undefined
