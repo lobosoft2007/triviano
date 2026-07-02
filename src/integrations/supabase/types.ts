@@ -608,13 +608,6 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fichas_tecnicas_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: true
-            referencedRelation: "view_products_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       fluxo_caixa: {
@@ -802,13 +795,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ingredientes_produto_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "view_products_public"
             referencedColumns: ["id"]
           },
           {
@@ -1252,13 +1238,6 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "view_products_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       orders: {
@@ -1505,13 +1484,6 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "produtos_addons_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "view_products_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       produtos_free_addons: {
@@ -1550,13 +1522,6 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "produtos_free_addons_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "view_products_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       produtos_price_options: {
@@ -1593,13 +1558,6 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "produtos_price_options_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "view_products_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1884,49 +1842,31 @@ export type Database = {
           price: number | null
           sort_order: number | null
         }
-        Insert: {
-          available?: boolean | null
-          category_id?: string | null
-          description?: string | null
-          empresa_id?: string | null
-          free_addon_limit?: number | null
-          id?: string | null
-          image_url?: string | null
-          name?: string | null
-          price?: number | null
-          sort_order?: number | null
-        }
-        Update: {
-          available?: boolean | null
-          category_id?: string | null
-          description?: string | null
-          empresa_id?: string | null
-          free_addon_limit?: number | null
-          id?: string | null
-          image_url?: string | null
-          name?: string | null
-          price?: number | null
-          sort_order?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "products_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
+      admin_get_products: {
+        Args: { p_id?: string; p_only_manipulado_false?: boolean }
+        Returns: {
+          available: boolean
+          category_id: string
+          custo_anterior: number
+          description: string
+          estoque_maximo: number
+          estoque_minimo: number
+          fornecedor_id: string
+          free_addon_limit: number
+          id: string
+          image_url: string
+          manipulado: boolean
+          name: string
+          price: number
+          saldo_estoque: number
+          setor_id: string
+          sort_order: number
+        }[]
+      }
       admin_update_cliente: {
         Args: {
           p_bairro: string
@@ -1977,6 +1917,21 @@ export type Database = {
         }[]
       }
       get_patrimonio_estoque: { Args: never; Returns: number }
+      get_public_menu: {
+        Args: never
+        Returns: {
+          available: boolean
+          category_id: string
+          description: string
+          empresa_id: string
+          free_addon_limit: number
+          id: string
+          image_url: string
+          name: string
+          price: number
+          sort_order: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
