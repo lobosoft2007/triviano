@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
+import { empresaQueryOptions } from "@/lib/empresa";
 import { useCart, type NewCartItem } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import { ProductImage } from "@/components/ProductImage";
