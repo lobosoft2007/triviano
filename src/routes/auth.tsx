@@ -41,6 +41,7 @@ const signupSchema = z.object({
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { data: empresa } = useQuery(empresaQueryOptions);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
