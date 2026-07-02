@@ -50,6 +50,7 @@ import { TesourariaView } from "@/components/admin/TesourariaView";
 import { EntradaEstoqueView } from "@/components/admin/EntradaEstoqueView";
 import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
+import { CombosCrud } from "@/components/admin/CombosCrud";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
