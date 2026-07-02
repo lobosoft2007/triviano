@@ -453,11 +453,20 @@ function AdminPage() {
                 <h1 className="font-display text-xl font-bold leading-tight">Gerenciador</h1>
               </div>
             </div>
-            {tab === "cardapio" && (
-              <Button size="sm" onClick={openNew}>
-                <Plus className="mr-1 h-4 w-4" /> Novo produto
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {isSuperAdmin && (
+                <Button asChild size="sm" variant="secondary" className="gap-1.5">
+                  <Link to="/superadmin">
+                    <Crown className="h-4 w-4 text-primary" /> Painel Master
+                  </Link>
+                </Button>
+              )}
+              {tab === "cardapio" && (
+                <Button size="sm" onClick={openNew}>
+                  <Plus className="mr-1 h-4 w-4" /> Novo produto
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-xl bg-secondary p-1">
