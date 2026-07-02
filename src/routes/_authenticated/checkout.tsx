@@ -30,8 +30,16 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { items, subtotal, discount, totalPrice, canCheckout, shortfalls, clear } =
-    useCart();
+  const {
+    items,
+    subtotal,
+    discount,
+    appliedCombos,
+    totalPrice,
+    canCheckout,
+    shortfalls,
+    clear,
+  } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [tipo, setTipo] = useState<"Delivery" | "Presencial">("Delivery");
   const [mesa, setMesa] = useState("");
