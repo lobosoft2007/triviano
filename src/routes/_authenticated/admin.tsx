@@ -49,6 +49,7 @@ import { SubprodutosCrud } from "@/components/admin/SubprodutosCrud";
 import { TesourariaView } from "@/components/admin/TesourariaView";
 import { EntradaEstoqueView } from "@/components/admin/EntradaEstoqueView";
 import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
+import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
