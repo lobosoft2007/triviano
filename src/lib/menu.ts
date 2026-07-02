@@ -146,6 +146,9 @@ export async function fetchMenu(): Promise<{
       min_items: (c as { min_items?: number }).min_items ?? 0,
       allows_half: (c as { allows_half?: boolean }).allows_half ?? false,
       combo_role: ((c as { combo_role?: string }).combo_role ?? "") as ComboRole,
+      cor_fonte: (c as { cor_fonte?: string }).cor_fonte ?? "text-white",
+      tamanho_fonte:
+        (c as { tamanho_fonte?: string }).tamanho_fonte ?? "text-base",
     })) as Category[],
     products: [] as Product[],
   };
