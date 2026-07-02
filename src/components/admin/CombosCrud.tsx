@@ -198,8 +198,9 @@ export function CombosCrud() {
 
       <p className="mb-4 text-sm text-muted-foreground">
         <strong>Combo:</strong> ao menos 1 item de cada categoria vinculada
-        libera o desconto. <strong>Pack:</strong> atingir a quantidade exigida de
-        uma mesma categoria libera o desconto. Várias campanhas podem ser
+        libera um desconto fixo em reais. <strong>Pack:</strong> atingir a
+        quantidade exigida de uma mesma categoria libera um desconto em
+        percentual sobre o valor desses itens. Várias campanhas podem ser
         aplicadas ao mesmo tempo.
       </p>
 
