@@ -470,6 +470,7 @@ function AdminPage() {
           {tab === "financeiro" && <TesourariaView />}
           {tab === "estoque" && <EntradaEstoqueView />}
           {tab === "compras" && <SugestaoComprasView />}
+          {tab === "categorias" && <CategoriasCrud />}
           {tab === "insumos" && <InsumosCrud />}
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}
