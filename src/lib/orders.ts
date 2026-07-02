@@ -42,6 +42,17 @@ export interface PlaceOrderInput {
 }
 
 export async function placeOrder(input: PlaceOrderInput): Promise<string> {
+  // Block guard: a customer flagged as blocked cannot place new orders.
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("bloqueado")
+    .eq("id", input.userId)
+    .maybeSingle();
+  if (prof && (prof as { bloqueado?: boolean }).bloqueado) {
+    throw new Error(
+      "Sua conta está temporariamente bloqueada. Entre em contato com o restaurante.",
+    );
+  }
   // RLS guarantees user_id must equal auth.uid()
   const { data: order, error: orderError } = await supabase
     .from("orders")
