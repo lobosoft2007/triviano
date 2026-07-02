@@ -54,7 +54,7 @@ export function NotifyClient({ order }: { order: CaixaOrder }) {
       await insertNotification({
         idPedido: order.id,
         idUsuario: order.user_id,
-        titulo: `Clube 23 · Pedido ${orderNo}`,
+        titulo: `${brand} · Pedido ${orderNo}`,
         mensagem: text,
       });
       toast.success("Alerta enviado ao cliente.");
