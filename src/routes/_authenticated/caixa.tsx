@@ -603,6 +603,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
           tab !== "pagamento" &&
           tab !== "fiscal" &&
           tab !== "fiado" &&
+          tab !== "clientes" &&
           !orders && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -629,7 +630,8 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         {tab === "config" && <ConfigTab />}
         {tab === "pagamento" && <PaymentConfigTab />}
         {tab === "fiscal" && <FiscalConfigTab />}
-        {tab === "fiado" && <ContaCorrenteTab />}
+        {tab === "fiado" && <ContaCorrenteTab mode="caixa" />}
+        {tab === "clientes" && <ClientesView canBlock={false} />}
       </main>
 
       {/* Partial cash report (X de caixa) */}
