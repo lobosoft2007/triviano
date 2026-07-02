@@ -148,15 +148,22 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   key={c.id}
                   className="mb-2 flex items-center justify-between text-sm text-success"
                 >
-                  <span className="flex items-center gap-1.5">
-                    <BadgePercent className="h-4 w-4" />
-                    {c.nome_combo}
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <BadgePercent className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">
+                      Desconto aplicado: {c.nome_combo}
+                      {c.vezes > 1 ? ` (${c.vezes}x)` : ""}
+                      {c.percentual != null
+                        ? ` · ${String(c.percentual).replace(".", ",")}%`
+                        : ""}
+                    </span>
                   </span>
                   <span className="font-semibold tabular-nums">
                     − {formatBRL(c.valor_desconto)}
                   </span>
                 </div>
               ))}
+
 
               {discount > 0 && appliedCombos.length === 0 && (
                 <div className="mb-2 flex items-center justify-between text-sm text-success">
