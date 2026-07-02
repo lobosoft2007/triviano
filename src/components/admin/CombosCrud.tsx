@@ -269,7 +269,9 @@ export function CombosCrud() {
               </div>
 
               <span className="whitespace-nowrap font-display font-bold text-primary">
-                − {formatBRL(c.valor_desconto)}
+                {pack
+                  ? `− ${String(c.valor_desconto).replace(".", ",")}%`
+                  : `− ${formatBRL(c.valor_desconto)}`}
               </span>
 
               <button
