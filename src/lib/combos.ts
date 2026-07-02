@@ -16,6 +16,7 @@ export interface ActiveComboRule {
   valor_desconto: number;
   tipo_promocao: TipoPromocao;
   quantidade_requerida: number;
+  frase_promocional: string | null;
   categorySlugs: string[];
 }
 
@@ -24,7 +25,7 @@ export async function fetchActiveCombos(): Promise<ActiveComboRule[]> {
   const { data, error } = await supabase
     .from("regras_combos")
     .select(
-      `id, nome_combo, valor_desconto, tipo_promocao, quantidade_requerida,
+      `id, nome_combo, valor_desconto, tipo_promocao, quantidade_requerida, frase_promocional,
        c1:categories!regras_combos_id_categoria_1_fkey(slug),
        c2:categories!regras_combos_id_categoria_2_fkey(slug),
        c3:categories!regras_combos_id_categoria_3_fkey(slug)`,
@@ -44,6 +45,7 @@ export async function fetchActiveCombos(): Promise<ActiveComboRule[]> {
       valor_desconto: Number(r.valor_desconto ?? 0),
       tipo_promocao: (r.tipo_promocao as TipoPromocao) ?? "Combo",
       quantidade_requerida: Math.max(1, Number(r.quantidade_requerida ?? 1)),
+      frase_promocional: r.frase_promocional ?? null,
       categorySlugs: slugs,
     };
   });

@@ -25,6 +25,7 @@ import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -53,6 +54,7 @@ interface FormState {
   id_categoria_3: string;
   valor_desconto: string;
   ativo: boolean;
+  frase_promocional: string;
 }
 
 const EMPTY: FormState = {
@@ -65,6 +67,7 @@ const EMPTY: FormState = {
   id_categoria_3: NONE,
   valor_desconto: "",
   ativo: true,
+  frase_promocional: "",
 };
 
 const COMBOS_QK = ["admin-combos"];
@@ -102,6 +105,7 @@ export function CombosCrud() {
       id_categoria_3: c.id_categoria_3 ?? NONE,
       valor_desconto: String(c.valor_desconto).replace(".", ","),
       ativo: c.ativo,
+      frase_promocional: c.frase_promocional ?? "",
     });
     setOpen(true);
   };
@@ -129,6 +133,7 @@ export function CombosCrud() {
           form.id_categoria_3 === NONE ? null : form.id_categoria_3,
         valor_desconto: parseNumberInput(form.valor_desconto),
         ativo: form.ativo,
+        frase_promocional: form.frase_promocional,
       });
       setOpen(false);
       await invalidate();
@@ -399,6 +404,25 @@ export function CombosCrud() {
                 placeholder="0,00"
               />
             </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="combo-frase">
+                Frase Promocional / Texto de Divulgação
+              </Label>
+              <Textarea
+                id="combo-frase"
+                rows={3}
+                value={form.frase_promocional}
+                onChange={(e) =>
+                  setForm({ ...form, frase_promocional: e.target.value })
+                }
+                placeholder="Ex: Aproveite o Pack Casal: leve 2 burgers clássicos e economize R$ 10,00!"
+              />
+              <p className="text-xs text-muted-foreground">
+                Usada para banners e pop-ups promocionais na tela do cliente.
+              </p>
+            </div>
+
 
             <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5">
               <div>
