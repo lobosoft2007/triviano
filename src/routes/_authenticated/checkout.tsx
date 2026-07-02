@@ -72,7 +72,7 @@ function CheckoutPage() {
 
   useEffect(() => {
     if (items.length === 0 && !submitting) {
-      navigate({ to: "/menu", replace: true });
+      navigate({ to: "/", replace: true });
     }
   }, [items.length, submitting, navigate]);
 
