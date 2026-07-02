@@ -171,7 +171,9 @@ function CategoryRow({
 
   return (
     <section className="group relative mb-9">
-      <h2 className="mb-3 px-4 font-display text-lg font-bold uppercase tracking-wide text-foreground sm:px-6">
+      <h2
+        className={`mb-3 px-4 font-display font-bold uppercase tracking-wide sm:px-6 ${category.tamanho_fonte} ${category.cor_fonte}`}
+      >
         {category.name}
       </h2>
 
