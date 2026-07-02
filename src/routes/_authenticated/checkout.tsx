@@ -133,7 +133,7 @@ function CheckoutPage() {
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Pedido realizado com sucesso!");
-      navigate({ to: "/orders", replace: true });
+      navigate({ to: "/", replace: true });
     } catch (err) {
       console.error(err);
       toast.error("Não foi possível finalizar o pedido. Tente novamente.");
