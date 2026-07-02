@@ -6,6 +6,7 @@ import {
   buildWhatsAppLink,
   statusWhatsAppMessage,
 } from "@/lib/notifications";
+import { empresaQueryOptions } from "@/lib/empresa";
 import type { CaixaOrder } from "@/lib/caixa";
 
 /**
