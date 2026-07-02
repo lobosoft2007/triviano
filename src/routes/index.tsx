@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Settings,
   Wallet,
+  User,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
 import { empresaQueryOptions } from "@/lib/empresa";
@@ -117,6 +118,13 @@ function HomePage() {
                   className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
                 >
                   <ClipboardList className="h-5 w-5" />
+                </Link>
+                <Link
+                  to="/perfil"
+                  aria-label="Meus dados"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                >
+                  <User className="h-5 w-5" />
                 </Link>
                 <button
                   aria-label="Sair"
