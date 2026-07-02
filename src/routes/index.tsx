@@ -29,7 +29,7 @@ const heroImg = "/images/hero.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Clube 23 — Delivery de Comida Variada" },
+      { title: "Clube 23 — Delivery de fast food" },
       {
         name: "description",
         content:
@@ -83,21 +83,9 @@ function HomePage() {
       {/* Barra Superior Corporativa — fixa, opaca, acima de tudo */}
       <header className="fixed inset-x-0 top-0 z-50 h-20 border-b border-border/60 bg-background">
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <img
-              src="/logo.png"
-              alt="Clube 23"
-              width={56}
-              height={56}
-              className="h-12 w-12 rounded-lg object-cover ring-1 ring-border"
-            />
+          <div className="flex items-center">
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-primary">
-                Delivery
-              </p>
-              <h1 className="font-display text-lg font-bold leading-tight">
-                Clube 23
-              </h1>
+              <h1 className="font-display text-xl font-bold leading-tight text-white">Clube 23</h1>
             </div>
           </div>
 
@@ -168,18 +156,14 @@ function HomePage() {
 
         {data &&
           data.categories.map((cat) => {
-            const products = data.products.filter(
-              (p) => p.category_id === cat.id,
-            );
+            const products = data.products.filter((p) => p.category_id === cat.id);
             if (products.length === 0) return null;
             return (
               <CategoryRow
                 key={cat.id}
                 category={cat}
                 products={products}
-                onOpen={(product) =>
-                  setDetail({ product, category: cat, siblings: products })
-                }
+                onOpen={(product) => setDetail({ product, category: cat, siblings: products })}
               />
             );
           })}
@@ -223,9 +207,7 @@ function HomePage() {
                   </span>
                   <span className="text-sm font-semibold">Ver carrinho</span>
                 </span>
-                <span className="font-display text-base font-bold">
-                  {formatBRL(totalPrice)}
-                </span>
+                <span className="font-display text-base font-bold">{formatBRL(totalPrice)}</span>
               </button>
             </CartSheet>
           </div>
@@ -282,12 +264,7 @@ function CategoryRow({
           className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-scroll scroll-smooth px-4 pb-2 sm:px-6"
         >
           {products.map((p) => (
-            <NetflixCard
-              key={p.id}
-              product={p}
-              category={category}
-              onOpen={onOpen}
-            />
+            <NetflixCard key={p.id} product={p} category={category} onOpen={onOpen} />
           ))}
         </div>
       </div>
@@ -331,9 +308,7 @@ function NetflixCard({
       {/* Price — bottom */}
       <p className="w-full text-center font-display text-base font-bold text-primary">
         {product.price_options.length > 1 && (
-          <span className="mr-1 text-[10px] font-normal text-muted-foreground">
-            a partir de
-          </span>
+          <span className="mr-1 text-[10px] font-normal text-muted-foreground">a partir de</span>
         )}
         {formatBRL(product.price)}
       </p>
@@ -413,22 +388,16 @@ function DetailModal({
         </div>
 
         <div className="space-y-3 px-5 pb-5 pt-1">
-          <DialogTitle className="font-display text-xl font-bold leading-tight">
-            {product.name}
-          </DialogTitle>
+          <DialogTitle className="font-display text-xl font-bold leading-tight">{product.name}</DialogTitle>
 
           {product.description && (
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {product.description}
-            </p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
           )}
 
           <div className="flex items-center justify-between pt-1">
             <span className="font-display text-lg font-bold text-primary">
               {product.price_options.length > 1 && (
-                <span className="mr-1 text-xs font-normal text-muted-foreground">
-                  a partir de
-                </span>
+                <span className="mr-1 text-xs font-normal text-muted-foreground">a partir de</span>
               )}
               {formatBRL(product.price)}
             </span>
