@@ -178,6 +178,8 @@ type AdminTab =
   | "categorias"
   | "combos"
   | "empresa"
+  | "clientes"
+  | "conta"
   | "financeiro"
   | "estoque"
   | "compras"
@@ -191,6 +193,8 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
   { key: "combos", label: "Campanhas", icon: Megaphone },
   { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
+  { key: "clientes", label: "Clientes", icon: Users },
+  { key: "conta", label: "Conta Corrente", icon: Wallet },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
   { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
   { key: "compras", label: "Sugestão de Compras", icon: ShoppingCart },
