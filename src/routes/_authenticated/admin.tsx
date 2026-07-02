@@ -166,6 +166,7 @@ const EMPTY_FORM: FormState = {
 
 type AdminTab =
   | "cardapio"
+  | "categorias"
   | "financeiro"
   | "estoque"
   | "compras"
