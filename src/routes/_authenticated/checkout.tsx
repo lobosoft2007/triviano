@@ -227,6 +227,12 @@ function CheckoutPage() {
                   <span className="tabular-nums">− {formatBRL(discount)}</span>
                 </div>
               )}
+              {serviceFee > 0 && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Taxa de serviço ({serviceRate}%)</span>
+                  <span className="tabular-nums">+ {formatBRL(serviceFee)}</span>
+                </div>
+              )}
               {cashbackApplied > 0 && (
                 <div className="flex justify-between text-sm text-success">
                   <span>Cashback aplicado</span>
