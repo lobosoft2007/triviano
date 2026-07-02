@@ -82,7 +82,8 @@ export const Route = createFileRoute("/_authenticated/caixa")({
 
 const PIX_KEY = "21993383918";
 const PIX_NAME = "Marcello Ribeiro Lobo Assumpção";
-const RESTAURANT = "Clube 23";
+// Nome da empresa para os cupons impressos — sincronizado da empresa ativa.
+let RESTAURANT = "";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
