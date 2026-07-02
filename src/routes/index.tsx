@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
+import { empresaQueryOptions } from "@/lib/empresa";
 import { useCart, type NewCartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
