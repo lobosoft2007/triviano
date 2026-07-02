@@ -96,15 +96,13 @@ interface AdminProduct {
 async function fetchAdminMenu() {
   const [catRes, prodRes] = await Promise.all([
     supabase.from("categories").select("id, name, sort_order").order("sort_order"),
-    supabase
-      .from("products")
-      .select(
-        "id, category_id, name, description, price, image_url, available, free_addon_limit, saldo_estoque, estoque_minimo, estoque_maximo",
-      )
-      .order("sort_order"),
+    // Admin reads cost/stock via SECURITY DEFINER RPC (admin-only); the raw
+    // products table hides these columns from customers.
+    supabase.rpc("admin_get_products"),
   ]);
   if (catRes.error) throw catRes.error;
   if (prodRes.error) throw prodRes.error;
+
 
   const raw = (prodRes.data ?? []).map((p) => ({
     id: p.id,

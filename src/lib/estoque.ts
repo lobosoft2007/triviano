@@ -50,12 +50,9 @@ export async function fetchSugestaoCompras(): Promise<SugestaoItem[]> {
         "id, nome, unidade_medida, custo_unitario, saldo_estoque, estoque_minimo, estoque_maximo, fornecedor_id, setor_id, estocavel",
       )
       .eq("estocavel", true),
-    supabase
-      .from("products")
-      .select(
-        "id, name, price, saldo_estoque, estoque_minimo, estoque_maximo, fornecedor_id, setor_id, manipulado",
-      )
-      .eq("manipulado", false),
+    // Admin-only RPC exposes cost/stock columns (hidden on the raw table).
+    supabase.rpc("admin_get_products", { p_only_manipulado_false: true }),
+
   ]);
   if (insumoRes.error) throw insumoRes.error;
   if (prodRes.error) throw prodRes.error;

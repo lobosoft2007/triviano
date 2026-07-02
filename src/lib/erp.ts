@@ -392,11 +392,8 @@ export async function fetchProductDetail(
       .select("dados_fiscais")
       .eq("product_id", productId)
       .maybeSingle(),
-    supabase
-      .from("products")
-      .select("manipulado, setor_id, fornecedor_id")
-      .eq("id", productId)
-      .single(),
+    supabase.rpc("admin_get_products", { p_id: productId }),
+
     supabase
       .from("ingredientes_produto")
       .select("insumo_id, subproduto_id, nome, quantidade, permitir_exclusao, sort_order")
@@ -411,11 +408,12 @@ export async function fetchProductDetail(
   if (ingRes.error) throw ingRes.error;
 
   const fiscais = (fichaRes.data?.dados_fiscais ?? {}) as Record<string, unknown>;
+  const prodMeta = (prodRes.data ?? [])[0];
 
   return {
-    manipulado: prodRes.data.manipulado ?? true,
-    setor_id: prodRes.data.setor_id ?? null,
-    fornecedor_id: prodRes.data.fornecedor_id ?? null,
+    manipulado: prodMeta?.manipulado ?? true,
+    setor_id: prodMeta?.setor_id ?? null,
+    fornecedor_id: prodMeta?.fornecedor_id ?? null,
     price_options: (poRes.data ?? []).map((p) => ({
       tamanho: String(p.tamanho),
       preco: Number(p.preco),
