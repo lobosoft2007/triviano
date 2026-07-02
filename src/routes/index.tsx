@@ -118,6 +118,13 @@ function HomePage() {
                 >
                   <ClipboardList className="h-5 w-5" />
                 </Link>
+                <Link
+                  to="/perfil"
+                  aria-label="Meus dados"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+                >
+                  <User className="h-5 w-5" />
+                </Link>
                 <button
                   aria-label="Sair"
                   onClick={() => signOut()}
