@@ -305,7 +305,7 @@ function NetflixCard({
   onOpen: (product: Product) => void;
 }) {
   return (
-    <div className="flex h-60 w-36 shrink-0 snap-start flex-col items-center gap-2 sm:h-72 sm:w-44">
+    <div className="flex h-auto w-36 shrink-0 snap-start flex-col items-center gap-2 sm:w-44">
       {/* Name — top */}
       <h3 className="line-clamp-2 w-full text-center font-display text-sm font-bold leading-tight text-foreground">
         {product.name}
