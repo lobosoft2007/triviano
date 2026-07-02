@@ -7,13 +7,21 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  LogOut,
+  LogIn,
+  ClipboardList,
+  Settings,
+  Wallet,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
 import { useCart, type NewCartItem } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductCustomizer } from "@/components/ProductCustomizer";
 import { CartSheet } from "@/components/CartSheet";
+import { NotificationBell } from "@/components/NotificationBell";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const heroImg = "/images/hero.jpg";
