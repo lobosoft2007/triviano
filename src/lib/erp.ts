@@ -899,3 +899,80 @@ export async function moveCategory(
     ),
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Regras de Combos (Motor de combos dinâmicos)                        */
+/* ------------------------------------------------------------------ */
+
+export interface ComboRule {
+  id: string;
+  nome_combo: string;
+  id_categoria_1: string | null;
+  id_categoria_2: string | null;
+  id_categoria_3: string | null;
+  valor_desconto: number;
+  ativo: boolean;
+}
+
+export async function listCombos(): Promise<ComboRule[]> {
+  const { data, error } = await supabase
+    .from("regras_combos")
+    .select(
+      "id, nome_combo, id_categoria_1, id_categoria_2, id_categoria_3, valor_desconto, ativo",
+    )
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    nome_combo: c.nome_combo,
+    id_categoria_1: c.id_categoria_1,
+    id_categoria_2: c.id_categoria_2,
+    id_categoria_3: c.id_categoria_3,
+    valor_desconto: Number(c.valor_desconto ?? 0),
+    ativo: c.ativo,
+  }));
+}
+
+export async function saveCombo(input: {
+  id?: string | null;
+  nome_combo: string;
+  id_categoria_1: string | null;
+  id_categoria_2: string | null;
+  id_categoria_3: string | null;
+  valor_desconto: number;
+  ativo: boolean;
+}): Promise<void> {
+  const nome = input.nome_combo.trim();
+  if (!nome) throw new Error("Informe o nome do combo.");
+  const cats = [
+    input.id_categoria_1,
+    input.id_categoria_2,
+    input.id_categoria_3,
+  ].filter(Boolean);
+  if (cats.length < 2) {
+    throw new Error("Selecione ao menos 2 categorias para o combo.");
+  }
+  const payload = {
+    nome_combo: nome,
+    id_categoria_1: input.id_categoria_1,
+    id_categoria_2: input.id_categoria_2,
+    id_categoria_3: input.id_categoria_3,
+    valor_desconto: round2(input.valor_desconto),
+    ativo: input.ativo,
+  };
+  if (input.id) {
+    const { error } = await supabase
+      .from("regras_combos")
+      .update(payload)
+      .eq("id", input.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("regras_combos").insert(payload);
+    if (error) throw error;
+  }
+}
+
+export async function deleteCombo(id: string): Promise<void> {
+  const { error } = await supabase.from("regras_combos").delete().eq("id", id);
+  if (error) throw error;
+}
