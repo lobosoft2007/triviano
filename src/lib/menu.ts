@@ -69,9 +69,13 @@ export async function fetchMenu(): Promise<{
 }> {
   const [catRes, prodRes, ingRes, poRes, addRes, freeRes] = await Promise.all([
     supabase.from("categories").select("*").order("sort_order"),
+    // Client menu reads ONLY the safe public view (no cost/stock/supplier
+    // columns). The raw products table is admin-only via RLS.
     supabase
-      .from("products")
-      .select("*")
+      .from("view_products_public")
+      .select(
+        "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, empresa_id",
+      )
       .eq("available", true)
       .order("sort_order"),
     supabase
