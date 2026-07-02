@@ -57,6 +57,7 @@ interface CartContextValue {
   totalItems: number;
   subtotal: number;
   discount: number;
+  appliedCombos: AppliedCombo[];
   totalPrice: number;
   shortfalls: MinShortfall[];
   canCheckout: boolean;
@@ -66,6 +67,7 @@ interface CartContextValue {
   removeItem: (lineId: string) => void;
   clear: () => void;
 }
+
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
