@@ -589,6 +589,12 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             icon={<Users className="h-4 w-4" />}
             label="Conta Corrente"
           />
+          <TabButton
+            active={tab === "clientes"}
+            onClick={() => setTab("clientes")}
+            icon={<Users className="h-4 w-4" />}
+            label="Clientes"
+          />
         </div>
       </header>
 
