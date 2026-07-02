@@ -1617,7 +1617,7 @@ export type Database = {
     }
     Enums: {
       ambiente_emissao_tipo: "Homologação/Testes" | "Produção"
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "super_admin"
       attendance_type: "Delivery" | "Presencial"
       cashback_tipo: "Credito" | "Debito"
       fiado_tipo: "Debito_Compra" | "Credito_Pagamento"
@@ -1752,7 +1752,7 @@ export const Constants = {
   public: {
     Enums: {
       ambiente_emissao_tipo: ["Homologação/Testes", "Produção"],
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "super_admin"],
       attendance_type: ["Delivery", "Presencial"],
       cashback_tipo: ["Credito", "Debito"],
       fiado_tipo: ["Debito_Compra", "Credito_Pagamento"],
