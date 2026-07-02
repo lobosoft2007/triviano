@@ -188,13 +188,16 @@ export function ContaCorrenteTab({ mode = "caixa" }: { mode?: ContaCorrenteMode 
 
 function ClientRow({
   client,
+  mode,
   onPay,
   onExtrato,
 }: {
   client: FiadoClient;
+  mode: ContaCorrenteMode;
   onPay: () => void;
   onExtrato: () => void;
 }) {
+  const isAdmin = mode === "admin";
   const queryClient = useQueryClient();
   const [autorizado, setAutorizado] = useState(client.fiado_autorizado);
   const [limite, setLimite] = useState(String(client.limite_fiado));
