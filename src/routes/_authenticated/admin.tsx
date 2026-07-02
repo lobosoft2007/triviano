@@ -261,6 +261,7 @@ function AdminPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: isAdmin, isLoading: roleLoading } = useIsAdmin(user?.id);
+  const { data: isSuperAdmin } = useIsSuperAdmin(user?.id);
   const { data, isLoading } = useQuery({
     queryKey: ["admin-menu"],
     queryFn: fetchAdminMenu,
