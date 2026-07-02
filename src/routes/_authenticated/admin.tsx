@@ -61,6 +61,7 @@ import {
   NONE,
   type ProductDetailForm,
 } from "@/components/admin/ProductDetailFields";
+import { useIsSuperAdmin } from "@/lib/superadmin";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
