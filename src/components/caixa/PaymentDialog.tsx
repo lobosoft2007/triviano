@@ -11,6 +11,7 @@ import {
   type CaixaOrder,
 } from "@/lib/caixa";
 import { insertNotification } from "@/lib/notifications";
+import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
