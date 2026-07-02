@@ -405,6 +405,25 @@ export function CombosCrud() {
               />
             </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="combo-frase">
+                Frase Promocional / Texto de Divulgação
+              </Label>
+              <Textarea
+                id="combo-frase"
+                rows={3}
+                value={form.frase_promocional}
+                onChange={(e) =>
+                  setForm({ ...form, frase_promocional: e.target.value })
+                }
+                placeholder="Ex: Aproveite o Pack Casal: leve 2 burgers clássicos e economize R$ 10,00!"
+              />
+              <p className="text-xs text-muted-foreground">
+                Usada para banners e pop-ups promocionais na tela do cliente.
+              </p>
+            </div>
+
+
             <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5">
               <div>
                 <p className="text-sm font-medium">Campanha ativa</p>
