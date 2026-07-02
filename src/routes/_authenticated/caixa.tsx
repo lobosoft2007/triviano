@@ -137,6 +137,11 @@ function playBeep() {
 function CaixaPage() {
   const { user } = useAuth();
   const { data: isAdmin, isLoading: roleLoading } = useIsAdmin(user?.id);
+  const { data: empresa } = useQuery(empresaQueryOptions);
+
+  useEffect(() => {
+    if (empresa?.nome_fantasia) RESTAURANT = empresa.nome_fantasia;
+  }, [empresa]);
 
   const { data: caixa, isLoading: caixaLoading } = useQuery({
     queryKey: ["caixa-open"],
