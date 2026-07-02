@@ -957,7 +957,16 @@ export async function saveCombo(input: {
     throw new Error("Informe um valor de desconto maior que zero.");
   }
 
-  let payload: Record<string, unknown>;
+  let payload: {
+    nome_combo: string;
+    tipo_promocao: TipoPromocao;
+    quantidade_requerida: number;
+    id_categoria_1: string | null;
+    id_categoria_2: string | null;
+    id_categoria_3: string | null;
+    valor_desconto: number;
+    ativo: boolean;
+  };
 
   if (input.tipo_promocao === "Pack") {
     if (!input.id_categoria_1) {
