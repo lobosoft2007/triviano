@@ -47,6 +47,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         nome_fantasia: data.nome_fantasia ?? "",
         logotipo_url: data.logotipo_url ?? "/logo.png",
         taxa_servico_mesa: Number(data.taxa_servico_mesa ?? 0),
+        dominio_customizado: data.dominio_customizado ?? null,
         cep: data.cep ?? "",
         logradouro: data.logradouro ?? "",
         numero: data.numero ?? "",
