@@ -593,10 +593,15 @@ function AdminPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-display">{form.id ? "Editar produto" : "Novo produto"}</DialogTitle>
-          </DialogHeader>
+        <DialogContent hideClose className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <ModalActionBar
+            title={form.id ? "Editar produto" : "Novo produto"}
+            onBack={() => setOpen(false)}
+            onSave={handleSave}
+            saving={saving}
+            saveDisabled={loadingDetail}
+            saveLabel="Salvar"
+          />
 
           <div className="space-y-4">
             {/* Image upload */}
