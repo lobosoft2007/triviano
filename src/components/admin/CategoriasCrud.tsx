@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import {
   Select,
   SelectContent,
@@ -241,12 +242,14 @@ export function CategoriasCrud() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {form.id ? "Editar categoria" : "Nova categoria"}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent hideClose className="max-w-md">
+          <ModalActionBar
+            title={form.id ? "Editar categoria" : "Nova categoria"}
+            onBack={() => setOpen(false)}
+            onSave={handleSave}
+            saving={saving}
+            saveLabel="Salvar"
+          />
 
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -310,15 +313,6 @@ export function CategoriasCrud() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
