@@ -31,10 +31,11 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "clube23"
+const SITE_NAME = "Plataforma trivIAno"
 const SENDER_DOMAIN = "mail.usetriviano.com"
 const ROOT_DOMAIN = "usetriviano.com"
 const FROM_DOMAIN = "usetriviano.com"
+const FROM_ADDRESS = "send@usetriviano.com"
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return '***'
