@@ -44,6 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { Field } from "./FornecedoresCrud";
 
 const NONE = "__none__";
@@ -431,12 +432,14 @@ export function SugestaoComprasView() {
 
       {/* Manual order dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display">
-              Ordem de Compra Manual / Avulsa
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent hideClose className="max-w-2xl">
+          <ModalActionBar
+            title="Ordem de Compra Manual / Avulsa"
+            onBack={() => setOpen(false)}
+            onSave={handleManualSave}
+            saving={saving}
+            saveLabel="Gerar ordem"
+          />
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Fornecedor">
@@ -540,12 +543,6 @@ export function SugestaoComprasView() {
               </span>
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleManualSave} disabled={saving} className="w-full">
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Gerar ordem de compra
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
