@@ -10,6 +10,7 @@ import {
   Wallet,
   ArrowDownRight,
   ArrowUpRight,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
@@ -17,6 +18,12 @@ import {
   updateProfileAddress,
   fetchExtratoContaCorrente,
 } from "@/lib/profile";
+import {
+  fetchExtratoCashback,
+  abaterFiadoComCashback,
+  cashbackLabel,
+  isCashbackCredito,
+} from "@/lib/cashback";
 import { geocodeAddress } from "@/lib/cep";
 import { formatBRL } from "@/lib/format";
 import { AddressFields, type AddressState } from "@/components/AddressFields";
