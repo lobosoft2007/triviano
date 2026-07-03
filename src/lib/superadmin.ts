@@ -52,6 +52,8 @@ export async function listAllEmpresas(): Promise<EmpresaRow[]> {
     cor_primaria: d.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
     cor_secundaria: d.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
     modo_fundo: (d.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
+    percentual_cashback: Number(d.percentual_cashback ?? 5),
+    cashback_ativo: d.cashback_ativo ?? true,
     created_at: d.created_at,
   }));
 }
