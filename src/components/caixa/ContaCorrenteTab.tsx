@@ -9,6 +9,7 @@ import {
   HandCoins,
   Search,
   Save,
+  Gift,
 } from "lucide-react";
 import {
   fetchFiadoClients,
@@ -18,6 +19,7 @@ import {
   type FiadoClient,
   type ExtratoFiadoRow,
 } from "@/lib/fiado";
+import { abaterFiadoComCashback } from "@/lib/cashback";
 import { fetchMeiosPagamento } from "@/lib/caixa";
 import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
