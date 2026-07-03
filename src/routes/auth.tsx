@@ -13,11 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -44,7 +40,7 @@ const signupSchema = z
     password: z.string().min(8, { message: "A senha precisa ter ao menos 8 caracteres" }),
     confirmPassword: z.string(),
     telefone: z.string().trim().min(8, { message: "Informe um telefone válido" }).max(20),
-    logradouro: z.string().trim().min(2, { message: "Informe o endereço (use o CEP)" }),
+    logradouro: z.string().trim().min(1, { message: "Informe o endereço (use o CEP)" }),
     numero: z.string().trim().min(1, { message: "Informe o número" }),
   })
   .refine((d) => d.password === d.confirmPassword, {
@@ -271,9 +267,7 @@ function AuthPage() {
             height={128}
             className="h-32 w-32 rounded-2xl object-cover shadow-float ring-1 ring-border"
           />
-          <h1 className="mt-4 font-display text-2xl font-bold">
-            {empresa?.nome_fantasia ?? ""}
-          </h1>
+          <h1 className="mt-4 font-display text-2xl font-bold">{empresa?.nome_fantasia ?? ""}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "otp"
               ? "Confirme seu e-mail"
@@ -330,8 +324,7 @@ function AuthPage() {
         {mode === "forgot" && (
           <form onSubmit={handleForgot} className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
-              Informe seu e-mail e enviaremos um link seguro e temporário para
-              você redefinir sua senha.
+              Informe seu e-mail e enviaremos um link seguro e temporário para você redefinir sua senha.
             </p>
             <Field label="E-mail" name="email" type="email" placeholder="voce@email.com" autoComplete="email" />
             <Button type="submit" size="lg" className="mt-2 h-12 rounded-2xl" disabled={submitting}>
@@ -350,7 +343,13 @@ function AuthPage() {
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="mt-6 flex flex-col gap-4">
                 <Field label="E-mail" name="email" type="email" placeholder="voce@email.com" autoComplete="email" />
-                <Field label="Senha" name="password" type="password" placeholder="••••••••" autoComplete="current-password" />
+                <Field
+                  label="Senha"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
                 <button
                   type="button"
                   onClick={() => setMode("forgot")}
