@@ -13,6 +13,7 @@ import { parseNumberInput } from "@/lib/erp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 interface FormState {
   nome_fantasia: string;
