@@ -505,6 +505,7 @@ function AdminPage() {
         <main className="px-4 py-5 lg:px-8">
           {tab === "financeiro" && <TesourariaView />}
           {tab === "estoque" && <EntradaEstoqueView />}
+          {tab === "ajustes" && <AjusteRapidoView />}
           {tab === "compras" && <SugestaoComprasView />}
           {tab === "categorias" && <CategoriasCrud />}
           {tab === "combos" && <CombosCrud />}
