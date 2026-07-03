@@ -139,6 +139,41 @@ export type Database = {
           },
         ]
       }
+      clientes_cashback: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          empresa_id: string
+          id: string
+          saldo_acumulado: number
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          saldo_acumulado?: number
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          saldo_acumulado?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_cashback_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes_fiado: {
         Row: {
           ativo: boolean
@@ -466,6 +501,7 @@ export type Database = {
         Row: {
           ativo: boolean
           bairro: string
+          cashback_ativo: boolean
           cep: string
           cidade: string
           complemento: string
@@ -480,12 +516,14 @@ export type Database = {
           modo_fundo: string
           nome_fantasia: string
           numero: string
+          percentual_cashback: number
           taxa_servico_mesa: number
           updated_at: string
         }
         Insert: {
           ativo?: boolean
           bairro?: string
+          cashback_ativo?: boolean
           cep?: string
           cidade?: string
           complemento?: string
@@ -500,12 +538,14 @@ export type Database = {
           modo_fundo?: string
           nome_fantasia?: string
           numero?: string
+          percentual_cashback?: number
           taxa_servico_mesa?: number
           updated_at?: string
         }
         Update: {
           ativo?: boolean
           bairro?: string
+          cashback_ativo?: boolean
           cep?: string
           cidade?: string
           complemento?: string
@@ -520,6 +560,7 @@ export type Database = {
           modo_fundo?: string
           nome_fantasia?: string
           numero?: string
+          percentual_cashback?: number
           taxa_servico_mesa?: number
           updated_at?: string
         }
@@ -556,6 +597,47 @@ export type Database = {
             columns: ["id_fornecedor"]
             isOneToOne: false
             referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extrato_cashback: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          empresa_id: string
+          id: string
+          pedido_id: string | null
+          saldo_residual: number
+          tipo_movimentacao: Database["public"]["Enums"]["cashback_mov_tipo"]
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          pedido_id?: string | null
+          saldo_residual?: number
+          tipo_movimentacao: Database["public"]["Enums"]["cashback_mov_tipo"]
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          pedido_id?: string | null
+          saldo_residual?: number
+          tipo_movimentacao?: Database["public"]["Enums"]["cashback_mov_tipo"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extrato_cashback_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1972,6 +2054,14 @@ export type Database = {
       }
     }
     Functions: {
+      abater_fiado_com_cashback: {
+        Args: { p_user_id: string; p_valor?: number }
+        Returns: {
+          abatido: number
+          saldo_cashback: number
+          saldo_devedor: number
+        }[]
+      }
       admin_get_products: {
         Args: { p_id?: string; p_only_manipulado_false?: boolean }
         Returns: {
@@ -2099,6 +2189,10 @@ export type Database = {
         }
         Returns: number
       }
+      notify_cashback: {
+        Args: { p_tipo: string; p_user: string; p_valor: number }
+        Returns: undefined
+      }
       notify_fiado: {
         Args: { p_tipo: string; p_user: string; p_valor: number }
         Returns: undefined
@@ -2147,6 +2241,10 @@ export type Database = {
       ambiente_emissao_tipo: "Homologação/Testes" | "Produção"
       app_role: "admin" | "user" | "super_admin"
       attendance_type: "Delivery" | "Presencial"
+      cashback_mov_tipo:
+        | "credito_ganho"
+        | "debito_uso"
+        | "debito_abatimento_fiado"
       cashback_tipo: "Credito" | "Debito"
       fiado_tipo: "Debito_Compra" | "Credito_Pagamento"
       tipo_conta_financeira: "Físico" | "Banco" | "Recebível_Futuro"
@@ -2282,6 +2380,11 @@ export const Constants = {
       ambiente_emissao_tipo: ["Homologação/Testes", "Produção"],
       app_role: ["admin", "user", "super_admin"],
       attendance_type: ["Delivery", "Presencial"],
+      cashback_mov_tipo: [
+        "credito_ganho",
+        "debito_uso",
+        "debito_abatimento_fiado",
+      ],
       cashback_tipo: ["Credito", "Debito"],
       fiado_tipo: ["Debito_Compra", "Credito_Pagamento"],
       tipo_conta_financeira: ["Físico", "Banco", "Recebível_Futuro"],

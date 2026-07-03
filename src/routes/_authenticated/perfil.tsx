@@ -10,6 +10,7 @@ import {
   Wallet,
   ArrowDownRight,
   ArrowUpRight,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
@@ -17,6 +18,12 @@ import {
   updateProfileAddress,
   fetchExtratoContaCorrente,
 } from "@/lib/profile";
+import {
+  fetchExtratoCashback,
+  abaterFiadoComCashback,
+  cashbackLabel,
+  isCashbackCredito,
+} from "@/lib/cashback";
 import { geocodeAddress } from "@/lib/cep";
 import { formatBRL } from "@/lib/format";
 import { AddressFields, type AddressState } from "@/components/AddressFields";
@@ -47,9 +54,41 @@ function PerfilPage() {
     enabled: !!user,
   });
 
+  const { data: extratoCashback } = useQuery({
+    queryKey: ["extrato-cashback", user?.id],
+    queryFn: () => fetchExtratoCashback(user!.id),
+    enabled: !!user,
+  });
+
+  const [abating, setAbating] = useState(false);
+
+  async function handleAbater() {
+    if (!user) return;
+    setAbating(true);
+    try {
+      const res = await abaterFiadoComCashback({ userId: user.id });
+      toast.success(
+        `${formatBRL(res.abatido)} de cashback usados. Novo saldo devedor: ${formatBRL(
+          res.saldo_devedor,
+        )}.`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["full-profile", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["extrato-cashback", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["extrato-cc", user.id] });
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Não foi possível abater o fiado.",
+      );
+    } finally {
+      setAbating(false);
+    }
+  }
+
   useEffect(() => {
     if (profile && address === null) {
       setFullName(profile.full_name);
+
       setAddress({
         cep: profile.cep,
         tipo_logradouro: profile.tipo_logradouro,
@@ -192,7 +231,110 @@ function PerfilPage() {
               </section>
             )}
 
-            {/* Extrato */}
+            {/* Cashback card */}
+            {profile && (profile.saldo_cashback > 0 || profile.fiado_autorizado) && (
+              <section className="overflow-hidden rounded-2xl border border-secondary/40 bg-gradient-to-br from-secondary/15 via-card to-card p-5 shadow-float">
+                <div className="flex items-center gap-2 text-secondary">
+                  <Gift className="h-5 w-5" />
+                  <p className="text-xs font-semibold uppercase tracking-widest">
+                    Meu Cashback
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground">Saldo disponível</p>
+                  <p className="mt-1 font-display text-3xl font-bold text-secondary">
+                    {formatBRL(profile.saldo_cashback)}
+                  </p>
+                </div>
+
+                {profile.fiado_autorizado &&
+                  profile.saldo_cashback > 0 &&
+                  profile.saldo_devedor_fiado > 0 && (
+                    <div className="mt-4">
+                      <Button
+                        variant="success"
+                        className="h-11 w-full rounded-xl font-semibold"
+                        disabled={abating}
+                        onClick={handleAbater}
+                      >
+                        {abating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Gift className="mr-2 h-4 w-4" />
+                            Usar{" "}
+                            {formatBRL(
+                              Math.min(
+                                profile.saldo_cashback,
+                                profile.saldo_devedor_fiado,
+                              ),
+                            )}{" "}
+                            para abater o fiado
+                          </>
+                        )}
+                      </Button>
+                      <p className="mt-2 text-center text-xs text-muted-foreground">
+                        O valor é descontado do seu cashback e abate sua dívida
+                        na hora, restabelecendo seu limite.
+                      </p>
+                    </div>
+                  )}
+              </section>
+            )}
+
+            {/* Extrato de cashback */}
+            {extratoCashback && extratoCashback.length > 0 && (
+              <section>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  Extrato de cashback
+                </h2>
+                <ul className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border bg-card">
+                  {extratoCashback.map((row) => {
+                    const credito = isCashbackCredito(row.tipo_movimentacao);
+                    return (
+                      <li key={row.id} className="flex items-center gap-3 p-4">
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                            credito
+                              ? "bg-secondary/20 text-secondary"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {credito ? (
+                            <ArrowUpRight className="h-4 w-4" />
+                          ) : (
+                            <ArrowDownRight className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {cashbackLabel(row.tipo_movimentacao)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(row.created_at).toLocaleString("pt-BR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <p
+                          className={`shrink-0 text-sm font-semibold ${
+                            credito ? "text-secondary" : "text-muted-foreground"
+                          }`}
+                        >
+                          {credito ? "+" : "−"}
+                          {formatBRL(row.valor)}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+
             {profile?.fiado_autorizado && (
               <section>
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">

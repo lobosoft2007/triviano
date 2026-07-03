@@ -13,6 +13,7 @@ import { parseNumberInput } from "@/lib/erp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 interface FormState {
   nome_fantasia: string;
@@ -24,6 +25,8 @@ interface FormState {
   bairro: string;
   cidade: string;
   estado: string;
+  percentual_cashback: string;
+  cashback_ativo: boolean;
 }
 
 function empresaToForm(e: EmpresaBranding): FormState {
@@ -37,6 +40,8 @@ function empresaToForm(e: EmpresaBranding): FormState {
     bairro: e.bairro,
     cidade: e.cidade,
     estado: e.estado,
+    percentual_cashback: String(e.percentual_cashback).replace(".", ","),
+    cashback_ativo: e.cashback_ativo,
   };
 }
 
@@ -78,6 +83,11 @@ export function EmpresaConfigTab() {
       toast.error("A taxa de serviço deve estar entre 0 e 100%.");
       return;
     }
+    const pctCashback = parseNumberInput(form.percentual_cashback);
+    if (pctCashback < 0 || pctCashback > 100) {
+      toast.error("O percentual de cashback deve estar entre 0 e 100%.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -98,6 +108,8 @@ export function EmpresaConfigTab() {
         bairro: form.bairro.trim(),
         cidade: form.cidade.trim(),
         estado: form.estado.trim().toUpperCase(),
+        percentual_cashback: pctCashback,
+        cashback_ativo: form.cashback_ativo,
       });
 
       toast.success("Configurações da empresa salvas!");
@@ -188,6 +200,40 @@ export function EmpresaConfigTab() {
           />
         </div>
       </section>
+
+      {/* Cashback */}
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <h3 className="mb-3 font-display text-sm font-bold">Cashback</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="pct_cashback">Percentual de Cashback (%)</Label>
+            <Input
+              id="pct_cashback"
+              inputMode="decimal"
+              value={form.percentual_cashback}
+              onChange={(e) => set("percentual_cashback", e.target.value)}
+              placeholder="Ex: 5"
+              className="h-11 rounded-xl"
+            />
+            <p className="text-xs text-muted-foreground">
+              Creditado ao cliente quando o pedido é concluído e pago. Pedidos no
+              Fiado não geram cashback.
+            </p>
+          </div>
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
+            <Switch
+              checked={form.cashback_ativo}
+              onCheckedChange={(v: boolean) =>
+                setForm((f) => (f ? { ...f, cashback_ativo: v } : f))
+              }
+            />
+            <span className="text-sm font-medium">
+              Cashback {form.cashback_ativo ? "ativado" : "desativado"}
+            </span>
+          </label>
+        </div>
+      </section>
+
 
       {/* Endereço */}
       <section className="rounded-2xl border border-border bg-card p-4">

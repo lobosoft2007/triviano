@@ -25,6 +25,9 @@ export interface Empresa {
   cor_primaria: string;
   cor_secundaria: string;
   modo_fundo: ModoFundo;
+  /** Cashback engine. */
+  percentual_cashback: number;
+  cashback_ativo: boolean;
 }
 
 export interface EmpresaBranding extends Empresa {
@@ -34,7 +37,7 @@ export interface EmpresaBranding extends Empresa {
 
 /** Full column set — readable only by authenticated users (RLS + grants). */
 const EMPRESA_COLS =
-  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo, cor_primaria, cor_secundaria, modo_fundo";
+  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo, cor_primaria, cor_secundaria, modo_fundo, percentual_cashback, cashback_ativo";
 
 /**
  * Branding-only column set. This is the ONLY set anonymous visitors are
@@ -81,6 +84,8 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         cor_primaria: data.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
         cor_secundaria: data.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
         modo_fundo: (data.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
+        percentual_cashback: 5,
+        cashback_ativo: true,
       }
     : {
         id: DEFAULT_EMPRESA_ID,
@@ -99,6 +104,8 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         cor_primaria: DEFAULT_BRAND_THEME.cor_primaria,
         cor_secundaria: DEFAULT_BRAND_THEME.cor_secundaria,
         modo_fundo: DEFAULT_BRAND_THEME.modo_fundo,
+        percentual_cashback: 5,
+        cashback_ativo: true,
       };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -147,6 +154,8 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
         cor_primaria: data.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
         cor_secundaria: data.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
         modo_fundo: (data.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
+        percentual_cashback: Number(data.percentual_cashback ?? 5),
+        cashback_ativo: data.cashback_ativo ?? true,
       }
     : {
         id: DEFAULT_EMPRESA_ID,
@@ -165,6 +174,8 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
         cor_primaria: DEFAULT_BRAND_THEME.cor_primaria,
         cor_secundaria: DEFAULT_BRAND_THEME.cor_secundaria,
         modo_fundo: DEFAULT_BRAND_THEME.modo_fundo,
+        percentual_cashback: 5,
+        cashback_ativo: true,
       };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -191,6 +202,8 @@ export interface EmpresaUpdate {
   bairro: string;
   cidade: string;
   estado: string;
+  percentual_cashback: number;
+  cashback_ativo: boolean;
 }
 
 /** Update the active company configuration (admin only, enforced by RLS). */
