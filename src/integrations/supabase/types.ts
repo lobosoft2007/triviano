@@ -2062,6 +2062,43 @@ export type Database = {
           saldo_devedor: number
         }[]
       }
+      admin_get_empresa_config: {
+        Args: never
+        Returns: {
+          ativo: boolean
+          bairro: string
+          cashback_ativo: boolean
+          cep: string
+          cidade: string
+          complemento: string
+          cor_primaria: string
+          cor_secundaria: string
+          dominio_customizado: string
+          estado: string
+          id: string
+          logotipo_url: string
+          logradouro: string
+          modo_fundo: string
+          nome_fantasia: string
+          numero: string
+          percentual_cashback: number
+          taxa_servico_mesa: number
+        }[]
+      }
+      admin_get_ingredientes: {
+        Args: { p_product_id: string }
+        Returns: {
+          id: string
+          insumo_id: string
+          nome: string
+          permitir_exclusao: boolean
+          price_option_id: string
+          product_id: string
+          quantidade: number
+          sort_order: number
+          subproduto_id: string
+        }[]
+      }
       admin_get_products: {
         Args: { p_id?: string; p_only_manipulado_false?: boolean }
         Returns: {
@@ -2082,6 +2119,30 @@ export type Database = {
           saldo_estoque: number
           setor_id: string
           sort_order: number
+        }[]
+      }
+      admin_list_empresas: {
+        Args: never
+        Returns: {
+          ativo: boolean
+          bairro: string
+          cashback_ativo: boolean
+          cep: string
+          cidade: string
+          complemento: string
+          cor_primaria: string
+          cor_secundaria: string
+          created_at: string
+          dominio_customizado: string
+          estado: string
+          id: string
+          logotipo_url: string
+          logradouro: string
+          modo_fundo: string
+          nome_fantasia: string
+          numero: string
+          percentual_cashback: number
+          taxa_servico_mesa: number
         }[]
       }
       admin_update_cliente: {
