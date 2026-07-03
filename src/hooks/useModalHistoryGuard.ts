@@ -48,7 +48,10 @@ function openModal(history: RouterHistory, entry: ModalEntry) {
   // Idempotent: ignore duplicate registrations (double render / HMR).
   if (stack.some((e) => e.id === entry.id)) return;
   stack.push(entry);
-  const prevState = (history.location.state ?? {}) as Record<string, unknown>;
+  const prevState = (history.location.state ?? {}) as unknown as Record<
+    string,
+    unknown
+  >;
   // Push the SAME location so the route/component stays mounted; only a
   // synthetic entry is added for the back gesture to consume.
   history.push(history.location.href, { ...prevState, __modal: entry.id });
