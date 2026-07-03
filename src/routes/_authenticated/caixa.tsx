@@ -661,6 +661,20 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         />
       )}
 
+      {/* Ajuste Rápido / Entrada Emergencial */}
+      <Dialog open={ajusteOpen} onOpenChange={setAjusteOpen}>
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto p-4">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Ajuste Rápido de Estoque
+            </DialogTitle>
+          </DialogHeader>
+          <AjusteRapidoView />
+        </DialogContent>
+      </Dialog>
+
+
+
 
       {/* Close cash register dialog */}
       {caixa && (
