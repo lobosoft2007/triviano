@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  ArrowLeft,
   LogOut,
   LogIn,
   ClipboardList,
@@ -25,6 +26,7 @@ import { ProductCustomizer } from "@/components/ProductCustomizer";
 import { CartSheet } from "@/components/CartSheet";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const heroImg = "/images/hero.jpg";
 
