@@ -30,7 +30,7 @@ import {
   ReceiptText,
   Users,
   FileBarChart,
-
+  PackagePlus,
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { StatusControl } from "@/components/caixa/StatusControl";
@@ -42,7 +42,9 @@ import { NotifyClient } from "@/components/caixa/NotifyClient";
 import { WhatsAppStatusButton } from "@/components/caixa/WhatsAppStatusButton";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
 import { ClientesView } from "@/components/admin/ClientesView";
+import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { PartialReportDialog } from "@/components/caixa/PartialReportDialog";
+
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
