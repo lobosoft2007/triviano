@@ -223,7 +223,7 @@ export function EmpresaConfigTab() {
           <label className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
             <Switch
               checked={form.cashback_ativo}
-              onCheckedChange={(v) =>
+              onCheckedChange={(v: boolean) =>
                 setForm((f) => (f ? { ...f, cashback_ativo: v } : f))
               }
             />
