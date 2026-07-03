@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Palette, Save, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import {
-  empresaConfigQueryOptions,
+  empresaAdminConfigQueryOptions,
   updateEmpresaTheme,
 } from "@/lib/empresa";
 import {
