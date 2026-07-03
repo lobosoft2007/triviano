@@ -48,8 +48,17 @@ function openModal(entry: ModalEntry) {
   // Idempotent: ignore duplicate registrations (double render / HMR).
   if (stack.some((e) => e.id === entry.id)) return;
   stack.push(entry);
-  window.history.pushState({ __modal: entry.id }, "", window.location.href);
+  // Preserve the router's own history state (e.g. TanStack scroll-restoration
+  // `key`) so it doesn't detect a foreign entry and inject extra history.
+  const prevState =
+    (window.history.state as Record<string, unknown> | null) ?? {};
+  window.history.pushState(
+    { ...prevState, __modal: entry.id },
+    "",
+    window.location.href,
+  );
 }
+
 
 function closeModal(id: string) {
   const idx = stack.findIndex((e) => e.id === id);
