@@ -61,6 +61,11 @@ export interface Product {
   setor_id: string | null;
   fornecedor_id: string | null;
   custo_anterior: number | null;
+  /**
+   * true when a controlled ingredient (or a tracked resale item) can't cover a
+   * single unit right now. Used to show an "Esgotado" state and block ordering.
+   */
+  esgotado: boolean;
 }
 
 
