@@ -27,7 +27,7 @@ export function useModalHistoryGuard(open: boolean, onClose: () => void) {
     disabled: !open,
     enableBeforeUnload: false,
     shouldBlockFn: () => {
-      if (!open) return false;
+      console.log("[guard] shouldBlockFn open="+open); if (!open) return false;
       // Back gesture while open: close the overlay and cancel the navigation.
       onCloseRef.current();
       return true;
