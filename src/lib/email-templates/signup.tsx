@@ -2,7 +2,6 @@ import * as React from 'react'
 
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
@@ -17,18 +16,18 @@ interface SignupEmailProps {
   siteName: string
   siteUrl: string
   recipient: string
-  confirmationUrl: string
+  token?: string
 }
 
 export const SignupEmail = ({
   siteName,
   siteUrl,
   recipient,
-  confirmationUrl,
+  token,
 }: SignupEmailProps) => (
   <Html lang="pt-BR" dir="ltr">
     <Head />
-    <Preview>Confirme seu cadastro na {siteName}</Preview>
+    <Preview>Seu código de confirmação: {token ?? ''}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={brandBar}>
@@ -43,15 +42,19 @@ export const SignupEmail = ({
           !
         </Text>
         <Text style={text}>
-          Confirme o seu endereço de e-mail (
+          Use o código de 6 dígitos abaixo para confirmar o seu e-mail (
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
           </Link>
-          ) clicando no botão abaixo:
+          ) no aplicativo:
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Confirmar cadastro
-        </Button>
+        <Section style={codeBox}>
+          <Text style={codeText}>{token}</Text>
+        </Section>
+        <Text style={text}>
+          Digite este código na tela de confirmação. Ele é válido por tempo
+          limitado — se expirar, solicite um novo pelo botão “Reenviar código”.
+        </Text>
         <Text style={footer}>
           Se você não criou esta conta, pode ignorar este e-mail com segurança.
         </Text>
@@ -83,16 +86,23 @@ const text = {
   fontSize: '14px',
   color: '#55575d',
   lineHeight: '1.5',
-  margin: '0 0 25px',
+  margin: '0 0 20px',
 }
 const link = { color: BRAND, textDecoration: 'underline' }
-const button = {
-  backgroundColor: BRAND,
-  color: '#ffffff',
-  fontSize: '14px',
+const codeBox = {
+  backgroundColor: '#fbeae7',
+  border: `1px solid ${BRAND}`,
+  borderRadius: '12px',
+  padding: '18px 24px',
+  textAlign: 'center' as const,
+  margin: '0 0 24px',
+}
+const codeText = {
+  fontSize: '34px',
   fontWeight: 'bold' as const,
-  borderRadius: '8px',
-  padding: '12px 24px',
-  textDecoration: 'none',
+  color: BRAND,
+  letterSpacing: '10px',
+  margin: '0',
+  fontFamily: 'Courier New, Courier, monospace',
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
