@@ -190,8 +190,31 @@ export function ProductCustomizer({
     >
       <SheetContent
         side="bottom"
+        hideClose
         className="mx-auto flex max-h-[88vh] max-w-md flex-col rounded-t-3xl p-0"
       >
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background px-4 py-3">
+          <Button
+            type="button"
+            variant="back"
+            onClick={() => onOpenChange(false)}
+            className="gap-1.5 font-semibold"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          <span className="flex-1" />
+          <Button
+            type="button"
+            variant="success"
+            disabled={category.allows_half && half && !second}
+            onClick={handleAdd}
+            className="gap-1.5 font-semibold"
+          >
+            Adicionar • {formatBRL(unitPrice * qty)}
+          </Button>
+        </div>
+
         <SheetHeader className="border-b border-border px-5 py-4 text-left">
           <SheetTitle className="font-display text-lg leading-tight">
             {product.name}
