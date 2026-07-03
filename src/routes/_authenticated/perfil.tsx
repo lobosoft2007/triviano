@@ -231,7 +231,110 @@ function PerfilPage() {
               </section>
             )}
 
-            {/* Extrato */}
+            {/* Cashback card */}
+            {profile && (profile.saldo_cashback > 0 || profile.fiado_autorizado) && (
+              <section className="overflow-hidden rounded-2xl border border-secondary/40 bg-gradient-to-br from-secondary/15 via-card to-card p-5 shadow-float">
+                <div className="flex items-center gap-2 text-secondary">
+                  <Gift className="h-5 w-5" />
+                  <p className="text-xs font-semibold uppercase tracking-widest">
+                    Meu Cashback
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground">Saldo disponível</p>
+                  <p className="mt-1 font-display text-3xl font-bold text-secondary">
+                    {formatBRL(profile.saldo_cashback)}
+                  </p>
+                </div>
+
+                {profile.fiado_autorizado &&
+                  profile.saldo_cashback > 0 &&
+                  profile.saldo_devedor_fiado > 0 && (
+                    <div className="mt-4">
+                      <Button
+                        variant="success"
+                        className="h-11 w-full rounded-xl font-semibold"
+                        disabled={abating}
+                        onClick={handleAbater}
+                      >
+                        {abating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Gift className="mr-2 h-4 w-4" />
+                            Usar{" "}
+                            {formatBRL(
+                              Math.min(
+                                profile.saldo_cashback,
+                                profile.saldo_devedor_fiado,
+                              ),
+                            )}{" "}
+                            para abater o fiado
+                          </>
+                        )}
+                      </Button>
+                      <p className="mt-2 text-center text-xs text-muted-foreground">
+                        O valor é descontado do seu cashback e abate sua dívida
+                        na hora, restabelecendo seu limite.
+                      </p>
+                    </div>
+                  )}
+              </section>
+            )}
+
+            {/* Extrato de cashback */}
+            {extratoCashback && extratoCashback.length > 0 && (
+              <section>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  Extrato de cashback
+                </h2>
+                <ul className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border bg-card">
+                  {extratoCashback.map((row) => {
+                    const credito = isCashbackCredito(row.tipo_movimentacao);
+                    return (
+                      <li key={row.id} className="flex items-center gap-3 p-4">
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                            credito
+                              ? "bg-secondary/20 text-secondary"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {credito ? (
+                            <ArrowUpRight className="h-4 w-4" />
+                          ) : (
+                            <ArrowDownRight className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {cashbackLabel(row.tipo_movimentacao)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(row.created_at).toLocaleString("pt-BR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <p
+                          className={`shrink-0 text-sm font-semibold ${
+                            credito ? "text-secondary" : "text-muted-foreground"
+                          }`}
+                        >
+                          {credito ? "+" : "−"}
+                          {formatBRL(row.valor)}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+
             {profile?.fiado_autorizado && (
               <section>
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
