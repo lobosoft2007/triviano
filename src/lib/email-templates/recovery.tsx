@@ -31,15 +31,15 @@ export const RecoveryEmail = ({
         </Section>
         <Heading style={h1}>Redefina sua senha</Heading>
         <Text style={text}>
-          Recebemos um pedido para redefinir a senha da sua conta na {siteName}.
-          Clique no botão abaixo para escolher uma nova senha.
+          Recebemos uma solicitação para redefinir a senha da sua conta na{' '}
+          {siteName}. Clique no botão abaixo para escolher uma nova senha.
         </Text>
         <Button style={button} href={confirmationUrl}>
           Redefinir senha
         </Button>
         <Text style={footer}>
-          Se você não solicitou a redefinição, pode ignorar este e-mail com
-          segurança. Sua senha permanecerá a mesma.
+          Se você não solicitou a redefinição de senha, pode ignorar este e-mail
+          com segurança. Sua senha não será alterada.
         </Text>
       </Container>
     </Body>

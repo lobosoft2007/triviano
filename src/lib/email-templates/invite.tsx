@@ -34,7 +34,7 @@ export const InviteEmail = ({
         </Section>
         <Heading style={h1}>Você foi convidado</Heading>
         <Text style={text}>
-          Você recebeu um convite para participar da{' '}
+          Você foi convidado para a{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
@@ -44,7 +44,7 @@ export const InviteEmail = ({
           Aceitar convite
         </Button>
         <Text style={footer}>
-          Se você não esperava por este convite, pode ignorar este e-mail com
+          Se você não esperava este convite, pode ignorar este e-mail com
           segurança.
         </Text>
       </Container>

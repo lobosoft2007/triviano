@@ -41,8 +41,7 @@ export const EmailChangeEmail = ({
         </Section>
         <Heading style={h1}>Confirme a alteração de e-mail</Heading>
         <Text style={text}>
-          Você solicitou alterar o endereço de e-mail da sua conta na {siteName}{' '}
-          de{' '}
+          Você solicitou a alteração do seu endereço de e-mail na {siteName} de{' '}
           <Link href={`mailto:${oldEmail}`} style={link}>
             {oldEmail}
           </Link>{' '}

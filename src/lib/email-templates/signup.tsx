@@ -28,13 +28,13 @@ export const SignupEmail = ({
 }: SignupEmailProps) => (
   <Html lang="pt-BR" dir="ltr">
     <Head />
-    <Preview>Confirme seu e-mail na {siteName}</Preview>
+    <Preview>Confirme seu cadastro na {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={brandBar}>
           <Text style={brandText}>{siteName}</Text>
         </Section>
-        <Heading style={h1}>Confirme seu e-mail</Heading>
+        <Heading style={h1}>Confirme seu cadastro</Heading>
         <Text style={text}>
           Obrigado por criar sua conta na{' '}
           <Link href={siteUrl} style={link}>
@@ -50,7 +50,7 @@ export const SignupEmail = ({
           ) clicando no botão abaixo:
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Confirmar e-mail
+          Confirmar cadastro
         </Button>
         <Text style={footer}>
           Se você não criou esta conta, pode ignorar este e-mail com segurança.

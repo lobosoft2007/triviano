@@ -12,7 +12,7 @@ import { EmailChangeEmail } from '@/lib/email-templates/email-change'
 import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirme seu e-mail',
+  signup: 'Confirme seu cadastro',
   invite: 'Você foi convidado',
   magiclink: 'Seu link de acesso',
   recovery: 'Redefina sua senha',
@@ -34,7 +34,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 const SITE_NAME = "Plataforma trivIAno"
 const SENDER_DOMAIN = "mail.usetriviano.com"
 const ROOT_DOMAIN = "usetriviano.com"
-const FROM_ADDRESS = "send@usetriviano.com"
+const FROM_DOMAIN = "usetriviano.com"
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return '***'
@@ -177,7 +177,7 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
             run_id,
             message_id: messageId,
             to: payload.data.email,
-            from: `${SITE_NAME} <${FROM_ADDRESS}>`,
+            from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
             sender_domain: SENDER_DOMAIN,
             subject: EMAIL_SUBJECTS[emailType] || 'Notification',
             html,
