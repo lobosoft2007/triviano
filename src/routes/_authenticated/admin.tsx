@@ -92,9 +92,11 @@ interface AdminProduct {
   display_url: string;
   available: boolean;
   free_addon_limit: number;
+  eixo_variacao: string;
   saldo_estoque: number;
   estoque_minimo: number;
   estoque_maximo: number;
+
 }
 
 async function fetchAdminMenu() {
