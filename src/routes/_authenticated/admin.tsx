@@ -178,6 +178,7 @@ const EMPTY_FORM: FormState = {
   available: true,
   image_url: "",
   free_addon_limit: "0",
+  eixo_variacao: "Tamanho",
   saldo_estoque: "0",
   estoque_minimo: "0",
   estoque_maximo: "0",
