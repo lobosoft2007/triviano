@@ -36,15 +36,7 @@ export interface EmpresaBranding extends Empresa {
 }
 
 /**
- * Checkout-safe column set. Logged-in customers may only read these columns
- * from `empresas` (service fee for the checkout total + branding/theming).
- * Address and cashback config are NOT exposed to regular authenticated users —
- * admins read those through {@link fetchEmpresaAdminConfig}.
- */
-const EMPRESA_CHECKOUT_COLS =
-  "id, nome_fantasia, logotipo_url, dominio_customizado, ativo, cor_primaria, cor_secundaria, modo_fundo, taxa_servico_mesa";
 
-/**
  * Branding-only column set. This is the ONLY set anonymous visitors are
  * allowed to read from `empresas` (service fee + full address are hidden from
  * anon via column-level grants). Used by the public/shared branding query.
@@ -133,21 +125,19 @@ export const empresaQueryOptions = queryOptions({
  * total. Admin/config screens must use {@link fetchEmpresaAdminConfig}.
  */
 export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
-  const { data, error } = await supabase
-    .from("empresas")
-    .select(EMPRESA_CHECKOUT_COLS)
-    .eq("ativo", true)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // The mesa service fee is no longer readable directly from the empresas table
+  // by regular authenticated users. It is served (together with branding) by a
+  // role-neutral SECURITY DEFINER function scoped to the active company.
+  const { data, error } = await supabase.rpc("get_empresa_checkout_config");
   if (error) throw error;
+  const row = (data ?? [])[0];
 
   const empresa: Empresa = {
-    id: data?.id ?? DEFAULT_EMPRESA_ID,
-    nome_fantasia: data?.nome_fantasia ?? "",
-    logotipo_url: data?.logotipo_url ?? "/logo.png",
-    taxa_servico_mesa: Number(data?.taxa_servico_mesa ?? 0),
-    dominio_customizado: data?.dominio_customizado ?? null,
+    id: row?.id ?? DEFAULT_EMPRESA_ID,
+    nome_fantasia: row?.nome_fantasia ?? "",
+    logotipo_url: row?.logotipo_url ?? "/logo.png",
+    taxa_servico_mesa: Number(row?.taxa_servico_mesa ?? 0),
+    dominio_customizado: row?.dominio_customizado ?? null,
     // Address & cashback columns are not readable by regular customers.
     cep: "",
     logradouro: "",
@@ -156,10 +146,10 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     bairro: "",
     cidade: "",
     estado: "",
-    ativo: data?.ativo ?? true,
-    cor_primaria: data?.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
-    cor_secundaria: data?.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
-    modo_fundo: (data?.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
+    ativo: row?.ativo ?? true,
+    cor_primaria: row?.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
+    cor_secundaria: row?.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
+    modo_fundo: (row?.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
     percentual_cashback: 5,
     cashback_ativo: true,
   };

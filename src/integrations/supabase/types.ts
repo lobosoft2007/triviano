@@ -2222,6 +2222,20 @@ export type Database = {
           nome_recebedor: string
         }[]
       }
+      get_empresa_checkout_config: {
+        Args: never
+        Returns: {
+          ativo: boolean
+          cor_primaria: string
+          cor_secundaria: string
+          dominio_customizado: string
+          id: string
+          logotipo_url: string
+          modo_fundo: string
+          nome_fantasia: string
+          taxa_servico_mesa: number
+        }[]
+      }
       get_menu_availability: {
         Args: never
         Returns: {
