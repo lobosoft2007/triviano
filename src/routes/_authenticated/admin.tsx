@@ -56,7 +56,9 @@ import { InsumosCrud } from "@/components/admin/InsumosCrud";
 import { SubprodutosCrud } from "@/components/admin/SubprodutosCrud";
 import { TesourariaView } from "@/components/admin/TesourariaView";
 import { EntradaEstoqueView } from "@/components/admin/EntradaEstoqueView";
+import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
+
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
 import { CombosCrud } from "@/components/admin/CombosCrud";
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
