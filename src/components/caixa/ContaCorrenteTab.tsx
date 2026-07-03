@@ -205,6 +205,27 @@ function ClientRow({
   const [autorizado, setAutorizado] = useState(client.fiado_autorizado);
   const [limite, setLimite] = useState(String(client.limite_fiado));
   const [saving, setSaving] = useState(false);
+  const [abating, setAbating] = useState(false);
+
+  const podeAbater =
+    client.saldo_cashback > 0 && client.saldo_devedor_fiado > 0;
+
+  async function handleAbater() {
+    setAbating(true);
+    try {
+      const res = await abaterFiadoComCashback({ userId: client.id });
+      await queryClient.invalidateQueries({ queryKey: ["fiado-clients"] });
+      toast.success(
+        `${formatBRL(res.abatido)} de cashback abateram o fiado. Novo saldo devedor: ${formatBRL(
+          res.saldo_devedor,
+        )}.`,
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao abater.");
+    } finally {
+      setAbating(false);
+    }
+  }
 
   const disponivel = Math.max(
     0,
