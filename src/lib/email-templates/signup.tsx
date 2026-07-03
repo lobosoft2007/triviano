@@ -9,6 +9,7 @@ import {
   Html,
   Link,
   Preview,
+  Section,
   Text,
 } from '@react-email/components'
 
@@ -25,31 +26,34 @@ export const SignupEmail = ({
   recipient,
   confirmationUrl,
 }: SignupEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="pt-BR" dir="ltr">
     <Head />
-    <Preview>Confirm your email for {siteName}</Preview>
+    <Preview>Confirme seu cadastro na {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
+        <Section style={brandBar}>
+          <Text style={brandText}>{siteName}</Text>
+        </Section>
+        <Heading style={h1}>Confirme seu cadastro</Heading>
         <Text style={text}>
-          Thanks for signing up for{' '}
+          Obrigado por criar sua conta na{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
           !
         </Text>
         <Text style={text}>
-          Please confirm your email address (
+          Confirme o seu endereço de e-mail (
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
           </Link>
-          ) by clicking the button below:
+          ) clicando no botão abaixo:
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Verify Email
+          Confirmar cadastro
         </Button>
         <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
+          Se você não criou esta conta, pode ignorar este e-mail com segurança.
         </Text>
       </Container>
     </Body>
@@ -58,12 +62,21 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
+const BRAND = '#E1523D'
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, Helvetica, sans-serif' }
+const container = { padding: '20px 25px', maxWidth: '520px' }
+const brandBar = { padding: '0 0 16px', borderBottom: `2px solid ${BRAND}`, marginBottom: '24px' }
+const brandText = {
+  fontSize: '18px',
+  fontWeight: 'bold' as const,
+  color: BRAND,
+  margin: '0',
+  letterSpacing: '0.5px',
+}
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#000000',
+  color: '#1f2937',
   margin: '0 0 20px',
 }
 const text = {
@@ -72,13 +85,14 @@ const text = {
   lineHeight: '1.5',
   margin: '0 0 25px',
 }
-const link = { color: 'inherit', textDecoration: 'underline' }
+const link = { color: BRAND, textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: BRAND,
   color: '#ffffff',
   fontSize: '14px',
+  fontWeight: 'bold' as const,
   borderRadius: '8px',
-  padding: '12px 20px',
+  padding: '12px 24px',
   textDecoration: 'none',
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
