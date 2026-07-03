@@ -203,7 +203,9 @@ export function ProductCustomizer({
           {/* Sizes */}
           {options.length > 1 && (
             <section>
-              <h4 className="mb-2 text-sm font-semibold">Escolha o tamanho</h4>
+              <h4 className="mb-2 text-sm font-semibold">
+                {product.eixo_variacao?.trim() || "Escolha o tamanho"}
+              </h4>
               <div className="space-y-2">
                 {options.map((op, idx) => (
                   <button
