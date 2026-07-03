@@ -154,6 +154,8 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
         cor_primaria: data.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
         cor_secundaria: data.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
         modo_fundo: (data.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
+        percentual_cashback: Number(data.percentual_cashback ?? 5),
+        cashback_ativo: data.cashback_ativo ?? true,
       }
     : {
         id: DEFAULT_EMPRESA_ID,
@@ -172,6 +174,8 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
         cor_primaria: DEFAULT_BRAND_THEME.cor_primaria,
         cor_secundaria: DEFAULT_BRAND_THEME.cor_secundaria,
         modo_fundo: DEFAULT_BRAND_THEME.modo_fundo,
+        percentual_cashback: 5,
+        cashback_ativo: true,
       };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
