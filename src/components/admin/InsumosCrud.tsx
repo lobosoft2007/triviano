@@ -99,6 +99,9 @@ export function InsumosCrud() {
       id: i.id,
       nome: i.nome,
       unidade_medida: i.unidade_medida,
+      unidade_estoque: i.unidade_estoque || i.unidade_medida,
+      fator_conversao: String(i.fator_conversao ?? 1).replace(".", ","),
+      controlado: i.controlado,
       custo_unitario: String(i.custo_unitario).replace(".", ","),
       estocavel: i.estocavel,
       fornecedor_id: i.fornecedor_id ?? NONE,
@@ -120,6 +123,9 @@ export function InsumosCrud() {
         id: form.id,
         nome: form.nome,
         unidade_medida: form.unidade_medida,
+        unidade_estoque: form.unidade_estoque,
+        fator_conversao: parseNumberInput(form.fator_conversao),
+        controlado: form.controlado,
         custo_unitario: parseNumberInput(form.custo_unitario),
         estocavel: form.estocavel,
         fornecedor_id: form.fornecedor_id === NONE ? null : form.fornecedor_id,
@@ -127,6 +133,7 @@ export function InsumosCrud() {
         estoque_minimo: parseNumberInput(form.estoque_minimo),
         estoque_maximo: parseNumberInput(form.estoque_maximo),
       });
+
       setOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["erp-insumos"] });
       toast.success("Insumo salvo!");
