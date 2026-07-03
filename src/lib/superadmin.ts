@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Empresa } from "@/lib/empresa";
+import { DEFAULT_BRAND_THEME, type ModoFundo } from "@/lib/theme";
 
 /** Hard gate for the Master SaaS panel — true only for the ecosystem owner. */
 export function useIsSuperAdmin(userId: string | undefined) {
