@@ -30,8 +30,16 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 export interface PlaceOrderInput {
   userId: string;
   items: CartItem[];
-  total: number;
-  discount: number;
+  /**
+   * @deprecated Kept for call-site compatibility. The order total is
+   * recomputed server-side and this value is ignored.
+   */
+  total?: number;
+  /**
+   * @deprecated Kept for call-site compatibility. The discount is recomputed
+   * server-side from the active combo rules and this value is ignored.
+   */
+  discount?: number;
   deliveryAddress: string;
   phone: string;
   notes: string;
@@ -42,66 +50,31 @@ export interface PlaceOrderInput {
 }
 
 export async function placeOrder(input: PlaceOrderInput): Promise<string> {
-  // Block guard: a customer flagged as blocked cannot place new orders.
-  const { data: prof } = await supabase
-    .from("profiles")
-    .select("bloqueado")
-    .eq("id", input.userId)
-    .maybeSingle();
-  if (prof && (prof as { bloqueado?: boolean }).bloqueado) {
-    throw new Error(
-      "Sua conta está temporariamente bloqueada. Entre em contato com o restaurante.",
-    );
-  }
-  // RLS guarantees user_id must equal auth.uid()
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .insert({
-      user_id: input.userId,
-      total: input.total,
-      discount: input.discount,
-      delivery_address: input.deliveryAddress,
-      phone: input.phone,
-      notes: input.notes,
-      status: "pending",
-      tipo_atendimento: input.tipoAtendimento,
-      numero_mesa: input.tipoAtendimento === "Presencial" ? input.numeroMesa : null,
-    })
-    .select("id")
-    .single();
-
-  if (orderError) throw orderError;
-
-  const orderId = order.id as string;
-
+  // The order total, per-item unit prices, combo discount and cashback
+  // redemption are all computed and validated server-side inside the
+  // `create_order` SECURITY DEFINER function. The client can no longer set
+  // the price it pays — it only describes WHAT it is ordering.
   const itemsPayload = input.items.map((i) => ({
-    order_id: orderId,
     product_id: i.productId,
-    product_name: i.name,
-    unit_price: i.unitPrice,
-    quantity: i.quantity,
     size: i.size,
-    addons: i.addons as unknown as Json,
     second_flavor: i.secondFlavor,
+    addons: i.addons,
     remocoes: i.remocoes,
+    quantity: i.quantity,
   }));
 
-  const { error: itemsError } = await supabase
-    .from("order_items")
-    .insert(itemsPayload);
+  const { data, error } = await supabase.rpc("create_order", {
+    p_items: itemsPayload as unknown as Json,
+    p_delivery_address: input.deliveryAddress,
+    p_phone: input.phone,
+    p_notes: input.notes,
+    p_tipo_atendimento: input.tipoAtendimento,
+    p_numero_mesa: input.tipoAtendimento === "Presencial" ? input.numeroMesa : null,
+    p_cashback_used: input.cashbackUsed ?? 0,
+  });
 
-  if (itemsError) throw itemsError;
-
-  // Redeem cashback (secure RPC: debits the customer's own wallet + ledger).
-  if (input.cashbackUsed && input.cashbackUsed > 0) {
-    const { error: cbError } = await supabase.rpc("redeem_cashback_for_order", {
-      p_order_id: orderId,
-      p_amount: input.cashbackUsed,
-    });
-    if (cbError) throw cbError;
-  }
-
-  return orderId;
+  if (error) throw error;
+  return data as string;
 }
 
 export interface OrderRow {
