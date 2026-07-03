@@ -202,6 +202,7 @@ export async function fetchMenu(): Promise<{
       setor_id: null,
       fornecedor_id: null,
       custo_anterior: null,
+      esgotado: esgotadoSet.has(pid),
     };
   }) as Product[];
 
