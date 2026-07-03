@@ -191,6 +191,7 @@ type AdminTab =
   | "categorias"
   | "combos"
   | "empresa"
+  | "identidade"
   | "clientes"
   | "conta"
   | "financeiro"
