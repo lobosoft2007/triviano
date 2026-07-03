@@ -30,7 +30,7 @@ import {
   ReceiptText,
   Users,
   FileBarChart,
-
+  PackagePlus,
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { StatusControl } from "@/components/caixa/StatusControl";
@@ -42,7 +42,9 @@ import { NotifyClient } from "@/components/caixa/NotifyClient";
 import { WhatsAppStatusButton } from "@/components/caixa/WhatsAppStatusButton";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
 import { ClientesView } from "@/components/admin/ClientesView";
+import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { PartialReportDialog } from "@/components/caixa/PartialReportDialog";
+
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -279,6 +281,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     "delivery" | "mesas" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
   >("delivery");
   const [partialOpen, setPartialOpen] = useState(false);
+  const [ajusteOpen, setAjusteOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [printNode, setPrintNode] = useState<ReactNode>(null);
   const prevIdsRef = useRef<Set<string> | null>(null);
@@ -549,6 +552,15 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
           </Button>
           <Button
             size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => setAjusteOpen(true)}
+          >
+            <PackagePlus className="mr-1.5 h-4 w-4 text-primary" /> Ajuste Rápido
+          </Button>
+
+          <Button
+            size="sm"
             variant="destructive"
             className="ml-auto rounded-full"
             onClick={() => setCloseOpen(true)}
@@ -648,6 +660,20 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
           onOpenChange={setPartialOpen}
         />
       )}
+
+      {/* Ajuste Rápido / Entrada Emergencial */}
+      <Dialog open={ajusteOpen} onOpenChange={setAjusteOpen}>
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto p-4">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Ajuste Rápido de Estoque
+            </DialogTitle>
+          </DialogHeader>
+          <AjusteRapidoView />
+        </DialogContent>
+      </Dialog>
+
+
 
 
       {/* Close cash register dialog */}

@@ -39,6 +39,9 @@ interface FormState {
   id: string | null;
   nome: string;
   unidade_medida: string;
+  unidade_estoque: string;
+  fator_conversao: string;
+  controlado: boolean;
   custo_unitario: string;
   estocavel: boolean;
   fornecedor_id: string;
@@ -51,6 +54,9 @@ const EMPTY: FormState = {
   id: null,
   nome: "",
   unidade_medida: "un",
+  unidade_estoque: "un",
+  fator_conversao: "1",
+  controlado: false,
   custo_unitario: "",
   estocavel: true,
   fornecedor_id: NONE,
@@ -58,6 +64,7 @@ const EMPTY: FormState = {
   estoque_minimo: "0",
   estoque_maximo: "0",
 };
+
 
 export function InsumosCrud() {
   const queryClient = useQueryClient();
@@ -92,6 +99,9 @@ export function InsumosCrud() {
       id: i.id,
       nome: i.nome,
       unidade_medida: i.unidade_medida,
+      unidade_estoque: i.unidade_estoque || i.unidade_medida,
+      fator_conversao: String(i.fator_conversao ?? 1).replace(".", ","),
+      controlado: i.controlado,
       custo_unitario: String(i.custo_unitario).replace(".", ","),
       estocavel: i.estocavel,
       fornecedor_id: i.fornecedor_id ?? NONE,
@@ -113,6 +123,9 @@ export function InsumosCrud() {
         id: form.id,
         nome: form.nome,
         unidade_medida: form.unidade_medida,
+        unidade_estoque: form.unidade_estoque,
+        fator_conversao: parseNumberInput(form.fator_conversao),
+        controlado: form.controlado,
         custo_unitario: parseNumberInput(form.custo_unitario),
         estocavel: form.estocavel,
         fornecedor_id: form.fornecedor_id === NONE ? null : form.fornecedor_id,
@@ -120,6 +133,7 @@ export function InsumosCrud() {
         estoque_minimo: parseNumberInput(form.estoque_minimo),
         estoque_maximo: parseNumberInput(form.estoque_maximo),
       });
+
       setOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["erp-insumos"] });
       toast.success("Insumo salvo!");
@@ -257,13 +271,32 @@ export function InsumosCrud() {
                 placeholder="Ex.: Bacon em fatias"
               />
             </Field>
-            <Field label="Unidade de medida">
+            <Field label="Unidade de medida (consumo)">
               <Input
                 value={form.unidade_medida}
                 onChange={(e) =>
                   setForm({ ...form, unidade_medida: e.target.value })
                 }
-                placeholder="kg, un, L..."
+                placeholder="g, ml, un..."
+              />
+            </Field>
+            <Field label="Unidade de estoque (compra)">
+              <Input
+                value={form.unidade_estoque}
+                onChange={(e) =>
+                  setForm({ ...form, unidade_estoque: e.target.value })
+                }
+                placeholder="kg, L, un..."
+              />
+            </Field>
+            <Field label="Fator de conversão (consumo por unidade de estoque)">
+              <Input
+                inputMode="decimal"
+                value={form.fator_conversao}
+                onChange={(e) =>
+                  setForm({ ...form, fator_conversao: e.target.value })
+                }
+                placeholder="Ex.: 1000 (1 kg = 1000 g)"
               />
             </Field>
             <Field label="Custo unitário (R$)">
@@ -276,6 +309,7 @@ export function InsumosCrud() {
                 placeholder="0,00"
               />
             </Field>
+
             <Field label="Fornecedor">
               <Select
                 value={form.fornecedor_id}
@@ -342,6 +376,19 @@ export function InsumosCrud() {
               <Switch
                 checked={form.estocavel}
                 onCheckedChange={(v) => setForm({ ...form, estocavel: v })}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5 sm:col-span-2">
+              <div>
+                <Label className="cursor-pointer">Controlado (trava de saldo)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Base da futura trava atômica: impedirá vendas quando este
+                  insumo zerar.
+                </p>
+              </div>
+              <Switch
+                checked={form.controlado}
+                onCheckedChange={(v) => setForm({ ...form, controlado: v })}
               />
             </div>
           </div>

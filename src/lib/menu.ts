@@ -40,7 +40,10 @@ export interface Product {
   image_url: string;
   available: boolean;
   sort_order: number;
+  /** Dynamic label for the variation axis (e.g. "Escolha sabor"). */
+  eixo_variacao: string;
   price_options: PriceOption[];
+
   addons: Addon[];
   /** Traditional toppings eligible for the free allowance (e.g. Açaí). */
   free_addons: FreeAddon[];
@@ -74,8 +77,9 @@ export async function fetchMenu(): Promise<{
     supabase
       .from("view_products_public")
       .select(
-        "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, empresa_id",
+        "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, eixo_variacao, empresa_id",
       )
+
       .eq("available", true)
       .order("sort_order"),
     supabase
@@ -168,7 +172,10 @@ export async function fetchMenu(): Promise<{
       image_url: p.image_url ?? "",
       available: p.available ?? true,
       sort_order: p.sort_order ?? 0,
+      eixo_variacao:
+        (p as { eixo_variacao?: string | null }).eixo_variacao ?? "Tamanho",
       price_options: priceOptionsMap.get(pid) ?? [],
+
       addons: addonsMap.get(pid) ?? [],
       free_addons: freeAddonsMap.get(pid) ?? [],
       free_addon_limit: Number(p.free_addon_limit ?? 0),

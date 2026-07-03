@@ -24,7 +24,9 @@ import {
   Crown,
   Users,
   Wallet,
+  ClipboardCheck,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -54,7 +56,9 @@ import { InsumosCrud } from "@/components/admin/InsumosCrud";
 import { SubprodutosCrud } from "@/components/admin/SubprodutosCrud";
 import { TesourariaView } from "@/components/admin/TesourariaView";
 import { EntradaEstoqueView } from "@/components/admin/EntradaEstoqueView";
+import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
+
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
 import { CombosCrud } from "@/components/admin/CombosCrud";
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
@@ -88,9 +92,11 @@ interface AdminProduct {
   display_url: string;
   available: boolean;
   free_addon_limit: number;
+  eixo_variacao: string;
   saldo_estoque: number;
   estoque_minimo: number;
   estoque_maximo: number;
+
 }
 
 async function fetchAdminMenu() {
@@ -113,9 +119,11 @@ async function fetchAdminMenu() {
     image_url: p.image_url ?? "",
     available: p.available,
     free_addon_limit: Number(p.free_addon_limit ?? 0),
+    eixo_variacao: (p as { eixo_variacao?: string }).eixo_variacao ?? "Tamanho",
     saldo_estoque: Number(p.saldo_estoque ?? 0),
     estoque_minimo: Number(p.estoque_minimo ?? 0),
     estoque_maximo: Number(p.estoque_maximo ?? 0),
+
   }));
   const urlMap = await resolveImageUrls(raw.map((p) => p.image_url));
 
@@ -154,10 +162,12 @@ interface FormState {
   available: boolean;
   image_url: string;
   free_addon_limit: string;
+  eixo_variacao: string;
   saldo_estoque: string;
   estoque_minimo: string;
   estoque_maximo: string;
 }
+
 
 const EMPTY_FORM: FormState = {
   id: null,
@@ -168,6 +178,7 @@ const EMPTY_FORM: FormState = {
   available: true,
   image_url: "",
   free_addon_limit: "0",
+  eixo_variacao: "Tamanho",
   saldo_estoque: "0",
   estoque_minimo: "0",
   estoque_maximo: "0",
@@ -182,11 +193,13 @@ type AdminTab =
   | "conta"
   | "financeiro"
   | "estoque"
+  | "ajustes"
   | "compras"
   | "insumos"
   | "subprodutos"
   | "setores"
   | "fornecedores";
+
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
@@ -197,7 +210,9 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "conta", label: "Conta Corrente", icon: Wallet },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
   { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
+  { key: "ajustes", label: "Ajuste Rápido", icon: ClipboardCheck },
   { key: "compras", label: "Sugestão de Compras", icon: ShoppingCart },
+
   { key: "insumos", label: "Insumos", icon: Package },
   { key: "subprodutos", label: "Subprodutos", icon: Boxes },
   { key: "setores", label: "Setores", icon: Layers },
@@ -332,6 +347,7 @@ function AdminPage() {
       available: p.available,
       image_url: p.image_url,
       free_addon_limit: String(p.free_addon_limit),
+      eixo_variacao: p.eixo_variacao || "Tamanho",
       saldo_estoque: String(p.saldo_estoque).replace(".", ","),
       estoque_minimo: String(p.estoque_minimo).replace(".", ","),
       estoque_maximo: String(p.estoque_maximo).replace(".", ","),
@@ -378,6 +394,7 @@ function AdminPage() {
         available: form.available,
         image_url: imageRef,
         free_addon_limit: Math.max(0, Math.trunc(Number(form.free_addon_limit) || 0)),
+        eixo_variacao: form.eixo_variacao.trim() || "Tamanho",
         saldo_estoque: parseNumberInput(form.saldo_estoque),
         estoque_minimo: parseNumberInput(form.estoque_minimo),
         estoque_maximo: parseNumberInput(form.estoque_maximo),
@@ -497,6 +514,7 @@ function AdminPage() {
         <main className="px-4 py-5 lg:px-8">
           {tab === "financeiro" && <TesourariaView />}
           {tab === "estoque" && <EntradaEstoqueView />}
+          {tab === "ajustes" && <AjusteRapidoView />}
           {tab === "compras" && <SugestaoComprasView />}
           {tab === "categorias" && <CategoriasCrud />}
           {tab === "combos" && <CombosCrud />}
@@ -678,6 +696,20 @@ function AdminPage() {
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="prod-eixo">Rótulo do eixo de variação</Label>
+              <Input
+                id="prod-eixo"
+                value={form.eixo_variacao}
+                onChange={(e) => setForm({ ...form, eixo_variacao: e.target.value })}
+                placeholder="Ex.: Escolha sabor, Escolha tamanho, Escolha cor"
+              />
+              <p className="text-xs text-muted-foreground">
+                Texto exibido acima das opções de variação no app (sem artigos).
+              </p>
+            </div>
+
 
             {!detail.manipulado && (
               <div className="rounded-xl border border-border p-3">
