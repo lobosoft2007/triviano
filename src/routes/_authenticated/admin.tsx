@@ -199,7 +199,9 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "conta", label: "Conta Corrente", icon: Wallet },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
   { key: "estoque", label: "Entrada Estoque", icon: PackagePlus },
+  { key: "ajustes", label: "Ajuste Rápido", icon: ClipboardCheck },
   { key: "compras", label: "Sugestão de Compras", icon: ShoppingCart },
+
   { key: "insumos", label: "Insumos", icon: Package },
   { key: "subprodutos", label: "Subprodutos", icon: Boxes },
   { key: "setores", label: "Setores", icon: Layers },
