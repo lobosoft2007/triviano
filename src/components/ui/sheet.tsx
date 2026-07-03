@@ -6,8 +6,40 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useModalHistoryGuard } from "@/hooks/useModalHistoryGuard";
 
-const Sheet = SheetPrimitive.Root;
+const Sheet = ({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Root>) => {
+  // Mirror Dialog: intercept the hardware back button to close the sheet
+  // (cart, customizer, menus) instead of exiting the PWA.
+  const [internalOpen, setInternalOpen] = React.useState(defaultOpen ?? false);
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : internalOpen;
+
+  const handleOpenChange = React.useCallback(
+    (next: boolean) => {
+      if (!isControlled) setInternalOpen(next);
+      onOpenChange?.(next);
+    },
+    [isControlled, onOpenChange],
+  );
+
+  useModalHistoryGuard(!!isOpen, () => handleOpenChange(false));
+
+  return (
+    <SheetPrimitive.Root
+      open={open}
+      defaultOpen={defaultOpen}
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  );
+};
+Sheet.displayName = "Sheet";
 
 const SheetTrigger = SheetPrimitive.Trigger;
 
