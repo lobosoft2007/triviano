@@ -198,3 +198,18 @@ export async function updateEmpresa(id: string, patch: EmpresaUpdate): Promise<v
   const { error } = await supabase.from("empresas").update(patch).eq("id", id);
   if (error) throw error;
 }
+
+export interface EmpresaThemeUpdate {
+  cor_primaria: string;
+  cor_secundaria: string;
+  modo_fundo: ModoFundo;
+}
+
+/** Update only the visual-identity columns (admin only, enforced by RLS). */
+export async function updateEmpresaTheme(
+  id: string,
+  patch: EmpresaThemeUpdate,
+): Promise<void> {
+  const { error } = await supabase.from("empresas").update(patch).eq("id", id);
+  if (error) throw error;
+}
