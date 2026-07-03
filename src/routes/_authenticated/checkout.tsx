@@ -56,7 +56,7 @@ function CheckoutPage() {
     enabled: !!user,
   });
 
-  const { data: empresa } = useQuery(empresaQueryOptions);
+  const { data: empresa } = useQuery(empresaConfigQueryOptions);
 
   // Taxa de serviço aplicada automaticamente em pedidos presenciais (mesa).
   const serviceRate = empresa?.taxa_servico_mesa ?? 0;
