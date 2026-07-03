@@ -530,16 +530,6 @@ export function ProductCustomizer({
           </section>
         </div>
 
-        <div className="border-t border-border px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <Button
-            size="lg"
-            className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base"
-            disabled={category.allows_half && half && !second}
-            onClick={handleAdd}
-          >
-            Adicionar • {formatBRL(unitPrice * qty)}
-          </Button>
-        </div>
       </SheetContent>
     </Sheet>
   );
