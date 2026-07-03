@@ -353,6 +353,26 @@ function ClientRow({
             <HandCoins className="mr-1.5 h-4 w-4" /> Registrar pagamento
           </Button>
         )}
+        {podeAbater && (
+          <Button
+            size="sm"
+            variant="success"
+            className="rounded-full"
+            disabled={abating}
+            onClick={handleAbater}
+          >
+            {abating ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Gift className="mr-1.5 h-4 w-4" />
+            )}
+            Abater{" "}
+            {formatBRL(
+              Math.min(client.saldo_cashback, client.saldo_devedor_fiado),
+            )}{" "}
+            c/ cashback
+          </Button>
+        )}
         <Button
           size="sm"
           variant="outline"
