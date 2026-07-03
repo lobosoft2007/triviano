@@ -85,7 +85,11 @@ export function ProductCard({
             {formatBRL(product.price)}
           </span>
 
-          {needsCustomization ? (
+          {esgotado ? (
+            <span className="flex h-9 items-center rounded-full bg-muted px-4 text-sm font-semibold text-muted-foreground">
+              Esgotado
+            </span>
+          ) : needsCustomization ? (
             <button
               aria-label={`Personalizar ${product.name}`}
               onClick={() => setOpen(true)}
