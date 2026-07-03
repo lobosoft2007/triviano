@@ -147,6 +147,7 @@ export type Database = {
           empresa_id: string
           id: string
           limite_credito: number
+          saldo_devedor_atual: number
           updated_at: string
           user_id: string
         }
@@ -157,6 +158,7 @@ export type Database = {
           empresa_id: string
           id?: string
           limite_credito?: number
+          saldo_devedor_atual?: number
           updated_at?: string
           user_id: string
         }
@@ -167,6 +169,7 @@ export type Database = {
           empresa_id?: string
           id?: string
           limite_credito?: number
+          saldo_devedor_atual?: number
           updated_at?: string
           user_id?: string
         }
@@ -2086,6 +2089,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      notify_fiado: {
+        Args: { p_tipo: string; p_user: string; p_valor: number }
+        Returns: undefined
       }
       pay_fiado: {
         Args: {
