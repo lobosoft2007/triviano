@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import {
   ajusteRapidoEstoque,
   conciliarAjusteNf,
@@ -322,10 +323,14 @@ function ConciliarDialog({
 
   return (
     <Dialog open={!!ajuste} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Conciliar Nota Fiscal</DialogTitle>
-        </DialogHeader>
+      <DialogContent hideClose>
+        <ModalActionBar
+          title="Conciliar Nota Fiscal"
+          onBack={onClose}
+          onSave={submit}
+          saving={saving}
+          saveLabel="Confirmar"
+        />
         {ajuste && (
           <div className="space-y-4">
             <div className="rounded-xl bg-secondary px-3 py-2.5 text-sm">
@@ -361,15 +366,6 @@ function ConciliarDialog({
             </div>
           </div>
         )}
-        <DialogFooter>
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-            Confirmar conciliação
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
