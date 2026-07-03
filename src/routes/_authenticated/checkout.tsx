@@ -9,7 +9,7 @@ import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
 import { fetchEsgotadoIds } from "@/lib/menu";
-import { empresaQueryOptions } from "@/lib/empresa";
+import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { usePixPayment } from "@/hooks/usePixPayment";
 import { Button } from "@/components/ui/button";
