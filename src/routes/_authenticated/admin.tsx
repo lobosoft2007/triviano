@@ -784,13 +784,6 @@ function AdminPage() {
               />
             )}
           </div>
-
-          <DialogFooter>
-            <Button onClick={handleSave} disabled={saving || loadingDetail} className="w-full">
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {form.id ? "Salvar alterações" : "Adicionar produto"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
