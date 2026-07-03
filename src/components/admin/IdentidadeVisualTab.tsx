@@ -149,6 +149,7 @@ export function IdentidadeVisualTab() {
       toast.success("Identidade visual salva! O app já está na nova paleta.");
       await queryClient.invalidateQueries({ queryKey: ["empresa-ativa"] });
       await queryClient.invalidateQueries({ queryKey: ["empresa-config"] });
+      await queryClient.invalidateQueries({ queryKey: ["empresa-admin-config"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível salvar.");
     } finally {
