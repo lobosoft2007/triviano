@@ -21,19 +21,14 @@ export function useIsSuperAdmin(userId: string | undefined) {
   });
 }
 
-const EMPRESA_COLS =
-  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo, cor_primaria, cor_secundaria, modo_fundo, percentual_cashback, cashback_ativo, created_at";
-
 export interface EmpresaRow extends Empresa {
   created_at: string;
 }
 
-/** Lists every company in the ecosystem (super_admin only, enforced by RLS). */
+/** Lists every company in the ecosystem (super_admin only, enforced by a
+ *  role-guarded database function — sensitive columns never hit the Data API). */
 export async function listAllEmpresas(): Promise<EmpresaRow[]> {
-  const { data, error } = await supabase
-    .from("empresas")
-    .select(EMPRESA_COLS)
-    .order("created_at", { ascending: true });
+  const { data, error } = await supabase.rpc("admin_list_empresas");
   if (error) throw error;
   return (data ?? []).map((d) => ({
     id: d.id,

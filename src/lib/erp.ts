@@ -416,11 +416,9 @@ export async function fetchProductDetail(
       .maybeSingle(),
     supabase.rpc("admin_get_products", { p_id: productId }),
 
-    supabase
-      .from("ingredientes_produto")
-      .select("insumo_id, subproduto_id, nome, quantidade, permitir_exclusao, sort_order")
-      .eq("product_id", productId)
-      .order("sort_order"),
+    // Internal recipe columns (insumo/subproduto/quantidade) are no longer
+    // readable directly from the table — fetched via a role-guarded function.
+    supabase.rpc("admin_get_ingredientes", { p_product_id: productId }),
   ]);
   if (poRes.error) throw poRes.error;
   if (addRes.error) throw addRes.error;

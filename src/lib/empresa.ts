@@ -35,9 +35,14 @@ export interface EmpresaBranding extends Empresa {
   logo_display_url: string;
 }
 
-/** Full column set — readable only by authenticated users (RLS + grants). */
-const EMPRESA_COLS =
-  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo, cor_primaria, cor_secundaria, modo_fundo, percentual_cashback, cashback_ativo";
+/**
+ * Checkout-safe column set. Logged-in customers may only read these columns
+ * from `empresas` (service fee for the checkout total + branding/theming).
+ * Address and cashback config are NOT exposed to regular authenticated users —
+ * admins read those through {@link fetchEmpresaAdminConfig}.
+ */
+const EMPRESA_CHECKOUT_COLS =
+  "id, nome_fantasia, logotipo_url, dominio_customizado, ativo, cor_primaria, cor_secundaria, modo_fundo, taxa_servico_mesa";
 
 /**
  * Branding-only column set. This is the ONLY set anonymous visitors are
@@ -122,61 +127,42 @@ export const empresaQueryOptions = queryOptions({
 });
 
 /**
- * Fetch the FULL active company config (service fee + address) for
- * authenticated flows only (checkout service fee, admin config form).
- * Anonymous visitors cannot read these columns (RLS + column grants).
+ * Fetch the checkout-safe company config for logged-in customers. Reads only
+ * the service fee + branding columns (address & cashback config are hidden from
+ * regular authenticated users via column-level grants). Used by the checkout
+ * total. Admin/config screens must use {@link fetchEmpresaAdminConfig}.
  */
 export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
   const { data, error } = await supabase
     .from("empresas")
-    .select(EMPRESA_COLS)
+    .select(EMPRESA_CHECKOUT_COLS)
     .eq("ativo", true)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
   if (error) throw error;
 
-  const empresa: Empresa = data
-    ? {
-        id: data.id,
-        nome_fantasia: data.nome_fantasia ?? "",
-        logotipo_url: data.logotipo_url ?? "/logo.png",
-        taxa_servico_mesa: Number(data.taxa_servico_mesa ?? 0),
-        dominio_customizado: data.dominio_customizado ?? null,
-        cep: data.cep ?? "",
-        logradouro: data.logradouro ?? "",
-        numero: data.numero ?? "",
-        complemento: data.complemento ?? "",
-        bairro: data.bairro ?? "",
-        cidade: data.cidade ?? "",
-        estado: data.estado ?? "",
-        ativo: data.ativo ?? true,
-        cor_primaria: data.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
-        cor_secundaria: data.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
-        modo_fundo: (data.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
-        percentual_cashback: Number(data.percentual_cashback ?? 5),
-        cashback_ativo: data.cashback_ativo ?? true,
-      }
-    : {
-        id: DEFAULT_EMPRESA_ID,
-        nome_fantasia: "",
-        logotipo_url: "/logo.png",
-        taxa_servico_mesa: 0,
-        dominio_customizado: null,
-        cep: "",
-        logradouro: "",
-        numero: "",
-        complemento: "",
-        bairro: "",
-        cidade: "",
-        estado: "",
-        ativo: true,
-        cor_primaria: DEFAULT_BRAND_THEME.cor_primaria,
-        cor_secundaria: DEFAULT_BRAND_THEME.cor_secundaria,
-        modo_fundo: DEFAULT_BRAND_THEME.modo_fundo,
-        percentual_cashback: 5,
-        cashback_ativo: true,
-      };
+  const empresa: Empresa = {
+    id: data?.id ?? DEFAULT_EMPRESA_ID,
+    nome_fantasia: data?.nome_fantasia ?? "",
+    logotipo_url: data?.logotipo_url ?? "/logo.png",
+    taxa_servico_mesa: Number(data?.taxa_servico_mesa ?? 0),
+    dominio_customizado: data?.dominio_customizado ?? null,
+    // Address & cashback columns are not readable by regular customers.
+    cep: "",
+    logradouro: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
+    ativo: data?.ativo ?? true,
+    cor_primaria: data?.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
+    cor_secundaria: data?.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
+    modo_fundo: (data?.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
+    percentual_cashback: 5,
+    cashback_ativo: true,
+  };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
   return {
@@ -188,6 +174,50 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
 export const empresaConfigQueryOptions = queryOptions({
   queryKey: ["empresa-config"],
   queryFn: fetchEmpresaConfig,
+  staleTime: 5 * 60 * 1000,
+});
+
+/**
+ * Fetch the FULL active company config (service fee + address + cashback) for
+ * admin/super-admin screens only. Backed by a role-guarded database function so
+ * the sensitive columns are never exposed through the public Data API.
+ */
+export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
+  const { data, error } = await supabase.rpc("admin_get_empresa_config");
+  if (error) throw error;
+  const row = (data ?? [])[0];
+
+  const empresa: Empresa = {
+    id: row?.id ?? DEFAULT_EMPRESA_ID,
+    nome_fantasia: row?.nome_fantasia ?? "",
+    logotipo_url: row?.logotipo_url ?? "/logo.png",
+    taxa_servico_mesa: Number(row?.taxa_servico_mesa ?? 0),
+    dominio_customizado: row?.dominio_customizado ?? null,
+    cep: row?.cep ?? "",
+    logradouro: row?.logradouro ?? "",
+    numero: row?.numero ?? "",
+    complemento: row?.complemento ?? "",
+    bairro: row?.bairro ?? "",
+    cidade: row?.cidade ?? "",
+    estado: row?.estado ?? "",
+    ativo: row?.ativo ?? true,
+    cor_primaria: row?.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
+    cor_secundaria: row?.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
+    modo_fundo: (row?.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
+    percentual_cashback: Number(row?.percentual_cashback ?? 5),
+    cashback_ativo: row?.cashback_ativo ?? true,
+  };
+
+  const urlMap = await resolveImageUrls([empresa.logotipo_url]);
+  return {
+    ...empresa,
+    logo_display_url: urlMap[empresa.logotipo_url] ?? empresa.logotipo_url,
+  };
+}
+
+export const empresaAdminConfigQueryOptions = queryOptions({
+  queryKey: ["empresa-admin-config"],
+  queryFn: fetchEmpresaAdminConfig,
   staleTime: 5 * 60 * 1000,
 });
 

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Palette, Save, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import {
-  empresaConfigQueryOptions,
+  empresaAdminConfigQueryOptions,
   updateEmpresaTheme,
 } from "@/lib/empresa";
 import {
@@ -120,7 +120,7 @@ function LivePreview({ theme }: { theme: ThemeForm }) {
 
 export function IdentidadeVisualTab() {
   const queryClient = useQueryClient();
-  const { data: empresa, isLoading } = useQuery(empresaConfigQueryOptions);
+  const { data: empresa, isLoading } = useQuery(empresaAdminConfigQueryOptions);
   const [form, setForm] = useState<ThemeForm | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -149,6 +149,7 @@ export function IdentidadeVisualTab() {
       toast.success("Identidade visual salva! O app já está na nova paleta.");
       await queryClient.invalidateQueries({ queryKey: ["empresa-ativa"] });
       await queryClient.invalidateQueries({ queryKey: ["empresa-config"] });
+      await queryClient.invalidateQueries({ queryKey: ["empresa-admin-config"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível salvar.");
     } finally {
