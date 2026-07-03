@@ -162,10 +162,12 @@ interface FormState {
   available: boolean;
   image_url: string;
   free_addon_limit: string;
+  eixo_variacao: string;
   saldo_estoque: string;
   estoque_minimo: string;
   estoque_maximo: string;
 }
+
 
 const EMPTY_FORM: FormState = {
   id: null,
