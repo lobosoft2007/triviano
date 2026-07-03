@@ -182,11 +182,13 @@ type AdminTab =
   | "conta"
   | "financeiro"
   | "estoque"
+  | "ajustes"
   | "compras"
   | "insumos"
   | "subprodutos"
   | "setores"
   | "fornecedores";
+
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
