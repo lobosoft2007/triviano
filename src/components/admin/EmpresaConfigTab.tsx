@@ -116,6 +116,7 @@ export function EmpresaConfigTab() {
       setFile(null);
       await queryClient.invalidateQueries({ queryKey: ["empresa-ativa"] });
       await queryClient.invalidateQueries({ queryKey: ["empresa-config"] });
+      await queryClient.invalidateQueries({ queryKey: ["empresa-admin-config"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível salvar.");
     } finally {
