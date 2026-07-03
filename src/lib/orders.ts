@@ -69,7 +69,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
     p_phone: input.phone,
     p_notes: input.notes,
     p_tipo_atendimento: input.tipoAtendimento,
-    p_numero_mesa: input.tipoAtendimento === "Presencial" ? input.numeroMesa : null,
+    p_numero_mesa: (input.tipoAtendimento === "Presencial"
+      ? input.numeroMesa
+      : null) as unknown as number,
     p_cashback_used: input.cashbackUsed ?? 0,
   });
 
