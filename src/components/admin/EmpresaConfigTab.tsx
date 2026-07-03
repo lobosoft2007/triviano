@@ -24,6 +24,8 @@ interface FormState {
   bairro: string;
   cidade: string;
   estado: string;
+  percentual_cashback: string;
+  cashback_ativo: boolean;
 }
 
 function empresaToForm(e: EmpresaBranding): FormState {
@@ -37,6 +39,8 @@ function empresaToForm(e: EmpresaBranding): FormState {
     bairro: e.bairro,
     cidade: e.cidade,
     estado: e.estado,
+    percentual_cashback: String(e.percentual_cashback).replace(".", ","),
+    cashback_ativo: e.cashback_ativo,
   };
 }
 
