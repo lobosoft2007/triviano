@@ -137,7 +137,16 @@ export function PaymentDialog({
       toast.success(`Pedido #${order.id.slice(0, 6).toUpperCase()} baixado.`);
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao finalizar.");
+      const msg = err instanceof Error ? err.message : "Erro ao finalizar.";
+      if (msg.includes("ESTOQUE_INSUFICIENTE")) {
+        const insumo = msg.split("ESTOQUE_INSUFICIENTE:")[1]?.trim() || "um insumo";
+        toast.error(
+          `Estoque insuficiente: "${insumo}" acabou de esgotar na cozinha. Ajuste o pedido ou reponha o estoque para prosseguir.`,
+          { duration: 8000 },
+        );
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setFinalizing(false);
     }
