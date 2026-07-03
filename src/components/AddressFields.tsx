@@ -40,8 +40,15 @@ export function AddressFields({
 }) {
   const [loadingCep, setLoadingCep] = useState(false);
 
+  // Always mirror the latest committed state so async callbacks (ViaCEP) merge
+  // against fresh values instead of the value captured at render time. Without
+  // this, a slow lookup would overwrite fields the user typed meanwhile
+  // (número, telefone), leaving React state out of sync with the visible form.
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
   function set<K extends keyof AddressState>(key: K, v: string) {
-    onChange({ ...value, [key]: v });
+    onChange({ ...valueRef.current, [key]: v });
   }
 
   async function runLookup(rawCep: string) {
@@ -54,15 +61,16 @@ export function AddressFields({
       toast.error("CEP não encontrado. Preencha o endereço manualmente.");
       return;
     }
+    const current = valueRef.current;
     onChange({
-      ...value,
+      ...current,
       cep: digits,
-      tipo_logradouro: result.tipo_logradouro || value.tipo_logradouro,
-      logradouro: result.logradouro || value.logradouro,
-      bairro: result.bairro || value.bairro,
-      municipio: result.municipio || value.municipio,
-      estado: result.estado || value.estado,
-      ddd: result.ddd || value.ddd,
+      tipo_logradouro: result.tipo_logradouro || current.tipo_logradouro,
+      logradouro: result.logradouro || current.logradouro,
+      bairro: result.bairro || current.bairro,
+      municipio: result.municipio || current.municipio,
+      estado: result.estado || current.estado,
+      ddd: result.ddd || current.ddd,
     });
     toast.success("Endereço preenchido pelo CEP.");
   }
