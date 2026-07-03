@@ -530,21 +530,6 @@ function PayDialog({
             </p>
           )}
         </div>
-
-        <DialogFooter>
-          <Button
-            onClick={confirm}
-            disabled={busy || lines.length === 0 || excede}
-            className="w-full"
-          >
-            {busy ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <HandCoins className="mr-2 h-4 w-4" />
-            )}
-            Confirmar quitação
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
