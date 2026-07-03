@@ -47,14 +47,18 @@ function openModal(entry: ModalEntry) {
   // Idempotent: ignore duplicate registrations (double render / HMR).
   if (stack.some((e) => e.id === entry.id)) return;
   stack.push(entry);
-  // Preserve any existing history state (e.g. the router's scroll key) and keep
-  // the exact same URL so no route change is triggered.
+  // Preserve any existing history state (e.g. the router's scroll key). Use a
+  // hash-only URL change so a distinct entry is always created for the back
+  // gesture to consume, while the router (which keys on pathname+search)
+  // treats it as the same route and does not navigate.
   const prevState =
     (window.history.state as Record<string, unknown> | null) ?? {};
+  const base =
+    window.location.pathname + window.location.search;
   window.history.pushState(
     { ...prevState, __modal: entry.id },
     "",
-    window.location.href,
+    `${base}#m${entry.id}`,
   );
 }
 
