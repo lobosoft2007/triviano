@@ -9,6 +9,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { Button } from "@/components/ui/button";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
 import { closeCaixa } from "@/lib/caixa";
@@ -53,13 +54,17 @@ export function CloseCaixaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Fechamento de caixa</DialogTitle>
-          <DialogDescription>
-            Conte o dinheiro físico em caixa. O valor apurado encerra o turno.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent hideClose className="max-w-xl">
+        <ModalActionBar
+          title="Fechamento de caixa"
+          onBack={() => onOpenChange(false)}
+          onSave={handleConfirm}
+          saving={submitting}
+          saveLabel="Fechar"
+        />
+        <DialogDescription>
+          Conte o dinheiro físico em caixa. O valor apurado encerra o turno.
+        </DialogDescription>
 
         <MoneyCounter
           value={counts}
@@ -105,26 +110,6 @@ export function CloseCaixaDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirm}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              `Confirmar fechamento · ${formatBRL(total)}`
-            )}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
