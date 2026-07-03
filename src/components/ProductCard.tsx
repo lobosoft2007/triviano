@@ -46,16 +46,27 @@ export function ProductCard({
   const simpleLineId = makeLineId(simpleLine);
   const inCart = items.find((i) => i.lineId === simpleLineId);
 
+  const esgotado = product.esgotado;
+
   return (
     <div className="flex gap-3 rounded-2xl bg-card p-3 shadow-card">
-      <ProductImage
-        src={product.image_url}
-        alt={product.name}
-        categorySlug={category.slug}
-        width={768}
-        height={768}
-        className="h-24 w-24 flex-shrink-0 rounded-xl object-cover"
-      />
+      <div className="relative h-24 w-24 flex-shrink-0">
+        <ProductImage
+          src={product.image_url}
+          alt={product.name}
+          categorySlug={category.slug}
+          width={768}
+          height={768}
+          className={`h-24 w-24 rounded-xl object-cover ${esgotado ? "grayscale" : ""}`}
+        />
+        {esgotado && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-background/60">
+            <span className="rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive-foreground">
+              Esgotado
+            </span>
+          </div>
+        )}
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <h3 className="font-display text-base font-semibold leading-tight">
@@ -74,7 +85,11 @@ export function ProductCard({
             {formatBRL(product.price)}
           </span>
 
-          {needsCustomization ? (
+          {esgotado ? (
+            <span className="flex h-9 items-center rounded-full bg-muted px-4 text-sm font-semibold text-muted-foreground">
+              Esgotado
+            </span>
+          ) : needsCustomization ? (
             <button
               aria-label={`Personalizar ${product.name}`}
               onClick={() => setOpen(true)}

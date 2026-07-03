@@ -289,6 +289,7 @@ function NetflixCard({
   category: Category;
   onOpen: (product: Product) => void;
 }) {
+  const esgotado = product.esgotado;
   return (
     <div className="flex h-auto w-36 shrink-0 snap-start flex-col items-center gap-2 sm:w-44">
       {/* Name — top */}
@@ -299,9 +300,14 @@ function NetflixCard({
       {/* Square product image — clean, clickable */}
       <button
         type="button"
-        aria-label={`Ver detalhes de ${product.name}`}
-        onClick={() => onOpen(product)}
-        className="aspect-square w-full overflow-hidden rounded-2xl bg-card ring-1 ring-border/70 transition-transform duration-200 hover:scale-[1.02] hover:ring-primary focus:outline-none focus:ring-2 focus:ring-primary"
+        aria-label={
+          esgotado
+            ? `${product.name} esgotado`
+            : `Ver detalhes de ${product.name}`
+        }
+        onClick={() => !esgotado && onOpen(product)}
+        disabled={esgotado}
+        className="relative aspect-square w-full overflow-hidden rounded-2xl bg-card ring-1 ring-border/70 transition-transform duration-200 hover:scale-[1.02] hover:ring-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:ring-border/70"
       >
         <ProductImage
           src={product.image_url}
@@ -309,8 +315,15 @@ function NetflixCard({
           categorySlug={category.slug}
           width={352}
           height={352}
-          className="h-full w-full object-cover"
+          className={`h-full w-full object-cover ${esgotado ? "grayscale" : ""}`}
         />
+        {esgotado && (
+          <span className="absolute inset-0 flex items-center justify-center bg-background/60">
+            <span className="rounded-full bg-destructive px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-destructive-foreground">
+              Esgotado
+            </span>
+          </span>
+        )}
       </button>
 
       {/* Price — bottom */}

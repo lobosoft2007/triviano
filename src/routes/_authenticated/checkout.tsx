@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
+import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { usePixPayment } from "@/hooks/usePixPayment";
@@ -136,6 +137,21 @@ function CheckoutPage() {
     }
     if (!user) return;
     setSubmitting(true);
+    // Preventive race check: an item may have sold out while browsing.
+    try {
+      const esgotados = await fetchEsgotadoIds();
+      const blocked = items.find((i) => esgotados.has(i.productId));
+      if (blocked) {
+        toast.error(
+          `Lamento! ${blocked.name} acabou de esgotar em nossa cozinha. Por favor, altere o pedido para prosseguir.`,
+          { duration: 8000 },
+        );
+        setSubmitting(false);
+        return;
+      }
+    } catch {
+      /* availability is best-effort; never block checkout on its failure */
+    }
     try {
       await placeOrder({
         userId: user.id,

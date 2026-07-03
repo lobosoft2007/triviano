@@ -61,6 +61,11 @@ export interface Product {
   setor_id: string | null;
   fornecedor_id: string | null;
   custo_anterior: number | null;
+  /**
+   * true when a controlled ingredient (or a tracked resale item) can't cover a
+   * single unit right now. Used to show an "Esgotado" state and block ordering.
+   */
+  esgotado: boolean;
 }
 
 
@@ -70,36 +75,39 @@ export async function fetchMenu(): Promise<{
   categories: Category[];
   products: Product[];
 }> {
-  const [catRes, prodRes, ingRes, poRes, addRes, freeRes] = await Promise.all([
-    supabase.from("categories").select("*").order("sort_order"),
-    // Client menu reads ONLY the safe public view (no cost/stock/supplier
-    // columns). The raw products table is admin-only via RLS.
-    supabase
-      .from("view_products_public")
-      .select(
-        "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, eixo_variacao, empresa_id",
-      )
+  const [catRes, prodRes, ingRes, poRes, addRes, freeRes, availRes] =
+    await Promise.all([
+      supabase.from("categories").select("*").order("sort_order"),
+      // Client menu reads ONLY the safe public view (no cost/stock/supplier
+      // columns). The raw products table is admin-only via RLS.
+      supabase
+        .from("view_products_public")
+        .select(
+          "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, eixo_variacao, empresa_id",
+        )
 
-      .eq("available", true)
-      .order("sort_order"),
-    supabase
-      .from("ingredientes_produto")
-      .select("product_id, nome, permitir_exclusao, sort_order")
-      .eq("permitir_exclusao", true)
-      .order("sort_order"),
-    supabase
-      .from("produtos_price_options")
-      .select("produto_id, tamanho, preco, sort_order")
-      .order("sort_order"),
-    supabase
-      .from("produtos_addons")
-      .select("produto_id, nome, preco, sort_order")
-      .order("sort_order"),
-    supabase
-      .from("produtos_free_addons")
-      .select("produto_id, nome, preco, sort_order")
-      .order("sort_order"),
-  ]);
+        .eq("available", true)
+        .order("sort_order"),
+      supabase
+        .from("ingredientes_produto")
+        .select("product_id, nome, permitir_exclusao, sort_order")
+        .eq("permitir_exclusao", true)
+        .order("sort_order"),
+      supabase
+        .from("produtos_price_options")
+        .select("produto_id, tamanho, preco, sort_order")
+        .order("sort_order"),
+      supabase
+        .from("produtos_addons")
+        .select("produto_id, nome, preco, sort_order")
+        .order("sort_order"),
+      supabase
+        .from("produtos_free_addons")
+        .select("produto_id, nome, preco, sort_order")
+        .order("sort_order"),
+      // Preventive stock signal (no cost/stock values exposed, only a flag).
+      supabase.rpc("get_menu_availability"),
+    ]);
 
   if (catRes.error) throw catRes.error;
   if (prodRes.error) throw prodRes.error;
@@ -107,6 +115,14 @@ export async function fetchMenu(): Promise<{
   if (poRes.error) throw poRes.error;
   if (addRes.error) throw addRes.error;
   if (freeRes.error) throw freeRes.error;
+  // Availability is non-critical: if it fails, treat everything as in stock.
+  const esgotadoSet = new Set<string>(
+    (availRes.data ?? [])
+      .filter((r) => r.esgotado)
+      .map((r) => r.id),
+  );
+
+
 
   // Map product_id -> list of removable ingredient names.
   const removableMap = new Map<string, string[]>();
@@ -186,6 +202,7 @@ export async function fetchMenu(): Promise<{
       setor_id: null,
       fornecedor_id: null,
       custo_anterior: null,
+      esgotado: esgotadoSet.has(pid),
     };
   }) as Product[];
 
@@ -198,6 +215,20 @@ export async function fetchMenu(): Promise<{
 
   return result;
 }
+
+/**
+ * Fresh snapshot of out-of-stock product ids. Used at checkout to catch the
+ * race where an item sells out between browsing and confirming the order.
+ * Best-effort: on failure returns an empty set (never blocks checkout).
+ */
+export async function fetchEsgotadoIds(): Promise<Set<string>> {
+  const { data, error } = await supabase.rpc("get_menu_availability");
+  if (error) return new Set<string>();
+  return new Set(
+    (data ?? []).filter((r) => r.esgotado).map((r) => r.id),
+  );
+}
+
 
 
 export const menuQueryOptions = {
