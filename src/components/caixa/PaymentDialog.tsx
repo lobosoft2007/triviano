@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 
 /** Integer cents to avoid floating-point comparison drift. */
 const toCents = (n: number) => Math.round(n * 100);
@@ -154,12 +155,15 @@ export function PaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display">
-            Dividir pagamento · #{order.id.slice(0, 6).toUpperCase()}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent hideClose className="max-h-[90vh] max-w-md overflow-y-auto">
+        <ModalActionBar
+          title={`Dividir pagamento · #${order.id.slice(0, 6).toUpperCase()}`}
+          onBack={() => onOpenChange(false)}
+          onSave={handleFinalize}
+          saving={finalizing}
+          saveDisabled={!matches}
+          saveLabel="Finalizar"
+        />
 
         <div className="space-y-4">
           {/* Add line */}
@@ -267,20 +271,6 @@ export function PaymentDialog({
           )}
         </div>
 
-        <DialogFooter>
-          <Button
-            onClick={handleFinalize}
-            disabled={!matches || finalizing}
-            className="w-full"
-          >
-            {finalizing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-            )}
-            Finalizar e baixar pedido
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
