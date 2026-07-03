@@ -36,15 +36,7 @@ export interface EmpresaBranding extends Empresa {
 }
 
 /**
- * Checkout-safe column set. Logged-in customers may only read these columns
- * from `empresas` (service fee for the checkout total + branding/theming).
- * Address and cashback config are NOT exposed to regular authenticated users —
- * admins read those through {@link fetchEmpresaAdminConfig}.
- */
-const EMPRESA_CHECKOUT_COLS =
-  "id, nome_fantasia, logotipo_url, dominio_customizado, ativo, cor_primaria, cor_secundaria, modo_fundo, taxa_servico_mesa";
 
-/**
  * Branding-only column set. This is the ONLY set anonymous visitors are
  * allowed to read from `empresas` (service fee + full address are hidden from
  * anon via column-level grants). Used by the public/shared branding query.
