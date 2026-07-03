@@ -30,6 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { IconBtn } from "./SetoresCrud";
 import { Field } from "./FornecedoresCrud";
 
@@ -257,12 +258,14 @@ export function InsumosCrud() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display">
-              {form.id ? "Editar insumo" : "Novo insumo"}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent hideClose className="max-w-lg">
+          <ModalActionBar
+            title={form.id ? "Editar insumo" : "Novo insumo"}
+            onBack={() => setOpen(false)}
+            onSave={handleSave}
+            saving={saving}
+            saveLabel="Salvar"
+          />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Nome" className="sm:col-span-2">
               <Input
@@ -392,12 +395,6 @@ export function InsumosCrud() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
