@@ -389,14 +389,26 @@ function DetailModal({
 
   return (
     <Dialog open={!!selection} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-sm overflow-hidden rounded-2xl border-border bg-card p-0">
-        <button
-          aria-label="Fechar"
-          onClick={onClose}
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition-colors hover:bg-black/70"
-        >
-          <X className="h-4 w-4" />
-        </button>
+      <DialogContent hideClose className="max-w-sm overflow-hidden rounded-2xl border-border bg-card p-0">
+        <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-background px-3 py-2.5">
+          <Button
+            type="button"
+            variant="back"
+            onClick={onClose}
+            className="gap-1.5 font-semibold"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          <Button
+            type="button"
+            variant="success"
+            onClick={handleChoose}
+            className="gap-1.5 font-semibold"
+          >
+            Escolher
+          </Button>
+        </div>
 
         <div className="relative aspect-[4/3] w-full">
           <ProductImage
@@ -425,13 +437,6 @@ function DetailModal({
               {formatBRL(product.price)}
             </span>
           </div>
-
-          <button
-            onClick={handleChoose}
-            className="mt-1 flex w-full items-center justify-center rounded-xl bg-primary px-5 py-3.5 font-display text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
-          >
-            Escolher
-          </button>
         </div>
       </DialogContent>
     </Dialog>
