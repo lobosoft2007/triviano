@@ -281,6 +281,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     "delivery" | "mesas" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
   >("delivery");
   const [partialOpen, setPartialOpen] = useState(false);
+  const [ajusteOpen, setAjusteOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [printNode, setPrintNode] = useState<ReactNode>(null);
   const prevIdsRef = useRef<Set<string> | null>(null);
