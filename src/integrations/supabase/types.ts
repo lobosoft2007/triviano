@@ -2181,6 +2181,18 @@ export type Database = {
         }
         Returns: number
       }
+      create_order: {
+        Args: {
+          p_cashback_used?: number
+          p_delivery_address: string
+          p_items: Json
+          p_notes: string
+          p_numero_mesa: number
+          p_phone: string
+          p_tipo_atendimento: string
+        }
+        Returns: string
+      }
       criar_ordem_compra: {
         Args: {
           p_fornecedor: string
