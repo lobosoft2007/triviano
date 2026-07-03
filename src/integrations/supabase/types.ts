@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      ajustes_estoque: {
+        Row: {
+          ajuste_fino: number | null
+          conciliado_at: string | null
+          conciliado_by: string | null
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          id: string
+          insumo_id: string
+          nf_referencia: string | null
+          observacao: string | null
+          quantidade: number
+          quantidade_nf: number | null
+          saldo_apos: number | null
+          status: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ajuste_fino?: number | null
+          conciliado_at?: string | null
+          conciliado_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          id?: string
+          insumo_id: string
+          nf_referencia?: string | null
+          observacao?: string | null
+          quantidade: number
+          quantidade_nf?: number | null
+          saldo_apos?: number | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ajuste_fino?: number | null
+          conciliado_at?: string | null
+          conciliado_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          id?: string
+          insumo_id?: string
+          nf_referencia?: string | null
+          observacao?: string | null
+          quantidade?: number
+          quantidade_nf?: number | null
+          saldo_apos?: number | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ajustes_estoque_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           allows_half: boolean
@@ -755,6 +820,7 @@ export type Database = {
           insumo_id: string | null
           nome: string
           permitir_exclusao: boolean
+          price_option_id: string | null
           product_id: string
           quantidade: number
           sort_order: number
@@ -766,6 +832,7 @@ export type Database = {
           insumo_id?: string | null
           nome: string
           permitir_exclusao?: boolean
+          price_option_id?: string | null
           product_id: string
           quantidade?: number
           sort_order?: number
@@ -777,6 +844,7 @@ export type Database = {
           insumo_id?: string | null
           nome?: string
           permitir_exclusao?: boolean
+          price_option_id?: string | null
           product_id?: string
           quantidade?: number
           sort_order?: number
@@ -788,6 +856,13 @@ export type Database = {
             columns: ["insumo_id"]
             isOneToOne: false
             referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredientes_produto_price_option_id_fkey"
+            columns: ["price_option_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_price_options"
             referencedColumns: ["id"]
           },
           {
@@ -808,6 +883,7 @@ export type Database = {
       }
       insumos: {
         Row: {
+          controlado: boolean
           created_at: string
           custo_anterior: number | null
           custo_anterior_at: string | null
@@ -816,15 +892,18 @@ export type Database = {
           estocavel: boolean
           estoque_maximo: number
           estoque_minimo: number
+          fator_conversao: number
           fornecedor_id: string | null
           id: string
           nome: string
           saldo_estoque: number
           setor_id: string | null
+          unidade_estoque: string | null
           unidade_medida: string
           updated_at: string
         }
         Insert: {
+          controlado?: boolean
           created_at?: string
           custo_anterior?: number | null
           custo_anterior_at?: string | null
@@ -833,15 +912,18 @@ export type Database = {
           estocavel?: boolean
           estoque_maximo?: number
           estoque_minimo?: number
+          fator_conversao?: number
           fornecedor_id?: string | null
           id?: string
           nome: string
           saldo_estoque?: number
           setor_id?: string | null
+          unidade_estoque?: string | null
           unidade_medida?: string
           updated_at?: string
         }
         Update: {
+          controlado?: boolean
           created_at?: string
           custo_anterior?: number | null
           custo_anterior_at?: string | null
@@ -850,11 +932,13 @@ export type Database = {
           estocavel?: boolean
           estoque_maximo?: number
           estoque_minimo?: number
+          fator_conversao?: number
           fornecedor_id?: string | null
           id?: string
           nome?: string
           saldo_estoque?: number
           setor_id?: string | null
+          unidade_estoque?: string | null
           unidade_medida?: string
           updated_at?: string
         }
@@ -1361,6 +1445,7 @@ export type Database = {
           custo_anterior: number | null
           custo_anterior_at: string | null
           description: string
+          eixo_variacao: string
           empresa_id: string
           estoque_maximo: number
           estoque_minimo: number
@@ -1382,6 +1467,7 @@ export type Database = {
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           description?: string
+          eixo_variacao?: string
           empresa_id?: string
           estoque_maximo?: number
           estoque_minimo?: number
@@ -1403,6 +1489,7 @@ export type Database = {
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           description?: string
+          eixo_variacao?: string
           empresa_id?: string
           estoque_maximo?: number
           estoque_minimo?: number
@@ -1452,31 +1539,44 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          insumo_id: string | null
           nome: string
           preco: number
           produto_id: string
+          quantidade: number
           sort_order: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
+          insumo_id?: string | null
           nome: string
           preco?: number
           produto_id: string
+          quantidade?: number
           sort_order?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
+          insumo_id?: string | null
           nome?: string
           preco?: number
           produto_id?: string
+          quantidade?: number
           sort_order?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "produtos_addons_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "produtos_addons_produto_id_fkey"
             columns: ["produto_id"]
@@ -1490,31 +1590,44 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          insumo_id: string | null
           nome: string
           preco: number
           produto_id: string
+          quantidade: number
           sort_order: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
+          insumo_id?: string | null
           nome: string
           preco?: number
           produto_id: string
+          quantidade?: number
           sort_order?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
+          insumo_id?: string | null
           nome?: string
           preco?: number
           produto_id?: string
+          quantidade?: number
           sort_order?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "produtos_free_addons_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "produtos_free_addons_produto_id_fkey"
             columns: ["produto_id"]
@@ -1834,6 +1947,7 @@ export type Database = {
           available: boolean | null
           category_id: string | null
           description: string | null
+          eixo_variacao: string | null
           empresa_id: string | null
           free_addon_limit: number | null
           id: string | null
@@ -1853,6 +1967,7 @@ export type Database = {
           category_id: string
           custo_anterior: number
           description: string
+          eixo_variacao: string
           estoque_maximo: number
           estoque_minimo: number
           fornecedor_id: string
@@ -1886,7 +2001,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      ajuste_rapido_estoque: {
+        Args: {
+          p_insumo_id: string
+          p_observacao?: string
+          p_quantidade: number
+        }
+        Returns: number
+      }
       cancel_order: { Args: { p_order_id: string }; Returns: undefined }
+      conciliar_ajuste_nf: {
+        Args: {
+          p_ajuste_id: string
+          p_nf_referencia?: string
+          p_quantidade_nf: number
+        }
+        Returns: number
+      }
       criar_ordem_compra: {
         Args: {
           p_fornecedor: string
@@ -1923,6 +2054,7 @@ export type Database = {
           available: boolean
           category_id: string
           description: string
+          eixo_variacao: string
           empresa_id: string
           free_addon_limit: number
           id: string
