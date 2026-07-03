@@ -22,8 +22,11 @@ export function useModalHistoryGuard(open: boolean, onClose: () => void) {
   // Guards against re-entrancy while we programmatically pop the entry.
   const closingViaPopRef = useRef(false);
 
+  const idRef = useRef(Math.random().toString(36).slice(2, 7));
   useEffect(() => {
     if (typeof window === "undefined") return;
+    console.log("[modalguard] effect run id=", idRef.current, "open=", open);
+
 
     if (open) {
       // Push a synthetic state the back gesture can consume.
