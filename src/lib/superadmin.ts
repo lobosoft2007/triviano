@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Empresa } from "@/lib/empresa";
+import { DEFAULT_BRAND_THEME, type ModoFundo } from "@/lib/theme";
 
 /** Hard gate for the Master SaaS panel — true only for the ecosystem owner. */
 export function useIsSuperAdmin(userId: string | undefined) {
@@ -21,7 +22,7 @@ export function useIsSuperAdmin(userId: string | undefined) {
 }
 
 const EMPRESA_COLS =
-  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo, created_at";
+  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo, cor_primaria, cor_secundaria, modo_fundo, created_at";
 
 export interface EmpresaRow extends Empresa {
   created_at: string;
@@ -48,6 +49,9 @@ export async function listAllEmpresas(): Promise<EmpresaRow[]> {
     cidade: d.cidade ?? "",
     estado: d.estado ?? "",
     ativo: d.ativo ?? true,
+    cor_primaria: d.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
+    cor_secundaria: d.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
+    modo_fundo: (d.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
     created_at: d.created_at,
   }));
 }

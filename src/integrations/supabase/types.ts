@@ -469,12 +469,15 @@ export type Database = {
           cep: string
           cidade: string
           complemento: string
+          cor_primaria: string
+          cor_secundaria: string
           created_at: string
           dominio_customizado: string | null
           estado: string
           id: string
           logotipo_url: string
           logradouro: string
+          modo_fundo: string
           nome_fantasia: string
           numero: string
           taxa_servico_mesa: number
@@ -486,12 +489,15 @@ export type Database = {
           cep?: string
           cidade?: string
           complemento?: string
+          cor_primaria?: string
+          cor_secundaria?: string
           created_at?: string
           dominio_customizado?: string | null
           estado?: string
           id?: string
           logotipo_url?: string
           logradouro?: string
+          modo_fundo?: string
           nome_fantasia?: string
           numero?: string
           taxa_servico_mesa?: number
@@ -503,12 +509,15 @@ export type Database = {
           cep?: string
           cidade?: string
           complemento?: string
+          cor_primaria?: string
+          cor_secundaria?: string
           created_at?: string
           dominio_customizado?: string | null
           estado?: string
           id?: string
           logotipo_url?: string
           logradouro?: string
+          modo_fundo?: string
           nome_fantasia?: string
           numero?: string
           taxa_servico_mesa?: number

@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveImageUrls } from "@/lib/storage";
+import { DEFAULT_BRAND_THEME, type ModoFundo } from "@/lib/theme";
 
 /** UUID fixo da empresa raiz (Clube 23). Usado como tenant padrão. */
 export const DEFAULT_EMPRESA_ID = "00000000-0000-0000-0000-000000000023";
@@ -20,6 +21,10 @@ export interface Empresa {
   cidade: string;
   estado: string;
   ativo: boolean;
+  /** Visual identity (multi-tenant theming). */
+  cor_primaria: string;
+  cor_secundaria: string;
+  modo_fundo: ModoFundo;
 }
 
 export interface EmpresaBranding extends Empresa {
@@ -29,15 +34,17 @@ export interface EmpresaBranding extends Empresa {
 
 /** Full column set — readable only by authenticated users (RLS + grants). */
 const EMPRESA_COLS =
-  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo";
+  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo, cor_primaria, cor_secundaria, modo_fundo";
 
 /**
  * Branding-only column set. This is the ONLY set anonymous visitors are
  * allowed to read from `empresas` (service fee + full address are hidden from
  * anon via column-level grants). Used by the public/shared branding query.
+ * Includes the visual-identity columns so the PWA can theme for anon visitors.
  */
 const EMPRESA_BRANDING_COLS =
-  "id, nome_fantasia, logotipo_url, dominio_customizado, ativo";
+  "id, nome_fantasia, logotipo_url, dominio_customizado, ativo, cor_primaria, cor_secundaria, modo_fundo";
+
 
 /**
  * Fetch the active company branding (name, logo, domain) and resolve a
@@ -71,6 +78,9 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         cidade: "",
         estado: "",
         ativo: data.ativo ?? true,
+        cor_primaria: data.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
+        cor_secundaria: data.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
+        modo_fundo: (data.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
       }
     : {
         id: DEFAULT_EMPRESA_ID,
@@ -86,6 +96,9 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         cidade: "",
         estado: "",
         ativo: true,
+        cor_primaria: DEFAULT_BRAND_THEME.cor_primaria,
+        cor_secundaria: DEFAULT_BRAND_THEME.cor_secundaria,
+        modo_fundo: DEFAULT_BRAND_THEME.modo_fundo,
       };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -131,6 +144,9 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
         cidade: data.cidade ?? "",
         estado: data.estado ?? "",
         ativo: data.ativo ?? true,
+        cor_primaria: data.cor_primaria ?? DEFAULT_BRAND_THEME.cor_primaria,
+        cor_secundaria: data.cor_secundaria ?? DEFAULT_BRAND_THEME.cor_secundaria,
+        modo_fundo: (data.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
       }
     : {
         id: DEFAULT_EMPRESA_ID,
@@ -146,6 +162,9 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
         cidade: "",
         estado: "",
         ativo: true,
+        cor_primaria: DEFAULT_BRAND_THEME.cor_primaria,
+        cor_secundaria: DEFAULT_BRAND_THEME.cor_secundaria,
+        modo_fundo: DEFAULT_BRAND_THEME.modo_fundo,
       };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -176,6 +195,21 @@ export interface EmpresaUpdate {
 
 /** Update the active company configuration (admin only, enforced by RLS). */
 export async function updateEmpresa(id: string, patch: EmpresaUpdate): Promise<void> {
+  const { error } = await supabase.from("empresas").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export interface EmpresaThemeUpdate {
+  cor_primaria: string;
+  cor_secundaria: string;
+  modo_fundo: ModoFundo;
+}
+
+/** Update only the visual-identity columns (admin only, enforced by RLS). */
+export async function updateEmpresaTheme(
+  id: string,
+  patch: EmpresaThemeUpdate,
+): Promise<void> {
   const { error } = await supabase.from("empresas").update(patch).eq("id", id);
   if (error) throw error;
 }

@@ -21,6 +21,7 @@ import {
   ShoppingCart,
   Tags,
   Building2,
+  Palette,
   Crown,
   Users,
   Wallet,
@@ -62,6 +63,7 @@ import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
 import { CombosCrud } from "@/components/admin/CombosCrud";
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
+import { IdentidadeVisualTab } from "@/components/admin/IdentidadeVisualTab";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
@@ -189,6 +191,7 @@ type AdminTab =
   | "categorias"
   | "combos"
   | "empresa"
+  | "identidade"
   | "clientes"
   | "conta"
   | "financeiro"
@@ -206,6 +209,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
   { key: "combos", label: "Campanhas", icon: Megaphone },
   { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
+  { key: "identidade", label: "Identidade Visual", icon: Palette },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "conta", label: "Conta Corrente", icon: Wallet },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
@@ -519,6 +523,7 @@ function AdminPage() {
           {tab === "categorias" && <CategoriasCrud />}
           {tab === "combos" && <CombosCrud />}
           {tab === "empresa" && <EmpresaConfigTab />}
+          {tab === "identidade" && <IdentidadeVisualTab />}
           {tab === "clientes" && <ClientesView canBlock />}
           {tab === "conta" && <ContaCorrenteTab mode="admin" />}
           {tab === "insumos" && <InsumosCrud />}
