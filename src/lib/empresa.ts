@@ -25,6 +25,9 @@ export interface Empresa {
   cor_primaria: string;
   cor_secundaria: string;
   modo_fundo: ModoFundo;
+  /** Cashback engine. */
+  percentual_cashback: number;
+  cashback_ativo: boolean;
 }
 
 export interface EmpresaBranding extends Empresa {
