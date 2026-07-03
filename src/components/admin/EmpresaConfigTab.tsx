@@ -42,7 +42,7 @@ function empresaToForm(e: EmpresaBranding): FormState {
 
 export function EmpresaConfigTab() {
   const queryClient = useQueryClient();
-  const { data: empresa, isLoading } = useQuery(empresaQueryOptions);
+  const { data: empresa, isLoading } = useQuery(empresaConfigQueryOptions);
 
   const [form, setForm] = useState<FormState | null>(null);
   const [file, setFile] = useState<File | null>(null);
