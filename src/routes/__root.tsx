@@ -23,6 +23,7 @@ import { AuthProvider } from "../lib/auth";
 import { CartProvider } from "../lib/cart";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
+import { BrandThemeInjector } from "@/components/BrandThemeInjector";
 
 function NotFoundComponent() {
   return (
