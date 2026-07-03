@@ -552,6 +552,15 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
           </Button>
           <Button
             size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => setAjusteOpen(true)}
+          >
+            <PackagePlus className="mr-1.5 h-4 w-4 text-primary" /> Ajuste Rápido
+          </Button>
+
+          <Button
+            size="sm"
             variant="destructive"
             className="ml-auto rounded-full"
             onClick={() => setCloseOpen(true)}
