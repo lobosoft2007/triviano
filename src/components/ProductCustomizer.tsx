@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Minus, Check, Gift } from "lucide-react";
+import { Plus, Minus, Check, Gift, ArrowLeft } from "lucide-react";
 import type { Category, Product } from "@/lib/menu";
 import { useCart, type CartAddon, type NewCartItem } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
