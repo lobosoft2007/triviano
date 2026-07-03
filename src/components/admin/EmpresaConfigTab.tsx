@@ -82,6 +82,11 @@ export function EmpresaConfigTab() {
       toast.error("A taxa de serviço deve estar entre 0 e 100%.");
       return;
     }
+    const pctCashback = parseNumberInput(form.percentual_cashback);
+    if (pctCashback < 0 || pctCashback > 100) {
+      toast.error("O percentual de cashback deve estar entre 0 e 100%.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -102,6 +107,8 @@ export function EmpresaConfigTab() {
         bairro: form.bairro.trim(),
         cidade: form.cidade.trim(),
         estado: form.estado.trim().toUpperCase(),
+        percentual_cashback: pctCashback,
+        cashback_ativo: form.cashback_ativo,
       });
 
       toast.success("Configurações da empresa salvas!");
