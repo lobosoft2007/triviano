@@ -101,6 +101,66 @@ export const empresaQueryOptions = queryOptions({
   staleTime: 5 * 60 * 1000,
 });
 
+/**
+ * Fetch the FULL active company config (service fee + address) for
+ * authenticated flows only (checkout service fee, admin config form).
+ * Anonymous visitors cannot read these columns (RLS + column grants).
+ */
+export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
+  const { data, error } = await supabase
+    .from("empresas")
+    .select(EMPRESA_COLS)
+    .eq("ativo", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+
+  const empresa: Empresa = data
+    ? {
+        id: data.id,
+        nome_fantasia: data.nome_fantasia ?? "",
+        logotipo_url: data.logotipo_url ?? "/logo.png",
+        taxa_servico_mesa: Number(data.taxa_servico_mesa ?? 0),
+        dominio_customizado: data.dominio_customizado ?? null,
+        cep: data.cep ?? "",
+        logradouro: data.logradouro ?? "",
+        numero: data.numero ?? "",
+        complemento: data.complemento ?? "",
+        bairro: data.bairro ?? "",
+        cidade: data.cidade ?? "",
+        estado: data.estado ?? "",
+        ativo: data.ativo ?? true,
+      }
+    : {
+        id: DEFAULT_EMPRESA_ID,
+        nome_fantasia: "",
+        logotipo_url: "/logo.png",
+        taxa_servico_mesa: 0,
+        dominio_customizado: null,
+        cep: "",
+        logradouro: "",
+        numero: "",
+        complemento: "",
+        bairro: "",
+        cidade: "",
+        estado: "",
+        ativo: true,
+      };
+
+  const urlMap = await resolveImageUrls([empresa.logotipo_url]);
+  return {
+    ...empresa,
+    logo_display_url: urlMap[empresa.logotipo_url] ?? empresa.logotipo_url,
+  };
+}
+
+export const empresaConfigQueryOptions = queryOptions({
+  queryKey: ["empresa-config"],
+  queryFn: fetchEmpresaConfig,
+  staleTime: 5 * 60 * 1000,
+});
+
 export interface EmpresaUpdate {
   nome_fantasia: string;
   logotipo_url: string;
