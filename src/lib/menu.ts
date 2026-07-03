@@ -172,7 +172,10 @@ export async function fetchMenu(): Promise<{
       image_url: p.image_url ?? "",
       available: p.available ?? true,
       sort_order: p.sort_order ?? 0,
+      eixo_variacao:
+        (p as { eixo_variacao?: string | null }).eixo_variacao ?? "Tamanho",
       price_options: priceOptionsMap.get(pid) ?? [],
+
       addons: addonsMap.get(pid) ?? [],
       free_addons: freeAddonsMap.get(pid) ?? [],
       free_addon_limit: Number(p.free_addon_limit ?? 0),
