@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { IconBtn } from "./SetoresCrud";
 
 interface FormState {
@@ -208,12 +209,14 @@ export function FornecedoresCrud() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-display">
-              {form.id ? "Editar fornecedor" : "Novo fornecedor"}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent hideClose className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <ModalActionBar
+            title={form.id ? "Editar fornecedor" : "Novo fornecedor"}
+            onBack={() => setOpen(false)}
+            onSave={handleSave}
+            saving={saving}
+            saveLabel="Salvar"
+          />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Fornecedor" className="sm:col-span-2">
               <Input
@@ -284,12 +287,6 @@ export function FornecedoresCrud() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
