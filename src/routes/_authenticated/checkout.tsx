@@ -136,6 +136,21 @@ function CheckoutPage() {
     }
     if (!user) return;
     setSubmitting(true);
+    // Preventive race check: an item may have sold out while browsing.
+    try {
+      const esgotados = await fetchEsgotadoIds();
+      const blocked = items.find((i) => esgotados.has(i.productId));
+      if (blocked) {
+        toast.error(
+          `Lamento! ${blocked.name} acabou de esgotar em nossa cozinha. Por favor, altere o pedido para prosseguir.`,
+          { duration: 8000 },
+        );
+        setSubmitting(false);
+        return;
+      }
+    } catch {
+      /* availability is best-effort; never block checkout on its failure */
+    }
     try {
       await placeOrder({
         userId: user.id,
