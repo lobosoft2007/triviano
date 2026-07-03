@@ -1,6 +1,6 @@
 project_id = "ykrgbwvrvocprjvpqxej"
 
 [auth.email]
-# Reduce one-time password (OTP) lifetime to the recommended threshold (<= 1 hour)
-# to limit the window in which an intercepted code can be reused.
-otp_expiry = 3600
+# Keep the one-time password (OTP) lifetime comfortably below the recommended
+# 1 hour threshold to limit the window in which an intercepted code can be reused.
+otp_expiry = 1800
