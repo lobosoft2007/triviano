@@ -146,9 +146,49 @@ function PerfilPage() {
                     </p>
                   </div>
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Limite total de crédito: {formatBRL(profile.limite_fiado)}
-                </p>
+                {/* Gráfico minimalista de progresso do limite */}
+                {(() => {
+                  const limite = profile.limite_fiado || 0;
+                  const usado = Math.min(
+                    profile.saldo_devedor_fiado,
+                    limite || profile.saldo_devedor_fiado,
+                  );
+                  const pct =
+                    limite > 0
+                      ? Math.min(100, Math.round((usado / limite) * 100))
+                      : 0;
+                  const alerta = pct >= 85;
+                  return (
+                    <div className="mt-4">
+                      <div className="mb-1.5 flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          Limite utilizado
+                        </span>
+                        <span
+                          className={`font-semibold ${
+                            alerta ? "text-destructive" : "text-primary"
+                          }`}
+                        >
+                          {pct}%
+                        </span>
+                      </div>
+                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            alerta ? "bg-destructive" : "bg-primary"
+                          }`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Limite total de crédito:{" "}
+                        <span className="font-medium text-foreground">
+                          {formatBRL(profile.limite_fiado)}
+                        </span>
+                      </p>
+                    </div>
+                  );
+                })()}
               </section>
             )}
 
