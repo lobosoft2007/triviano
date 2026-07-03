@@ -34,6 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import {
   Select,
   SelectContent,
@@ -295,12 +296,14 @@ export function CombosCrud() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {form.id ? "Editar campanha" : "Nova campanha"}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent hideClose className="max-w-md">
+          <ModalActionBar
+            title={form.id ? "Editar campanha" : "Nova campanha"}
+            onBack={() => setOpen(false)}
+            onSave={handleSave}
+            saving={saving}
+            saveLabel="Salvar"
+          />
 
           <div className="space-y-4 py-2">
             {/* Type toggle */}
@@ -458,15 +461,6 @@ export function CombosCrud() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>

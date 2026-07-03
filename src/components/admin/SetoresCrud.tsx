@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 
 interface FormState {
   id: string | null;
@@ -146,12 +147,14 @@ export function SetoresCrud() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="font-display">
-              {form.id ? "Editar setor" : "Novo setor"}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent hideClose className="max-w-sm">
+          <ModalActionBar
+            title={form.id ? "Editar setor" : "Novo setor"}
+            onBack={() => setOpen(false)}
+            onSave={handleSave}
+            saving={saving}
+            saveLabel="Salvar"
+          />
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="setor-nome">Nome do setor</Label>
@@ -174,12 +177,6 @@ export function SetoresCrud() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>

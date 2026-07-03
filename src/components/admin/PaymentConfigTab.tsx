@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 
 const GATEWAYS = ["Efí", "Mercado Pago", "Inter", "Asaas", "Outro"];
 
@@ -181,12 +182,14 @@ export function PaymentConfigTab() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-display">
-              {form.id ? "Editar configuração" : "Nova configuração de pagamento"}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent hideClose className="max-h-[90vh] max-w-lg overflow-y-auto">
+          <ModalActionBar
+            title={form.id ? "Editar configuração" : "Nova configuração de pagamento"}
+            onBack={() => setOpen(false)}
+            onSave={handleSave}
+            saving={saving}
+            saveLabel="Salvar"
+          />
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Gateway / banco</Label>
@@ -273,12 +276,6 @@ export function PaymentConfigTab() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>

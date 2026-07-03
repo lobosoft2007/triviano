@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 
 interface EditableItem {
   id: string;
@@ -119,12 +120,14 @@ export function OrderEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display">
-            Editar pedido #{order.id.slice(0, 6).toUpperCase()}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent hideClose className="max-h-[90vh] max-w-lg overflow-y-auto">
+        <ModalActionBar
+          title={`Editar pedido #${order.id.slice(0, 6).toUpperCase()}`}
+          onBack={() => onOpenChange(false)}
+          onSave={handleSave}
+          saving={saving}
+          saveLabel="Salvar"
+        />
 
         <div className="space-y-4">
           {/* Items */}
@@ -265,19 +268,6 @@ export function OrderEditDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={saving}
-          >
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar alterações
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -49,7 +49,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SetoresCrud } from "@/components/admin/SetoresCrud";
 import { FornecedoresCrud } from "@/components/admin/FornecedoresCrud";
@@ -592,10 +593,15 @@ function AdminPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-display">{form.id ? "Editar produto" : "Novo produto"}</DialogTitle>
-          </DialogHeader>
+        <DialogContent hideClose className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <ModalActionBar
+            title={form.id ? "Editar produto" : "Novo produto"}
+            onBack={() => setOpen(false)}
+            onSave={handleSave}
+            saving={saving}
+            saveDisabled={loadingDetail}
+            saveLabel="Salvar"
+          />
 
           <div className="space-y-4">
             {/* Image upload */}
@@ -778,13 +784,6 @@ function AdminPage() {
               />
             )}
           </div>
-
-          <DialogFooter>
-            <Button onClick={handleSave} disabled={saving || loadingDetail} className="w-full">
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {form.id ? "Salvar alterações" : "Adicionar produto"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -33,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 
 /**
  * Read-only customer directory shared by /caixa and /admin.
@@ -235,12 +236,15 @@ function ClienteDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display">
-            {cliente.full_name || "Cliente"}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent hideClose className="max-h-[90vh] max-w-md overflow-y-auto">
+        <ModalActionBar
+          title={cliente.full_name || "Cliente"}
+          onBack={() => (editing ? setEditing(false) : onOpenChange(false))}
+          onSave={editing ? handleSave : undefined}
+          saving={busy}
+          hideSave={!editing}
+          saveLabel="Salvar"
+        />
 
         {editing ? (
           <div className="space-y-4">
@@ -254,28 +258,6 @@ function ClienteDetailDialog({
               />
             </div>
             <AddressFields value={address} onChange={setAddress} />
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 rounded-xl"
-                disabled={busy}
-                onClick={() => setEditing(false)}
-              >
-                <X className="mr-2 h-4 w-4" /> Cancelar
-              </Button>
-              <Button
-                className="flex-1 rounded-xl"
-                disabled={busy}
-                onClick={handleSave}
-              >
-                {busy ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
-                )}
-                Salvar
-              </Button>
-            </div>
           </div>
         ) : (
           <div className="space-y-4">

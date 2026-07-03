@@ -40,6 +40,9 @@
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
 
+  --color-back: var(--back);
+  --color-back-foreground: var(--back-foreground);
+
   --shadow-card: 0 4px 20px -8px oklch(0 0 0 / 0.55);
   --shadow-float: 0 12px 40px -12px oklch(0 0 0 / 0.7);
 
@@ -84,6 +87,9 @@
   --destructive: oklch(0.6 0.21 27);
   --destructive-foreground: oklch(0.99 0.01 80);
 
+  --back: oklch(0.34 0.012 250);
+  --back-foreground: oklch(0.98 0 0);
+
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 14%);
   --ring: oklch(0.62 0.15 158);
@@ -117,6 +123,9 @@
   --success-foreground: oklch(0.99 0.01 150);
   --destructive: oklch(0.6 0.21 27);
   --destructive-foreground: oklch(0.99 0.01 80);
+
+  --back: oklch(0.34 0.012 250);
+  --back-foreground: oklch(0.98 0 0);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 14%);
   --ring: oklch(0.62 0.15 158);
