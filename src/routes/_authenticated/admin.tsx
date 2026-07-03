@@ -21,6 +21,7 @@ import {
   ShoppingCart,
   Tags,
   Building2,
+  Palette,
   Crown,
   Users,
   Wallet,
