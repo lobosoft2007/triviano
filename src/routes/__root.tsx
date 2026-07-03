@@ -165,6 +165,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CartProvider>
+          <BrandThemeInjector />
           {/* Required: nested routes render here. */}
           <Outlet />
           <Toaster position="top-center" richColors />
