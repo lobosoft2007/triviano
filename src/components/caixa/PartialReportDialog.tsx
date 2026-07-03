@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 
 /**
  * Real-time partial cash audit ("X de caixa"): opening, revenue grouped
@@ -38,12 +39,12 @@ export function PartialReportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display">
-            Caixa do momento (parcial)
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent hideClose className="max-h-[90vh] max-w-md overflow-y-auto">
+        <ModalActionBar
+          title="Caixa do momento (parcial)"
+          onBack={() => onOpenChange(false)}
+          hideSave
+        />
 
         {isLoading || !report ? (
           <div className="flex justify-center py-10">

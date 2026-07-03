@@ -32,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalActionBar } from "@/components/ui/modal-action-bar";
 
 const toCents = (n: number) => Math.round(n * 100);
 
@@ -431,12 +432,15 @@ function PayDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display">
-            Pagamento de fiado · {client.full_name}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent hideClose className="max-h-[90vh] max-w-md overflow-y-auto">
+        <ModalActionBar
+          title={`Pagamento de fiado · ${client.full_name}`}
+          onBack={() => onOpenChange(false)}
+          onSave={confirm}
+          saving={busy}
+          saveDisabled={lines.length === 0 || excede}
+          saveLabel="Quitar"
+        />
 
         <div className="space-y-4">
           <div className="rounded-xl bg-secondary p-3 text-sm">
