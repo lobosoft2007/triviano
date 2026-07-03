@@ -119,9 +119,11 @@ async function fetchAdminMenu() {
     image_url: p.image_url ?? "",
     available: p.available,
     free_addon_limit: Number(p.free_addon_limit ?? 0),
+    eixo_variacao: (p as { eixo_variacao?: string }).eixo_variacao ?? "Tamanho",
     saldo_estoque: Number(p.saldo_estoque ?? 0),
     estoque_minimo: Number(p.estoque_minimo ?? 0),
     estoque_maximo: Number(p.estoque_maximo ?? 0),
+
   }));
   const urlMap = await resolveImageUrls(raw.map((p) => p.image_url));
 
