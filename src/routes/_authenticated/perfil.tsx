@@ -54,9 +54,41 @@ function PerfilPage() {
     enabled: !!user,
   });
 
+  const { data: extratoCashback } = useQuery({
+    queryKey: ["extrato-cashback", user?.id],
+    queryFn: () => fetchExtratoCashback(user!.id),
+    enabled: !!user,
+  });
+
+  const [abating, setAbating] = useState(false);
+
+  async function handleAbater() {
+    if (!user) return;
+    setAbating(true);
+    try {
+      const res = await abaterFiadoComCashback({ userId: user.id });
+      toast.success(
+        `${formatBRL(res.abatido)} de cashback usados. Novo saldo devedor: ${formatBRL(
+          res.saldo_devedor,
+        )}.`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["full-profile", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["extrato-cashback", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["extrato-cc", user.id] });
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Não foi possível abater o fiado.",
+      );
+    } finally {
+      setAbating(false);
+    }
+  }
+
   useEffect(() => {
     if (profile && address === null) {
       setFullName(profile.full_name);
+
       setAddress({
         cep: profile.cep,
         tipo_logradouro: profile.tipo_logradouro,
