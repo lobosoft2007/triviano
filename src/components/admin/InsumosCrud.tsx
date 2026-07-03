@@ -378,6 +378,19 @@ export function InsumosCrud() {
                 onCheckedChange={(v) => setForm({ ...form, estocavel: v })}
               />
             </div>
+            <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5 sm:col-span-2">
+              <div>
+                <Label className="cursor-pointer">Controlado (trava de saldo)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Base da futura trava atômica: impedirá vendas quando este
+                  insumo zerar.
+                </p>
+              </div>
+              <Switch
+                checked={form.controlado}
+                onCheckedChange={(v) => setForm({ ...form, controlado: v })}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleSave} disabled={saving} className="w-full">
