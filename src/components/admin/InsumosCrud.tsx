@@ -271,13 +271,32 @@ export function InsumosCrud() {
                 placeholder="Ex.: Bacon em fatias"
               />
             </Field>
-            <Field label="Unidade de medida">
+            <Field label="Unidade de medida (consumo)">
               <Input
                 value={form.unidade_medida}
                 onChange={(e) =>
                   setForm({ ...form, unidade_medida: e.target.value })
                 }
-                placeholder="kg, un, L..."
+                placeholder="g, ml, un..."
+              />
+            </Field>
+            <Field label="Unidade de estoque (compra)">
+              <Input
+                value={form.unidade_estoque}
+                onChange={(e) =>
+                  setForm({ ...form, unidade_estoque: e.target.value })
+                }
+                placeholder="kg, L, un..."
+              />
+            </Field>
+            <Field label="Fator de conversão (consumo por unidade de estoque)">
+              <Input
+                inputMode="decimal"
+                value={form.fator_conversao}
+                onChange={(e) =>
+                  setForm({ ...form, fator_conversao: e.target.value })
+                }
+                placeholder="Ex.: 1000 (1 kg = 1000 g)"
               />
             </Field>
             <Field label="Custo unitário (R$)">
@@ -290,6 +309,7 @@ export function InsumosCrud() {
                 placeholder="0,00"
               />
             </Field>
+
             <Field label="Fornecedor">
               <Select
                 value={form.fornecedor_id}
