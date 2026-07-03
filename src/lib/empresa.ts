@@ -37,7 +37,7 @@ export interface EmpresaBranding extends Empresa {
 
 /** Full column set — readable only by authenticated users (RLS + grants). */
 const EMPRESA_COLS =
-  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo, cor_primaria, cor_secundaria, modo_fundo";
+  "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo, cor_primaria, cor_secundaria, modo_fundo, percentual_cashback, cashback_ativo";
 
 /**
  * Branding-only column set. This is the ONLY set anonymous visitors are
