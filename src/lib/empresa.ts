@@ -202,6 +202,8 @@ export interface EmpresaUpdate {
   bairro: string;
   cidade: string;
   estado: string;
+  percentual_cashback: number;
+  cashback_ativo: boolean;
 }
 
 /** Update the active company configuration (admin only, enforced by RLS). */
