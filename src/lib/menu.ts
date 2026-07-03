@@ -75,36 +75,39 @@ export async function fetchMenu(): Promise<{
   categories: Category[];
   products: Product[];
 }> {
-  const [catRes, prodRes, ingRes, poRes, addRes, freeRes] = await Promise.all([
-    supabase.from("categories").select("*").order("sort_order"),
-    // Client menu reads ONLY the safe public view (no cost/stock/supplier
-    // columns). The raw products table is admin-only via RLS.
-    supabase
-      .from("view_products_public")
-      .select(
-        "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, eixo_variacao, empresa_id",
-      )
+  const [catRes, prodRes, ingRes, poRes, addRes, freeRes, availRes] =
+    await Promise.all([
+      supabase.from("categories").select("*").order("sort_order"),
+      // Client menu reads ONLY the safe public view (no cost/stock/supplier
+      // columns). The raw products table is admin-only via RLS.
+      supabase
+        .from("view_products_public")
+        .select(
+          "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, eixo_variacao, empresa_id",
+        )
 
-      .eq("available", true)
-      .order("sort_order"),
-    supabase
-      .from("ingredientes_produto")
-      .select("product_id, nome, permitir_exclusao, sort_order")
-      .eq("permitir_exclusao", true)
-      .order("sort_order"),
-    supabase
-      .from("produtos_price_options")
-      .select("produto_id, tamanho, preco, sort_order")
-      .order("sort_order"),
-    supabase
-      .from("produtos_addons")
-      .select("produto_id, nome, preco, sort_order")
-      .order("sort_order"),
-    supabase
-      .from("produtos_free_addons")
-      .select("produto_id, nome, preco, sort_order")
-      .order("sort_order"),
-  ]);
+        .eq("available", true)
+        .order("sort_order"),
+      supabase
+        .from("ingredientes_produto")
+        .select("product_id, nome, permitir_exclusao, sort_order")
+        .eq("permitir_exclusao", true)
+        .order("sort_order"),
+      supabase
+        .from("produtos_price_options")
+        .select("produto_id, tamanho, preco, sort_order")
+        .order("sort_order"),
+      supabase
+        .from("produtos_addons")
+        .select("produto_id, nome, preco, sort_order")
+        .order("sort_order"),
+      supabase
+        .from("produtos_free_addons")
+        .select("produto_id, nome, preco, sort_order")
+        .order("sort_order"),
+      // Preventive stock signal (no cost/stock values exposed, only a flag).
+      supabase.rpc("get_menu_availability"),
+    ]);
 
   if (catRes.error) throw catRes.error;
   if (prodRes.error) throw prodRes.error;
