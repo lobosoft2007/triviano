@@ -27,11 +27,13 @@ export function useModalHistoryGuard(open: boolean, onClose: () => void) {
 
     if (open) {
       // Push a synthetic state the back gesture can consume.
+      console.log("[modalguard] open -> pushState", window.history.length);
       window.history.pushState({ __modal: true }, "", window.location.href);
       pushedRef.current = true;
       closingViaPopRef.current = false;
 
       const handlePopState = () => {
+        console.log("[modalguard] popstate -> close");
         // The synthetic entry was just consumed by the back action; it no
         // longer exists in the stack, so we must not pop it again on cleanup.
         pushedRef.current = false;
