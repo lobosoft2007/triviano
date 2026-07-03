@@ -27,14 +27,28 @@ export interface EmpresaBranding extends Empresa {
   logo_display_url: string;
 }
 
+/** Full column set — readable only by authenticated users (RLS + grants). */
 const EMPRESA_COLS =
   "id, nome_fantasia, logotipo_url, taxa_servico_mesa, dominio_customizado, cep, logradouro, numero, complemento, bairro, cidade, estado, ativo";
 
-/** Fetch the active company (branding + config) and resolve a displayable logo URL. */
+/**
+ * Branding-only column set. This is the ONLY set anonymous visitors are
+ * allowed to read from `empresas` (service fee + full address are hidden from
+ * anon via column-level grants). Used by the public/shared branding query.
+ */
+const EMPRESA_BRANDING_COLS =
+  "id, nome_fantasia, logotipo_url, dominio_customizado, ativo";
+
+/**
+ * Fetch the active company branding (name, logo, domain) and resolve a
+ * displayable logo URL. Safe for anonymous visitors — never selects the
+ * service fee or address columns. Sensitive config (taxa/endereço) is loaded
+ * separately by authenticated flows via {@link fetchEmpresaConfig}.
+ */
 export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
   const { data, error } = await supabase
     .from("empresas")
-    .select(EMPRESA_COLS)
+    .select(EMPRESA_BRANDING_COLS)
     .eq("ativo", true)
     .order("created_at", { ascending: true })
     .limit(1)
