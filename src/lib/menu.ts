@@ -115,6 +115,14 @@ export async function fetchMenu(): Promise<{
   if (poRes.error) throw poRes.error;
   if (addRes.error) throw addRes.error;
   if (freeRes.error) throw freeRes.error;
+  // Availability is non-critical: if it fails, treat everything as in stock.
+  const esgotadoSet = new Set<string>(
+    (availRes.data ?? [])
+      .filter((r) => r.esgotado)
+      .map((r) => r.id),
+  );
+
+
 
   // Map product_id -> list of removable ingredient names.
   const removableMap = new Map<string, string[]>();
