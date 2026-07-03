@@ -39,6 +39,9 @@ interface FormState {
   id: string | null;
   nome: string;
   unidade_medida: string;
+  unidade_estoque: string;
+  fator_conversao: string;
+  controlado: boolean;
   custo_unitario: string;
   estocavel: boolean;
   fornecedor_id: string;
@@ -51,6 +54,9 @@ const EMPTY: FormState = {
   id: null,
   nome: "",
   unidade_medida: "un",
+  unidade_estoque: "un",
+  fator_conversao: "1",
+  controlado: false,
   custo_unitario: "",
   estocavel: true,
   fornecedor_id: NONE,
@@ -58,6 +64,7 @@ const EMPTY: FormState = {
   estoque_minimo: "0",
   estoque_maximo: "0",
 };
+
 
 export function InsumosCrud() {
   const queryClient = useQueryClient();
