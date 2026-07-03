@@ -8,7 +8,6 @@ import {
   Heading,
   Html,
   Preview,
-  Section,
   Text,
 } from '@react-email/components'
 
@@ -21,25 +20,21 @@ export const MagicLinkEmail = ({
   siteName,
   confirmationUrl,
 }: MagicLinkEmailProps) => (
-  <Html lang="pt-BR" dir="ltr">
+  <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Seu link de acesso à {siteName}</Preview>
+    <Preview>Your login link for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Section style={brandBar}>
-          <Text style={brandText}>{siteName}</Text>
-        </Section>
-        <Heading style={h1}>Seu link de acesso</Heading>
+        <Heading style={h1}>Your login link</Heading>
         <Text style={text}>
-          Clique no botão abaixo para entrar na {siteName}. Este link expira em
-          instantes.
+          Click the button below to log in to {siteName}. This link will expire
+          shortly.
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Entrar
+          Log In
         </Button>
         <Text style={footer}>
-          Se você não solicitou este link, pode ignorar este e-mail com
-          segurança.
+          If you didn't request this link, you can safely ignore this email.
         </Text>
       </Container>
     </Body>
@@ -48,21 +43,12 @@ export const MagicLinkEmail = ({
 
 export default MagicLinkEmail
 
-const BRAND = '#E1523D'
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, Helvetica, sans-serif' }
-const container = { padding: '20px 25px', maxWidth: '520px' }
-const brandBar = { padding: '0 0 16px', borderBottom: `2px solid ${BRAND}`, marginBottom: '24px' }
-const brandText = {
-  fontSize: '18px',
-  fontWeight: 'bold' as const,
-  color: BRAND,
-  margin: '0',
-  letterSpacing: '0.5px',
-}
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#1f2937',
+  color: '#000000',
   margin: '0 0 20px',
 }
 const text = {
@@ -72,12 +58,11 @@ const text = {
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: BRAND,
+  backgroundColor: '#000000',
   color: '#ffffff',
   fontSize: '14px',
-  fontWeight: 'bold' as const,
   borderRadius: '8px',
-  padding: '12px 24px',
+  padding: '12px 20px',
   textDecoration: 'none',
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }

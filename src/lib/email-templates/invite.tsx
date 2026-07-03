@@ -9,7 +9,6 @@ import {
   Html,
   Link,
   Preview,
-  Section,
   Text,
 } from '@react-email/components'
 
@@ -24,28 +23,26 @@ export const InviteEmail = ({
   siteUrl,
   confirmationUrl,
 }: InviteEmailProps) => (
-  <Html lang="pt-BR" dir="ltr">
+  <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Você foi convidado para a {siteName}</Preview>
+    <Preview>You've been invited to join {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Section style={brandBar}>
-          <Text style={brandText}>{siteName}</Text>
-        </Section>
-        <Heading style={h1}>Você foi convidado</Heading>
+        <Heading style={h1}>You've been invited</Heading>
         <Text style={text}>
-          Você recebeu um convite para participar da{' '}
+          You've been invited to join{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
-          . Clique no botão abaixo para aceitar o convite e criar sua conta.
+          . Click the button below to accept the invitation and create your
+          account.
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Aceitar convite
+          Accept Invitation
         </Button>
         <Text style={footer}>
-          Se você não esperava por este convite, pode ignorar este e-mail com
-          segurança.
+          If you weren't expecting this invitation, you can safely ignore this
+          email.
         </Text>
       </Container>
     </Body>
@@ -54,21 +51,12 @@ export const InviteEmail = ({
 
 export default InviteEmail
 
-const BRAND = '#E1523D'
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, Helvetica, sans-serif' }
-const container = { padding: '20px 25px', maxWidth: '520px' }
-const brandBar = { padding: '0 0 16px', borderBottom: `2px solid ${BRAND}`, marginBottom: '24px' }
-const brandText = {
-  fontSize: '18px',
-  fontWeight: 'bold' as const,
-  color: BRAND,
-  margin: '0',
-  letterSpacing: '0.5px',
-}
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#1f2937',
+  color: '#000000',
   margin: '0 0 20px',
 }
 const text = {
@@ -77,14 +65,13 @@ const text = {
   lineHeight: '1.5',
   margin: '0 0 25px',
 }
-const link = { color: BRAND, textDecoration: 'underline' }
+const link = { color: 'inherit', textDecoration: 'underline' }
 const button = {
-  backgroundColor: BRAND,
+  backgroundColor: '#000000',
   color: '#ffffff',
   fontSize: '14px',
-  fontWeight: 'bold' as const,
   borderRadius: '8px',
-  padding: '12px 24px',
+  padding: '12px 20px',
   textDecoration: 'none',
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
