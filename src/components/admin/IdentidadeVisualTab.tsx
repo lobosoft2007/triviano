@@ -120,7 +120,7 @@ function LivePreview({ theme }: { theme: ThemeForm }) {
 
 export function IdentidadeVisualTab() {
   const queryClient = useQueryClient();
-  const { data: empresa, isLoading } = useQuery(empresaConfigQueryOptions);
+  const { data: empresa, isLoading } = useQuery(empresaAdminConfigQueryOptions);
   const [form, setForm] = useState<ThemeForm | null>(null);
   const [saving, setSaving] = useState(false);
 
