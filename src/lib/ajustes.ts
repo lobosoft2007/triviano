@@ -55,7 +55,7 @@ export async function ajusteRapidoEstoque(input: {
   const { data, error } = await supabase.rpc("ajuste_rapido_estoque", {
     p_insumo_id: input.insumo_id,
     p_quantidade: round3(input.quantidade),
-    p_observacao: input.observacao ?? null,
+    p_observacao: input.observacao ?? undefined,
   });
   if (error) throw error;
   return Number(data ?? 0);
@@ -70,7 +70,7 @@ export async function conciliarAjusteNf(input: {
   const { data, error } = await supabase.rpc("conciliar_ajuste_nf", {
     p_ajuste_id: input.ajuste_id,
     p_quantidade_nf: round3(input.quantidade_nf),
-    p_nf_referencia: input.nf_referencia ?? null,
+    p_nf_referencia: input.nf_referencia ?? undefined,
   });
   if (error) throw error;
   return Number(data ?? 0);
