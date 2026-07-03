@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ImagePlus, Building2, Save } from "lucide-react";
 import { toast } from "sonner";
 import {
-  empresaQueryOptions,
+  empresaConfigQueryOptions,
   updateEmpresa,
   type EmpresaBranding,
 } from "@/lib/empresa";
@@ -42,7 +42,7 @@ function empresaToForm(e: EmpresaBranding): FormState {
 
 export function EmpresaConfigTab() {
   const queryClient = useQueryClient();
-  const { data: empresa, isLoading } = useQuery(empresaQueryOptions);
+  const { data: empresa, isLoading } = useQuery(empresaConfigQueryOptions);
 
   const [form, setForm] = useState<FormState | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -103,6 +103,7 @@ export function EmpresaConfigTab() {
       toast.success("Configurações da empresa salvas!");
       setFile(null);
       await queryClient.invalidateQueries({ queryKey: ["empresa-ativa"] });
+      await queryClient.invalidateQueries({ queryKey: ["empresa-config"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível salvar.");
     } finally {
