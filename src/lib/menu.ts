@@ -77,8 +77,9 @@ export async function fetchMenu(): Promise<{
     supabase
       .from("view_products_public")
       .select(
-        "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, empresa_id",
+        "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, eixo_variacao, empresa_id",
       )
+
       .eq("available", true)
       .order("sort_order"),
     supabase
