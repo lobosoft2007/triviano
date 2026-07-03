@@ -216,6 +216,20 @@ export async function fetchMenu(): Promise<{
   return result;
 }
 
+/**
+ * Fresh snapshot of out-of-stock product ids. Used at checkout to catch the
+ * race where an item sells out between browsing and confirming the order.
+ * Best-effort: on failure returns an empty set (never blocks checkout).
+ */
+export async function fetchEsgotadoIds(): Promise<Set<string>> {
+  const { data, error } = await supabase.rpc("get_menu_availability");
+  if (error) return new Set<string>();
+  return new Set(
+    (data ?? []).filter((r) => r.esgotado).map((r) => r.id),
+  );
+}
+
+
 
 export const menuQueryOptions = {
   queryKey: ["menu"],
