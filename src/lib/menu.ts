@@ -40,7 +40,10 @@ export interface Product {
   image_url: string;
   available: boolean;
   sort_order: number;
+  /** Dynamic label for the variation axis (e.g. "Escolha sabor"). */
+  eixo_variacao: string;
   price_options: PriceOption[];
+
   addons: Addon[];
   /** Traditional toppings eligible for the free allowance (e.g. Açaí). */
   free_addons: FreeAddon[];
