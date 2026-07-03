@@ -151,6 +151,9 @@ export interface Insumo {
   id: string;
   nome: string;
   unidade_medida: string;
+  unidade_estoque: string;
+  fator_conversao: number;
+  controlado: boolean;
   custo_unitario: number;
   custo_anterior: number | null;
   saldo_estoque: number;
@@ -164,13 +167,19 @@ export interface Insumo {
 export async function listInsumos(): Promise<Insumo[]> {
   const { data, error } = await supabase
     .from("insumos")
-    .select("id, nome, unidade_medida, custo_unitario, custo_anterior, saldo_estoque, estoque_minimo, estoque_maximo, estocavel, fornecedor_id, setor_id")
+    .select("id, nome, unidade_medida, unidade_estoque, fator_conversao, controlado, custo_unitario, custo_anterior, saldo_estoque, estoque_minimo, estoque_maximo, estocavel, fornecedor_id, setor_id")
     .order("nome");
   if (error) throw error;
   return (data ?? []).map((i) => ({
     id: i.id,
     nome: i.nome,
     unidade_medida: i.unidade_medida ?? "un",
+    unidade_estoque:
+      (i as { unidade_estoque?: string | null }).unidade_estoque ??
+      i.unidade_medida ??
+      "un",
+    fator_conversao: Number((i as { fator_conversao?: number }).fator_conversao ?? 1),
+    controlado: Boolean((i as { controlado?: boolean }).controlado),
     custo_unitario: Number(i.custo_unitario ?? 0),
     custo_anterior:
       i.custo_anterior === null || i.custo_anterior === undefined
@@ -190,6 +199,9 @@ export async function saveInsumo(input: {
   id?: string | null;
   nome: string;
   unidade_medida: string;
+  unidade_estoque?: string;
+  fator_conversao?: number;
+  controlado?: boolean;
   custo_unitario: number;
   estocavel: boolean;
   fornecedor_id: string | null;
@@ -200,6 +212,15 @@ export async function saveInsumo(input: {
   const payload = {
     nome: input.nome.trim(),
     unidade_medida: input.unidade_medida.trim() || "un",
+    unidade_estoque:
+      (input.unidade_estoque ?? "").trim() ||
+      input.unidade_medida.trim() ||
+      "un",
+    fator_conversao:
+      input.fator_conversao !== undefined && input.fator_conversao > 0
+        ? input.fator_conversao
+        : 1,
+    controlado: input.controlado ?? false,
     custo_unitario: round2(input.custo_unitario),
     estocavel: input.estocavel,
     fornecedor_id: input.fornecedor_id,
@@ -211,6 +232,7 @@ export async function saveInsumo(input: {
       ? { estoque_maximo: round2(input.estoque_maximo) }
       : {}),
   };
+
   if (input.id) {
     const { error } = await supabase
       .from("insumos")
