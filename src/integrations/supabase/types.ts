@@ -2047,6 +2047,13 @@ export type Database = {
           nome_recebedor: string
         }[]
       }
+      get_menu_availability: {
+        Args: never
+        Returns: {
+          esgotado: boolean
+          id: string
+        }[]
+      }
       get_patrimonio_estoque: { Args: never; Returns: number }
       get_public_menu: {
         Args: never
