@@ -243,14 +243,6 @@ export function EntradaEstoqueView() {
                     updateLinha(l.key, { custo_unitario: e.target.value })
                   }
                 />
-                <Input
-                  inputMode="decimal"
-                  placeholder="Custo un. (R$)"
-                  value={l.custo_unitario}
-                  onChange={(e) =>
-                    updateLinha(l.key, { custo_unitario: e.target.value })
-                  }
-                />
                 <div className="flex items-center justify-end">
                   <IconBtn
                     label="Remover linha"
