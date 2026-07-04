@@ -222,7 +222,7 @@ export function EntradaEstoqueView() {
                   <SelectContent>
                     {insumos?.map((i) => (
                       <SelectItem key={i.id} value={i.id}>
-                        {i.nome} ({i.unidade_medida})
+                        {i.nome} ({i.unidade_estoque})
                       </SelectItem>
                     ))}
                   </SelectContent>
