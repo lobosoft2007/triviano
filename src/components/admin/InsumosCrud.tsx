@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, Package, Search, ArrowUp, ArrowDown } from "lucide-react";
+import { Copy, Loader2, Plus, Pencil, Trash2, Package, Search, ArrowUp, ArrowDown } from "lucide-react";
 import {
   listInsumos,
   saveInsumo,
@@ -138,6 +138,22 @@ export function InsumosCrud() {
     setForm({
       id: i.id,
       nome: i.nome,
+      unidade_medida: i.unidade_medida,
+      unidade_estoque: i.unidade_estoque || i.unidade_medida,
+      fator_conversao: String(i.fator_conversao ?? 1).replace(".", ","),
+      controlado: i.controlado,
+      custo_unitario: String(i.custo_unitario).replace(".", ","),
+      estocavel: i.estocavel,
+      fornecedor_id: i.fornecedor_id ?? NONE,
+      setor_id: i.setor_id ?? NONE,
+      estoque_minimo: String(i.estoque_minimo).replace(".", ","),
+      estoque_maximo: String(i.estoque_maximo).replace(".", ","),
+    });
+    setOpen(true);
+  };
+  const openDuplicate = (i: Insumo) => {
+    setForm({
+      nome: `*${i.nome}`,
       unidade_medida: i.unidade_medida,
       unidade_estoque: i.unidade_estoque || i.unidade_medida,
       fator_conversao: String(i.fator_conversao ?? 1).replace(".", ","),
@@ -342,6 +358,9 @@ export function InsumosCrud() {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex justify-end gap-1">
+                        <IconBtn label="Duplicar insumo para criar variação" onClick={() => openDuplicate(i)}>
+                          <Copy className="h-4 w-4" />
+                        </IconBtn>
                         <IconBtn label="Editar" onClick={() => openEdit(i)}>
                           <Pencil className="h-4 w-4" />
                         </IconBtn>
