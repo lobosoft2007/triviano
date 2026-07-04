@@ -153,6 +153,7 @@ export function InsumosCrud() {
   };
   const openDuplicate = (i: Insumo) => {
     setForm({
+      id: null,
       nome: `*${i.nome}`,
       unidade_medida: i.unidade_medida,
       unidade_estoque: i.unidade_estoque || i.unidade_medida,
