@@ -358,13 +358,17 @@ export function InsumosCrud() {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex justify-end gap-1">
-                        <IconBtn label="Duplicar insumo para criar variação" onClick={() => openDuplicate(i)}>
+                        <IconBtn
+                          label="Duplicar insumo para criar variação"
+                          title="Duplicar insumo para criar variação"
+                          onClick={() => openDuplicate(i)}
+                        >
                           <Copy className="h-4 w-4" />
                         </IconBtn>
-                        <IconBtn label="Editar" onClick={() => openEdit(i)}>
+                        <IconBtn label="Editar" title="Editar" onClick={() => openEdit(i)}>
                           <Pencil className="h-4 w-4" />
                         </IconBtn>
-                        <IconBtn label="Remover" destructive onClick={() => handleDelete(i)}>
+                        <IconBtn label="Remover" title="Remover" destructive onClick={() => handleDelete(i)}>
                           <Trash2 className="h-4 w-4" />
                         </IconBtn>
                       </div>
