@@ -16,20 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { IconBtn } from "./SetoresCrud";
 import { Field } from "./FornecedoresCrud";
@@ -66,7 +54,6 @@ const EMPTY: FormState = {
   estoque_maximo: "0",
 };
 
-
 export function InsumosCrud() {
   const queryClient = useQueryClient();
   const { data: insumos, isLoading } = useQuery({
@@ -86,10 +73,8 @@ export function InsumosCrud() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
 
-  const setorName = (id: string | null) =>
-    setores?.find((s) => s.id === id)?.setor ?? "—";
-  const fornName = (id: string | null) =>
-    fornecedores?.find((f) => f.id === id)?.fornecedor ?? "—";
+  const setorName = (id: string | null) => setores?.find((s) => s.id === id)?.setor ?? "—";
+  const fornName = (id: string | null) => fornecedores?.find((f) => f.id === id)?.fornecedor ?? "—";
 
   const openNew = () => {
     setForm(EMPTY);
@@ -176,9 +161,7 @@ export function InsumosCrud() {
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (insumos?.length ?? 0) === 0 ? (
-        <p className="rounded-2xl bg-card p-5 text-sm text-muted-foreground shadow-card">
-          Nenhum insumo cadastrado.
-        </p>
+        <p className="rounded-2xl bg-card p-5 text-sm text-muted-foreground shadow-card">Nenhum insumo cadastrado.</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border bg-card">
           <table className="w-full min-w-[640px] text-sm">
@@ -198,18 +181,10 @@ export function InsumosCrud() {
               {insumos!.map((i, idx) => (
                 <tr key={i.id} className={idx > 0 ? "border-t border-border" : ""}>
                   <td className="px-4 py-2.5 font-medium">{i.nome}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
-                    {i.unidade_medida}
-                  </td>
-                  <td className="px-4 py-2.5 font-semibold tabular-nums text-primary">
-                    {formatBRL(i.custo_unitario)}
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
-                    {fornName(i.fornecedor_id)}
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
-                    {setorName(i.setor_id)}
-                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{i.unidade_medida}</td>
+                  <td className="px-4 py-2.5 font-semibold tabular-nums text-primary">{formatBRL(i.custo_unitario)}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{fornName(i.fornecedor_id)}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{setorName(i.setor_id)}</td>
                   <td className="px-4 py-2.5">
                     <span
                       className={`font-semibold tabular-nums ${
@@ -225,7 +200,6 @@ export function InsumosCrud() {
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
-
                     <span
                       className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                         i.estocavel
@@ -241,11 +215,7 @@ export function InsumosCrud() {
                       <IconBtn label="Editar" onClick={() => openEdit(i)}>
                         <Pencil className="h-4 w-4" />
                       </IconBtn>
-                      <IconBtn
-                        label="Remover"
-                        destructive
-                        onClick={() => handleDelete(i)}
-                      >
+                      <IconBtn label="Remover" destructive onClick={() => handleDelete(i)}>
                         <Trash2 className="h-4 w-4" />
                       </IconBtn>
                     </div>
@@ -277,18 +247,14 @@ export function InsumosCrud() {
             <Field label="Unidade de medida (consumo)">
               <Input
                 value={form.unidade_medida}
-                onChange={(e) =>
-                  setForm({ ...form, unidade_medida: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, unidade_medida: e.target.value })}
                 placeholder="g, ml, un..."
               />
             </Field>
             <Field label="Unidade de estoque (compra)">
               <Input
                 value={form.unidade_estoque}
-                onChange={(e) =>
-                  setForm({ ...form, unidade_estoque: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, unidade_estoque: e.target.value })}
                 placeholder="kg, L, un..."
               />
             </Field>
@@ -296,9 +262,7 @@ export function InsumosCrud() {
               <Input
                 inputMode="decimal"
                 value={form.fator_conversao}
-                onChange={(e) =>
-                  setForm({ ...form, fator_conversao: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, fator_conversao: e.target.value })}
                 placeholder="Ex.: 1000 (1 kg = 1000 g)"
               />
             </Field>
@@ -306,18 +270,13 @@ export function InsumosCrud() {
               <Input
                 inputMode="decimal"
                 value={form.custo_unitario}
-                onChange={(e) =>
-                  setForm({ ...form, custo_unitario: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
                 placeholder="0,00"
               />
             </Field>
 
             <Field label="Fornecedor">
-              <Select
-                value={form.fornecedor_id}
-                onValueChange={(v) => setForm({ ...form, fornecedor_id: v })}
-              >
+              <Select value={form.fornecedor_id} onValueChange={(v) => setForm({ ...form, fornecedor_id: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
@@ -332,10 +291,7 @@ export function InsumosCrud() {
               </Select>
             </Field>
             <Field label="Setor">
-              <Select
-                value={form.setor_id}
-                onValueChange={(v) => setForm({ ...form, setor_id: v })}
-              >
+              <Select value={form.setor_id} onValueChange={(v) => setForm({ ...form, setor_id: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
@@ -349,13 +305,11 @@ export function InsumosCrud() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Estoque mínimo">
+            <Field label="Estoque mínimo (UE)">
               <Input
                 inputMode="decimal"
                 value={form.estoque_minimo}
-                onChange={(e) =>
-                  setForm({ ...form, estoque_minimo: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, estoque_minimo: e.target.value })}
                 placeholder="0"
               />
             </Field>
@@ -363,36 +317,25 @@ export function InsumosCrud() {
               <Input
                 inputMode="decimal"
                 value={form.estoque_maximo}
-                onChange={(e) =>
-                  setForm({ ...form, estoque_maximo: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, estoque_maximo: e.target.value })}
                 placeholder="0"
               />
             </Field>
             <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5 sm:col-span-2">
               <div>
                 <Label className="cursor-pointer">Item estocável</Label>
-                <p className="text-xs text-muted-foreground">
-                  Desligue para mão de obra, gás, energia, impostos.
-                </p>
+                <p className="text-xs text-muted-foreground">Desligue para mão de obra, gás, energia, impostos.</p>
               </div>
-              <Switch
-                checked={form.estocavel}
-                onCheckedChange={(v) => setForm({ ...form, estocavel: v })}
-              />
+              <Switch checked={form.estocavel} onCheckedChange={(v) => setForm({ ...form, estocavel: v })} />
             </div>
             <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5 sm:col-span-2">
               <div>
                 <Label className="cursor-pointer">Controlado (trava de saldo)</Label>
                 <p className="text-xs text-muted-foreground">
-                  Base da futura trava atômica: impedirá vendas quando este
-                  insumo zerar.
+                  Base da futura trava atômica: impedirá vendas quando este insumo zerar.
                 </p>
               </div>
-              <Switch
-                checked={form.controlado}
-                onCheckedChange={(v) => setForm({ ...form, controlado: v })}
-              />
+              <Switch checked={form.controlado} onCheckedChange={(v) => setForm({ ...form, controlado: v })} />
             </div>
           </div>
         </DialogContent>
