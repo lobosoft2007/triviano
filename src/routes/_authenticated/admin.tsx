@@ -477,6 +477,11 @@ function AdminPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
+              <img
+                src="/logo-triviano.svg"
+                alt="Triviano"
+                className="h-6 w-auto object-contain sm:h-7"
+              />
               <div>
                 <p className="text-xs text-muted-foreground">Retaguarda</p>
                 <h1 className="font-display text-xl font-bold leading-tight">Gerenciador</h1>
