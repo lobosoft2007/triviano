@@ -76,7 +76,7 @@ export function InsumosCrud() {
   const [sortField, setSortField] = useState<"nome" | "custo_unitario" | "fornecedor_id" | "setor_id" | null>(null); // Inserido por Marcello Ribeiro em 04.07.2026
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  const handleSort = (field: "nome" | "custo_unitario") => {
+  const handleSort = (field: "nome" | "custo_unitario" | "fornecedor_id" | "setor_id") => {
     if (sortField === field) {
       if (sortDirection === "asc") setSortDirection("desc");
       else {
@@ -100,14 +100,14 @@ export function InsumosCrud() {
 
     // JOGADA DE MESTRE: Se o clique for na coluna de Fornecedor, cruzamos o ID para pegar o Nome real
     if (sortField === "fornecedor_id") {
-      valA = fornecedores?.find((f) => f.id === a.fornecedor_id)?.nome ?? "";
-      valB = fornecedores?.find((f) => f.id === b.fornecedor_id)?.nome ?? "";
+      valA = fornecedores?.find((f) => f.id === a.fornecedor_id)?.fornecedor ?? "";
+      valB = fornecedores?.find((f) => f.id === b.fornecedor_id)?.fornecedor ?? "";
     }
 
     // JOGADA DE MESTRE: Se o clique for na coluna de Setor, cruzamos o ID para pegar o Nome real
     if (sortField === "setor_id") {
-      valA = setores?.find((s) => s.id === a.setor_id)?.nome ?? "";
-      valB = setores?.find((s) => s.id === b.setor_id)?.nome ?? "";
+      valA = setores?.find((s) => s.id === a.setor_id)?.setor ?? "";
+      valB = setores?.find((s) => s.id === b.setor_id)?.setor ?? "";
     }
 
     // Tratamento de segurança para nulos
