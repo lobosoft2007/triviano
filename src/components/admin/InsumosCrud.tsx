@@ -3,6 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Pencil, Trash2, Package } from "lucide-react";
 import { toast } from "sonner";
 import {
+  Search
+} from "lucide-react";
+import {
   listInsumos,
   saveInsumo,
   deleteInsumo,
@@ -55,6 +58,18 @@ const EMPTY: FormState = {
 };
 
 export function InsumosCrud() {
+
+  // 1. Crie o estado para armazenar o texto digitado - Introduzido por Marcello Ribeiro
+  const [search, setSearch] = useState("");
+
+  // 2. Crie a lógica de filtro (inserir logo abaixo do useQuery de insumos) - Introduzido por Marcello Ribeiro
+  const insumosFiltrados = insumos?.filter((i) =>
+    i.nome.toLowerCase().includes(search.toLowerCase())
+  ) ?? [];
+
+
+
+  
   const queryClient = useQueryClient();
   const { data: insumos, isLoading } = useQuery({
     queryKey: ["erp-insumos"],
@@ -156,11 +171,23 @@ export function InsumosCrud() {
         </Button>
       </header>
 
+      {/* ADICIONE ESTE BLOCO AQUI EMBAIXO DO </header> */ Este bloco foi adicionado por Marcello Ribeiro}
+      <div className="mb-4">
+        <div className="relative">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome do insumo..."
+            className="h-11 rounded-xl"
+          />
+        </div>div>
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
-      ) : (insumos?.length ?? 0) === 0 ? (
+      ) : (insumosFiltrados.length ?? 0) === 0 ? (  // Alterado Por Marcello Ribeiro Era ) : (insumos?.length ?? 0) === 0 ? (
         <p className="rounded-2xl bg-card p-5 text-sm text-muted-foreground shadow-card">Nenhum insumo cadastrado.</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border bg-card">
@@ -178,7 +205,7 @@ export function InsumosCrud() {
               </tr>
             </thead>
             <tbody>
-              {insumos!.map((i, idx) => (
+              {insumosFiltrados.map((i, idx) => ( // Alterado por Marcello Ribeiro, era {insumos!.map((i, idx) => (
                 <tr key={i.id} className={idx > 0 ? "border-t border-border" : ""}>
                   <td className="px-4 py-2.5 font-medium">{i.nome}</td>
                   <td className="px-4 py-2.5 text-muted-foreground">{i.unidade_medida}</td>
