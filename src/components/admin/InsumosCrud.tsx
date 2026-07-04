@@ -1,16 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  Loader2,
-  Plus,
-  Pencil,
-  Trash2,
-  Package,
-  Search,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Package, Search, ArrowUp, ArrowDown } from "lucide-react";
 import {
   listInsumos,
   saveInsumo,
@@ -81,7 +72,8 @@ export function InsumosCrud() {
   });
 
   // Estados de ordenação por coluna (asc/desc)
-  const [sortField, setSortField] = useState<"nome" | "custo_unitario" | null>(null);
+
+  const [sortField, setSortField] = useState<"nome" | "custo_unitario" | "fornecedor_id" | "setor_id" | null>(null); // Inserido por Marcello Ribeiro em 04.07.2026
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const handleSort = (field: "nome" | "custo_unitario") => {
@@ -97,27 +89,40 @@ export function InsumosCrud() {
     }
   };
 
-  // Filtra pelo termo de busca e aplica a ordenação selecionada
+  // Filtra pelo termo de busca e aplica a ordenação selecionada  // Inserido pelo Marcello Ribeiro em 04.07.2026
   const insumosFiltradosEOrdenados = (
     insumos?.filter((i) => i.nome.toLowerCase().includes(search.toLowerCase())) ?? []
   ).sort((a, b) => {
     if (!sortField) return 0;
 
-    const valA = a[sortField];
-    const valB = b[sortField];
+    let valA: any = a[sortField];
+    let valB: any = b[sortField];
 
-    if (typeof valA === "string") {
-      return sortDirection === "asc"
-        ? valA.localeCompare(valB as string)
-        : (valB as string).localeCompare(valA);
+    // JOGADA DE MESTRE: Se o clique for na coluna de Fornecedor, cruzamos o ID para pegar o Nome real
+    if (sortField === "fornecedor_id") {
+      valA = fornecedores?.find((f) => f.id === a.fornecedor_id)?.nome ?? "";
+      valB = fornecedores?.find((f) => f.id === b.fornecedor_id)?.nome ?? "";
     }
 
-    return sortDirection === "asc"
-      ? (valA as number) - (valB as number)
-      : (valB as number) - (valA as number);
+    // JOGADA DE MESTRE: Se o clique for na coluna de Setor, cruzamos o ID para pegar o Nome real
+    if (sortField === "setor_id") {
+      valA = setores?.find((s) => s.id === a.setor_id)?.nome ?? "";
+      valB = setores?.find((s) => s.id === b.setor_id)?.nome ?? "";
+    }
+
+    // Tratamento de segurança para nulos
+    if (valA === undefined || valA === null) valA = "";
+    if (valB === undefined || valB === null) valB = "";
+
+    // Ordenação para campos de Texto (Nome, Fornecedor expandido, Setor expandido)
+    if (typeof valA === "string") {
+      return sortDirection === "asc" ? valA.localeCompare(valB as string) : (valB as string).localeCompare(valA);
+    }
+
+    // Ordenação para campos Numéricos (Custo Unitário)
+    return sortDirection === "asc" ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
   });
 
-  
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -228,25 +233,68 @@ export function InsumosCrud() {
             <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 {/* Coluna Insumo Clicável */}
-                <th className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors" onClick={() => handleSort("nome")}>
+                <th
+                  className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors"
+                  onClick={() => handleSort("nome")}
+                >
                   <div className="flex items-center gap-1">
                     Insumo
-                    {sortField === "nome" && (sortDirection === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
+                    {sortField === "nome" &&
+                      (sortDirection === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ))}
                   </div>
                 </th>
-                
+
                 <th className="px-4 py-2.5 font-semibold">Un.</th>
-                
+
                 {/* Coluna Custo Clicável */}
-                <th className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors" onClick={() => handleSort("custo_unitario")}>
+                <th
+                  className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors"
+                  onClick={() => handleSort("custo_unitario")}
+                >
                   <div className="flex items-center gap-1">
                     Custo
-                    {sortField === "custo_unitario" && (sortDirection === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
+                    {sortField === "custo_unitario" &&
+                      (sortDirection === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ))}
                   </div>
                 </th>
-                
-                <th className="px-4 py-2.5 font-semibold">Fornecedor</th>
-                <th className="px-4 py-2.5 font-semibold">Setor</th>
+
+                {/* Coluna Fornecedor Clicável */}
+                <th
+                  className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors"
+                  onClick={() => handleSort("fornecedor_id")}
+                >
+                  <div className="flex items-center gap-1">
+                    Fornecedor{" "}
+                    {sortField === "fornecedor_id" &&
+                      (sortDirection === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ))}
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors"
+                  onClick={() => handleSort("setor_id")}
+                >
+                  <div className="flex items-center gap-1">
+                    Setor{" "}
+                    {sortField === "setor_id" &&
+                      (sortDirection === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ))}
+                  </div>
+                </th>
                 <th className="px-4 py-2.5 font-semibold">Saldo (mín/máx)</th>
                 <th className="px-4 py-2.5 font-semibold">Estoque</th>
                 <th className="w-24 px-4 py-2.5" />
@@ -254,50 +302,57 @@ export function InsumosCrud() {
             </thead>
 
             <tbody>
-              {insumosFiltradosEOrdenados.map((i, idx) => ( // Alterado por Marcello Ribeiro, era {insumos!.map((i, idx) => (
-                <tr key={i.id} className={idx > 0 ? "border-t border-border" : ""}>
-                  <td className="px-4 py-2.5 font-medium">{i.nome}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{i.unidade_medida}</td>
-                  <td className="px-4 py-2.5 font-semibold tabular-nums text-primary">{formatBRL(i.custo_unitario)}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{fornName(i.fornecedor_id)}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{setorName(i.setor_id)}</td>
-                  <td className="px-4 py-2.5">
-                    <span
-                      className={`font-semibold tabular-nums ${
-                        i.estoque_minimo > 0 && i.saldo_estoque < i.estoque_minimo
-                          ? "text-destructive"
-                          : "text-foreground"
-                      }`}
-                    >
-                      {i.saldo_estoque}
-                    </span>
-                    <span className="ml-1 text-[11px] text-muted-foreground">
-                      ({i.estoque_minimo}/{i.estoque_maximo})
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                        i.estocavel
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}
-                    >
-                      {i.estocavel ? "Estocável" : "Não estocável"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex justify-end gap-1">
-                      <IconBtn label="Editar" onClick={() => openEdit(i)}>
-                        <Pencil className="h-4 w-4" />
-                      </IconBtn>
-                      <IconBtn label="Remover" destructive onClick={() => handleDelete(i)}>
-                        <Trash2 className="h-4 w-4" />
-                      </IconBtn>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {insumosFiltradosEOrdenados.map(
+                (
+                  i,
+                  idx, // Alterado por Marcello Ribeiro, era {insumos!.map((i, idx) => (
+                ) => (
+                  <tr key={i.id} className={idx > 0 ? "border-t border-border" : ""}>
+                    <td className="px-4 py-2.5 font-medium">{i.nome}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{i.unidade_medida}</td>
+                    <td className="px-4 py-2.5 font-semibold tabular-nums text-primary">
+                      {formatBRL(i.custo_unitario)}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{fornName(i.fornecedor_id)}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{setorName(i.setor_id)}</td>
+                    <td className="px-4 py-2.5">
+                      <span
+                        className={`font-semibold tabular-nums ${
+                          i.estoque_minimo > 0 && i.saldo_estoque < i.estoque_minimo
+                            ? "text-destructive"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {i.saldo_estoque}
+                      </span>
+                      <span className="ml-1 text-[11px] text-muted-foreground">
+                        ({i.estoque_minimo}/{i.estoque_maximo})
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          i.estocavel
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                        }`}
+                      >
+                        {i.estocavel ? "Estocável" : "Não estocável"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex justify-end gap-1">
+                        <IconBtn label="Editar" onClick={() => openEdit(i)}>
+                          <Pencil className="h-4 w-4" />
+                        </IconBtn>
+                        <IconBtn label="Remover" destructive onClick={() => handleDelete(i)}>
+                          <Trash2 className="h-4 w-4" />
+                        </IconBtn>
+                      </div>
+                    </td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
         </div>
