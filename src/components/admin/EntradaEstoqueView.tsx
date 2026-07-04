@@ -254,8 +254,8 @@ export function EntradaEstoqueView() {
                 </div>
                 {insumo && (
                   <p className="col-span-full -mt-1 text-[11px] text-muted-foreground">
-                    Custo atual {formatBRL(insumo.custo_unitario)} · estoque{" "}
-                    {insumo.saldo_estoque} {insumo.unidade_medida}
+                    Custo atual {formatBRL(insumo.custo_unitario)} · estoque
+                    atual: {insumo.saldo_estoque} {insumo.unidade_estoque}
                   </p>
                 )}
               </div>
