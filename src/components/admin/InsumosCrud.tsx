@@ -58,18 +58,8 @@ const EMPTY: FormState = {
 };
 
 export function InsumosCrud() {
-
-  // 1. Crie o estado para armazenar o texto digitado - Introduzido por Marcello Ribeiro
   const [search, setSearch] = useState("");
 
-  // 2. Crie a lógica de filtro (inserir logo abaixo do useQuery de insumos) - Introduzido por Marcello Ribeiro
-  const insumosFiltrados = insumos?.filter((i) =>
-    i.nome.toLowerCase().includes(search.toLowerCase())
-  ) ?? [];
-
-
-
-  
   const queryClient = useQueryClient();
   const { data: insumos, isLoading } = useQuery({
     queryKey: ["erp-insumos"],
@@ -83,6 +73,10 @@ export function InsumosCrud() {
     queryKey: ["erp-fornecedores"],
     queryFn: listFornecedores,
   });
+
+  const insumosFiltrados =
+    insumos?.filter((i) => i.nome.toLowerCase().includes(search.toLowerCase())) ?? [];
+
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -171,7 +165,6 @@ export function InsumosCrud() {
         </Button>
       </header>
 
-      {/* ADICIONE ESTE BLOCO AQUI EMBAIXO DO </header> */ Este bloco foi adicionado por Marcello Ribeiro}
       <div className="mb-4">
         <div className="relative">
           <Input
@@ -180,7 +173,7 @@ export function InsumosCrud() {
             placeholder="Buscar por nome do insumo..."
             className="h-11 rounded-xl"
           />
-        </div>div>
+        </div>
       </div>
 
       {isLoading ? (
