@@ -76,7 +76,7 @@ export function InsumosCrud() {
   const [sortField, setSortField] = useState<"nome" | "custo_unitario" | "fornecedor_id" | "setor_id" | null>(null); // Inserido por Marcello Ribeiro em 04.07.2026
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  const handleSort = (field: "nome" | "custo_unitario") => {
+  const handleSort = (field: "nome" | "custo_unitario" | "fornecedor_id" | "setor_id") => {
     if (sortField === field) {
       if (sortDirection === "asc") setSortDirection("desc");
       else {
