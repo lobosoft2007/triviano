@@ -229,10 +229,18 @@ export function EntradaEstoqueView() {
                 </Select>
                 <Input
                   inputMode="decimal"
-                  placeholder="Qtd."
+                  placeholder={`Qtd. (${insumo?.unidade_estoque ?? "un"})`}
                   value={l.quantidade}
                   onChange={(e) =>
                     updateLinha(l.key, { quantidade: e.target.value })
+                  }
+                />
+                <Input
+                  inputMode="decimal"
+                  placeholder={`Custo un. (R$/${insumo?.unidade_estoque ?? "un"})`}
+                  value={l.custo_unitario}
+                  onChange={(e) =>
+                    updateLinha(l.key, { custo_unitario: e.target.value })
                   }
                 />
                 <Input
