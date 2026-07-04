@@ -253,7 +253,7 @@ export function InsumosCrud() {
                 <th
                   className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors"
                   onClick={() => handleSort("nome")}
-                  title="Nome da matéria-prima ou ingrediente (Clique para ordenar de A-Z)"
+                  title="Ingredientes de produtos(Clique para ordenar de A-Z)"
                 >
                   <div className="flex items-center gap-1">
                     Insumo
@@ -274,6 +274,7 @@ export function InsumosCrud() {
                 <th
                   className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors"
                   onClick={() => handleSort("custo_unitario")}
+                  title="Custo de compra, não é o de consumo"
                 >
                   <div className="flex items-center gap-1">
                     Custo
@@ -290,6 +291,7 @@ export function InsumosCrud() {
                 <th
                   className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors"
                   onClick={() => handleSort("fornecedor_id")}
+                  title="Fornecedor principal"
                 >
                   <div className="flex items-center gap-1">
                     Fornecedor{" "}
@@ -304,6 +306,7 @@ export function InsumosCrud() {
                 <th
                   className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors"
                   onClick={() => handleSort("setor_id")}
+                  title="Setor onde encontrar o insumo"
                 >
                   <div className="flex items-center gap-1">
                     Setor{" "}
@@ -315,8 +318,12 @@ export function InsumosCrud() {
                       ))}
                   </div>
                 </th>
-                <th className="px-4 py-2.5 font-semibold">Saldo (mín/máx)</th>
-                <th className="px-4 py-2.5 font-semibold">Estoque</th>
+                <th className="px-4 py-2.5 font-semibold" title="Saldo atual, saldo mínimo e saldo máximo">
+                  Saldo (mín/máx)
+                </th>
+                <th className="px-4 py-2.5 font-semibold" title="Quantidade em estoque em unidade de compra">
+                  Estoque
+                </th>
                 <th className="w-24 px-4 py-2.5" />
               </tr>
             </thead>
