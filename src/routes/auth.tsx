@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { empresaQueryOptions, DEFAULT_EMPRESA_ID } from "@/lib/empresa";
 import { AddressFields, emptyAddress, type AddressState } from "@/components/AddressFields";
 import { geocodeAddress } from "@/lib/cep";
+import { FOOD_PLACEHOLDER } from "@/lib/imageFallback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
