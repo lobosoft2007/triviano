@@ -253,6 +253,7 @@ export function InsumosCrud() {
                 <th
                   className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors"
                   onClick={() => handleSort("nome")}
+                  title="Nome da matéria-prima ou ingrediente (Clique para ordenar de A-Z)"
                 >
                   <div className="flex items-center gap-1">
                     Insumo
@@ -265,7 +266,7 @@ export function InsumosCrud() {
                   </div>
                 </th>
 
-                <th className="px-4 py-2.5 font-semibold">Un.</th>
+                <th className="px-4 py-2.5 font-semibold" title="Unidade de consumo")">Un.</th>
 
                 {/* Coluna Custo Clicável */}
                 <th
