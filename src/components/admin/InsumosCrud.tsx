@@ -232,7 +232,7 @@ export function InsumosCrud() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome do insumo..."
+            placeholder="Buscar por nome do insumo ou parte dele..."
             className="h-11 rounded-xl"
           />
         </div>
