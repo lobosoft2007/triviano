@@ -456,7 +456,7 @@ export function InsumosCrud() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label={`Estoque mínimo en ${form.unidade_estoque ? `${form.unidade_estoque}` : ""}`}>
+            <Field label={`Estoque mínimo em ${form.unidade_estoque ? `${form.unidade_estoque}` : ""}`}>
               <Input
                 inputMode="decimal"
                 value={form.estoque_minimo}
