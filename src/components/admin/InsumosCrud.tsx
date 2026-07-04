@@ -220,7 +220,7 @@ export function InsumosCrud() {
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
-      ) : (insumosFiltrados.length ?? 0) === 0 ? (  // Alterado Por Marcello Ribeiro Era ) : (insumos?.length ?? 0) === 0 ? (
+      ) : insumosFiltradosEOrdenados.length === 0 ? (
         <p className="rounded-2xl bg-card p-5 text-sm text-muted-foreground shadow-card">Nenhum insumo cadastrado.</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border bg-card">
