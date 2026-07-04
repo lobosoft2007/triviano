@@ -261,10 +261,11 @@ function AuthPage() {
 
         <div className="mb-8 flex flex-col items-center text-center">
           <img
-            src="/logo-triviano.svg"
-            alt="Triviano"
+            src={empresa?.logo_display_url || FOOD_PLACEHOLDER}
+            alt={empresa?.nome_fantasia || "Logotipo"}
             className="h-auto w-full max-w-[200px] object-contain"
           />
+
           <h1 className="mt-4 font-display text-2xl font-bold">{empresa?.nome_fantasia ?? ""}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "otp"
