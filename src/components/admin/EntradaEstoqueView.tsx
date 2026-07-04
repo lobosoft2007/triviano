@@ -222,14 +222,14 @@ export function EntradaEstoqueView() {
                   <SelectContent>
                     {insumos?.map((i) => (
                       <SelectItem key={i.id} value={i.id}>
-                        {i.nome} ({i.unidade_medida})
+                        {i.nome} ({i.unidade_estoque})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <Input
                   inputMode="decimal"
-                  placeholder="Qtd."
+                  placeholder={`Qtd. (${insumo?.unidade_estoque ?? "un"})`}
                   value={l.quantidade}
                   onChange={(e) =>
                     updateLinha(l.key, { quantidade: e.target.value })
@@ -237,7 +237,7 @@ export function EntradaEstoqueView() {
                 />
                 <Input
                   inputMode="decimal"
-                  placeholder="Custo un. (R$)"
+                  placeholder={`Custo un. (R$/${insumo?.unidade_estoque ?? "un"})`}
                   value={l.custo_unitario}
                   onChange={(e) =>
                     updateLinha(l.key, { custo_unitario: e.target.value })
@@ -254,8 +254,8 @@ export function EntradaEstoqueView() {
                 </div>
                 {insumo && (
                   <p className="col-span-full -mt-1 text-[11px] text-muted-foreground">
-                    Custo atual {formatBRL(insumo.custo_unitario)} · estoque{" "}
-                    {insumo.saldo_estoque} {insumo.unidade_medida}
+                    Custo atual {formatBRL(insumo.custo_unitario)} · estoque
+                    atual: {insumo.saldo_estoque} {insumo.unidade_estoque}
                   </p>
                 )}
               </div>
