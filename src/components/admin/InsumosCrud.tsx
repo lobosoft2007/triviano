@@ -80,49 +80,42 @@ export function InsumosCrud() {
     queryFn: listFornecedores,
   });
 
-  // 3. Constante de filtragem para incluir a ordenação automática antes de renderizar - // Incluído por Marcello Ribeiro em 04.07.2026
-  const insumosFiltrados e Ordenados = (insumos?.filter((i) =>
-    i.nome.toLowerCase().includes(search.toLowerCase())
-  ) ?? []).sort((a, b) => {
-    if (!sortField) return 0;
-    
-    let valA = a[sortField];
-    let valB = b[sortField];
-  
-    // Se for texto (nome), ignora maiúsculas/minúsculas
-    if (typeof valA === "string") {
-      return sortDirection === "asc" 
-        ? valA.localeCompare(valB as string) 
-        : (valB as string).localeCompare(valA);
-    }
-    
-    // Se for número (custo_unitario)
-    return sortDirection === "asc" 
-      ? (valA as number) - (valB as number) 
-      : (valB as number) - (valA as number);
-  });  
+  // Estados de ordenação por coluna (asc/desc)
+  const [sortField, setSortField] = useState<"nome" | "custo_unitario" | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-
-
-  
-  // 1. Estados para controlar a coluna ativa e a direção ('asc' = crescente, 'desc' = decrescente)
-  const [sortField, setSortField] = useState<"nome" | "custo_unitario" | null>(null);  // Incluído por Marcello Ribeiro em 04.07.2026
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");  // Incluído por Marcello Ribeiro em 04.07.2026
-  // 2. Função disparada ao clicar no título da coluna - // Incluído por Marcello Ribeiro em 04.07.2026
   const handleSort = (field: "nome" | "custo_unitario") => {
     if (sortField === field) {
-      // Se clicar na mesma coluna, inverte a ordem ou desativa
       if (sortDirection === "asc") setSortDirection("desc");
       else {
         setSortField(null);
         setSortDirection("asc");
       }
     } else {
-      // Se clicar em uma nova coluna, começa com ordenação crescente
       setSortField(field);
       setSortDirection("asc");
     }
   };
+
+  // Filtra pelo termo de busca e aplica a ordenação selecionada
+  const insumosFiltradosEOrdenados = (
+    insumos?.filter((i) => i.nome.toLowerCase().includes(search.toLowerCase())) ?? []
+  ).sort((a, b) => {
+    if (!sortField) return 0;
+
+    const valA = a[sortField];
+    const valB = b[sortField];
+
+    if (typeof valA === "string") {
+      return sortDirection === "asc"
+        ? valA.localeCompare(valB as string)
+        : (valB as string).localeCompare(valA);
+    }
+
+    return sortDirection === "asc"
+      ? (valA as number) - (valB as number)
+      : (valB as number) - (valA as number);
+  });
 
   
   const [open, setOpen] = useState(false);
