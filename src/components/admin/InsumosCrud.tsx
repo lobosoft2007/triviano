@@ -3,7 +3,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Pencil, Trash2, Package } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Search
+  Loader2,
+  Plus,,
+  Pencil,
+  Trash2,
+  Package,
+  Search,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import {
   listInsumos,
@@ -74,10 +81,51 @@ export function InsumosCrud() {
     queryFn: listFornecedores,
   });
 
-  const insumosFiltrados =
-    insumos?.filter((i) => i.nome.toLowerCase().includes(search.toLowerCase())) ?? [];
+  // 3. Constante de filtragem para incluir a ordenação automática antes de renderizar - // Incluído por Marcello Ribeiro em 04.07.2026
+  const insumosFiltrados e Ordenados = (insumos?.filter((i) =>
+    i.nome.toLowerCase().includes(search.toLowerCase())
+  ) ?? []).sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let valA = a[sortField];
+    let valB = b[sortField];
+  
+    // Se for texto (nome), ignora maiúsculas/minúsculas
+    if (typeof valA === "string") {
+      return sortDirection === "asc" 
+        ? valA.localeCompare(valB as string) 
+        : (valB as string).localeCompare(valA);
+    }
+    
+    // Se for número (custo_unitario)
+    return sortDirection === "asc" 
+      ? (valA as number) - (valB as number) 
+      : (valB as number) - (valA as number);
+  });  
 
 
+
+  
+  // 1. Estados para controlar a coluna ativa e a direção ('asc' = crescente, 'desc' = decrescente)
+  const [sortField, setSortField] = useState<"nome" | "custo_unitario" | null>(null);  // Incluído por Marcello Ribeiro em 04.07.2026
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");  // Incluído por Marcello Ribeiro em 04.07.2026
+  // 2. Função disparada ao clicar no título da coluna - // Incluído por Marcello Ribeiro em 04.07.2026
+  const handleSort = (field: "nome" | "custo_unitario") => {
+    if (sortField === field) {
+      // Se clicar na mesma coluna, inverte a ordem ou desativa
+      if (sortDirection === "asc") setSortDirection("desc");
+      else {
+        setSortField(null);
+        setSortDirection("asc");
+      }
+    } else {
+      // Se clicar em uma nova coluna, começa com ordenação crescente
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -187,9 +235,24 @@ export function InsumosCrud() {
           <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-2.5 font-semibold">Insumo</th>
+                {/* Coluna Insumo Clicável */}
+                <th className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors" onClick={() => handleSort("nome")}>
+                  <div className="flex items-center gap-1">
+                    Insumo
+                    {sortField === "nome" && (sortDirection === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
+                  </div>
+                </th>
+                
                 <th className="px-4 py-2.5 font-semibold">Un.</th>
-                <th className="px-4 py-2.5 font-semibold">Custo</th>
+                
+                {/* Coluna Custo Clicável */}
+                <th className="px-4 py-2.5 font-semibold cursor-pointer select-none hover:bg-secondary/80 transition-colors" onClick={() => handleSort("custo_unitario")}>
+                  <div className="flex items-center gap-1">
+                    Custo
+                    {sortField === "custo_unitario" && (sortDirection === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)}
+                  </div>
+                </th>
+                
                 <th className="px-4 py-2.5 font-semibold">Fornecedor</th>
                 <th className="px-4 py-2.5 font-semibold">Setor</th>
                 <th className="px-4 py-2.5 font-semibold">Saldo (mín/máx)</th>
@@ -197,8 +260,9 @@ export function InsumosCrud() {
                 <th className="w-24 px-4 py-2.5" />
               </tr>
             </thead>
+
             <tbody>
-              {insumosFiltrados.map((i, idx) => ( // Alterado por Marcello Ribeiro, era {insumos!.map((i, idx) => (
+              {insumosFiltradosEOrdenados.map((i, idx) => ( // Alterado por Marcello Ribeiro, era {insumos!.map((i, idx) => (
                 <tr key={i.id} className={idx > 0 ? "border-t border-border" : ""}>
                   <td className="px-4 py-2.5 font-medium">{i.nome}</td>
                   <td className="px-4 py-2.5 text-muted-foreground">{i.unidade_medida}</td>
