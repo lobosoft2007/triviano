@@ -266,7 +266,7 @@ export function InsumosCrud() {
                   </div>
                 </th>
 
-                <th className="px-4 py-2.5 font-semibold" title="Unidade de consumo")">Un.</th>
+                <th className="px-4 py-2.5 font-semibold" title="Unidade de consumo">Un.</th>
 
                 {/* Coluna Custo Clicável */}
                 <th
