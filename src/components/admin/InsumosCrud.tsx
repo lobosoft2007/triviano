@@ -165,7 +165,6 @@ export function InsumosCrud() {
         </Button>
       </header>
 
-      {/* ADICIONE ESTE BLOCO AQUI EMBAIXO DO </header> */ Este bloco foi adicionado por Marcello Ribeiro}
       <div className="mb-4">
         <div className="relative">
           <Input
@@ -174,7 +173,7 @@ export function InsumosCrud() {
             placeholder="Buscar por nome do insumo..."
             className="h-11 rounded-xl"
           />
-        </div>div>
+        </div>
       </div>
 
       {isLoading ? (
