@@ -365,10 +365,10 @@ export function InsumosCrud() {
                         >
                           <Copy className="h-4 w-4" />
                         </IconBtn>
-                        <IconBtn label="Editar" title="Editar" onClick={() => openEdit(i)}>
+                        <IconBtn label="Editar" title="Editar o insumo" onClick={() => openEdit(i)}>
                           <Pencil className="h-4 w-4" />
                         </IconBtn>
-                        <IconBtn label="Remover" title="Remover" destructive onClick={() => handleDelete(i)}>
+                        <IconBtn label="Remover" title="Remover o insumo" destructive onClick={() => handleDelete(i)}>
                           <Trash2 className="h-4 w-4" />
                         </IconBtn>
                       </div>
