@@ -245,9 +245,9 @@ export function InsumosCrud() {
       ) : insumosFiltradosEOrdenados.length === 0 ? (
         <p className="rounded-2xl bg-card p-5 text-sm text-muted-foreground shadow-card">Nenhum insumo cadastrado.</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] rounded-2xl border border-border bg-card">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-card text-left text-xs uppercase tracking-wide text-muted-foreground shadow-sm">
               <tr>
                 {/* Coluna Insumo Clicável */}
                 <th
