@@ -185,24 +185,23 @@ export function SetoresCrud() {
 
 export function IconBtn({
   children,
-  onClick,
   label,
   destructive,
+  ...props
 }: {
   children: React.ReactNode;
-  onClick: () => void;
   label: string;
   destructive?: boolean;
-}) {
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
+      {...props}
       aria-label={label}
-      onClick={onClick}
       className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
         destructive
           ? "text-destructive hover:bg-destructive/10"
           : "text-muted-foreground hover:bg-secondary"
-      }`}
+      } ${props.className ?? ""}`}
     >
       {children}
     </button>
