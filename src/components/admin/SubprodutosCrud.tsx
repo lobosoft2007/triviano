@@ -317,7 +317,7 @@ export function SubprodutosCrud() {
                 <span className="text-muted-foreground">
                   Custo total: <strong>{formatBRL(totalCost)}</strong>
                 </span>
-                <span className="font-semibold text-primary">Custo/porção: {formatBRL(unitCost)}</span>
+                <span className="font-semibold text-primary">Custo por KG: {formatBRL(unitCost)}</span>
               </div>
             </div>
 
