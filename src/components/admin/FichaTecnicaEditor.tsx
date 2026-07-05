@@ -48,7 +48,7 @@ export function computeFichaCMV(
     if (!r.ref_id) return sum;
     const unit =
       r.tipo === "insumo"
-        ? insumoCusto.get(r.ref_id) ?? 0
+        ? (insumoCusto.get(r.ref_id) ?? 0) * (insumoFator.get(r.ref_id) ?? 1)
         : subprodutoUnitCost(r.ref_id, {
             insumoCusto,
             insumoFator,
