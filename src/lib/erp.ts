@@ -358,8 +358,12 @@ export async function deleteSubproduto(id: string): Promise<void> {
 /* ------------------------------------------------------------------ */
 
 export interface RelOption {
+  /** Stable client/server id, used to link per-variation ficha lines. */
+  id?: string;
   tamanho: string;
   preco: number;
+  /** Ficha técnica específica desta variação (opcional). */
+  ficha?: FichaLine[];
 }
 export interface RelAddon {
   nome: string;
@@ -375,6 +379,8 @@ export interface FichaLine {
   nome: string;
   quantidade: number;
   permitir_exclusao: boolean;
+  /** When set, this line belongs to a specific price option (variação). */
+  price_option_id?: string | null;
 }
 
 export interface ProductDetail {
