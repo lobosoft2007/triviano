@@ -90,7 +90,7 @@ export async function fetchProductCustoTotal(
 
   const [fichaRes, insumoRes, subRes, compRes] = await Promise.all([
     supabase.rpc("admin_get_ingredientes", { p_product_id: productId }),
-    supabase.from("insumos").select("id, custo_unitario"),
+    supabase.from("insumos").select("id, custo_unitario, fator_conversao"),
     supabase.from("subprodutos").select("id, rendimento_porcoes"),
     supabase.from("composicao_subproduto").select("subproduto_id, insumo_id, quantidade"),
   ]);
