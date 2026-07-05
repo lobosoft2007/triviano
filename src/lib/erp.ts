@@ -604,7 +604,56 @@ export async function saveProductDetail(
   }
 }
 
-/* ------------------------------------------------------------------ */
+/**
+ * Deep clone (cópia em cascata) de um produto e toda a sua estrutura:
+ * produto pai, ficha técnica base, variações (price options) e as fichas
+ * técnicas específicas de cada variação. Gera novos IDs em toda a árvore,
+ * limpando chaves únicas, e prefixa o nome com um asterisco.
+ */
+export async function cloneProduct(productId: string): Promise<void> {
+  const { data: prodData, error: prodErr } = await supabase.rpc(
+    "admin_get_products",
+    { p_id: productId },
+  );
+  if (prodErr) throw prodErr;
+  const src = (prodData ?? [])[0];
+  if (!src) throw new Error("Produto não encontrado.");
+
+  // Full relational structure (variations + base/variation ficha técnica).
+  const detail = await fetchProductDetail(productId);
+
+  // Insert the parent product copy with a fresh id and an asterisk prefix.
+  const payload = {
+    category_id: src.category_id,
+    name: `*${src.name}`,
+    description: src.description ?? "",
+    price: Number(src.price),
+    available: src.available,
+    image_url: src.image_url ?? "",
+    free_addon_limit: Number(src.free_addon_limit ?? 0),
+    eixo_variacao: (src as { eixo_variacao?: string }).eixo_variacao ?? "Tamanho",
+    saldo_estoque: Number(src.saldo_estoque ?? 0),
+    estoque_minimo: Number(src.estoque_minimo ?? 0),
+    estoque_maximo: Number(src.estoque_maximo ?? 0),
+  };
+  const { data: inserted, error } = await supabase
+    .from("products")
+    .insert(payload)
+    .select("id")
+    .single();
+  if (error) throw error;
+  const newId = inserted.id as string;
+
+  // Strip the source price-option ids so saveProductDetail mints brand-new
+  // ones and re-links each variation's ficha técnica to the fresh ids.
+  const cloneDetail: ProductDetail = {
+    ...detail,
+    price_options: detail.price_options.map((p) => ({ ...p, id: undefined })),
+  };
+
+  await saveProductDetail(newId, cloneDetail);
+}
+
 /* Configurações de pagamento (PIX / gateway)                         */
 /* ------------------------------------------------------------------ */
 

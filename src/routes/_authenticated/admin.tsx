@@ -6,6 +6,7 @@ import {
   Loader2,
   Plus,
   Pencil,
+  Copy,
   ImagePlus,
   Trash2,
   ShieldAlert,
@@ -37,6 +38,7 @@ import { compressImage } from "@/lib/imageCompression";
 import {
   fetchProductDetail,
   saveProductDetail,
+  cloneProduct,
   listSetores,
   listFornecedores,
   listInsumos,
@@ -52,6 +54,12 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { SetoresCrud } from "@/components/admin/SetoresCrud";
 import { FornecedoresCrud } from "@/components/admin/FornecedoresCrud";
 import { InsumosCrud } from "@/components/admin/InsumosCrud";
@@ -305,6 +313,43 @@ function formToDetail(d: ProductDetailForm): ProductDetail {
   };
 }
 
+/** Round action button with a floating hint (tooltip). */
+function IconBtn({
+  icon,
+  label,
+  onClick,
+  disabled,
+  variant = "default",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: "default" | "destructive";
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          disabled={disabled}
+          className={
+            "flex h-9 w-9 items-center justify-center rounded-full transition-colors disabled:opacity-50 " +
+            (variant === "destructive"
+              ? "text-destructive hover:bg-destructive/10"
+              : "text-muted-foreground hover:bg-secondary")
+          }
+        >
+          {icon}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function AdminPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -346,6 +391,7 @@ function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [cloningId, setCloningId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!file) return;
@@ -461,6 +507,21 @@ function AdminPage() {
     }
   };
 
+  const handleClone = async (p: AdminProduct) => {
+    if (cloningId) return;
+    setCloningId(p.id);
+    try {
+      await cloneProduct(p.id);
+      toast.success("Produto clonado com sucesso!");
+      await queryClient.invalidateQueries({ queryKey: ["admin-menu"] });
+      await queryClient.invalidateQueries({ queryKey: ["menu"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível duplicar o produto.");
+    } finally {
+      setCloningId(null);
+    }
+  };
+
   if (roleLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -485,6 +546,7 @@ function AdminPage() {
   }
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="min-h-screen bg-background pb-24">
       <div className="mx-auto max-w-6xl">
         <header className="sticky top-0 z-20 border-b border-border bg-background/90 px-4 py-3.5 backdrop-blur-md lg:px-8">
@@ -573,8 +635,16 @@ function AdminPage() {
                     <section key={cat.id} className="mb-7">
                       <h2 className="mb-3 font-display text-base font-bold">{cat.name}</h2>
                       <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                        {products.map((p) => (
-                          <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card">
+                        {products.map((p) => {
+                          const isCloning = cloningId === p.id;
+                          return (
+                          <div
+                            key={p.id}
+                            className={
+                              "flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card transition-all duration-500 animate-in fade-in-0 slide-in-from-top-1 " +
+                              (isCloning ? "pointer-events-none opacity-50" : "")
+                            }
+                          >
                             <img
                               src={p.display_url || "/icons/icon-192.png"}
                               alt={p.name}
@@ -592,23 +662,35 @@ function AdminPage() {
                               </p>
                               <p className="text-xs text-primary">{formatBRL(p.price)}</p>
                             </div>
-                            <button
-                              aria-label={`Editar ${p.name}`}
+                            <IconBtn
+                              label="Editar produto"
                               onClick={() => openEdit(p)}
-                              className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              aria-label={`Remover ${p.name}`}
+                              icon={<Pencil className="h-4 w-4" />}
+                            />
+                            <IconBtn
+                              label="Duplicar produto (Cópia rápida em segundo plano)"
+                              onClick={() => handleClone(p)}
+                              disabled={isCloning || cloningId !== null}
+                              icon={
+                                isCloning ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )
+                              }
+                            />
+                            <IconBtn
+                              label="Remover produto"
                               onClick={() => handleDelete(p)}
-                              className="flex h-9 w-9 items-center justify-center rounded-full text-destructive transition-colors hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                              disabled={isCloning}
+                              variant="destructive"
+                              icon={<Trash2 className="h-4 w-4" />}
+                            />
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
+
                     </section>
                   );
                 })}
@@ -812,5 +894,6 @@ function AdminPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 }
