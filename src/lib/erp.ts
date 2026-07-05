@@ -402,7 +402,7 @@ export async function fetchProductDetail(
   const [poRes, addRes, freeRes, fichaRes, prodRes, ingRes] = await Promise.all([
     supabase
       .from("produtos_price_options")
-      .select("tamanho, preco, sort_order")
+      .select("id, tamanho, preco, sort_order")
       .eq("produto_id", productId)
       .order("sort_order"),
     supabase
