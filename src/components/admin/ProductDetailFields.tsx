@@ -148,12 +148,14 @@ function PriceOptionsEditor({
   baseFicha,
   insumos,
   subprodutos,
+  eixoVariacao,
 }: {
   rows: PriceOptionRow[];
   onChange: (rows: PriceOptionRow[]) => void;
   baseFicha: FichaRow[];
   insumos: Insumo[];
   subprodutos: Subproduto[];
+  eixoVariacao?: string;
 }) {
   const [editing, setEditing] = useState<number | null>(null);
 
