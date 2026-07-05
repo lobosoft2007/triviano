@@ -48,7 +48,7 @@ export function computeFichaCMV(
     if (!r.ref_id) return sum;
     const unit =
       r.tipo === "insumo"
-        ? insumoCusto.get(r.ref_id) ?? 0
+        ? (insumoCusto.get(r.ref_id) ?? 0) * (insumoFator.get(r.ref_id) ?? 1)
         : subprodutoUnitCost(r.ref_id, {
             insumoCusto,
             insumoFator,
@@ -94,10 +94,25 @@ export function FichaTecnicaEditor({
     return { insumoCusto, insumoFator, insumoUnidade, subprodutoRendimento, composicao };
   }, [insumos, subprodutos]);
 
+  // Raw cost per stock unit — used for the gray "R$ X/KG" label.
   const unitCostOf = (row: FichaRow): number => {
     if (!row.ref_id) return 0;
     if (row.tipo === "insumo") return maps.insumoCusto.get(row.ref_id) ?? 0;
     return subprodutoUnitCost(row.ref_id, maps);
+  };
+
+  // Proportional line cost: insumo quantity is in the recipe unit and must be
+  // converted to the stock unit via fator_conversao (fallback 1). Subprodutos
+  // are already priced per KG, matching the KG quantity entered.
+  const lineCostOf = (row: FichaRow): number => {
+    if (!row.ref_id) return 0;
+    const qty = parseQty(row.quantidade);
+    if (row.tipo === "insumo") {
+      const custo = maps.insumoCusto.get(row.ref_id) ?? 0;
+      const fator = maps.insumoFator.get(row.ref_id) ?? 1;
+      return qty * fator * custo;
+    }
+    return qty * subprodutoUnitCost(row.ref_id, maps);
   };
 
   const unitLabelOf = (row: FichaRow): string => {
@@ -124,10 +139,7 @@ export function FichaTecnicaEditor({
     update(idx, { tipo, ref_id: id, nome });
   };
 
-  const totalCMV = value.reduce(
-    (sum, r) => sum + parseQty(r.quantidade) * unitCostOf(r),
-    0,
-  );
+  const totalCMV = value.reduce((sum, r) => sum + lineCostOf(r), 0);
 
   return (
     <div className="space-y-3 border-t border-border pt-4">
@@ -163,7 +175,7 @@ export function FichaTecnicaEditor({
           <div className="divide-y divide-border">
             {value.map((row, idx) => {
               const unitCost = unitCostOf(row);
-              const proportional = parseQty(row.quantidade) * unitCost;
+              const proportional = lineCostOf(row);
               return (
                 <div
                   key={idx}
