@@ -249,7 +249,7 @@ export function SubprodutosCrud() {
                   placeholder="Ex.: Massa de pizza"
                 />
               </Field>
-              <Field label="Rendimento (porções)">
+              <Field label="Rendimento total (KG)">
                 <Input
                   inputMode="decimal"
                   value={form.rendimento_porcoes}
