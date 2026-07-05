@@ -102,6 +102,12 @@ export async function fetchProductCustoTotal(
   const insumoCusto = new Map<string, number>(
     (insumoRes.data ?? []).map((i) => [i.id, Number(i.custo_unitario)]),
   );
+  const insumoFator = new Map<string, number>(
+    (insumoRes.data ?? []).map((i) => [
+      i.id,
+      Number((i as { fator_conversao?: number }).fator_conversao ?? 1) || 1,
+    ]),
+  );
   const subprodutoRendimento = new Map<string, number>(
     (subRes.data ?? []).map((s) => [s.id, Number(s.rendimento_porcoes)]),
   );
