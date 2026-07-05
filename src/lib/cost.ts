@@ -122,6 +122,7 @@ export async function fetchProductCustoTotal(
     manipulado,
     custoAquisicao,
     insumoCusto,
+    insumoFator,
     subprodutoRendimento,
     composicao,
     ficha: (fichaRes.data ?? []).map((f) => ({
