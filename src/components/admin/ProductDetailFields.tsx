@@ -291,6 +291,7 @@ export function ProductDetailFields({
   fornecedores,
   insumos,
   subprodutos,
+  eixoVariacao,
 }: {
   value: ProductDetailForm;
   onChange: (v: ProductDetailForm) => void;
@@ -298,6 +299,7 @@ export function ProductDetailFields({
   fornecedores: { id: string; fornecedor: string }[];
   insumos: Insumo[];
   subprodutos: Subproduto[];
+  eixoVariacao?: string;
 }) {
   const patch = (p: Partial<ProductDetailForm>) => onChange({ ...value, ...p });
 
