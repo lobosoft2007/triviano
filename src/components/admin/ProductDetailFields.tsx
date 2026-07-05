@@ -382,6 +382,7 @@ export function ProductDetailFields({
         baseFicha={value.ficha}
         insumos={insumos}
         subprodutos={subprodutos}
+        eixoVariacao={eixoVariacao}
       />
       <RelListEditor
         title="Adicionais pagos"
