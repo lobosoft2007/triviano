@@ -183,9 +183,10 @@ export function FichaTecnicaEditor({
       ) : (
         <div className="overflow-hidden rounded-xl border border-border">
           {/* Header row (desktop dense layout) */}
-          <div className="hidden grid-cols-[1fr_140px_120px_minmax(0,150px)_36px] items-center gap-2 border-b border-border bg-secondary px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+          <div className="hidden grid-cols-[minmax(0,1fr)_110px_70px_140px_minmax(0,180px)_36px] items-center gap-3 border-b border-border bg-secondary px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:grid">
             <span>Insumo / Subproduto</span>
             <span>Quantidade</span>
+            <span>Unidade</span>
             <span>Remoção</span>
             <span className="text-right">Custo proporcional</span>
             <span />
@@ -198,14 +199,14 @@ export function FichaTecnicaEditor({
               return (
                 <div
                   key={idx}
-                  className="grid grid-cols-1 items-center gap-2 px-3 py-2.5 md:grid-cols-[1fr_140px_120px_minmax(0,150px)_36px]"
+                  className="grid grid-cols-1 items-center gap-3 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_110px_70px_140px_minmax(0,180px)_36px]"
                 >
                   {/* Item picker */}
                   <Select
                     value={row.ref_id ? encode(row.tipo, row.ref_id) : ""}
                     onValueChange={(v) => onSelect(idx, v)}
                   >
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className="h-9 w-full">
                       <SelectValue placeholder="Selecione o componente" />
                     </SelectTrigger>
                     <SelectContent>
@@ -235,19 +236,19 @@ export function FichaTecnicaEditor({
                     </SelectContent>
                   </Select>
 
-                  {/* Quantity + unit */}
-                  <div className="flex items-center gap-1.5">
-                    <Input
-                      className="h-9"
-                      inputMode="decimal"
-                      value={row.quantidade}
-                      onChange={(e) => update(idx, { quantidade: e.target.value })}
-                      placeholder="0"
-                    />
-                  <span className="w-12 shrink-0 text-xs text-muted-foreground">
-                      {consumptionUnitLabelOf(row)}
-                    </span>
-                  </div>
+                  {/* Quantity */}
+                  <Input
+                    className="h-9"
+                    inputMode="decimal"
+                    value={row.quantidade}
+                    onChange={(e) => update(idx, { quantidade: e.target.value })}
+                    placeholder="0"
+                  />
+
+                  {/* Unit */}
+                  <span className="text-xs text-muted-foreground md:text-center">
+                    {consumptionUnitLabelOf(row)}
+                  </span>
 
                   {/* Permitir exclusão */}
                   <label className="flex items-center gap-2 text-xs text-foreground">
