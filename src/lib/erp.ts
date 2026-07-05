@@ -436,13 +436,28 @@ export async function fetchProductDetail(
   const fiscais = (fichaRes.data?.dados_fiscais ?? {}) as Record<string, unknown>;
   const prodMeta = (prodRes.data ?? [])[0];
 
+  // All ficha lines with their (optional) price_option_id link.
+  const allFicha: FichaLine[] = (ingRes.data ?? []).map((r) => ({
+    tipo: (r.subproduto_id ? "subproduto" : "insumo") as "insumo" | "subproduto",
+    ref_id: (r.subproduto_id ?? r.insumo_id ?? "") as string,
+    nome: String(r.nome ?? ""),
+    quantidade: Number(r.quantidade ?? 0),
+    permitir_exclusao: Boolean(r.permitir_exclusao),
+    price_option_id: (r.price_option_id ?? null) as string | null,
+  }));
+
+  // Base ficha = lines not tied to a variation.
+  const baseFicha = allFicha.filter((f) => !f.price_option_id);
+
   return {
     manipulado: prodMeta?.manipulado ?? true,
     setor_id: prodMeta?.setor_id ?? null,
     fornecedor_id: prodMeta?.fornecedor_id ?? null,
     price_options: (poRes.data ?? []).map((p) => ({
+      id: String(p.id),
       tamanho: String(p.tamanho),
       preco: Number(p.preco),
+      ficha: allFicha.filter((f) => f.price_option_id === String(p.id)),
     })),
     addons: (addRes.data ?? []).map((a) => ({
       nome: String(a.nome),
@@ -454,15 +469,7 @@ export async function fetchProductDetail(
     })),
     ncm: String(fiscais.ncm ?? ""),
     ean: String(fiscais.ean ?? ""),
-    ficha: (ingRes.data ?? []).map((r) => ({
-      tipo: (r.subproduto_id ? "subproduto" : "insumo") as
-        | "insumo"
-        | "subproduto",
-      ref_id: (r.subproduto_id ?? r.insumo_id ?? "") as string,
-      nome: String(r.nome ?? ""),
-      quantidade: Number(r.quantidade ?? 0),
-      permitir_exclusao: Boolean(r.permitir_exclusao),
-    })),
+    ficha: baseFicha,
   };
 }
 
