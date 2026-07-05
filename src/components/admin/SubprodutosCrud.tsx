@@ -16,20 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { IconBtn } from "./SetoresCrud";
 import { Field } from "./FornecedoresCrud";
@@ -70,27 +58,33 @@ export function SubprodutosCrud() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
 
-  const insumoCost = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const i of insumos ?? []) m.set(i.id, i.custo_unitario);
+  const insumoData = useMemo(() => {
+    const m = new Map<string, { custo: number; fator: number }>();
+    for (const i of insumos ?? []) {
+      m.set(i.id, {
+        custo: i.custo_unitario ?? 0,
+        fator: i.fator_conversao ?? 1, // Tratado como 1 se for nulo
+      });
+    }
     return m;
   }, [insumos]);
-  const insumoName = (id: string) =>
-    insumos?.find((i) => i.id === id)?.nome ?? "?";
+  const insumoName = (id: string) => insumos?.find((i) => i.id === id)?.nome ?? "?";
 
-  const totalCost = form.composicao.reduce(
-    (sum, c) =>
-      sum + parseNumberInput(c.quantidade) * (insumoCost.get(c.insumo_id) ?? 0),
-    0,
-  );
+  const totalCost = form.composicao.reduce((sum, c) => {
+    const data = insumoData.get(c.insumo_id);
+    const qtd = parseNumberInput(c.quantidade);
+    const custoItem = qtd * (data?.fator ?? 1) * (data?.custo ?? 0);
+    return sum + custoItem;
+  }, 0);
   const rendimento = parseNumberInput(form.rendimento_porcoes) || 1;
   const unitCost = totalCost / rendimento;
 
   const subTotalCost = (s: Subproduto) =>
-    s.composicao.reduce(
-      (sum, c) => sum + c.quantidade * (insumoCost.get(c.insumo_id) ?? 0),
-      0,
-    );
+    s.composicao.reduce((sum, c) => {
+      const data = insumoData.get(c.insumo_id);
+      const custoItem = c.quantidade * (data?.fator ?? 1) * (data?.custo ?? 0);
+      return sum + custoItem;
+    }, 0);
 
   const openNew = () => {
     setForm(EMPTY);
@@ -120,9 +114,7 @@ export function SubprodutosCrud() {
   const updateLinha = (idx: number, patch: Partial<CompForm>) => {
     setForm((f) => ({
       ...f,
-      composicao: f.composicao.map((c, i) =>
-        i === idx ? { ...c, ...patch } : c,
-      ),
+      composicao: f.composicao.map((c, i) => (i === idx ? { ...c, ...patch } : c)),
     }));
   };
   const removeLinha = (idx: number) => {
@@ -215,15 +207,9 @@ export function SubprodutosCrud() {
                 return (
                   <tr key={s.id} className={idx > 0 ? "border-t border-border" : ""}>
                     <td className="px-4 py-2.5 font-medium">{s.nome}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {s.composicao.length}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground tabular-nums">
-                      {s.rendimento_porcoes}
-                    </td>
-                    <td className="px-4 py-2.5 font-semibold tabular-nums">
-                      {formatBRL(tc)}
-                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{s.composicao.length}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground tabular-nums">{s.rendimento_porcoes}</td>
+                    <td className="px-4 py-2.5 font-semibold tabular-nums">{formatBRL(tc)}</td>
                     <td className="px-4 py-2.5 font-semibold tabular-nums text-primary">
                       {formatBRL(tc / (s.rendimento_porcoes || 1))}
                     </td>
@@ -232,11 +218,7 @@ export function SubprodutosCrud() {
                         <IconBtn label="Editar" onClick={() => openEdit(s)}>
                           <Pencil className="h-4 w-4" />
                         </IconBtn>
-                        <IconBtn
-                          label="Remover"
-                          destructive
-                          onClick={() => handleDelete(s)}
-                        >
+                        <IconBtn label="Remover" destructive onClick={() => handleDelete(s)}>
                           <Trash2 className="h-4 w-4" />
                         </IconBtn>
                       </div>
@@ -271,9 +253,7 @@ export function SubprodutosCrud() {
                 <Input
                   inputMode="decimal"
                   value={form.rendimento_porcoes}
-                  onChange={(e) =>
-                    setForm({ ...form, rendimento_porcoes: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, rendimento_porcoes: e.target.value })}
                 />
               </Field>
             </div>
@@ -282,42 +262,26 @@ export function SubprodutosCrud() {
             <div className="rounded-2xl border border-border p-3">
               <div className="mb-2 flex items-center justify-between">
                 <Label className="text-sm font-semibold">Composição</Label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={addLinha}
-                  disabled={!insumos?.length}
-                >
+                <Button type="button" size="sm" variant="secondary" onClick={addLinha} disabled={!insumos?.length}>
                   <Plus className="mr-1 h-4 w-4" /> Adicionar insumo
                 </Button>
               </div>
 
               {!insumos?.length && (
-                <p className="text-xs text-muted-foreground">
-                  Cadastre insumos antes de montar a composição.
-                </p>
+                <p className="text-xs text-muted-foreground">Cadastre insumos antes de montar a composição.</p>
               )}
 
               {form.composicao.length === 0 && insumos?.length ? (
-                <p className="text-xs text-muted-foreground">
-                  Nenhum insumo adicionado ainda.
-                </p>
+                <p className="text-xs text-muted-foreground">Nenhum insumo adicionado ainda.</p>
               ) : (
                 <div className="space-y-2">
                   {form.composicao.map((c, idx) => {
-                    const lineCost =
-                      parseNumberInput(c.quantidade) *
-                      (insumoCost.get(c.insumo_id) ?? 0);
+                    const data = insumoData.get(c.insumo_id);
+                    const lineCost = parseNumberInput(c.quantidade) * (data?.fator ?? 1) * (data?.custo ?? 0);
                     return (
                       <div key={idx} className="flex items-center gap-2">
                         <div className="flex-1">
-                          <Select
-                            value={c.insumo_id}
-                            onValueChange={(v) =>
-                              updateLinha(idx, { insumo_id: v })
-                            }
-                          >
+                          <Select value={c.insumo_id} onValueChange={(v) => updateLinha(idx, { insumo_id: v })}>
                             <SelectTrigger className="h-9">
                               <SelectValue placeholder="Insumo" />
                             </SelectTrigger>
@@ -334,19 +298,13 @@ export function SubprodutosCrud() {
                           className="h-9 w-20"
                           inputMode="decimal"
                           value={c.quantidade}
-                          onChange={(e) =>
-                            updateLinha(idx, { quantidade: e.target.value })
-                          }
+                          onChange={(e) => updateLinha(idx, { quantidade: e.target.value })}
                           placeholder="Qtd"
                         />
                         <span className="w-20 shrink-0 text-right text-sm font-semibold tabular-nums text-primary">
                           {formatBRL(lineCost)}
                         </span>
-                        <IconBtn
-                          label="Remover linha"
-                          destructive
-                          onClick={() => removeLinha(idx)}
-                        >
+                        <IconBtn label="Remover linha" destructive onClick={() => removeLinha(idx)}>
                           <X className="h-4 w-4" />
                         </IconBtn>
                       </div>
@@ -359,18 +317,14 @@ export function SubprodutosCrud() {
                 <span className="text-muted-foreground">
                   Custo total: <strong>{formatBRL(totalCost)}</strong>
                 </span>
-                <span className="font-semibold text-primary">
-                  Custo/porção: {formatBRL(unitCost)}
-                </span>
+                <span className="font-semibold text-primary">Custo/porção: {formatBRL(unitCost)}</span>
               </div>
             </div>
 
             <Field label="Modo de preparo">
               <Textarea
                 value={form.modo_preparo}
-                onChange={(e) =>
-                  setForm({ ...form, modo_preparo: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, modo_preparo: e.target.value })}
                 rows={2}
                 placeholder="Instruções de preparo..."
               />
