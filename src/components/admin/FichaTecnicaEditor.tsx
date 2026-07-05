@@ -244,8 +244,8 @@ export function FichaTecnicaEditor({
                       onChange={(e) => update(idx, { quantidade: e.target.value })}
                       placeholder="0"
                     />
-                    <span className="w-12 shrink-0 text-xs text-muted-foreground">
-                      {unitLabelOf(row)}
+                  <span className="w-12 shrink-0 text-xs text-muted-foreground">
+                      {consumptionUnitLabelOf(row)}
                     </span>
                   </div>
 
@@ -267,7 +267,7 @@ export function FichaTecnicaEditor({
                   <div className="text-right text-sm font-semibold tabular-nums">
                     {formatBRL(proportional)}
                     <span className="ml-1 hidden text-[10px] font-normal text-muted-foreground md:inline">
-                      ({formatBRL(unitCost)}/{unitLabelOf(row)})
+                      ({formatBRL(unitCost)}/{stockUnitLabelOf(row)})
                     </span>
                   </div>
 
