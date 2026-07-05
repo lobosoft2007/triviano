@@ -195,9 +195,9 @@ export function SubprodutosCrud() {
               <tr>
                 <th className="px-4 py-2.5 font-semibold">Subproduto</th>
                 <th className="px-4 py-2.5 font-semibold">Itens</th>
-                <th className="px-4 py-2.5 font-semibold">Rende</th>
+                <th className="px-4 py-2.5 font-semibold">Rende (KG)</th>
                 <th className="px-4 py-2.5 font-semibold">Custo total</th>
-                <th className="px-4 py-2.5 font-semibold">Custo/porção</th>
+                <th className="px-4 py-2.5 font-semibold">Custo por KG</th>
                 <th className="w-24 px-4 py-2.5" />
               </tr>
             </thead>
@@ -249,7 +249,7 @@ export function SubprodutosCrud() {
                   placeholder="Ex.: Massa de pizza"
                 />
               </Field>
-              <Field label="Rendimento (porções)">
+              <Field label="Rendimento total (KG)">
                 <Input
                   inputMode="decimal"
                   value={form.rendimento_porcoes}
@@ -317,7 +317,7 @@ export function SubprodutosCrud() {
                 <span className="text-muted-foreground">
                   Custo total: <strong>{formatBRL(totalCost)}</strong>
                 </span>
-                <span className="font-semibold text-primary">Custo/porção: {formatBRL(unitCost)}</span>
+                <span className="font-semibold text-primary">Custo por KG: {formatBRL(unitCost)}</span>
               </div>
             </div>
 
