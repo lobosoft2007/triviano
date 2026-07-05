@@ -125,10 +125,13 @@ export async function fetchProductCustoTotal(
     insumoFator,
     subprodutoRendimento,
     composicao,
-    ficha: (fichaRes.data ?? []).map((f) => ({
-      insumo_id: f.insumo_id,
-      subproduto_id: f.subproduto_id,
-      quantidade: Number(f.quantidade),
-    })),
+    ficha: (fichaRes.data ?? [])
+      // Base recipe only — variation-specific lines are costed per variation.
+      .filter((f) => !f.price_option_id)
+      .map((f) => ({
+        insumo_id: f.insumo_id,
+        subproduto_id: f.subproduto_id,
+        quantidade: Number(f.quantidade),
+      })),
   });
 }
