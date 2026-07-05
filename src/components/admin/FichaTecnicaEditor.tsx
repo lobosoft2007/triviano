@@ -82,7 +82,10 @@ export function FichaTecnicaEditor({
     const insumoFator = new Map<string, number>(
       insumos.map((i) => [i.id, i.fator_conversao ?? 1]),
     );
-    const insumoUnidade = new Map<string, string>(
+    const insumoUnidadeConsumo = new Map<string, string>(
+      insumos.map((i) => [i.id, i.unidade_medida || i.unidade_estoque]),
+    );
+    const insumoUnidadeEstoque = new Map<string, string>(
       insumos.map((i) => [i.id, i.unidade_estoque || i.unidade_medida]),
     );
     const subprodutoRendimento = new Map<string, number>(
@@ -91,10 +94,17 @@ export function FichaTecnicaEditor({
     const composicao = new Map(
       subprodutos.map((s) => [s.id, s.composicao]),
     );
-    return { insumoCusto, insumoFator, insumoUnidade, subprodutoRendimento, composicao };
+    return {
+      insumoCusto,
+      insumoFator,
+      insumoUnidadeConsumo,
+      insumoUnidadeEstoque,
+      subprodutoRendimento,
+      composicao,
+    };
   }, [insumos, subprodutos]);
 
-  // Raw cost per stock unit — used for the gray "R$ X/KG" label.
+  // Raw cost per stock unit — used for the gray "R$ X/KG" reference label.
   const unitCostOf = (row: FichaRow): number => {
     if (!row.ref_id) return 0;
     if (row.tipo === "insumo") return maps.insumoCusto.get(row.ref_id) ?? 0;
@@ -115,8 +125,17 @@ export function FichaTecnicaEditor({
     return qty * subprodutoUnitCost(row.ref_id, maps);
   };
 
-  const unitLabelOf = (row: FichaRow): string => {
-    if (row.tipo === "insumo") return maps.insumoUnidade.get(row.ref_id) ?? "un";
+  /** Unit shown next to the recipe quantity input (consumption unit). */
+  const consumptionUnitLabelOf = (row: FichaRow): string => {
+    if (row.tipo === "insumo") return maps.insumoUnidadeConsumo.get(row.ref_id) ?? "un";
+    return "KG";
+  };
+
+  /** Unit shown in the gray reference-cost label (purchase/stock unit). */
+  const stockUnitLabelOf = (row: FichaRow): string => {
+    if (row.tipo === "insumo") {
+      return (maps.insumoUnidadeEstoque.get(row.ref_id) ?? "un").toUpperCase();
+    }
     return "KG";
   };
 
