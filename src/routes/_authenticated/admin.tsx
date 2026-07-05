@@ -38,6 +38,7 @@ import { compressImage } from "@/lib/imageCompression";
 import {
   fetchProductDetail,
   saveProductDetail,
+  cloneProduct,
   listSetores,
   listFornecedores,
   listInsumos,
