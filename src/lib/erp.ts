@@ -566,17 +566,36 @@ export async function saveProductDetail(
     .from("ingredientes_produto")
     .delete()
     .eq("product_id", productId);
-  const fichaRows = detail.ficha
-    .filter((f) => f.ref_id && f.nome.trim())
-    .map((f, idx) => ({
-      product_id: productId,
-      nome: f.nome.trim(),
-      insumo_id: f.tipo === "insumo" ? f.ref_id : null,
-      subproduto_id: f.tipo === "subproduto" ? f.ref_id : null,
-      quantidade: round2(f.quantidade),
-      permitir_exclusao: f.permitir_exclusao,
-      sort_order: idx,
-    }));
+
+  const filteredOptions = detail.price_options.filter((p) => p.tamanho.trim());
+
+  const buildFichaRows = (
+    lines: FichaLine[],
+    priceOptionId: string | null,
+    startOrder: number,
+  ) =>
+    lines
+      .filter((f) => f.ref_id && f.nome.trim())
+      .map((f, idx) => ({
+        product_id: productId,
+        nome: f.nome.trim(),
+        insumo_id: f.tipo === "insumo" ? f.ref_id : null,
+        subproduto_id: f.tipo === "subproduto" ? f.ref_id : null,
+        quantidade: round2(f.quantidade),
+        permitir_exclusao: f.permitir_exclusao,
+        price_option_id: priceOptionId,
+        sort_order: startOrder + idx,
+      }));
+
+  let order = 0;
+  const fichaRows = buildFichaRows(detail.ficha, null, order);
+  order += fichaRows.length;
+  filteredOptions.forEach((opt, idx) => {
+    const rows = buildFichaRows(opt.ficha ?? [], optionIds[idx] ?? null, order);
+    order += rows.length;
+    fichaRows.push(...rows);
+  });
+
   if (fichaRows.length) {
     const { error } = await supabase
       .from("ingredientes_produto")
