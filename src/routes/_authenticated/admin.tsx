@@ -507,6 +507,21 @@ function AdminPage() {
     }
   };
 
+  const handleClone = async (p: AdminProduct) => {
+    if (cloningId) return;
+    setCloningId(p.id);
+    try {
+      await cloneProduct(p.id);
+      toast.success("Produto clonado com sucesso!");
+      await queryClient.invalidateQueries({ queryKey: ["admin-menu"] });
+      await queryClient.invalidateQueries({ queryKey: ["menu"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível duplicar o produto.");
+    } finally {
+      setCloningId(null);
+    }
+  };
+
   if (roleLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
