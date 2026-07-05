@@ -894,5 +894,6 @@ function AdminPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 }
