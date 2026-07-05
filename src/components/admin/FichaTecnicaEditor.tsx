@@ -175,7 +175,7 @@ export function FichaTecnicaEditor({
           <div className="divide-y divide-border">
             {value.map((row, idx) => {
               const unitCost = unitCostOf(row);
-              const proportional = parseQty(row.quantidade) * unitCost;
+              const proportional = lineCostOf(row);
               return (
                 <div
                   key={idx}
