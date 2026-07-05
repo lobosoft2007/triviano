@@ -83,7 +83,7 @@ export function FichaTecnicaEditor({
       insumos.map((i) => [i.id, i.fator_conversao ?? 1]),
     );
     const insumoUnidade = new Map<string, string>(
-      insumos.map((i) => [i.id, i.unidade_medida]),
+      insumos.map((i) => [i.id, i.unidade_estoque || i.unidade_medida]),
     );
     const subprodutoRendimento = new Map<string, number>(
       subprodutos.map((s) => [s.id, s.rendimento_porcoes]),
