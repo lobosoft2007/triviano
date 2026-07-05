@@ -6,6 +6,7 @@ import {
   Loader2,
   Plus,
   Pencil,
+  Copy,
   ImagePlus,
   Trash2,
   ShieldAlert,
