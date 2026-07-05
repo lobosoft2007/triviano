@@ -6,18 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  FichaTecnicaEditor,
-  computeFichaCMV,
-  type FichaRow,
-} from "@/components/admin/FichaTecnicaEditor";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FichaTecnicaEditor, computeFichaCMV, type FichaRow } from "@/components/admin/FichaTecnicaEditor";
 import { formatBRL } from "@/lib/format";
 import type { Insumo, Subproduto } from "@/lib/erp";
 
@@ -167,26 +157,22 @@ function PriceOptionsEditor({
 }) {
   const [editing, setEditing] = useState<number | null>(null);
 
-  const add = () =>
-    onChange([...rows, { id: newId(), label: "", preco: "", ficha: [] }]);
+  const add = () => onChange([...rows, { id: newId(), label: "", preco: "", ficha: [] }]);
   const update = (idx: number, patch: Partial<PriceOptionRow>) =>
     onChange(rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   const remove = (idx: number) => onChange(rows.filter((_, i) => i !== idx));
 
-  const baseCMV = useMemo(
-    () => computeFichaCMV(baseFicha, insumos, subprodutos),
-    [baseFicha, insumos, subprodutos],
-  );
+  const baseCMV = useMemo(() => computeFichaCMV(baseFicha, insumos, subprodutos), [baseFicha, insumos, subprodutos]);
 
   const active = editing !== null ? rows[editing] : null;
-  const variationCMV = active
-    ? computeFichaCMV(active.ficha, insumos, subprodutos)
-    : 0;
+  const variationCMV = active ? computeFichaCMV(active.ficha, insumos, subprodutos) : 0;
 
   return (
     <div className="rounded-xl border border-border p-3">
       <div className="mb-2 flex items-center justify-between">
-        <Label className="text-sm font-semibold">Tamanhos / opções de preço</Label>
+        <Label className="text-sm font-semibold capitalize">
+          {form.eixo_variacao ? `${form.eixo_variacao}s / opções de preço` : "Tamanhos / opções de preço"}
+        </Label>
         <Button type="button" size="sm" variant="secondary" onClick={add}>
           <Plus className="mr-1 h-4 w-4" /> Adicionar
         </Button>
@@ -238,14 +224,8 @@ function PriceOptionsEditor({
         </div>
       )}
 
-      <Dialog
-        open={editing !== null}
-        onOpenChange={(o) => !o && setEditing(null)}
-      >
-        <DialogContent
-          hideClose
-          className="max-h-[90vh] max-w-4xl overflow-y-auto"
-        >
+      <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent hideClose className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <ModalActionBar
             title={
               <span className="flex items-center justify-center gap-2">
@@ -264,8 +244,7 @@ function PriceOptionsEditor({
           {active && editing !== null && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Insumos e subprodutos específicos desta variação. Somam-se à
-                ficha base do produto no cálculo do CMV.
+                Insumos e subprodutos específicos desta variação. Somam-se à ficha base do produto no cálculo do CMV.
               </p>
 
               <FichaTecnicaEditor
@@ -290,9 +269,7 @@ function PriceOptionsEditor({
                     <Calculator className="h-4 w-4 text-primary" />
                     CMV total ({active.label || "variação"})
                   </span>
-                  <span className="tabular-nums text-primary">
-                    {formatBRL(baseCMV + variationCMV)}
-                  </span>
+                  <span className="tabular-nums text-primary">{formatBRL(baseCMV + variationCMV)}</span>
                 </div>
               </div>
             </div>
@@ -330,10 +307,7 @@ export function ProductDetailFields({
             Ligado: custo vem da ficha técnica. Desligado: produto de revenda.
           </p>
         </div>
-        <Switch
-          checked={value.manipulado}
-          onCheckedChange={(v) => patch({ manipulado: v })}
-        />
+        <Switch checked={value.manipulado} onCheckedChange={(v) => patch({ manipulado: v })} />
       </div>
 
       {/* Setor / Fornecedor for revenda items */}
@@ -341,10 +315,7 @@ export function ProductDetailFields({
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label>Fornecedor</Label>
-            <Select
-              value={value.fornecedor_id}
-              onValueChange={(v) => patch({ fornecedor_id: v })}
-            >
+            <Select value={value.fornecedor_id} onValueChange={(v) => patch({ fornecedor_id: v })}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
@@ -360,10 +331,7 @@ export function ProductDetailFields({
           </div>
           <div className="space-y-2">
             <Label>Setor</Label>
-            <Select
-              value={value.setor_id}
-              onValueChange={(v) => patch({ setor_id: v })}
-            >
+            <Select value={value.setor_id} onValueChange={(v) => patch({ setor_id: v })}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
