@@ -139,10 +139,7 @@ export function FichaTecnicaEditor({
     update(idx, { tipo, ref_id: id, nome });
   };
 
-  const totalCMV = value.reduce(
-    (sum, r) => sum + parseQty(r.quantidade) * unitCostOf(r),
-    0,
-  );
+  const totalCMV = value.reduce((sum, r) => sum + lineCostOf(r), 0);
 
   return (
     <div className="space-y-3 border-t border-border pt-4">
