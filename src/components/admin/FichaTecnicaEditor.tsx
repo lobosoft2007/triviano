@@ -32,6 +32,33 @@ const parseQty = (v: string) => {
   return Number.isFinite(n) && n > 0 ? n : 0;
 };
 
+/** Pure CMV of a set of ficha rows using the current insumo/subproduto costs. */
+export function computeFichaCMV(
+  rows: FichaRow[],
+  insumos: Insumo[],
+  subprodutos: Subproduto[],
+): number {
+  const insumoCusto = new Map(insumos.map((i) => [i.id, i.custo_unitario]));
+  const insumoFator = new Map(insumos.map((i) => [i.id, i.fator_conversao ?? 1]));
+  const subprodutoRendimento = new Map(
+    subprodutos.map((s) => [s.id, s.rendimento_porcoes]),
+  );
+  const composicao = new Map(subprodutos.map((s) => [s.id, s.composicao]));
+  return rows.reduce((sum, r) => {
+    if (!r.ref_id) return sum;
+    const unit =
+      r.tipo === "insumo"
+        ? insumoCusto.get(r.ref_id) ?? 0
+        : subprodutoUnitCost(r.ref_id, {
+            insumoCusto,
+            insumoFator,
+            subprodutoRendimento,
+            composicao,
+          });
+    return sum + parseQty(r.quantidade) * unit;
+  }, 0);
+}
+
 function encode(tipo: "insumo" | "subproduto", id: string) {
   return `${tipo}:${id}`;
 }
