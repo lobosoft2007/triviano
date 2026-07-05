@@ -19,7 +19,9 @@ export interface CostInputs {
   custoAquisicao: number;
   /** Insumo unit costs keyed by insumo id. */
   insumoCusto: Map<string, number>;
-  /** Subproduto yield (rendimento_porcoes) keyed by subproduto id. */
+  /** Insumo conversion factor (fator_conversao, fallback 1) keyed by insumo id. */
+  insumoFator: Map<string, number>;
+  /** Subproduto yield in KG (rendimento_porcoes) keyed by subproduto id. */
   subprodutoRendimento: Map<string, number>;
   /** Subproduto composition: subproduto_id -> [{ insumo_id, quantidade }]. */
   composicao: Map<string, { insumo_id: string; quantidade: number }[]>;
@@ -27,14 +29,23 @@ export interface CostInputs {
   ficha: { insumo_id: string | null; subproduto_id: string | null; quantidade: number }[];
 }
 
-/** Unit cost of a subproduto = sum(insumo cost) / yield. */
+/**
+ * Unit cost of a subproduto per KG = sum(quantidade * fator_conversao * custo) / rendimento (KG).
+ */
 export function subprodutoUnitCost(
   subprodutoId: string,
-  inputs: Pick<CostInputs, "insumoCusto" | "subprodutoRendimento" | "composicao">,
+  inputs: Pick<
+    CostInputs,
+    "insumoCusto" | "insumoFator" | "subprodutoRendimento" | "composicao"
+  >,
 ): number {
   const parts = inputs.composicao.get(subprodutoId) ?? [];
   const total = parts.reduce(
-    (sum, c) => sum + c.quantidade * (inputs.insumoCusto.get(c.insumo_id) ?? 0),
+    (sum, c) =>
+      sum +
+      c.quantidade *
+        (inputs.insumoFator.get(c.insumo_id) ?? 1) *
+        (inputs.insumoCusto.get(c.insumo_id) ?? 0),
     0,
   );
   const yield_ = inputs.subprodutoRendimento.get(subprodutoId) || 1;
