@@ -618,7 +618,7 @@ function AdminPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent hideClose className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogContent hideClose className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <ModalActionBar
             title={form.id ? "Editar produto" : "Novo produto"}
             onBack={() => setOpen(false)}
