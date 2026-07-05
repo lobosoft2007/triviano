@@ -195,9 +195,9 @@ export function SubprodutosCrud() {
               <tr>
                 <th className="px-4 py-2.5 font-semibold">Subproduto</th>
                 <th className="px-4 py-2.5 font-semibold">Itens</th>
-                <th className="px-4 py-2.5 font-semibold">Rende</th>
+                <th className="px-4 py-2.5 font-semibold">Rende (KG)</th>
                 <th className="px-4 py-2.5 font-semibold">Custo total</th>
-                <th className="px-4 py-2.5 font-semibold">Custo/porção</th>
+                <th className="px-4 py-2.5 font-semibold">Custo por KG</th>
                 <th className="w-24 px-4 py-2.5" />
               </tr>
             </thead>
