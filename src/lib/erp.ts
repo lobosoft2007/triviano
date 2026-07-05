@@ -489,19 +489,26 @@ export async function saveProductDetail(
     .eq("id", productId);
   if (prodErr) throw prodErr;
 
-  // price options
+  // price options — insert with explicit ids so per-variation ficha lines
+  // can reference a stable price_option_id even after the delete/reinsert.
   await supabase
     .from("produtos_price_options")
     .delete()
     .eq("produto_id", productId);
+  const optionIds: (string | null)[] = [];
   const poRows = detail.price_options
     .filter((p) => p.tamanho.trim())
-    .map((p, idx) => ({
-      produto_id: productId,
-      tamanho: p.tamanho.trim(),
-      preco: round2(p.preco),
-      sort_order: idx,
-    }));
+    .map((p, idx) => {
+      const id = p.id && p.id.trim() ? p.id : crypto.randomUUID();
+      optionIds[idx] = id;
+      return {
+        id,
+        produto_id: productId,
+        tamanho: p.tamanho.trim(),
+        preco: round2(p.preco),
+        sort_order: idx,
+      };
+    });
   if (poRows.length) {
     const { error } = await supabase
       .from("produtos_price_options")
