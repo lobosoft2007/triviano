@@ -238,28 +238,36 @@ function PriceOptionsEditor({
         </div>
       )}
 
-      <Sheet
+      <Dialog
         open={editing !== null}
         onOpenChange={(o) => !o && setEditing(null)}
       >
-        <SheetContent
-          side="right"
-          className="w-full overflow-y-auto sm:max-w-xl"
+        <DialogContent
+          hideClose
+          className="max-h-[90vh] max-w-4xl overflow-y-auto"
         >
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <ChefHat className="h-5 w-5 text-primary" />
-              Ficha Técnica da Variação
-              {active?.label ? ` · ${active.label}` : ""}
-            </SheetTitle>
-            <SheetDescription>
-              Insumos e subprodutos específicos desta variação. Somam-se à ficha
-              base do produto no cálculo do CMV.
-            </SheetDescription>
-          </SheetHeader>
+          <ModalActionBar
+            title={
+              <span className="flex items-center justify-center gap-2">
+                <ChefHat className="h-4 w-4 shrink-0 text-primary" />
+                <span className="truncate">
+                  Ficha Técnica da Variação
+                  {active?.label ? ` · ${active.label}` : ""}
+                </span>
+              </span>
+            }
+            onBack={() => setEditing(null)}
+            onSave={() => setEditing(null)}
+            saveLabel="Concluir"
+          />
 
           {active && editing !== null && (
-            <div className="mt-4 space-y-4">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Insumos e subprodutos específicos desta variação. Somam-se à
+                ficha base do produto no cálculo do CMV.
+              </p>
+
               <FichaTecnicaEditor
                 value={active.ficha}
                 onChange={(f) => update(editing, { ficha: f })}
@@ -287,18 +295,10 @@ function PriceOptionsEditor({
                   </span>
                 </div>
               </div>
-
-              <Button
-                type="button"
-                className="w-full"
-                onClick={() => setEditing(null)}
-              >
-                Concluir
-              </Button>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
