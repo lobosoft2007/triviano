@@ -94,10 +94,25 @@ export function FichaTecnicaEditor({
     return { insumoCusto, insumoFator, insumoUnidade, subprodutoRendimento, composicao };
   }, [insumos, subprodutos]);
 
+  // Raw cost per stock unit — used for the gray "R$ X/KG" label.
   const unitCostOf = (row: FichaRow): number => {
     if (!row.ref_id) return 0;
     if (row.tipo === "insumo") return maps.insumoCusto.get(row.ref_id) ?? 0;
     return subprodutoUnitCost(row.ref_id, maps);
+  };
+
+  // Proportional line cost: insumo quantity is in the recipe unit and must be
+  // converted to the stock unit via fator_conversao (fallback 1). Subprodutos
+  // are already priced per KG, matching the KG quantity entered.
+  const lineCostOf = (row: FichaRow): number => {
+    if (!row.ref_id) return 0;
+    const qty = parseQty(row.quantidade);
+    if (row.tipo === "insumo") {
+      const custo = maps.insumoCusto.get(row.ref_id) ?? 0;
+      const fator = maps.insumoFator.get(row.ref_id) ?? 1;
+      return qty * fator * custo;
+    }
+    return qty * subprodutoUnitCost(row.ref_id, maps);
   };
 
   const unitLabelOf = (row: FichaRow): string => {
