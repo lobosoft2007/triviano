@@ -52,6 +52,9 @@ export function FichaTecnicaEditor({
     const insumoCusto = new Map<string, number>(
       insumos.map((i) => [i.id, i.custo_unitario]),
     );
+    const insumoFator = new Map<string, number>(
+      insumos.map((i) => [i.id, i.fator_conversao ?? 1]),
+    );
     const insumoUnidade = new Map<string, string>(
       insumos.map((i) => [i.id, i.unidade_medida]),
     );
@@ -61,7 +64,7 @@ export function FichaTecnicaEditor({
     const composicao = new Map(
       subprodutos.map((s) => [s.id, s.composicao]),
     );
-    return { insumoCusto, insumoUnidade, subprodutoRendimento, composicao };
+    return { insumoCusto, insumoFator, insumoUnidade, subprodutoRendimento, composicao };
   }, [insumos, subprodutos]);
 
   const unitCostOf = (row: FichaRow): number => {
@@ -72,7 +75,7 @@ export function FichaTecnicaEditor({
 
   const unitLabelOf = (row: FichaRow): string => {
     if (row.tipo === "insumo") return maps.insumoUnidade.get(row.ref_id) ?? "un";
-    return "porção";
+    return "KG";
   };
 
   const add = () =>
