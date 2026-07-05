@@ -634,8 +634,16 @@ function AdminPage() {
                     <section key={cat.id} className="mb-7">
                       <h2 className="mb-3 font-display text-base font-bold">{cat.name}</h2>
                       <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                        {products.map((p) => (
-                          <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card">
+                        {products.map((p) => {
+                          const isCloning = cloningId === p.id;
+                          return (
+                          <div
+                            key={p.id}
+                            className={
+                              "flex items-center gap-3 rounded-2xl bg-card p-2.5 shadow-card transition-all duration-500 animate-in fade-in-0 slide-in-from-top-1 " +
+                              (isCloning ? "pointer-events-none opacity-50" : "")
+                            }
+                          >
                             <img
                               src={p.display_url || "/icons/icon-192.png"}
                               alt={p.name}
@@ -653,23 +661,35 @@ function AdminPage() {
                               </p>
                               <p className="text-xs text-primary">{formatBRL(p.price)}</p>
                             </div>
-                            <button
-                              aria-label={`Editar ${p.name}`}
+                            <IconBtn
+                              label="Editar produto"
                               onClick={() => openEdit(p)}
-                              className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              aria-label={`Remover ${p.name}`}
+                              icon={<Pencil className="h-4 w-4" />}
+                            />
+                            <IconBtn
+                              label="Duplicar produto (Cópia rápida em segundo plano)"
+                              onClick={() => handleClone(p)}
+                              disabled={isCloning || cloningId !== null}
+                              icon={
+                                isCloning ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )
+                              }
+                            />
+                            <IconBtn
+                              label="Remover produto"
                               onClick={() => handleDelete(p)}
-                              className="flex h-9 w-9 items-center justify-center rounded-full text-destructive transition-colors hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                              disabled={isCloning}
+                              variant="destructive"
+                              icon={<Trash2 className="h-4 w-4" />}
+                            />
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
+
                     </section>
                   );
                 })}
