@@ -313,6 +313,43 @@ function formToDetail(d: ProductDetailForm): ProductDetail {
   };
 }
 
+/** Round action button with a floating hint (tooltip). */
+function IconBtn({
+  icon,
+  label,
+  onClick,
+  disabled,
+  variant = "default",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: "default" | "destructive";
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          disabled={disabled}
+          className={
+            "flex h-9 w-9 items-center justify-center rounded-full transition-colors disabled:opacity-50 " +
+            (variant === "destructive"
+              ? "text-destructive hover:bg-destructive/10"
+              : "text-muted-foreground hover:bg-secondary")
+          }
+        >
+          {icon}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function AdminPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
