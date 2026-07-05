@@ -358,8 +358,12 @@ export async function deleteSubproduto(id: string): Promise<void> {
 /* ------------------------------------------------------------------ */
 
 export interface RelOption {
+  /** Stable client/server id, used to link per-variation ficha lines. */
+  id?: string;
   tamanho: string;
   preco: number;
+  /** Ficha técnica específica desta variação (opcional). */
+  ficha?: FichaLine[];
 }
 export interface RelAddon {
   nome: string;
@@ -375,6 +379,8 @@ export interface FichaLine {
   nome: string;
   quantidade: number;
   permitir_exclusao: boolean;
+  /** When set, this line belongs to a specific price option (variação). */
+  price_option_id?: string | null;
 }
 
 export interface ProductDetail {
@@ -396,7 +402,7 @@ export async function fetchProductDetail(
   const [poRes, addRes, freeRes, fichaRes, prodRes, ingRes] = await Promise.all([
     supabase
       .from("produtos_price_options")
-      .select("tamanho, preco, sort_order")
+      .select("id, tamanho, preco, sort_order")
       .eq("produto_id", productId)
       .order("sort_order"),
     supabase
@@ -430,13 +436,28 @@ export async function fetchProductDetail(
   const fiscais = (fichaRes.data?.dados_fiscais ?? {}) as Record<string, unknown>;
   const prodMeta = (prodRes.data ?? [])[0];
 
+  // All ficha lines with their (optional) price_option_id link.
+  const allFicha: FichaLine[] = (ingRes.data ?? []).map((r) => ({
+    tipo: (r.subproduto_id ? "subproduto" : "insumo") as "insumo" | "subproduto",
+    ref_id: (r.subproduto_id ?? r.insumo_id ?? "") as string,
+    nome: String(r.nome ?? ""),
+    quantidade: Number(r.quantidade ?? 0),
+    permitir_exclusao: Boolean(r.permitir_exclusao),
+    price_option_id: (r.price_option_id ?? null) as string | null,
+  }));
+
+  // Base ficha = lines not tied to a variation.
+  const baseFicha = allFicha.filter((f) => !f.price_option_id);
+
   return {
     manipulado: prodMeta?.manipulado ?? true,
     setor_id: prodMeta?.setor_id ?? null,
     fornecedor_id: prodMeta?.fornecedor_id ?? null,
     price_options: (poRes.data ?? []).map((p) => ({
+      id: String(p.id),
       tamanho: String(p.tamanho),
       preco: Number(p.preco),
+      ficha: allFicha.filter((f) => f.price_option_id === String(p.id)),
     })),
     addons: (addRes.data ?? []).map((a) => ({
       nome: String(a.nome),
@@ -448,15 +469,7 @@ export async function fetchProductDetail(
     })),
     ncm: String(fiscais.ncm ?? ""),
     ean: String(fiscais.ean ?? ""),
-    ficha: (ingRes.data ?? []).map((r) => ({
-      tipo: (r.subproduto_id ? "subproduto" : "insumo") as
-        | "insumo"
-        | "subproduto",
-      ref_id: (r.subproduto_id ?? r.insumo_id ?? "") as string,
-      nome: String(r.nome ?? ""),
-      quantidade: Number(r.quantidade ?? 0),
-      permitir_exclusao: Boolean(r.permitir_exclusao),
-    })),
+    ficha: baseFicha,
   };
 }
 
@@ -476,19 +489,26 @@ export async function saveProductDetail(
     .eq("id", productId);
   if (prodErr) throw prodErr;
 
-  // price options
+  // price options — insert with explicit ids so per-variation ficha lines
+  // can reference a stable price_option_id even after the delete/reinsert.
   await supabase
     .from("produtos_price_options")
     .delete()
     .eq("produto_id", productId);
+  const optionIds: (string | null)[] = [];
   const poRows = detail.price_options
     .filter((p) => p.tamanho.trim())
-    .map((p, idx) => ({
-      produto_id: productId,
-      tamanho: p.tamanho.trim(),
-      preco: round2(p.preco),
-      sort_order: idx,
-    }));
+    .map((p, idx) => {
+      const id = p.id && p.id.trim() ? p.id : crypto.randomUUID();
+      optionIds[idx] = id;
+      return {
+        id,
+        produto_id: productId,
+        tamanho: p.tamanho.trim(),
+        preco: round2(p.preco),
+        sort_order: idx,
+      };
+    });
   if (poRows.length) {
     const { error } = await supabase
       .from("produtos_price_options")
@@ -546,17 +566,36 @@ export async function saveProductDetail(
     .from("ingredientes_produto")
     .delete()
     .eq("product_id", productId);
-  const fichaRows = detail.ficha
-    .filter((f) => f.ref_id && f.nome.trim())
-    .map((f, idx) => ({
-      product_id: productId,
-      nome: f.nome.trim(),
-      insumo_id: f.tipo === "insumo" ? f.ref_id : null,
-      subproduto_id: f.tipo === "subproduto" ? f.ref_id : null,
-      quantidade: round2(f.quantidade),
-      permitir_exclusao: f.permitir_exclusao,
-      sort_order: idx,
-    }));
+
+  const filteredOptions = detail.price_options.filter((p) => p.tamanho.trim());
+
+  const buildFichaRows = (
+    lines: FichaLine[],
+    priceOptionId: string | null,
+    startOrder: number,
+  ) =>
+    lines
+      .filter((f) => f.ref_id && f.nome.trim())
+      .map((f, idx) => ({
+        product_id: productId,
+        nome: f.nome.trim(),
+        insumo_id: f.tipo === "insumo" ? f.ref_id : null,
+        subproduto_id: f.tipo === "subproduto" ? f.ref_id : null,
+        quantidade: round2(f.quantidade),
+        permitir_exclusao: f.permitir_exclusao,
+        price_option_id: priceOptionId,
+        sort_order: startOrder + idx,
+      }));
+
+  let order = 0;
+  const fichaRows = buildFichaRows(detail.ficha, null, order);
+  order += fichaRows.length;
+  filteredOptions.forEach((opt, idx) => {
+    const rows = buildFichaRows(opt.ficha ?? [], optionIds[idx] ?? null, order);
+    order += rows.length;
+    fichaRows.push(...rows);
+  });
+
   if (fichaRows.length) {
     const { error } = await supabase
       .from("ingredientes_produto")

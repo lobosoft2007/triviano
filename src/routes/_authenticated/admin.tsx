@@ -233,8 +233,18 @@ function detailToForm(d: ProductDetail): ProductDetailForm {
     ncm: d.ncm,
     ean: d.ean,
     price_options: d.price_options.map((o) => ({
+      id: o.id ?? crypto.randomUUID(),
       label: o.tamanho,
       preco: String(o.preco).replace(".", ","),
+      ficha: (o.ficha ?? []).map((f) => ({
+        tipo: f.tipo,
+        ref_id: f.ref_id,
+        nome: f.nome,
+        quantidade: f.quantidade
+          ? String(f.quantidade).replace(".", ",")
+          : "",
+        permitir_exclusao: f.permitir_exclusao,
+      })),
     })),
     addons: d.addons.map((a) => ({
       label: a.nome,
@@ -262,8 +272,18 @@ function formToDetail(d: ProductDetailForm): ProductDetail {
     ncm: d.ncm,
     ean: d.ean,
     price_options: d.price_options.map((o) => ({
+      id: o.id,
       tamanho: o.label,
       preco: parseNumberInput(o.preco),
+      ficha: o.ficha
+        .filter((f) => f.ref_id)
+        .map((f) => ({
+          tipo: f.tipo,
+          ref_id: f.ref_id,
+          nome: f.nome,
+          quantidade: parseNumberInput(f.quantidade),
+          permitir_exclusao: f.permitir_exclusao,
+        })),
     })),
     addons: d.addons.map((a) => ({
       nome: a.label,
