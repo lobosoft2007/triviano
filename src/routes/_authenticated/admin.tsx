@@ -54,6 +54,12 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { SetoresCrud } from "@/components/admin/SetoresCrud";
 import { FornecedoresCrud } from "@/components/admin/FornecedoresCrud";
 import { InsumosCrud } from "@/components/admin/InsumosCrud";
