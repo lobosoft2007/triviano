@@ -170,9 +170,10 @@ function PriceOptionsEditor({
   return (
     <div className="rounded-xl border border-border p-3">
       <div className="mb-2 flex items-center justify-between">
-        <Label className="text-sm font-semibold">
-          Tamanhos / opções de preço
-        </Label>
+        <h3 className="text-sm font-medium">
+          {/* Pega o valor do eixo digitado, pluraliza com 's' de forma simples e adiciona o sufixo */}
+          {form.eixo_variacao ? `${form.eixo_variacao}s / opções de preço` : "Tamanhos / opções de preço"}
+        </h3>
         <Button type="button" size="sm" variant="secondary" onClick={add}>
           <Plus className="mr-1 h-4 w-4" /> Adicionar
         </Button>
