@@ -148,12 +148,14 @@ function PriceOptionsEditor({
   baseFicha,
   insumos,
   subprodutos,
+  eixoVariacao,
 }: {
   rows: PriceOptionRow[];
   onChange: (rows: PriceOptionRow[]) => void;
   baseFicha: FichaRow[];
   insumos: Insumo[];
   subprodutos: Subproduto[];
+  eixoVariacao?: string;
 }) {
   const [editing, setEditing] = useState<number | null>(null);
 
@@ -171,8 +173,9 @@ function PriceOptionsEditor({
     <div className="rounded-xl border border-border p-3">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-medium">
-          {/* Pega o valor do eixo digitado, pluraliza com 's' de forma simples e adiciona o sufixo */}
-          {form.eixo_variacao ? `${form.eixo_variacao}s / opções de preço` : "Tamanhos / opções de preço"}
+          {eixoVariacao?.trim()
+            ? `${eixoVariacao.trim()}s / opções de preço`
+            : "Tamanhos / opções de preço"}
         </h3>
         <Button type="button" size="sm" variant="secondary" onClick={add}>
           <Plus className="mr-1 h-4 w-4" /> Adicionar
@@ -288,6 +291,7 @@ export function ProductDetailFields({
   fornecedores,
   insumos,
   subprodutos,
+  eixoVariacao,
 }: {
   value: ProductDetailForm;
   onChange: (v: ProductDetailForm) => void;
@@ -295,6 +299,7 @@ export function ProductDetailFields({
   fornecedores: { id: string; fornecedor: string }[];
   insumos: Insumo[];
   subprodutos: Subproduto[];
+  eixoVariacao?: string;
 }) {
   const patch = (p: Partial<ProductDetailForm>) => onChange({ ...value, ...p });
 
@@ -377,6 +382,7 @@ export function ProductDetailFields({
         baseFicha={value.ficha}
         insumos={insumos}
         subprodutos={subprodutos}
+        eixoVariacao={eixoVariacao}
       />
       <RelListEditor
         title="Adicionais pagos"

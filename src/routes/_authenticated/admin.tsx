@@ -888,6 +888,7 @@ function AdminPage() {
                 fornecedores={fornecedores ?? []}
                 insumos={insumos ?? []}
                 subprodutos={subprodutos ?? []}
+                eixoVariacao={form.eixo_variacao}
               />
             )}
           </div>
