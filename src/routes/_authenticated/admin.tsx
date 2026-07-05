@@ -391,6 +391,7 @@ function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [cloningId, setCloningId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!file) return;
