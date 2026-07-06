@@ -640,18 +640,43 @@ function BalcaoPaymentDialog({
 
   // Live troco preview while the operator types the cash tendered.
   const selectedIsCash = selected ? isCashMethod(selected.nome) : false;
+  const selectedIsPix = selected ? isPixMethod(selected.nome) : false;
   const parsedAmount = Number(amountStr.replace(",", ".")) || 0;
   const previewTroco =
     selectedIsCash && parsedAmount > remaining
       ? round2(parsedAmount - remaining)
       : 0;
 
+  // Dynamic PIX BR Code (Copia e Cola) + QR for the exact remaining balance.
+  const pix = usePixPayment(remaining);
+
   function pickMethod(m: MeioPagamento) {
     setSelected(m);
     // Prefill with the remaining balance so a single confirm liquidates it.
     setAmountStr(remaining ? remaining.toFixed(2) : "");
-    requestAnimationFrame(() => amountRef.current?.focus());
+    if (!isPixMethod(m.nome)) {
+      requestAnimationFrame(() => amountRef.current?.focus());
+    }
   }
+
+  /** Confirms PIX receipt for the exact remaining balance and records it. */
+  function confirmPix() {
+    if (!selected) return;
+    setPayments((prev) => [
+      ...prev,
+      {
+        meioId: selected.id,
+        meioNome: selected.nome,
+        valor: remaining,
+        recebido: remaining,
+        isCash: false,
+      },
+    ]);
+    setSelected(null);
+    setAmountStr("");
+    toast.success("Recebimento PIX confirmado.");
+  }
+
 
   function confirmPartial() {
     if (!selected) return;
