@@ -103,6 +103,7 @@ interface AdminProduct {
   display_url: string;
   available: boolean;
   free_addon_limit: number;
+  manipulado: boolean;
   eixo_variacao: string;
   saldo_estoque: number;
   estoque_minimo: number;
