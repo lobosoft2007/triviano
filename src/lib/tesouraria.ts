@@ -260,6 +260,52 @@ export async function registrarEntradaAvulsa(input: {
   return Number(data ?? 0);
 }
 
+export interface ItemEntradaProdutoInput {
+  id_produto: string;
+  quantidade: number;
+  custo_unitario: number;
+}
+
+/**
+ * Register a stock entry for revenda (non-manipulado) products. Adds the
+ * quantities to product stock, stores the new acquisition cost and records the
+ * audit history. Optionally posts a treasury outflow.
+ */
+export async function registrarEntradaProdutos(input: {
+  id_fornecedor: string | null;
+  id_conta_financeira: string | null;
+  observacao: string;
+  itens: ItemEntradaProdutoInput[];
+}): Promise<number> {
+  const itens = input.itens
+    .filter((i) => i.id_produto && i.quantidade > 0)
+    .map((i) => ({
+      id_produto: i.id_produto,
+      quantidade: round2(i.quantidade),
+      custo_unitario: round2(i.custo_unitario),
+    }));
+  if (itens.length === 0) {
+    throw new Error("Adicione ao menos um produto com quantidade válida.");
+  }
+
+  const { data, error } = await supabase.rpc("registrar_entrada_produtos", {
+    p_fornecedor: input.id_fornecedor as string,
+    p_conta_financeira: input.id_conta_financeira as string,
+    p_observacao: input.observacao,
+    p_itens: itens,
+  });
+  if (error) {
+    console.error("[registrarEntradaProdutos]", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw error;
+  }
+  return Number(data ?? 0);
+}
+
 export interface EntradaAvulsa {
   id: string;
   numero_documento_interno: number;
