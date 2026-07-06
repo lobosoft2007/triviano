@@ -836,16 +836,18 @@ function AdminPage() {
                   onCheckedChange={(v) => setForm({ ...form, available: v })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="prod-free-limit">Adicionais grátis</Label>
-                <Input
-                  id="prod-free-limit"
-                  inputMode="numeric"
-                  value={form.free_addon_limit}
-                  onChange={(e) => setForm({ ...form, free_addon_limit: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
+              {detail.manipulado && (
+                <div className="space-y-2">
+                  <Label htmlFor="prod-free-limit">Adicionais grátis</Label>
+                  <Input
+                    id="prod-free-limit"
+                    inputMode="numeric"
+                    value={form.free_addon_limit}
+                    onChange={(e) => setForm({ ...form, free_addon_limit: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              )}
             </div>
 
             {detail.manipulado && (
