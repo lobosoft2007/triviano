@@ -1,11 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
   Loader2,
   Lock,
   ShieldAlert,
@@ -176,12 +175,6 @@ function CaixaPage() {
         <p className="max-w-sm text-sm text-muted-foreground">
           O painel CAIXA é exclusivo para operadores autorizados.
         </p>
-        <Link
-          to="/"
-          className="mt-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
-        >
-          Voltar ao início
-        </Link>
       </div>
     );
   }
@@ -279,6 +272,16 @@ function LockScreen({ userId }: { userId: string }) {
 
 function OperationalPanel({ caixaId }: { caixaId: string }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const handleLock = useCallback(async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOut();
+    navigate({ to: "/auth", replace: true });
+  }, [queryClient, signOut, navigate]);
+
   const [tab, setTab] = useState<
     "delivery" | "mesas" | "balcao" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
   >("delivery");
@@ -479,13 +482,15 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8">
           <div className="flex items-center gap-3">
-            <Link
-              to="/"
-              aria-label="Voltar"
-              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary"
+            <button
+              onClick={handleLock}
+              aria-label="Bloquear Caixa / Desconectar"
+              title="Bloquear Caixa / Desconectar"
+              className="flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
             >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
+              <Lock className="h-4 w-4" />
+              <span className="hidden sm:inline">Bloquear Caixa</span>
+            </button>
             <div>
               <p className="text-xs text-muted-foreground">Painel operacional</p>
               <h1 className="font-display text-xl font-bold leading-tight">

@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowLeft,
+  Lock,
   Loader2,
   Plus,
   Pencil,
@@ -368,8 +368,17 @@ function IconBtn({
 }
 
 function AdminPage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const handleLock = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOut();
+    navigate({ to: "/auth", replace: true });
+  };
+
   const { data: isAdmin, isLoading: roleLoading } = useIsAdmin(user?.id);
   const { data: isSuperAdmin } = useIsSuperAdmin(user?.id);
   const { data, isLoading } = useQuery({
@@ -555,9 +564,6 @@ function AdminPage() {
           <h1 className="font-display text-lg font-bold">Acesso restrito</h1>
           <p className="mt-1 text-sm text-muted-foreground">Esta área é exclusiva para administradores.</p>
         </div>
-        <Button asChild variant="secondary">
-          <Link to="/">Voltar ao início</Link>
-        </Button>
       </div>
     );
   }
@@ -569,13 +575,15 @@ function AdminPage() {
         <header className="sticky top-0 z-20 border-b border-border bg-background/90 px-4 py-3.5 backdrop-blur-md lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Link
-                to="/"
-                aria-label="Voltar"
-                className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+              <button
+                onClick={handleLock}
+                aria-label="Bloquear / Desconectar"
+                title="Bloquear / Desconectar"
+                className="flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
               >
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
+                <Lock className="h-4 w-4" />
+                <span className="hidden sm:inline">Bloquear</span>
+              </button>
               <img
                 src="/logo-triviano.svg"
                 alt="Triviano"
