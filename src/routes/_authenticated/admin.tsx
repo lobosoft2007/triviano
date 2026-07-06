@@ -140,6 +140,11 @@ async function fetchAdminMenu() {
     estoque_maximo: Number(p.estoque_maximo ?? 0),
     custo_total: Number((p as { custo_total?: number }).custo_total ?? 0),
     disponivel: Boolean((p as { disponivel?: boolean }).disponivel),
+    margem_revenda: Number((p as { margem_revenda?: number }).margem_revenda ?? 100),
+    custo_compra: Number((p as { custo_compra?: number }).custo_compra ?? 0),
+    preco_ideal_revenda: Number(
+      (p as { preco_ideal_revenda?: number }).preco_ideal_revenda ?? 0,
+    ),
   }));
   const urlMap = await resolveImageUrls(raw.map((p) => p.image_url));
 
