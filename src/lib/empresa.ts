@@ -53,14 +53,12 @@ const EMPRESA_BRANDING_COLS =
  * separately by authenticated flows via {@link fetchEmpresaConfig}.
  */
 export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
-  const { data, error } = await supabase
-    .from("empresas_public_branding")
-    .select(EMPRESA_BRANDING_COLS)
-    .eq("ativo", true)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // Anonymous visitors can no longer read the empresas base table (which would
+  // expose address + service fee). Public branding is served by a SECURITY
+  // DEFINER function that returns only the safe branding columns.
+  const { data: rows, error } = await supabase.rpc("get_public_branding");
   if (error) throw error;
+  const data = (rows ?? [])[0] ?? null;
 
   const empresa: Empresa = data
     ? {
