@@ -445,35 +445,36 @@ export function ProductDetailFields({
         </div>
       </div>
 
-      <PriceOptionsEditor
-        rows={value.price_options}
-        onChange={(rows) => patch({ price_options: rows })}
-        baseFicha={value.ficha}
-        insumos={insumos}
-        subprodutos={subprodutos}
-        eixoVariacao={eixoVariacao}
-      />
-      <RelListEditor
-        title="Adicionais pagos"
-        labelPlaceholder="Ex.: Bacon extra"
-        rows={value.addons}
-        onChange={(rows) => patch({ addons: rows })}
-      />
-      <RelListEditor
-        title="Adicionais grátis (excedente cobrado pelo preço informado)"
-        labelPlaceholder="Ex.: Granola"
-        rows={value.free_addons}
-        onChange={(rows) => patch({ free_addons: rows })}
-      />
-
-      {/* Ficha técnica só aparece para itens manipulados */}
+      {/* Variações, adicionais e ficha técnica só para itens manipulados */}
       {value.manipulado && (
-        <FichaTecnicaEditor
-          value={value.ficha}
-          onChange={(rows) => patch({ ficha: rows })}
-          insumos={insumos}
-          subprodutos={subprodutos}
-        />
+        <>
+          <PriceOptionsEditor
+            rows={value.price_options}
+            onChange={(rows) => patch({ price_options: rows })}
+            baseFicha={value.ficha}
+            insumos={insumos}
+            subprodutos={subprodutos}
+            eixoVariacao={eixoVariacao}
+          />
+          <RelListEditor
+            title="Adicionais pagos"
+            labelPlaceholder="Ex.: Bacon extra"
+            rows={value.addons}
+            onChange={(rows) => patch({ addons: rows })}
+          />
+          <RelListEditor
+            title="Adicionais grátis (excedente cobrado pelo preço informado)"
+            labelPlaceholder="Ex.: Granola"
+            rows={value.free_addons}
+            onChange={(rows) => patch({ free_addons: rows })}
+          />
+          <FichaTecnicaEditor
+            value={value.ficha}
+            onChange={(rows) => patch({ ficha: rows })}
+            insumos={insumos}
+            subprodutos={subprodutos}
+          />
+        </>
       )}
     </div>
   );

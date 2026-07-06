@@ -79,7 +79,7 @@ import {
   NONE,
   type ProductDetailForm,
 } from "@/components/admin/ProductDetailFields";
-import { ProductQuickAdjust } from "@/components/admin/ProductQuickAdjust";
+
 import { useIsSuperAdmin } from "@/lib/superadmin";
 import { ClientesView } from "@/components/admin/ClientesView";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
@@ -693,16 +693,8 @@ function AdminPage() {
                                 Sugestão: {formatBRL(p.preco_ideal_revenda)}
                                 <span className="ml-1">({p.margem_revenda}%)</span>
                               </p>
-                              <ProductQuickAdjust
-                                id={p.id}
-                                manipulado={p.manipulado}
-                                saldoEstoque={p.saldo_estoque}
-                                custoCompra={p.custo_compra}
-                                onSaved={() =>
-                                  queryClient.invalidateQueries({ queryKey: ["admin-menu"] })
-                                }
-                              />
                             </div>
+
                             <IconBtn
                               label="Editar produto"
                               onClick={() => openEdit(p)}
@@ -807,7 +799,7 @@ function AdminPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="prod-price">Preço base (R$)</Label>
+                <Label htmlFor="prod-price">Preço revenda (R$)</Label>
                 <Input
                   id="prod-price"
                   inputMode="decimal"
@@ -856,18 +848,20 @@ function AdminPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="prod-eixo">Rótulo do eixo de variação</Label>
-              <Input
-                id="prod-eixo"
-                value={form.eixo_variacao}
-                onChange={(e) => setForm({ ...form, eixo_variacao: e.target.value })}
-                placeholder="Ex.: Escolha sabor, Escolha tamanho, Escolha cor"
-              />
-              <p className="text-xs text-muted-foreground">
-                Texto exibido acima das opções de variação no app (sem artigos).
-              </p>
-            </div>
+            {detail.manipulado && (
+              <div className="space-y-2">
+                <Label htmlFor="prod-eixo">Rótulo do eixo de variação</Label>
+                <Input
+                  id="prod-eixo"
+                  value={form.eixo_variacao}
+                  onChange={(e) => setForm({ ...form, eixo_variacao: e.target.value })}
+                  placeholder="Ex.: Escolha sabor, Escolha tamanho, Escolha cor"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Texto exibido acima das opções de variação no app (sem artigos).
+                </p>
+              </div>
+            )}
 
 
             {!detail.manipulado && (
@@ -885,9 +879,14 @@ function AdminPage() {
                       id="prod-saldo"
                       inputMode="decimal"
                       value={form.saldo_estoque}
-                      onChange={(e) => setForm({ ...form, saldo_estoque: e.target.value })}
+                      readOnly
+                      className="cursor-not-allowed bg-secondary text-muted-foreground"
+                      title="Somente leitura. Ajuste o estoque por Entrada de Estoque ou Ajustes para manter a auditoria."
                       placeholder="0"
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      Somente leitura — use Entrada de Estoque/Ajustes.
+                    </p>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="prod-min" className="text-xs">

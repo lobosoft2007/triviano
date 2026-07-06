@@ -5,12 +5,14 @@ import { toast } from "sonner";
 import {
   listInsumos,
   listFornecedores,
+  listRevendaProdutos,
   parseNumberInput,
 } from "@/lib/erp";
 import {
   listContasFinanceiras,
   listEntradasAvulsas,
   registrarEntradaAvulsa,
+  registrarEntradaProdutos,
 } from "@/lib/tesouraria";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -28,16 +30,18 @@ import { IconBtn } from "./SetoresCrud";
 
 const NONE = "__none__";
 
+type Modo = "insumos" | "produtos";
+
 interface LinhaItem {
   key: string;
-  id_insumo: string;
+  ref_id: string;
   quantidade: string;
   custo_unitario: string;
 }
 
 const newLinha = (): LinhaItem => ({
   key: crypto.randomUUID(),
-  id_insumo: "",
+  ref_id: "",
   quantidade: "",
   custo_unitario: "",
 });
@@ -47,6 +51,10 @@ export function EntradaEstoqueView() {
   const { data: insumos } = useQuery({
     queryKey: ["erp-insumos"],
     queryFn: listInsumos,
+  });
+  const { data: produtos } = useQuery({
+    queryKey: ["erp-produtos-revenda"],
+    queryFn: listRevendaProdutos,
   });
   const { data: fornecedores } = useQuery({
     queryKey: ["erp-fornecedores"],
@@ -61,6 +69,7 @@ export function EntradaEstoqueView() {
     queryFn: () => listEntradasAvulsas(30),
   });
 
+  const [modo, setModo] = useState<Modo>("insumos");
   const [fornecedor, setFornecedor] = useState<string>(NONE);
   const [conta, setConta] = useState<string>(NONE);
   const [observacao, setObservacao] = useState("");
@@ -86,6 +95,7 @@ export function EntradaEstoqueView() {
   );
 
   const insumoById = (id: string) => insumos?.find((i) => i.id === id);
+  const produtoById = (id: string) => produtos?.find((p) => p.id === id);
 
   function updateLinha(key: string, patch: Partial<LinhaItem>) {
     setLinhas((prev) =>
@@ -108,31 +118,57 @@ export function EntradaEstoqueView() {
     setLinhas([newLinha()]);
   }
 
+  function switchModo(next: Modo) {
+    if (next === modo) return;
+    setModo(next);
+    setLinhas([newLinha()]);
+  }
+
   async function handleConfirm() {
-    const itens = linhas
-      .filter((l) => l.id_insumo && parseNumberInput(l.quantidade) > 0)
-      .map((l) => ({
-        id_insumo: l.id_insumo,
-        quantidade: parseNumberInput(l.quantidade),
-        custo_unitario: parseNumberInput(l.custo_unitario),
-      }));
+    const itens = linhas.filter(
+      (l) => l.ref_id && parseNumberInput(l.quantidade) > 0,
+    );
     if (itens.length === 0) {
-      toast.error("Adicione ao menos um insumo com quantidade.");
+      toast.error(
+        modo === "insumos"
+          ? "Adicione ao menos um insumo com quantidade."
+          : "Adicione ao menos um produto com quantidade.",
+      );
       return;
     }
     setSaving(true);
     try {
-      const numero = await registrarEntradaAvulsa({
-        id_fornecedor: fornecedor === NONE ? null : fornecedor,
-        id_conta_financeira: conta === NONE ? null : conta,
-        observacao,
-        itens,
-      });
+      let numero: number;
+      if (modo === "insumos") {
+        numero = await registrarEntradaAvulsa({
+          id_fornecedor: fornecedor === NONE ? null : fornecedor,
+          id_conta_financeira: conta === NONE ? null : conta,
+          observacao,
+          itens: itens.map((l) => ({
+            id_insumo: l.ref_id,
+            quantidade: parseNumberInput(l.quantidade),
+            custo_unitario: parseNumberInput(l.custo_unitario),
+          })),
+        });
+      } else {
+        numero = await registrarEntradaProdutos({
+          id_fornecedor: fornecedor === NONE ? null : fornecedor,
+          id_conta_financeira: conta === NONE ? null : conta,
+          observacao,
+          itens: itens.map((l) => ({
+            id_produto: l.ref_id,
+            quantidade: parseNumberInput(l.quantidade),
+            custo_unitario: parseNumberInput(l.custo_unitario),
+          })),
+        });
+      }
       toast.success(`Entrada nº ${numero} confirmada!`);
       resetForm();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["entradas-avulsas"] }),
         queryClient.invalidateQueries({ queryKey: ["erp-insumos"] }),
+        queryClient.invalidateQueries({ queryKey: ["erp-produtos-revenda"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-menu"] }),
         queryClient.invalidateQueries({ queryKey: ["tesouraria-painel"] }),
         queryClient.invalidateQueries({ queryKey: ["tesouraria-contas"] }),
       ]);
@@ -155,6 +191,29 @@ export function EntradaEstoqueView() {
       </header>
 
       <div className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-card">
+        {/* Mode selector */}
+        <div className="flex gap-1.5 rounded-xl bg-secondary p-1">
+          {(
+            [
+              { key: "insumos", label: "Lançar Insumos" },
+              { key: "produtos", label: "Lançar Produtos (Revenda)" },
+            ] as { key: Modo; label: string }[]
+          ).map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => switchModo(t.key)}
+              className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                modo === t.key
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Fornecedor">
             <Select value={fornecedor} onValueChange={setFornecedor}>
@@ -191,45 +250,70 @@ export function EntradaEstoqueView() {
         {/* Dynamic item list */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold">Insumos</p>
+            <p className="text-sm font-semibold">
+              {modo === "insumos" ? "Insumos" : "Produtos (revenda)"}
+            </p>
             <Button size="sm" variant="secondary" onClick={addLinha}>
-              <Plus className="mr-1 h-4 w-4" /> Adicionar insumo
+              <Plus className="mr-1 h-4 w-4" />
+              {modo === "insumos" ? "Adicionar insumo" : "Adicionar produto"}
             </Button>
           </div>
 
           {linhas.map((l) => {
-            const insumo = insumoById(l.id_insumo);
+            const insumo = modo === "insumos" ? insumoById(l.ref_id) : undefined;
+            const produto = modo === "produtos" ? produtoById(l.ref_id) : undefined;
+            const unidade = insumo?.unidade_estoque ?? "un";
             return (
               <div
                 key={l.key}
                 className="grid grid-cols-[1fr_auto] gap-2 rounded-xl bg-secondary/50 p-2.5 sm:grid-cols-[2fr_1fr_1fr_auto]"
               >
                 <Select
-                  value={l.id_insumo || undefined}
+                  value={l.ref_id || undefined}
                   onValueChange={(v) => {
-                    const ins = insumoById(v);
-                    updateLinha(l.key, {
-                      id_insumo: v,
-                      custo_unitario:
-                        l.custo_unitario ||
-                        (ins ? String(ins.custo_unitario).replace(".", ",") : ""),
-                    });
+                    if (modo === "insumos") {
+                      const ins = insumoById(v);
+                      updateLinha(l.key, {
+                        ref_id: v,
+                        custo_unitario:
+                          l.custo_unitario ||
+                          (ins ? String(ins.custo_unitario).replace(".", ",") : ""),
+                      });
+                    } else {
+                      const prod = produtoById(v);
+                      updateLinha(l.key, {
+                        ref_id: v,
+                        custo_unitario:
+                          l.custo_unitario ||
+                          (prod ? String(prod.custo_compra).replace(".", ",") : ""),
+                      });
+                    }
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Insumo" />
+                    <SelectValue
+                      placeholder={modo === "insumos" ? "Insumo" : "Produto"}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {insumos?.map((i) => (
-                      <SelectItem key={i.id} value={i.id}>
-                        {i.nome} ({i.unidade_estoque})
-                      </SelectItem>
-                    ))}
+                    {modo === "insumos"
+                      ? insumos?.map((i) => (
+                          <SelectItem key={i.id} value={i.id}>
+                            {i.nome} ({i.unidade_estoque})
+                          </SelectItem>
+                        ))
+                      : produtos?.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
                   </SelectContent>
                 </Select>
                 <Input
                   inputMode="decimal"
-                  placeholder={`Qtd. (${insumo?.unidade_estoque ?? "un"})`}
+                  placeholder={
+                    modo === "insumos" ? `Qtd. (${unidade})` : "Qtd. (un)"
+                  }
                   value={l.quantidade}
                   onChange={(e) =>
                     updateLinha(l.key, { quantidade: e.target.value })
@@ -237,7 +321,11 @@ export function EntradaEstoqueView() {
                 />
                 <Input
                   inputMode="decimal"
-                  placeholder={`Custo un. (R$/${insumo?.unidade_estoque ?? "un"})`}
+                  placeholder={
+                    modo === "insumos"
+                      ? `Custo un. (R$/${unidade})`
+                      : "Custo compra (R$)"
+                  }
                   value={l.custo_unitario}
                   onChange={(e) =>
                     updateLinha(l.key, { custo_unitario: e.target.value })
@@ -256,6 +344,13 @@ export function EntradaEstoqueView() {
                   <p className="col-span-full -mt-1 text-[11px] text-muted-foreground">
                     Custo atual {formatBRL(insumo.custo_unitario)} · estoque
                     atual: {insumo.saldo_estoque} {insumo.unidade_estoque}
+                  </p>
+                )}
+                {produto && (
+                  <p className="col-span-full -mt-1 text-[11px] text-muted-foreground">
+                    Custo compra {formatBRL(produto.custo_compra)} · estoque
+                    atual: {produto.saldo_estoque} un · sugestão{" "}
+                    {formatBRL(produto.preco_ideal_revenda)} ({produto.margem_revenda}%)
                   </p>
                 )}
               </div>
