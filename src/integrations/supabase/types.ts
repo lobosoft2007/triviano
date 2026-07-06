@@ -2178,6 +2178,7 @@ export type Database = {
         Returns: number
       }
       cancel_order: { Args: { p_order_id: string }; Returns: undefined }
+      compute_product_cmv: { Args: { p_product_id: string }; Returns: number }
       conciliar_ajuste_nf: {
         Args: {
           p_ajuste_id: string
@@ -2328,6 +2329,7 @@ export type Database = {
         Args: { p_autorizado: boolean; p_limite: number; p_user_id: string }
         Returns: undefined
       }
+      subproduto_unit_cost: { Args: { p_sub_id: string }; Returns: number }
     }
     Enums: {
       ambiente_emissao_tipo: "Homologação/Testes" | "Produção"
