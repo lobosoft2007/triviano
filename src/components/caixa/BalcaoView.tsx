@@ -13,7 +13,11 @@ import {
   LayoutGrid,
   SlidersHorizontal,
   CheckCircle2,
+  QrCode,
+  Copy,
+  Check,
 } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
@@ -26,6 +30,7 @@ import type { Category, Product } from "@/lib/menu";
 import { makeLineId, type NewCartItem } from "@/lib/cart";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductCustomizer } from "@/components/ProductCustomizer";
+import { usePixPayment } from "@/hooks/usePixPayment";
 import { placeOrder } from "@/lib/orders";
 import {
   addPagamento,
