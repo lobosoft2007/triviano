@@ -254,9 +254,10 @@ export function BalcaoView() {
   }, [custom, data?.menuProducts]);
 
   return (
-    <div className="grid h-[calc(100vh-140px)] grid-cols-1 gap-4 overflow-hidden lg:grid-cols-12 lg:gap-0">
+    <div className="grid min-h-0 h-[calc(100vh-260px)] grid-cols-1 gap-4 overflow-hidden lg:grid-cols-12 lg:gap-0">
       {/* ---------------- LEFT (col-span-9): only this block scrolls ---------------- */}
-      <div className="flex min-w-0 flex-col overflow-y-auto pb-6 lg:col-span-9 lg:h-full lg:pr-4">
+      <div className="flex h-full min-w-0 flex-col overflow-y-auto pb-4 pr-2 lg:col-span-9 lg:pr-4">
+
 
         {/* Sticky header: search + category carousel stay visible while grid scrolls */}
         <div className="sticky top-0 z-10 flex flex-col gap-3 bg-background pb-3">
@@ -370,7 +371,7 @@ export function BalcaoView() {
       </div>
 
       {/* ---------------- RIGHT (col-span-3): static cupom, pinned to the edge ---------------- */}
-      <div className="flex min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-2xl bg-card shadow-card lg:col-span-3 lg:h-full lg:rounded-none lg:border-l lg:border-border lg:bg-secondary/30 lg:shadow-none">
+      <div className="flex h-full min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-2xl bg-card shadow-card lg:col-span-3 lg:rounded-none lg:border-l lg:border-border lg:bg-secondary/30 lg:shadow-none">
 
         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
           <h3 className="flex items-center gap-2 font-display text-lg font-bold">
