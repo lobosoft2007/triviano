@@ -2453,6 +2453,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_empresa_ativa: { Args: { _empresa_id: string }; Returns: boolean }
+      is_produto_publico: { Args: { _produto_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
