@@ -662,7 +662,12 @@ function AdminPage() {
                                   </span>
                                 )}
                               </p>
-                              <p className="text-xs text-primary">{formatBRL(p.price)}</p>
+                              <p className="text-xs text-primary">
+                                {formatBRL(p.price)}
+                                <span className="ml-2 font-medium text-destructive">
+                                  [CMV {formatBRL(p.custo_total)} - {p.disponivel ? "Liberado" : "Esgotado"}]
+                                </span>
+                              </p>
                             </div>
                             <IconBtn
                               label="Editar produto"
