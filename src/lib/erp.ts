@@ -1164,3 +1164,32 @@ export async function deleteCombo(id: string): Promise<void> {
   if (error) throw error;
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Ajuste rápido no card do produto (estoque + custo de compra)        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Quick inline adjustment from the product card.
+ * - Manipulado items: only the stock balance (saldo_estoque).
+ * - Revenda items: stock balance + acquisition cost (custo_compra), which
+ *   re-triggers the resale-price suggestion (preco_ideal_revenda) in the DB.
+ */
+export async function quickAdjustProduct(input: {
+  id: string;
+  manipulado: boolean;
+  saldo_estoque: number;
+  custo_compra?: number;
+}): Promise<void> {
+  const payload: Record<string, number> = {
+    saldo_estoque: round2(input.saldo_estoque),
+  };
+  if (!input.manipulado && input.custo_compra !== undefined) {
+    payload.custo_compra = round2(input.custo_compra);
+  }
+  const { error } = await supabase
+    .from("products")
+    .update(payload)
+    .eq("id", input.id);
+  if (error) throw error;
+}
