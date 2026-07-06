@@ -34,6 +34,7 @@ function CheckoutPage() {
   const { user } = useAuth();
   const {
     items,
+    hydrated,
     subtotal,
     discount,
     appliedCombos,
@@ -91,10 +92,13 @@ function CheckoutPage() {
   }, [profile]);
 
   useEffect(() => {
-    if (items.length === 0 && !submitting) {
+    // Only bounce back to the menu once the cart has actually been restored
+    // from storage. Redirecting during the transient empty state was making
+    // checkout "flash" and return to the cart without any message.
+    if (hydrated && items.length === 0 && !submitting) {
       navigate({ to: "/", replace: true });
     }
-  }, [items.length, submitting, navigate]);
+  }, [hydrated, items.length, submitting, navigate]);
 
   async function copyPix() {
     const ok = await copyPixPayload();

@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   ShoppingBag,
   Plus,
@@ -9,6 +10,7 @@ import {
   BadgePercent,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
 import {
   Sheet,
@@ -35,6 +37,29 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     removeItem,
   } = useCart();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  function handleCheckout() {
+    try {
+      if (!canCheckout) {
+        toast.error("Revise as regras do pedido antes de finalizar.");
+        return;
+      }
+      if (!user) {
+        toast.error("Faça login para finalizar o pedido.");
+        navigate({ to: "/auth" });
+        return;
+      }
+      navigate({ to: "/checkout" });
+    } catch (err) {
+      console.error("Falha ao abrir o checkout:", err);
+      toast.error(
+        err instanceof Error
+          ? `Não foi possível abrir o pagamento: ${err.message}`
+          : "Não foi possível abrir a tela de pagamento. Tente novamente.",
+      );
+    }
+  }
 
   return (
     <Sheet>
@@ -187,7 +212,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                 size="lg"
                 className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base"
                 disabled={!canCheckout}
-                onClick={() => navigate({ to: "/checkout" })}
+                onClick={handleCheckout}
               >
                 Finalizar pedido
                 <ArrowRight className="h-5 w-5" />
