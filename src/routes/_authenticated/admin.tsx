@@ -564,9 +564,6 @@ function AdminPage() {
           <h1 className="font-display text-lg font-bold">Acesso restrito</h1>
           <p className="mt-1 text-sm text-muted-foreground">Esta área é exclusiva para administradores.</p>
         </div>
-        <Button asChild variant="secondary">
-          <Link to="/">Voltar ao início</Link>
-        </Button>
       </div>
     );
   }
