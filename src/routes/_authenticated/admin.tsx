@@ -368,8 +368,17 @@ function IconBtn({
 }
 
 function AdminPage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const handleLock = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOut();
+    navigate({ to: "/auth", replace: true });
+  };
+
   const { data: isAdmin, isLoading: roleLoading } = useIsAdmin(user?.id);
   const { data: isSuperAdmin } = useIsSuperAdmin(user?.id);
   const { data, isLoading } = useQuery({
