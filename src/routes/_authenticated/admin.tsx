@@ -79,6 +79,7 @@ import {
   NONE,
   type ProductDetailForm,
 } from "@/components/admin/ProductDetailFields";
+import { ProductQuickAdjust } from "@/components/admin/ProductQuickAdjust";
 import { useIsSuperAdmin } from "@/lib/superadmin";
 import { ClientesView } from "@/components/admin/ClientesView";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
@@ -103,12 +104,16 @@ interface AdminProduct {
   display_url: string;
   available: boolean;
   free_addon_limit: number;
+  manipulado: boolean;
   eixo_variacao: string;
   saldo_estoque: number;
   estoque_minimo: number;
   estoque_maximo: number;
   custo_total: number;
   disponivel: boolean;
+  margem_revenda: number;
+  custo_compra: number;
+  preco_ideal_revenda: number;
 }
 
 async function fetchAdminMenu() {
@@ -131,12 +136,18 @@ async function fetchAdminMenu() {
     image_url: p.image_url ?? "",
     available: p.available,
     free_addon_limit: Number(p.free_addon_limit ?? 0),
+    manipulado: Boolean((p as { manipulado?: boolean }).manipulado ?? true),
     eixo_variacao: (p as { eixo_variacao?: string }).eixo_variacao ?? "Tamanho",
     saldo_estoque: Number(p.saldo_estoque ?? 0),
     estoque_minimo: Number(p.estoque_minimo ?? 0),
     estoque_maximo: Number(p.estoque_maximo ?? 0),
     custo_total: Number((p as { custo_total?: number }).custo_total ?? 0),
     disponivel: Boolean((p as { disponivel?: boolean }).disponivel),
+    margem_revenda: Number((p as { margem_revenda?: number }).margem_revenda ?? 100),
+    custo_compra: Number((p as { custo_compra?: number }).custo_compra ?? 0),
+    preco_ideal_revenda: Number(
+      (p as { preco_ideal_revenda?: number }).preco_ideal_revenda ?? 0,
+    ),
   }));
   const urlMap = await resolveImageUrls(raw.map((p) => p.image_url));
 
@@ -240,6 +251,8 @@ function detailToForm(d: ProductDetail): ProductDetailForm {
     manipulado: d.manipulado,
     setor_id: d.setor_id ?? NONE,
     fornecedor_id: d.fornecedor_id ?? NONE,
+    margem_revenda: String(d.margem_revenda ?? 100).replace(".", ","),
+    custo_compra: d.custo_compra ? String(d.custo_compra).replace(".", ",") : "",
     ncm: d.ncm,
     ean: d.ean,
     price_options: d.price_options.map((o) => ({
@@ -279,6 +292,8 @@ function formToDetail(d: ProductDetailForm): ProductDetail {
     manipulado: d.manipulado,
     setor_id: d.setor_id === NONE ? null : d.setor_id,
     fornecedor_id: d.fornecedor_id === NONE ? null : d.fornecedor_id,
+    margem_revenda: parseNumberInput(d.margem_revenda),
+    custo_compra: parseNumberInput(d.custo_compra),
     ncm: d.ncm,
     ean: d.ean,
     price_options: d.price_options.map((o) => ({
@@ -674,6 +689,19 @@ function AdminPage() {
                                   [CMV {formatBRL(p.custo_total)} - {!p.available || !p.disponivel ? "Bloqueado" : "Liberado"}]
                                 </span>
                               </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                Sugestão: {formatBRL(p.preco_ideal_revenda)}
+                                <span className="ml-1">({p.margem_revenda}%)</span>
+                              </p>
+                              <ProductQuickAdjust
+                                id={p.id}
+                                manipulado={p.manipulado}
+                                saldoEstoque={p.saldo_estoque}
+                                custoCompra={p.custo_compra}
+                                onSaved={() =>
+                                  queryClient.invalidateQueries({ queryKey: ["admin-menu"] })
+                                }
+                              />
                             </div>
                             <IconBtn
                               label="Editar produto"

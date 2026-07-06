@@ -29,6 +29,10 @@ export interface ProductDetailForm {
   manipulado: boolean;
   setor_id: string;
   fornecedor_id: string;
+  /** Mark-up percentage (as text) used to suggest the resale price. */
+  margem_revenda: string;
+  /** Purchase cost (as text) for revenda (non-manipulado) items. */
+  custo_compra: string;
   price_options: PriceOptionRow[];
   addons: RelRow[];
   free_addons: RelRow[];
@@ -41,6 +45,8 @@ export const EMPTY_DETAIL: ProductDetailForm = {
   manipulado: true,
   setor_id: NONE,
   fornecedor_id: NONE,
+  margem_revenda: "100",
+  custo_compra: "",
   price_options: [],
   addons: [],
   free_addons: [],
@@ -303,6 +309,25 @@ export function ProductDetailFields({
 }) {
   const patch = (p: Partial<ProductDetailForm>) => onChange({ ...value, ...p });
 
+  const parseNum = (v: string) => {
+    const n = Number(String(v).replace(",", "."));
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  // Cost base for the resale-price suggestion:
+  // - manipulado → highest CMV among variations (base ficha + priciest option)
+  // - revenda    → the purchase cost typed by the operator
+  const baseCMV = computeFichaCMV(value.ficha, insumos, subprodutos);
+  const maxVariationCMV = value.price_options.reduce(
+    (max, o) => Math.max(max, computeFichaCMV(o.ficha, insumos, subprodutos)),
+    0,
+  );
+  const custoBase = value.manipulado
+    ? baseCMV + maxVariationCMV
+    : parseNum(value.custo_compra);
+  const margem = parseNum(value.margem_revenda);
+  const precoIdeal = custoBase * (1 + margem / 100);
+
   return (
     <div className="space-y-4 border-t border-border pt-4">
       {/* Manipulado */}
@@ -314,6 +339,50 @@ export function ProductDetailFields({
           </p>
         </div>
         <Switch checked={value.manipulado} onCheckedChange={(v) => patch({ manipulado: v })} />
+      </div>
+
+      {/* Mark-up / formação de preço por margem */}
+      <div className="rounded-xl border border-border p-3">
+        <Label className="text-sm font-semibold">Formação de preço (Mark-up)</Label>
+        <p className="mb-3 text-xs text-muted-foreground">
+          {value.manipulado
+            ? "Sugestão calculada sobre o maior CMV das variações."
+            : "Sugestão calculada sobre o preço de custo (compra)."}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {!value.manipulado && (
+            <div className="space-y-1.5">
+              <Label htmlFor="prod-custo-compra" className="text-xs">
+                Preço de Custo (Compra)
+              </Label>
+              <Input
+                id="prod-custo-compra"
+                inputMode="decimal"
+                value={value.custo_compra}
+                onChange={(e) => patch({ custo_compra: e.target.value })}
+                placeholder="0,00"
+              />
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="prod-margem" className="text-xs">
+              Margem de Revenda (%)
+            </Label>
+            <Input
+              id="prod-margem"
+              inputMode="decimal"
+              value={value.margem_revenda}
+              onChange={(e) => patch({ margem_revenda: e.target.value })}
+              placeholder="100"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Preço de Revenda Ideal (Sugestão)</Label>
+            <div className="flex h-9 items-center rounded-md border border-border bg-secondary px-3 text-sm font-semibold tabular-nums text-primary">
+              {formatBRL(precoIdeal)}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Setor / Fornecedor for revenda items */}
@@ -397,12 +466,15 @@ export function ProductDetailFields({
         onChange={(rows) => patch({ free_addons: rows })}
       />
 
-      <FichaTecnicaEditor
-        value={value.ficha}
-        onChange={(rows) => patch({ ficha: rows })}
-        insumos={insumos}
-        subprodutos={subprodutos}
-      />
+      {/* Ficha técnica só aparece para itens manipulados */}
+      {value.manipulado && (
+        <FichaTecnicaEditor
+          value={value.ficha}
+          onChange={(rows) => patch({ ficha: rows })}
+          insumos={insumos}
+          subprodutos={subprodutos}
+        />
+      )}
     </div>
   );
 }

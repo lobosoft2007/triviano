@@ -1538,6 +1538,7 @@ export type Database = {
           created_at: string
           custo_anterior: number | null
           custo_anterior_at: string | null
+          custo_compra: number
           custo_total: number | null
           description: string
           eixo_variacao: string
@@ -1549,7 +1550,9 @@ export type Database = {
           id: string
           image_url: string
           manipulado: boolean
+          margem_revenda: number
           name: string
+          preco_ideal_revenda: number | null
           price: number
           saldo_estoque: number
           setor_id: string | null
@@ -1561,6 +1564,7 @@ export type Database = {
           created_at?: string
           custo_anterior?: number | null
           custo_anterior_at?: string | null
+          custo_compra?: number
           custo_total?: number | null
           description?: string
           eixo_variacao?: string
@@ -1572,7 +1576,9 @@ export type Database = {
           id?: string
           image_url?: string
           manipulado?: boolean
+          margem_revenda?: number
           name: string
+          preco_ideal_revenda?: number | null
           price: number
           saldo_estoque?: number
           setor_id?: string | null
@@ -1584,6 +1590,7 @@ export type Database = {
           created_at?: string
           custo_anterior?: number | null
           custo_anterior_at?: string | null
+          custo_compra?: number
           custo_total?: number | null
           description?: string
           eixo_variacao?: string
@@ -1595,7 +1602,9 @@ export type Database = {
           id?: string
           image_url?: string
           manipulado?: boolean
+          margem_revenda?: number
           name?: string
+          preco_ideal_revenda?: number | null
           price?: number
           saldo_estoque?: number
           setor_id?: string | null
@@ -2108,6 +2117,7 @@ export type Database = {
           available: boolean
           category_id: string
           custo_anterior: number
+          custo_compra: number
           custo_total: number
           description: string
           disponivel: boolean
@@ -2119,7 +2129,9 @@ export type Database = {
           id: string
           image_url: string
           manipulado: boolean
+          margem_revenda: number
           name: string
+          preco_ideal_revenda: number
           price: number
           saldo_estoque: number
           setor_id: string
@@ -2306,6 +2318,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      recompute_manipulado_preco_ideal: {
+        Args: { p_ids: string[] }
+        Returns: undefined
       }
       redeem_cashback_for_order: {
         Args: { p_amount: number; p_order_id: string }

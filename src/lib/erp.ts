@@ -388,6 +388,10 @@ export interface ProductDetail {
   manipulado: boolean;
   setor_id: string | null;
   fornecedor_id: string | null;
+  /** Mark-up percentage applied over the cost to suggest the resale price. */
+  margem_revenda: number;
+  /** Purchase/acquisition cost for revenda (non-manipulado) items. */
+  custo_compra: number;
   price_options: RelOption[];
   addons: RelAddon[];
   free_addons: RelAddon[];
@@ -454,6 +458,12 @@ export async function fetchProductDetail(
     manipulado: prodMeta?.manipulado ?? true,
     setor_id: prodMeta?.setor_id ?? null,
     fornecedor_id: prodMeta?.fornecedor_id ?? null,
+    margem_revenda: Number(
+      (prodMeta as { margem_revenda?: number })?.margem_revenda ?? 100,
+    ),
+    custo_compra: Number(
+      (prodMeta as { custo_compra?: number })?.custo_compra ?? 0,
+    ),
     price_options: (poRes.data ?? []).map((p) => ({
       id: String(p.id),
       tamanho: String(p.tamanho),
@@ -486,6 +496,8 @@ export async function saveProductDetail(
       manipulado: detail.manipulado,
       setor_id: detail.manipulado ? null : detail.setor_id,
       fornecedor_id: detail.manipulado ? null : detail.fornecedor_id,
+      margem_revenda: detail.margem_revenda,
+      custo_compra: detail.manipulado ? 0 : round2(detail.custo_compra),
     })
     .eq("id", productId);
   if (prodErr) throw prodErr;
@@ -1152,3 +1164,32 @@ export async function deleteCombo(id: string): Promise<void> {
   if (error) throw error;
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Ajuste rápido no card do produto (estoque + custo de compra)        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Quick inline adjustment from the product card.
+ * - Manipulado items: only the stock balance (saldo_estoque).
+ * - Revenda items: stock balance + acquisition cost (custo_compra), which
+ *   re-triggers the resale-price suggestion (preco_ideal_revenda) in the DB.
+ */
+export async function quickAdjustProduct(input: {
+  id: string;
+  manipulado: boolean;
+  saldo_estoque: number;
+  custo_compra?: number;
+}): Promise<void> {
+  const payload: { saldo_estoque: number; custo_compra?: number } = {
+    saldo_estoque: round2(input.saldo_estoque),
+  };
+  if (!input.manipulado && input.custo_compra !== undefined) {
+    payload.custo_compra = round2(input.custo_compra);
+  }
+  const { error } = await supabase
+    .from("products")
+    .update(payload)
+    .eq("id", input.id);
+  if (error) throw error;
+}
