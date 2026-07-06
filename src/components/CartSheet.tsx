@@ -37,6 +37,29 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     removeItem,
   } = useCart();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  function handleCheckout() {
+    try {
+      if (!canCheckout) {
+        toast.error("Revise as regras do pedido antes de finalizar.");
+        return;
+      }
+      if (!user) {
+        toast.error("Faça login para finalizar o pedido.");
+        navigate({ to: "/auth" });
+        return;
+      }
+      navigate({ to: "/checkout" });
+    } catch (err) {
+      console.error("Falha ao abrir o checkout:", err);
+      toast.error(
+        err instanceof Error
+          ? `Não foi possível abrir o pagamento: ${err.message}`
+          : "Não foi possível abrir a tela de pagamento. Tente novamente.",
+      );
+    }
+  }
 
   return (
     <Sheet>
