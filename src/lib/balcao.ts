@@ -101,6 +101,7 @@ export async function fetchBalcaoData(): Promise<BalcaoData> {
         image_url: p.image_url,
         ean: eanById.get(p.id) ?? "",
         esgotado: p.esgotado,
+        needsCustomization: productNeedsCustomization(p, cat),
       } as BalcaoProduct;
     })
     .sort(
@@ -123,7 +124,12 @@ export async function fetchBalcaoData(): Promise<BalcaoData> {
       count: countByCat.get(c.id) ?? 0,
     }));
 
-  return { categories: balcaoCategories, products: mapped };
+  return {
+    categories: balcaoCategories,
+    products: mapped,
+    menuProducts: products,
+    menuCategories: categories,
+  };
 }
 
 /** Reads the server-computed total for a freshly created order. */
