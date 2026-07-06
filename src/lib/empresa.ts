@@ -54,7 +54,7 @@ const EMPRESA_BRANDING_COLS =
  */
 export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
   const { data, error } = await supabase
-    .from("empresas")
+    .from("empresas_public_branding")
     .select(EMPRESA_BRANDING_COLS)
     .eq("ativo", true)
     .order("created_at", { ascending: true })
@@ -64,7 +64,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
 
   const empresa: Empresa = data
     ? {
-        id: data.id,
+        id: data.id ?? DEFAULT_EMPRESA_ID,
         nome_fantasia: data.nome_fantasia ?? "",
         logotipo_url: data.logotipo_url ?? "/logo.png",
         // Sensitive config is not exposed by the branding query.

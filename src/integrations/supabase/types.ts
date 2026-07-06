@@ -131,6 +131,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "categories_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "categories_id_impressora_destino_fkey"
             columns: ["id_impressora_destino"]
             isOneToOne: false
@@ -214,6 +221,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_fiado_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
             referencedColumns: ["id"]
           },
         ]
@@ -399,6 +413,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_financeiras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
             referencedColumns: ["id"]
           },
           {
@@ -684,6 +705,13 @@ export type Database = {
             referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "extrato_conta_corrente_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
         ]
       }
       extrato_fiado: {
@@ -723,6 +751,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_fiado_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
             referencedColumns: ["id"]
           },
           {
@@ -899,6 +934,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "historico_cashback_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "historico_cashback_id_pedido_fkey"
             columns: ["id_pedido"]
             isOneToOne: false
@@ -1042,6 +1084,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insumos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
             referencedColumns: ["id"]
           },
           {
@@ -1189,6 +1238,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_tesouraria_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
             referencedColumns: ["id"]
           },
           {
@@ -1490,6 +1546,13 @@ export type Database = {
             referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "orders_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pagamentos_pedido: {
@@ -1623,6 +1686,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
             referencedColumns: ["id"]
           },
           {
@@ -1871,6 +1941,13 @@ export type Database = {
             referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
         ]
       }
       regras_combos: {
@@ -1925,6 +2002,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regras_combos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
             referencedColumns: ["id"]
           },
           {
@@ -2048,6 +2132,42 @@ export type Database = {
       }
     }
     Views: {
+      empresas_public_branding: {
+        Row: {
+          ativo: boolean | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
+          created_at: string | null
+          dominio_customizado: string | null
+          id: string | null
+          logotipo_url: string | null
+          modo_fundo: string | null
+          nome_fantasia: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          created_at?: string | null
+          dominio_customizado?: string | null
+          id?: string | null
+          logotipo_url?: string | null
+          modo_fundo?: string | null
+          nome_fantasia?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          created_at?: string | null
+          dominio_customizado?: string | null
+          id?: string | null
+          logotipo_url?: string | null
+          modo_fundo?: string | null
+          nome_fantasia?: string | null
+        }
+        Relationships: []
+      }
       view_products_public: {
         Row: {
           available: boolean | null
