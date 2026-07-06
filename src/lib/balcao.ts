@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { fetchMenu } from "@/lib/menu";
+import { fetchMenu, type Category, type Product } from "@/lib/menu";
 
 /**
  * A flattened, PDV-friendly product row for the counter (Balcão) module.
@@ -19,6 +19,11 @@ export interface BalcaoProduct {
   /** EAN / barcode (from ficha técnica dados_fiscais), when cadastrado. */
   ean: string;
   esgotado: boolean;
+  /**
+   * true when the product has sizes/flavors or paid/free add-ons and must open
+   * the customization modal (same as the customer app) before entering the cart.
+   */
+  needsCustomization: boolean;
 }
 
 /** A category with how many available products it holds (for the PDV filter row). */
@@ -32,6 +37,29 @@ export interface BalcaoCategory {
 export interface BalcaoData {
   categories: BalcaoCategory[];
   products: BalcaoProduct[];
+  /** Full menu products (keyed lookups) so the PDV can open the app modal. */
+  menuProducts: Product[];
+  /** Full menu categories so the PDV modal knows half-and-half / combo rules. */
+  menuCategories: Category[];
+}
+
+/**
+ * A product must be customized (open the modal) when it offers more than one
+ * size/flavor, paid add-ons, free toppings (açaí), removable ingredients or is
+ * a half-and-half category. Otherwise it is a direct-sale item (e.g. a can of
+ * soda) and drops straight into the cupom.
+ */
+export function productNeedsCustomization(
+  product: Product,
+  category: Category | undefined,
+): boolean {
+  return (
+    product.price_options.length > 1 ||
+    product.addons.length > 0 ||
+    product.free_addons.length > 0 ||
+    product.removable_ingredients.length > 0 ||
+    !!category?.allows_half
+  );
 }
 
 /**
