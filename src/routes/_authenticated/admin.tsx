@@ -281,6 +281,8 @@ function formToDetail(d: ProductDetailForm): ProductDetail {
     manipulado: d.manipulado,
     setor_id: d.setor_id === NONE ? null : d.setor_id,
     fornecedor_id: d.fornecedor_id === NONE ? null : d.fornecedor_id,
+    margem_revenda: parseNumberInput(d.margem_revenda),
+    custo_compra: parseNumberInput(d.custo_compra),
     ncm: d.ncm,
     ean: d.ean,
     price_options: d.price_options.map((o) => ({
