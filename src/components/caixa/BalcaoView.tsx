@@ -13,7 +13,11 @@ import {
   LayoutGrid,
   SlidersHorizontal,
   CheckCircle2,
+  QrCode,
+  Copy,
+  Check,
 } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
@@ -26,6 +30,7 @@ import type { Category, Product } from "@/lib/menu";
 import { makeLineId, type NewCartItem } from "@/lib/cart";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductCustomizer } from "@/components/ProductCustomizer";
+import { usePixPayment } from "@/hooks/usePixPayment";
 import { placeOrder } from "@/lib/orders";
 import {
   addPagamento,
@@ -249,9 +254,10 @@ export function BalcaoView() {
   }, [custom, data?.menuProducts]);
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:h-[calc(100vh-140px)] lg:grid-cols-12 lg:gap-0 lg:overflow-hidden">
+    <div className="grid h-[calc(100vh-140px)] grid-cols-1 gap-4 overflow-hidden lg:grid-cols-12 lg:gap-0">
       {/* ---------------- LEFT (col-span-9): only this block scrolls ---------------- */}
-      <div className="flex min-w-0 flex-col lg:col-span-9 lg:h-full lg:overflow-y-auto lg:pr-4">
+      <div className="flex min-w-0 flex-col overflow-y-auto pb-6 lg:col-span-9 lg:h-full lg:pr-4">
+
         {/* Sticky header: search + category carousel stay visible while grid scrolls */}
         <div className="sticky top-0 z-10 flex flex-col gap-3 bg-background pb-3">
           <div className="rounded-2xl bg-card p-3 shadow-card">
@@ -364,7 +370,8 @@ export function BalcaoView() {
       </div>
 
       {/* ---------------- RIGHT (col-span-3): static cupom, pinned to the edge ---------------- */}
-      <div className="flex min-w-0 flex-col rounded-2xl bg-card shadow-card lg:col-span-3 lg:h-full lg:rounded-none lg:border-l lg:border-border lg:bg-secondary/30 lg:shadow-none">
+      <div className="flex min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-2xl bg-card shadow-card lg:col-span-3 lg:h-full lg:rounded-none lg:border-l lg:border-border lg:bg-secondary/30 lg:shadow-none">
+
         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
           <h3 className="flex items-center gap-2 font-display text-lg font-bold">
             <ShoppingCart className="h-5 w-5 text-primary" /> Cupom
@@ -571,6 +578,7 @@ interface PdvPayment {
 }
 
 const isCashMethod = (nome: string) => norm(nome).includes("dinheiro");
+const isPixMethod = (nome: string) => norm(nome).includes("pix");
 
 function BalcaoPaymentDialog({
   open,
@@ -632,18 +640,43 @@ function BalcaoPaymentDialog({
 
   // Live troco preview while the operator types the cash tendered.
   const selectedIsCash = selected ? isCashMethod(selected.nome) : false;
+  const selectedIsPix = selected ? isPixMethod(selected.nome) : false;
   const parsedAmount = Number(amountStr.replace(",", ".")) || 0;
   const previewTroco =
     selectedIsCash && parsedAmount > remaining
       ? round2(parsedAmount - remaining)
       : 0;
 
+  // Dynamic PIX BR Code (Copia e Cola) + QR for the exact remaining balance.
+  const pix = usePixPayment(remaining);
+
   function pickMethod(m: MeioPagamento) {
     setSelected(m);
     // Prefill with the remaining balance so a single confirm liquidates it.
     setAmountStr(remaining ? remaining.toFixed(2) : "");
-    requestAnimationFrame(() => amountRef.current?.focus());
+    if (!isPixMethod(m.nome)) {
+      requestAnimationFrame(() => amountRef.current?.focus());
+    }
   }
+
+  /** Confirms PIX receipt for the exact remaining balance and records it. */
+  function confirmPix() {
+    if (!selected) return;
+    setPayments((prev) => [
+      ...prev,
+      {
+        meioId: selected.id,
+        meioNome: selected.nome,
+        valor: remaining,
+        recebido: remaining,
+        isCash: false,
+      },
+    ]);
+    setSelected(null);
+    setAmountStr("");
+    toast.success("Recebimento PIX confirmado.");
+  }
+
 
   function confirmPartial() {
     if (!selected) return;
@@ -759,7 +792,7 @@ function BalcaoPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !busy && onOpenChange(v)}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display">Receber pagamento</DialogTitle>
         </DialogHeader>
@@ -846,54 +879,123 @@ function BalcaoPaymentDialog({
         {/* Method picker OR amount entry */}
         {!fullyPaid &&
           (selected ? (
-            <div className="space-y-2 rounded-xl border border-border p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">
-                  {selected.nome}
-                  {selectedIsCash ? " · Valor recebido" : " · Valor"}
-                </span>
+            selectedIsPix ? (
+              <div className="space-y-3 rounded-xl border-2 border-primary/40 bg-primary/5 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-sm font-semibold">
+                    <QrCode className="h-4 w-4 text-primary" /> PIX ·{" "}
+                    {formatBRL(remaining)}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setSelected(null);
+                      setAmountStr("");
+                    }}
+                    className="text-xs font-semibold text-muted-foreground hover:underline"
+                  >
+                    Voltar
+                  </button>
+                </div>
+
+                <p className="text-center text-xs text-muted-foreground">
+                  Peça para o cliente escanear o QR Code no balcão. O valor de{" "}
+                  <span className="font-semibold text-foreground">
+                    {formatBRL(remaining)}
+                  </span>{" "}
+                  já vem preenchido.
+                </p>
+
+                <div className="flex justify-center">
+                  <div className="rounded-2xl bg-white p-3 shadow-card">
+                    <QRCodeCanvas
+                      value={pix.payload}
+                      size={190}
+                      level="M"
+                      marginSize={1}
+                      aria-label="QR Code para pagamento PIX"
+                    />
+                  </div>
+                </div>
+
                 <button
-                  onClick={() => {
-                    setSelected(null);
-                    setAmountStr("");
-                  }}
-                  className="text-xs font-semibold text-muted-foreground hover:underline"
+                  type="button"
+                  onClick={() => pix.copy()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm font-semibold transition-transform active:scale-95"
                 >
-                  Voltar
+                  {pix.copied ? (
+                    <Check className="h-4 w-4 text-success" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  {pix.copied ? "Código copiado!" : "Copiar Código PIX"}
                 </button>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-muted-foreground">
-                  R$
-                </span>
-                <Input
-                  ref={amountRef}
-                  autoFocus
-                  inputMode="decimal"
-                  value={amountStr}
-                  onChange={(e) => setAmountStr(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      confirmPartial();
-                    }
-                  }}
-                  placeholder="0,00"
-                  className="h-14 rounded-xl text-2xl font-black tabular-nums"
-                />
+
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Favorecido:{" "}
+                  <span className="font-medium text-foreground">
+                    {pix.merchantName}
+                  </span>{" "}
+                  • {pix.merchantCity}
+                </p>
+
                 <Button
-                  onClick={confirmPartial}
-                  className="h-14 rounded-xl px-5 text-base font-bold"
+                  onClick={confirmPix}
+                  variant="success"
+                  className="h-14 w-full rounded-xl text-base font-bold"
                 >
-                  Adicionar
+                  <CheckCircle2 className="mr-2 h-5 w-5" /> Confirmar recebimento
                 </Button>
               </div>
-              {selectedIsCash && previewTroco > 0 && (
-                <p className="text-right text-sm font-bold text-success">
-                  Troco: {formatBRL(previewTroco)}
-                </p>
-              )}
-            </div>
+            ) : (
+              <div className="space-y-2 rounded-xl border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold">
+                    {selected.nome}
+                    {selectedIsCash ? " · Valor recebido" : " · Valor"}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setSelected(null);
+                      setAmountStr("");
+                    }}
+                    className="text-xs font-semibold text-muted-foreground hover:underline"
+                  >
+                    Voltar
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-muted-foreground">
+                    R$
+                  </span>
+                  <Input
+                    ref={amountRef}
+                    autoFocus
+                    inputMode="decimal"
+                    value={amountStr}
+                    onChange={(e) => setAmountStr(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        confirmPartial();
+                      }
+                    }}
+                    placeholder="0,00"
+                    className="h-14 rounded-xl text-2xl font-black tabular-nums"
+                  />
+                  <Button
+                    onClick={confirmPartial}
+                    className="h-14 rounded-xl px-5 text-base font-bold"
+                  >
+                    Adicionar
+                  </Button>
+                </div>
+                {selectedIsCash && previewTroco > 0 && (
+                  <p className="text-right text-sm font-bold text-success">
+                    Troco: {formatBRL(previewTroco)}
+                  </p>
+                )}
+              </div>
+            )
           ) : (
             <div>
               <p className="mb-2 text-center text-sm text-muted-foreground">
