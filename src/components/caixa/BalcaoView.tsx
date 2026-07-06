@@ -371,8 +371,9 @@ export function BalcaoView() {
         </div>
       </div>
 
-      {/* ---------------- RIGHT (col-span-3): static cupom, pinned to the edge ---------------- */}
-      <div className="flex h-full min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-2xl bg-card shadow-card lg:col-span-3 lg:rounded-none lg:border-l lg:border-border lg:bg-secondary/30 lg:shadow-none">
+      {/* ---------------- RIGHT (col-span-5): static cupom, pinned to the edge ---------------- */}
+      <div className="flex h-full min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-2xl bg-card shadow-card lg:col-span-5 lg:rounded-none lg:border-l lg:border-border lg:bg-secondary/30 lg:shadow-none">
+
 
         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
           <h3 className="flex items-center gap-2 font-display text-lg font-bold">
