@@ -496,6 +496,8 @@ export async function saveProductDetail(
       manipulado: detail.manipulado,
       setor_id: detail.manipulado ? null : detail.setor_id,
       fornecedor_id: detail.manipulado ? null : detail.fornecedor_id,
+      margem_revenda: detail.margem_revenda,
+      custo_compra: detail.manipulado ? 0 : round2(detail.custo_compra),
     })
     .eq("id", productId);
   if (prodErr) throw prodErr;
