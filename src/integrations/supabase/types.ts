@@ -1151,6 +1151,54 @@ export type Database = {
           },
         ]
       }
+      itens_entrada_produto: {
+        Row: {
+          created_at: string
+          custo_anterior_momento: number
+          custo_unitario_momento: number
+          id: string
+          id_entrada_avulsa: string
+          id_produto: string
+          quantidade: number
+          saldo_apos: number | null
+        }
+        Insert: {
+          created_at?: string
+          custo_anterior_momento?: number
+          custo_unitario_momento: number
+          id?: string
+          id_entrada_avulsa: string
+          id_produto: string
+          quantidade: number
+          saldo_apos?: number | null
+        }
+        Update: {
+          created_at?: string
+          custo_anterior_momento?: number
+          custo_unitario_momento?: number
+          id?: string
+          id_entrada_avulsa?: string
+          id_produto?: string
+          quantidade?: number
+          saldo_apos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_entrada_produto_id_entrada_avulsa_fkey"
+            columns: ["id_entrada_avulsa"]
+            isOneToOne: false
+            referencedRelation: "entradas_avulsas_estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_entrada_produto_id_produto_fkey"
+            columns: ["id_produto"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itens_ordem_compra: {
         Row: {
           created_at: string
@@ -2448,6 +2496,15 @@ export type Database = {
         Returns: number
       }
       registrar_entrada_avulsa: {
+        Args: {
+          p_conta_financeira: string
+          p_fornecedor: string
+          p_itens: Json
+          p_observacao: string
+        }
+        Returns: number
+      }
+      registrar_entrada_produtos: {
         Args: {
           p_conta_financeira: string
           p_fornecedor: string
