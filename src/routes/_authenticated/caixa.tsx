@@ -630,6 +630,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
           tab !== "fiscal" &&
           tab !== "fiado" &&
           tab !== "clientes" &&
+          tab !== "balcao" &&
           !orders && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
