@@ -240,6 +240,8 @@ function detailToForm(d: ProductDetail): ProductDetailForm {
     manipulado: d.manipulado,
     setor_id: d.setor_id ?? NONE,
     fornecedor_id: d.fornecedor_id ?? NONE,
+    margem_revenda: String(d.margem_revenda ?? 100).replace(".", ","),
+    custo_compra: d.custo_compra ? String(d.custo_compra).replace(".", ",") : "",
     ncm: d.ncm,
     ean: d.ean,
     price_options: d.price_options.map((o) => ({
