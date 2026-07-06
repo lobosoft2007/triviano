@@ -107,7 +107,8 @@ interface AdminProduct {
   saldo_estoque: number;
   estoque_minimo: number;
   estoque_maximo: number;
-
+  custo_total: number;
+  disponivel: boolean;
 }
 
 async function fetchAdminMenu() {
