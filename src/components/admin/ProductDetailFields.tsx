@@ -466,12 +466,15 @@ export function ProductDetailFields({
         onChange={(rows) => patch({ free_addons: rows })}
       />
 
-      <FichaTecnicaEditor
-        value={value.ficha}
-        onChange={(rows) => patch({ ficha: rows })}
-        insumos={insumos}
-        subprodutos={subprodutos}
-      />
+      {/* Ficha técnica só aparece para itens manipulados */}
+      {value.manipulado && (
+        <FichaTecnicaEditor
+          value={value.ficha}
+          onChange={(rows) => patch({ ficha: rows })}
+          insumos={insumos}
+          subprodutos={subprodutos}
+        />
+      )}
     </div>
   );
 }
