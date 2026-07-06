@@ -654,6 +654,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
           />
         )}
 
+        {tab === "balcao" && <BalcaoView />}
         {tab === "config" && <ConfigTab />}
         {tab === "pagamento" && <PaymentConfigTab />}
         {tab === "fiscal" && <FiscalConfigTab />}
