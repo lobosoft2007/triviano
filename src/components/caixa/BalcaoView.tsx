@@ -254,9 +254,10 @@ export function BalcaoView() {
   }, [custom, data?.menuProducts]);
 
   return (
-    <div className="grid min-h-0 h-[calc(100vh-260px)] grid-cols-1 gap-4 overflow-hidden lg:grid-cols-12 lg:gap-0">
-      {/* ---------------- LEFT (col-span-9): only this block scrolls ---------------- */}
-      <div className="flex h-full min-w-0 flex-col overflow-y-auto pb-4 pr-2 lg:col-span-9 lg:pr-4">
+    <div className="grid min-h-0 h-[calc(100vh-260px)] w-full max-w-none grid-cols-1 gap-4 overflow-hidden lg:grid-cols-12 lg:gap-0">
+      {/* ---------------- LEFT (col-span-7): only this block scrolls ---------------- */}
+      <div className="flex h-full min-w-0 flex-col overflow-y-auto pb-4 pr-2 lg:col-span-7 lg:pr-4">
+
 
 
         {/* Sticky header: search + category carousel stay visible while grid scrolls */}
@@ -320,7 +321,7 @@ export function BalcaoView() {
               Nenhum produto encontrado.
             </p>
           ) : (
-            <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
               {gridProducts.map((p) => (
                 <button
                   key={p.id}
@@ -370,8 +371,9 @@ export function BalcaoView() {
         </div>
       </div>
 
-      {/* ---------------- RIGHT (col-span-3): static cupom, pinned to the edge ---------------- */}
-      <div className="flex h-full min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-2xl bg-card shadow-card lg:col-span-3 lg:rounded-none lg:border-l lg:border-border lg:bg-secondary/30 lg:shadow-none">
+      {/* ---------------- RIGHT (col-span-5): static cupom, pinned to the edge ---------------- */}
+      <div className="flex h-full min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-2xl bg-card shadow-card lg:col-span-5 lg:rounded-none lg:border-l lg:border-border lg:bg-secondary/30 lg:shadow-none">
+
 
         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
           <h3 className="flex items-center gap-2 font-display text-lg font-bold">
@@ -403,12 +405,12 @@ export function BalcaoView() {
               {lines.map((l) => (
                 <li
                   key={l.lineId}
-                  className="flex items-center gap-2 rounded-lg bg-background px-2.5 py-2"
+                  className="flex items-center gap-3 rounded-lg bg-background px-3 py-2.5"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{l.name}</p>
+                    <p className="text-sm font-semibold leading-snug">{l.name}</p>
                     {(l.addons.length > 0 || l.remocoes.length > 0) && (
-                      <p className="truncate text-[11px] text-muted-foreground">
+                      <p className="text-[11px] leading-snug text-muted-foreground">
                         {[
                           ...l.addons.map(
                             (a) =>
@@ -419,42 +421,41 @@ export function BalcaoView() {
                       </p>
                     )}
                     <p className="text-xs tabular-nums text-muted-foreground">
-                      {formatBRL(l.unitPrice)} un.
+                      {formatBRL(l.unitPrice)} un. ·{" "}
+                      <span className="font-semibold text-foreground">
+                        {formatBRL(l.unitPrice * l.quantity)}
+                      </span>
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     <button
                       onClick={() => changeQty(l.lineId, -1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary text-foreground"
+                      className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-foreground"
                       aria-label="Remover um"
                     >
-                      <Minus className="h-3.5 w-3.5" />
+                      <Minus className="h-4 w-4" />
                     </button>
                     <span className="w-5 text-center text-sm font-bold tabular-nums">
                       {l.quantity}
                     </span>
                     <button
                       onClick={() => changeQty(l.lineId, 1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground"
+                      className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground"
                       aria-label="Adicionar um"
                     >
-                      <Plus className="h-3.5 w-3.5" />
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => removeLine(l.lineId)}
+                      className="ml-1 flex h-8 w-8 items-center justify-center rounded-md bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      aria-label="Remover item"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="w-16 text-right">
-                    <span className="text-sm font-bold tabular-nums">
-                      {formatBRL(l.unitPrice * l.quantity)}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => removeLine(l.lineId)}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
-                    aria-label="Remover item"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </li>
               ))}
+
             </ul>
           )}
         </div>
