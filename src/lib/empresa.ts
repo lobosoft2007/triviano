@@ -64,7 +64,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
 
   const empresa: Empresa = data
     ? {
-        id: data.id,
+        id: data.id ?? DEFAULT_EMPRESA_ID,
         nome_fantasia: data.nome_fantasia ?? "",
         logotipo_url: data.logotipo_url ?? "/logo.png",
         // Sensitive config is not exposed by the branding query.
