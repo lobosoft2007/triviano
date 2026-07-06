@@ -879,9 +879,14 @@ function AdminPage() {
                       id="prod-saldo"
                       inputMode="decimal"
                       value={form.saldo_estoque}
-                      onChange={(e) => setForm({ ...form, saldo_estoque: e.target.value })}
+                      readOnly
+                      className="cursor-not-allowed bg-secondary text-muted-foreground"
+                      title="Somente leitura. Ajuste o estoque por Entrada de Estoque ou Ajustes para manter a auditoria."
                       placeholder="0"
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      Somente leitura — use Entrada de Estoque/Ajustes.
+                    </p>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="prod-min" className="text-xs">
