@@ -54,6 +54,8 @@ export type NewCartItem = Omit<CartItem, "lineId" | "quantity">;
 
 interface CartContextValue {
   items: CartItem[];
+  /** True once the cart has been restored from localStorage. */
+  hydrated: boolean;
   totalItems: number;
   subtotal: number;
   discount: number;
