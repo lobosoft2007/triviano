@@ -388,6 +388,10 @@ export interface ProductDetail {
   manipulado: boolean;
   setor_id: string | null;
   fornecedor_id: string | null;
+  /** Mark-up percentage applied over the cost to suggest the resale price. */
+  margem_revenda: number;
+  /** Purchase/acquisition cost for revenda (non-manipulado) items. */
+  custo_compra: number;
   price_options: RelOption[];
   addons: RelAddon[];
   free_addons: RelAddon[];
