@@ -10,15 +10,17 @@ import {
   ScanBarcode,
   Banknote,
   X,
+  LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
 import {
-  fetchBalcaoProducts,
+  fetchBalcaoData,
   fetchOrderTotal,
   type BalcaoProduct,
 } from "@/lib/balcao";
+import { ProductImage } from "@/components/ProductImage";
 import { placeOrder } from "@/lib/orders";
 import {
   addPagamento,
@@ -39,6 +41,8 @@ interface BalcaoLine {
   quantity: number;
 }
 
+const ALL = "__all__";
+
 const norm = (s: string) =>
   s
     .toLowerCase()
@@ -50,14 +54,18 @@ export function BalcaoView() {
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
+  const [activeCat, setActiveCat] = useState<string>(ALL);
   const [lines, setLines] = useState<BalcaoLine[]>([]);
   const [payOpen, setPayOpen] = useState(false);
 
-  const { data: products, isLoading } = useQuery({
-    queryKey: ["balcao-products"],
-    queryFn: fetchBalcaoProducts,
+  const { data, isLoading } = useQuery({
+    queryKey: ["balcao-data"],
+    queryFn: fetchBalcaoData,
     staleTime: 1000 * 60 * 2,
   });
+
+  const products = data?.products;
+  const categories = data?.categories;
 
   const total = useMemo(
     () => lines.reduce((s, l) => s + l.product.price * l.quantity, 0),
@@ -73,32 +81,27 @@ export function BalcaoView() {
     requestAnimationFrame(() => searchRef.current?.focus());
   }, []);
 
-  const addProduct = useCallback(
-    (p: BalcaoProduct) => {
-      if (p.esgotado) {
-        toast.error(`"${p.name}" está esgotado.`);
-        return;
+  const addProduct = useCallback((p: BalcaoProduct) => {
+    if (p.esgotado) {
+      toast.error(`"${p.name}" está esgotado.`);
+      return;
+    }
+    setLines((prev) => {
+      const idx = prev.findIndex((l) => l.product.id === p.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        return next;
       }
-      setLines((prev) => {
-        const idx = prev.findIndex((l) => l.product.id === p.id);
-        if (idx >= 0) {
-          const next = [...prev];
-          next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
-          return next;
-        }
-        return [...prev, { product: p, quantity: 1 }];
-      });
-    },
-    [],
-  );
+      return [...prev, { product: p, quantity: 1 }];
+    });
+  }, []);
 
   const changeQty = useCallback((id: string, delta: number) => {
     setLines((prev) =>
       prev
         .map((l) =>
-          l.product.id === id
-            ? { ...l, quantity: l.quantity + delta }
-            : l,
+          l.product.id === id ? { ...l, quantity: l.quantity + delta } : l,
         )
         .filter((l) => l.quantity > 0),
     );
@@ -110,17 +113,23 @@ export function BalcaoView() {
 
   const clearCart = useCallback(() => setLines([]), []);
 
-  // Grid filtered by the search box (name match).
-  const filtered = useMemo(() => {
-    const q = norm(search);
+  // The visible grid follows the selected category (Netflix-style filter).
+  // A live search box narrows the current view by name across every category.
+  const gridProducts = useMemo(() => {
     const list = products ?? [];
-    if (!q) return list;
-    return list.filter(
+    const q = norm(search);
+    const byCat =
+      activeCat === ALL
+        ? list
+        : list.filter((p) => p.categoryId === activeCat);
+    if (!q) return byCat;
+    return byCat.filter(
       (p) => norm(p.name).includes(q) || p.ean.includes(search.trim()),
     );
-  }, [products, search]);
+  }, [products, search, activeCat]);
 
-  /** Resolve a scanned/typed term to a single product and add it. */
+  /** Resolve a scanned/typed term to a single product and add it — regardless
+   *  of the category currently selected on screen (the golden rule). */
   const resolveAndAdd = useCallback(() => {
     const raw = search.trim();
     if (!raw) return false;
@@ -153,7 +162,7 @@ export function BalcaoView() {
     setPayOpen(true);
   }, [lines.length, focusSearch]);
 
-  // Global keyboard shortcuts: F12 finalizes, Enter on empty search finalizes.
+  // Global keyboard shortcuts: F12 finalizes.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (payOpen) return;
@@ -180,10 +189,11 @@ export function BalcaoView() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-      {/* ---------------- LEFT: search + quick grid ---------------- */}
-      <div className="space-y-4">
-        <div className="rounded-2xl bg-card p-3 shadow-card">
+    <div className="grid gap-4 lg:h-[calc(100vh-9rem)] lg:grid-cols-[1.6fr_1fr]">
+      {/* ---------------- LEFT: frozen search + categories, scrolling grid ---------------- */}
+      <div className="flex min-h-0 flex-col gap-3">
+        {/* Frozen search bar */}
+        <div className="shrink-0 rounded-2xl bg-card p-3 shadow-card">
           <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
             <ScanBarcode className="h-4 w-4" /> Bipar código de barras ou digitar
             produto
@@ -202,45 +212,83 @@ export function BalcaoView() {
             />
           </div>
           <p className="mt-1.5 text-[11px] text-muted-foreground">
-            Enter adiciona o item · Enter no campo vazio (ou{" "}
+            Enter adiciona o item ao cupom · Enter no campo vazio (ou{" "}
             <kbd className="rounded bg-secondary px-1 font-semibold">F12</kbd>)
             abre o pagamento
           </p>
         </div>
 
-        <div className="rounded-2xl bg-card p-3 shadow-card">
+        {/* Frozen category filter row */}
+        {(categories?.length ?? 0) > 0 && (
+          <div className="shrink-0 overflow-x-auto">
+            <div className="flex gap-2 pb-1">
+              <CategoryButton
+                label="Todos"
+                active={activeCat === ALL}
+                onClick={() => setActiveCat(ALL)}
+              />
+              {categories!.map((c) => (
+                <CategoryButton
+                  key={c.id}
+                  label={c.name}
+                  slug={c.slug}
+                  active={activeCat === c.id}
+                  onClick={() => setActiveCat(c.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Scrolling product grid — the ONLY part that moves */}
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl bg-card p-3 shadow-card">
           {isLoading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : gridProducts.length === 0 ? (
             <p className="py-16 text-center text-sm text-muted-foreground">
               Nenhum produto encontrado.
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
-              {filtered.map((p) => (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              {gridProducts.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => addProduct(p)}
                   disabled={p.esgotado}
-                  className={`flex h-24 flex-col justify-between rounded-xl border border-border p-2.5 text-left transition-colors ${
+                  className={`group flex flex-col overflow-hidden rounded-xl border border-border bg-background text-left transition-all ${
                     p.esgotado
                       ? "cursor-not-allowed opacity-50"
-                      : "hover:border-primary hover:bg-primary/5 active:scale-[0.98]"
+                      : "hover:border-primary hover:shadow-card active:scale-[0.98]"
                   }`}
                 >
-                  <span className="line-clamp-2 text-sm font-semibold leading-tight">
-                    {p.name}
-                  </span>
-                  <span className="flex items-end justify-between">
-                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {p.esgotado ? "Esgotado" : p.categoryName}
+                  <div className="relative aspect-square w-full overflow-hidden bg-secondary">
+                    <ProductImage
+                      src={p.image_url}
+                      alt={p.name}
+                      categorySlug={p.categorySlug}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    {p.esgotado && (
+                      <span className="absolute inset-x-0 bottom-0 bg-destructive/90 py-0.5 text-center text-[10px] font-bold uppercase tracking-wide text-destructive-foreground">
+                        Esgotado
+                      </span>
+                    )}
+                    {!p.esgotado && (
+                      <span className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+                        <Plus className="h-4 w-4" />
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-1 flex-col justify-between gap-1 p-2.5">
+                    <span className="line-clamp-2 text-sm font-semibold leading-tight">
+                      {p.name}
                     </span>
-                    <span className="font-display text-sm font-bold text-primary">
+                    <span className="font-display text-base font-bold text-primary">
                       {formatBRL(p.price)}
                     </span>
-                  </span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -248,9 +296,9 @@ export function BalcaoView() {
         </div>
       </div>
 
-      {/* ---------------- RIGHT: cupom summary ---------------- */}
-      <div className="flex h-fit flex-col rounded-2xl bg-card shadow-card lg:sticky lg:top-4">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      {/* ---------------- RIGHT: frozen cupom summary ---------------- */}
+      <div className="flex min-h-0 flex-col rounded-2xl bg-card shadow-card lg:h-[calc(100vh-9rem)]">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
           <h3 className="flex items-center gap-2 font-display text-lg font-bold">
             <ShoppingCart className="h-5 w-5 text-primary" /> Cupom
             {totalUnits > 0 && (
@@ -269,7 +317,7 @@ export function BalcaoView() {
           )}
         </div>
 
-        <div className="max-h-[52vh] min-h-[120px] flex-1 overflow-y-auto p-3">
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {lines.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 py-10 text-center text-sm text-muted-foreground">
               <ScanBarcode className="h-8 w-8 opacity-40" />
@@ -327,7 +375,7 @@ export function BalcaoView() {
           )}
         </div>
 
-        <div className="border-t border-border p-4">
+        <div className="shrink-0 border-t border-border p-4">
           <div className="mb-3 flex items-end justify-between">
             <span className="text-sm font-semibold text-muted-foreground">
               Total
@@ -364,6 +412,50 @@ export function BalcaoView() {
         />
       )}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Square, image-backed category button (Netflix-style filter tile)    */
+/* ------------------------------------------------------------------ */
+
+function CategoryButton({
+  label,
+  slug,
+  active,
+  onClick,
+}: {
+  label: string;
+  slug?: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative flex h-20 w-24 shrink-0 flex-col justify-end overflow-hidden rounded-xl border-2 text-left transition-all active:scale-95 ${
+        active
+          ? "border-primary shadow-card"
+          : "border-transparent opacity-90 hover:opacity-100"
+      }`}
+    >
+      {slug ? (
+        <ProductImage
+          src=""
+          alt={label}
+          categorySlug={slug}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center bg-primary/10">
+          <LayoutGrid className="h-6 w-6 text-primary" />
+        </span>
+      )}
+      <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+      <span className="relative z-10 line-clamp-2 p-1.5 text-xs font-bold leading-tight text-white">
+        {label}
+      </span>
+    </button>
   );
 }
 
@@ -444,7 +536,7 @@ function BalcaoPaymentDialog({
 
       await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
-      await queryClient.invalidateQueries({ queryKey: ["balcao-products"] });
+      await queryClient.invalidateQueries({ queryKey: ["balcao-data"] });
 
       toast.success(`Venda finalizada · ${formatBRL(serverTotal)}`);
       onPaid();
@@ -499,11 +591,7 @@ function BalcaoPaymentDialog({
                 variant="secondary"
                 className="h-16 rounded-xl text-base font-bold"
               >
-                {busy ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  m.nome
-                )}
+                {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : m.nome}
               </Button>
             ))
           )}
