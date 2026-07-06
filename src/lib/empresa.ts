@@ -35,15 +35,7 @@ export interface EmpresaBranding extends Empresa {
   logo_display_url: string;
 }
 
-/**
 
- * Branding-only column set. This is the ONLY set anonymous visitors are
- * allowed to read from `empresas` (service fee + full address are hidden from
- * anon via column-level grants). Used by the public/shared branding query.
- * Includes the visual-identity columns so the PWA can theme for anon visitors.
- */
-const EMPRESA_BRANDING_COLS =
-  "id, nome_fantasia, logotipo_url, dominio_customizado, ativo, cor_primaria, cor_secundaria, modo_fundo";
 
 
 /**
@@ -53,14 +45,12 @@ const EMPRESA_BRANDING_COLS =
  * separately by authenticated flows via {@link fetchEmpresaConfig}.
  */
 export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
-  const { data, error } = await supabase
-    .from("empresas_public_branding")
-    .select(EMPRESA_BRANDING_COLS)
-    .eq("ativo", true)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // Anonymous visitors can no longer read the empresas base table (which would
+  // expose address + service fee). Public branding is served by a SECURITY
+  // DEFINER function that returns only the safe branding columns.
+  const { data: rows, error } = await supabase.rpc("get_public_branding");
   if (error) throw error;
+  const data = (rows ?? [])[0] ?? null;
 
   const empresa: Empresa = data
     ? {

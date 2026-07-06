@@ -2430,6 +2430,20 @@ export type Database = {
         }[]
       }
       get_patrimonio_estoque: { Args: never; Returns: number }
+      get_public_branding: {
+        Args: never
+        Returns: {
+          ativo: boolean
+          cor_primaria: string
+          cor_secundaria: string
+          created_at: string
+          dominio_customizado: string
+          id: string
+          logotipo_url: string
+          modo_fundo: string
+          nome_fantasia: string
+        }[]
+      }
       get_public_menu: {
         Args: never
         Returns: {
