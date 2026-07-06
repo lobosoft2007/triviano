@@ -34,6 +34,7 @@ function CheckoutPage() {
   const { user } = useAuth();
   const {
     items,
+    hydrated,
     subtotal,
     discount,
     appliedCombos,
