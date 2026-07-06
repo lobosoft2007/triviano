@@ -848,18 +848,20 @@ function AdminPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="prod-eixo">Rótulo do eixo de variação</Label>
-              <Input
-                id="prod-eixo"
-                value={form.eixo_variacao}
-                onChange={(e) => setForm({ ...form, eixo_variacao: e.target.value })}
-                placeholder="Ex.: Escolha sabor, Escolha tamanho, Escolha cor"
-              />
-              <p className="text-xs text-muted-foreground">
-                Texto exibido acima das opções de variação no app (sem artigos).
-              </p>
-            </div>
+            {detail.manipulado && (
+              <div className="space-y-2">
+                <Label htmlFor="prod-eixo">Rótulo do eixo de variação</Label>
+                <Input
+                  id="prod-eixo"
+                  value={form.eixo_variacao}
+                  onChange={(e) => setForm({ ...form, eixo_variacao: e.target.value })}
+                  placeholder="Ex.: Escolha sabor, Escolha tamanho, Escolha cor"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Texto exibido acima das opções de variação no app (sem artigos).
+                </p>
+              </div>
+            )}
 
 
             {!detail.manipulado && (
