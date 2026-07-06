@@ -79,6 +79,7 @@ import {
   NONE,
   type ProductDetailForm,
 } from "@/components/admin/ProductDetailFields";
+import { ProductQuickAdjust } from "@/components/admin/ProductQuickAdjust";
 import { useIsSuperAdmin } from "@/lib/superadmin";
 import { ClientesView } from "@/components/admin/ClientesView";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
