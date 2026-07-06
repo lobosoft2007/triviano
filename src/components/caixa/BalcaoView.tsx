@@ -792,7 +792,7 @@ function BalcaoPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !busy && onOpenChange(v)}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display">Receber pagamento</DialogTitle>
         </DialogHeader>
