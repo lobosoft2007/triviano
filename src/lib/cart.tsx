@@ -181,6 +181,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       items,
+      hydrated,
       totalItems,
       subtotal,
       discount,
@@ -196,6 +197,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }),
     [
       items,
+      hydrated,
       totalItems,
       subtotal,
       discount,
