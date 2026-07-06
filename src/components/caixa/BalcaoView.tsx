@@ -254,9 +254,10 @@ export function BalcaoView() {
   }, [custom, data?.menuProducts]);
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:h-[calc(100vh-140px)] lg:grid-cols-12 lg:gap-0 lg:overflow-hidden">
+    <div className="grid h-[calc(100vh-140px)] grid-cols-1 gap-4 overflow-hidden lg:grid-cols-12 lg:gap-0">
       {/* ---------------- LEFT (col-span-9): only this block scrolls ---------------- */}
-      <div className="flex min-w-0 flex-col lg:col-span-9 lg:h-full lg:overflow-y-auto lg:pr-4">
+      <div className="flex min-w-0 flex-col overflow-y-auto pb-6 lg:col-span-9 lg:h-full lg:pr-4">
+
         {/* Sticky header: search + category carousel stay visible while grid scrolls */}
         <div className="sticky top-0 z-10 flex flex-col gap-3 bg-background pb-3">
           <div className="rounded-2xl bg-card p-3 shadow-card">
