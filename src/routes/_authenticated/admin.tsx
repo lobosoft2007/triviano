@@ -686,6 +686,19 @@ function AdminPage() {
                                   [CMV {formatBRL(p.custo_total)} - {!p.available || !p.disponivel ? "Bloqueado" : "Liberado"}]
                                 </span>
                               </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                Sugestão: {formatBRL(p.preco_ideal_revenda)}
+                                <span className="ml-1">({p.margem_revenda}%)</span>
+                              </p>
+                              <ProductQuickAdjust
+                                id={p.id}
+                                manipulado={p.custo_total >= 0 && !p.disponivel === false && p.manipulado}
+                                saldoEstoque={p.saldo_estoque}
+                                custoCompra={p.custo_compra}
+                                onSaved={() =>
+                                  queryClient.invalidateQueries({ queryKey: ["admin-menu"] })
+                                }
+                              />
                             </div>
                             <IconBtn
                               label="Editar produto"
