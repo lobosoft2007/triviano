@@ -18,6 +18,11 @@ interface Props {
   category: Category;
   /** Other products in the same category, for half-and-half selection. */
   siblings: Product[];
+  /**
+   * Optional override for where the configured line goes. When provided (e.g.
+   * the counter/PDV), it receives the fully-priced line instead of the app cart.
+   */
+  onAdd?: (line: NewCartItem, quantity: number) => void;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -28,6 +33,7 @@ export function ProductCustomizer({
   product,
   category,
   siblings,
+  onAdd,
 }: Props) {
   const { addLine } = useCart();
   const options = product.price_options.length
@@ -175,7 +181,8 @@ export function ProductCustomizer({
       unitPrice,
       image_url: product.image_url,
     };
-    addLine(line, qty);
+    if (onAdd) onAdd(line, qty);
+    else addLine(line, qty);
     reset();
     onOpenChange(false);
   }
