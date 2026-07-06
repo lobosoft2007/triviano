@@ -11,6 +11,7 @@ import {
   Banknote,
   X,
   LayoutGrid,
+  SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
@@ -20,7 +21,10 @@ import {
   fetchOrderTotal,
   type BalcaoProduct,
 } from "@/lib/balcao";
+import type { Category, Product } from "@/lib/menu";
+import { makeLineId, type NewCartItem } from "@/lib/cart";
 import { ProductImage } from "@/components/ProductImage";
+import { ProductCustomizer } from "@/components/ProductCustomizer";
 import { placeOrder } from "@/lib/orders";
 import {
   addPagamento,
@@ -36,10 +40,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface BalcaoLine {
-  product: BalcaoProduct;
-  quantity: number;
-}
+/** A fully-priced cupom line (quick-add or customized via the app modal). */
+type BalcaoLine = NewCartItem & { lineId: string; quantity: number };
 
 const ALL = "__all__";
 
@@ -50,6 +52,23 @@ const norm = (s: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
+/** Build a direct-sale line from a flattened PDV product. */
+function quickLineFrom(p: BalcaoProduct): NewCartItem {
+  return {
+    productId: p.id,
+    productName: p.name,
+    categorySlug: p.categorySlug,
+    comboRole: "",
+    name: p.name,
+    size: p.size,
+    addons: [],
+    secondFlavor: "",
+    remocoes: [],
+    unitPrice: p.price,
+    image_url: p.image_url,
+  };
+}
+
 export function BalcaoView() {
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -57,6 +76,10 @@ export function BalcaoView() {
   const [activeCat, setActiveCat] = useState<string>(ALL);
   const [lines, setLines] = useState<BalcaoLine[]>([]);
   const [payOpen, setPayOpen] = useState(false);
+  const [custom, setCustom] = useState<{
+    product: Product;
+    category: Category;
+  } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["balcao-data"],
@@ -67,8 +90,18 @@ export function BalcaoView() {
   const products = data?.products;
   const categories = data?.categories;
 
+  // Full-menu lookups so a click / scan can open the same modal as the app.
+  const menuProductById = useMemo(
+    () => new Map((data?.menuProducts ?? []).map((p) => [p.id, p])),
+    [data?.menuProducts],
+  );
+  const menuCategoryById = useMemo(
+    () => new Map((data?.menuCategories ?? []).map((c) => [c.id, c])),
+    [data?.menuCategories],
+  );
+
   const total = useMemo(
-    () => lines.reduce((s, l) => s + l.product.price * l.quantity, 0),
+    () => lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0),
     [lines],
   );
   const totalUnits = useMemo(
@@ -81,34 +114,50 @@ export function BalcaoView() {
     requestAnimationFrame(() => searchRef.current?.focus());
   }, []);
 
-  const addProduct = useCallback((p: BalcaoProduct) => {
-    if (p.esgotado) {
-      toast.error(`"${p.name}" está esgotado.`);
-      return;
-    }
+  /** Merge/append a fully-priced line into the cupom. */
+  const addCartLine = useCallback((line: NewCartItem, quantity = 1) => {
+    const lineId = makeLineId(line);
     setLines((prev) => {
-      const idx = prev.findIndex((l) => l.product.id === p.id);
+      const idx = prev.findIndex((l) => l.lineId === lineId);
       if (idx >= 0) {
         const next = [...prev];
-        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        next[idx] = { ...next[idx], quantity: next[idx].quantity + quantity };
         return next;
       }
-      return [...prev, { product: p, quantity: 1 }];
+      return [...prev, { ...line, lineId, quantity }];
     });
   }, []);
 
-  const changeQty = useCallback((id: string, delta: number) => {
+  /** Click / scan entry point: customize when needed, else drop it straight in. */
+  const selectProduct = useCallback(
+    (p: BalcaoProduct) => {
+      if (p.esgotado) {
+        toast.error(`"${p.name}" está esgotado.`);
+        return;
+      }
+      const full = menuProductById.get(p.id);
+      const cat = full ? menuCategoryById.get(full.category_id) : undefined;
+      if (full && cat && p.needsCustomization) {
+        setCustom({ product: full, category: cat });
+        return;
+      }
+      addCartLine(quickLineFrom(p), 1);
+    },
+    [menuProductById, menuCategoryById, addCartLine],
+  );
+
+  const changeQty = useCallback((lineId: string, delta: number) => {
     setLines((prev) =>
       prev
         .map((l) =>
-          l.product.id === id ? { ...l, quantity: l.quantity + delta } : l,
+          l.lineId === lineId ? { ...l, quantity: l.quantity + delta } : l,
         )
         .filter((l) => l.quantity > 0),
     );
   }, []);
 
-  const removeLine = useCallback((id: string) => {
-    setLines((prev) => prev.filter((l) => l.product.id !== id));
+  const removeLine = useCallback((lineId: string) => {
+    setLines((prev) => prev.filter((l) => l.lineId !== lineId));
   }, []);
 
   const clearCart = useCallback(() => setLines([]), []);
@@ -144,14 +193,14 @@ export function BalcaoView() {
       if (matches.length === 1) hit = matches[0];
     }
     if (hit) {
-      addProduct(hit);
+      selectProduct(hit);
       setSearch("");
       focusSearch();
       return true;
     }
     toast.error(`Nenhum produto encontrado para "${raw}".`);
     return false;
-  }, [search, products, addProduct, focusSearch]);
+  }, [search, products, selectProduct, focusSearch]);
 
   const openPayment = useCallback(() => {
     if (lines.length === 0) {
@@ -165,7 +214,7 @@ export function BalcaoView() {
   // Global keyboard shortcuts: F12 finalizes.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (payOpen) return;
+      if (payOpen || custom) return;
       if (e.key === "F12") {
         e.preventDefault();
         openPayment();
@@ -173,7 +222,7 @@ export function BalcaoView() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openPayment, payOpen]);
+  }, [openPayment, payOpen, custom]);
 
   function onSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
@@ -188,10 +237,18 @@ export function BalcaoView() {
     }
   }
 
+  // Siblings (same category) for half-and-half selection inside the modal.
+  const customSiblings = useMemo(() => {
+    if (!custom) return [];
+    return (data?.menuProducts ?? []).filter(
+      (p) => p.category_id === custom.category.id,
+    );
+  }, [custom, data?.menuProducts]);
+
   return (
-    <div className="grid gap-4 lg:h-[calc(100vh-9rem)] lg:grid-cols-[1.6fr_1fr]">
-      {/* ---------------- LEFT: frozen search + categories, scrolling grid ---------------- */}
-      <div className="flex min-h-0 flex-col gap-3">
+    <div className="grid gap-4 lg:grid-cols-[7fr_3fr] lg:items-start">
+      {/* ---------------- LEFT (70%): frozen search + categories, scrolling grid ---------------- */}
+      <div className="flex min-h-0 flex-col gap-3 lg:h-[calc(100vh-9rem)]">
         {/* Frozen search bar */}
         <div className="shrink-0 rounded-2xl bg-card p-3 shadow-card">
           <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
@@ -218,10 +275,10 @@ export function BalcaoView() {
           </p>
         </div>
 
-        {/* Frozen category filter row */}
+        {/* Frozen category carousel — scrolls horizontally, never wraps */}
         {(categories?.length ?? 0) > 0 && (
-          <div className="shrink-0 overflow-x-auto">
-            <div className="flex gap-2 pb-1">
+          <div className="no-scrollbar shrink-0 overflow-x-auto">
+            <div className="flex flex-nowrap gap-2 pb-1">
               <CategoryButton
                 label="Todos"
                 active={activeCat === ALL}
@@ -251,13 +308,13 @@ export function BalcaoView() {
               Nenhum produto encontrado.
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
               {gridProducts.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => addProduct(p)}
+                  onClick={() => selectProduct(p)}
                   disabled={p.esgotado}
-                  className={`group flex flex-col overflow-hidden rounded-xl border border-border bg-background text-left transition-all ${
+                  className={`group flex flex-col overflow-hidden rounded-lg border border-border bg-background text-left transition-all ${
                     p.esgotado
                       ? "cursor-not-allowed opacity-50"
                       : "hover:border-primary hover:shadow-card active:scale-[0.98]"
@@ -275,17 +332,22 @@ export function BalcaoView() {
                         Esgotado
                       </span>
                     )}
+                    {!p.esgotado && p.needsCustomization && (
+                      <span className="absolute left-1 top-1 flex items-center gap-0.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                        <SlidersHorizontal className="h-2.5 w-2.5" /> Opções
+                      </span>
+                    )}
                     {!p.esgotado && (
-                      <span className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
-                        <Plus className="h-4 w-4" />
+                      <span className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+                        <Plus className="h-3.5 w-3.5" />
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-1 flex-col justify-between gap-1 p-2.5">
-                    <span className="line-clamp-2 text-sm font-semibold leading-tight">
+                  <div className="flex flex-1 flex-col justify-between gap-0.5 p-1.5">
+                    <span className="line-clamp-2 text-xs font-semibold leading-tight">
                       {p.name}
                     </span>
-                    <span className="font-display text-base font-bold text-primary">
+                    <span className="font-display text-sm font-bold text-primary">
                       {formatBRL(p.price)}
                     </span>
                   </div>
@@ -296,8 +358,8 @@ export function BalcaoView() {
         </div>
       </div>
 
-      {/* ---------------- RIGHT: frozen cupom summary ---------------- */}
-      <div className="flex min-h-0 flex-col rounded-2xl bg-card shadow-card lg:h-[calc(100vh-9rem)]">
+      {/* ---------------- RIGHT (30%): frozen cupom summary, sticky ---------------- */}
+      <div className="flex min-h-0 flex-col rounded-2xl bg-card shadow-card lg:sticky lg:top-0 lg:h-[calc(100vh-9rem)]">
         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
           <h3 className="flex items-center gap-2 font-display text-lg font-bold">
             <ShoppingCart className="h-5 w-5 text-primary" /> Cupom
@@ -327,20 +389,29 @@ export function BalcaoView() {
             <ul className="space-y-2">
               {lines.map((l) => (
                 <li
-                  key={l.product.id}
+                  key={l.lineId}
                   className="flex items-center gap-2 rounded-lg bg-secondary px-2.5 py-2"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">
-                      {l.product.name}
-                    </p>
+                    <p className="truncate text-sm font-semibold">{l.name}</p>
+                    {(l.addons.length > 0 || l.remocoes.length > 0) && (
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {[
+                          ...l.addons.map(
+                            (a) =>
+                              `+${a.name}${a.quantity && a.quantity > 1 ? ` x${a.quantity}` : ""}`,
+                          ),
+                          ...l.remocoes.map((r) => `sem ${r}`),
+                        ].join(" · ")}
+                      </p>
+                    )}
                     <p className="text-xs tabular-nums text-muted-foreground">
-                      {formatBRL(l.product.price)} un.
+                      {formatBRL(l.unitPrice)} un.
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => changeQty(l.product.id, -1)}
+                      onClick={() => changeQty(l.lineId, -1)}
                       className="flex h-7 w-7 items-center justify-center rounded-md bg-background text-foreground"
                       aria-label="Remover um"
                     >
@@ -350,7 +421,7 @@ export function BalcaoView() {
                       {l.quantity}
                     </span>
                     <button
-                      onClick={() => changeQty(l.product.id, 1)}
+                      onClick={() => changeQty(l.lineId, 1)}
                       className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground"
                       aria-label="Adicionar um"
                     >
@@ -359,11 +430,11 @@ export function BalcaoView() {
                   </div>
                   <div className="w-16 text-right">
                     <span className="text-sm font-bold tabular-nums">
-                      {formatBRL(l.product.price * l.quantity)}
+                      {formatBRL(l.unitPrice * l.quantity)}
                     </span>
                   </div>
                   <button
-                    onClick={() => removeLine(l.product.id)}
+                    onClick={() => removeLine(l.lineId)}
                     className="flex h-7 w-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
                     aria-label="Remover item"
                   >
@@ -393,6 +464,27 @@ export function BalcaoView() {
           </Button>
         </div>
       </div>
+
+      {/* Same customization modal as the customer app, feeding the cupom. */}
+      {custom && (
+        <ProductCustomizer
+          open={!!custom}
+          onOpenChange={(o) => {
+            if (!o) {
+              setCustom(null);
+              focusSearch();
+            }
+          }}
+          product={custom.product}
+          category={custom.category}
+          siblings={customSiblings}
+          onAdd={(line, qty) => {
+            addCartLine(line, qty);
+            setCustom(null);
+            focusSearch();
+          }}
+        />
+      )}
 
       {payOpen && (
         <BalcaoPaymentDialog
@@ -504,18 +596,18 @@ function BalcaoPaymentDialog({
     setBusy(true);
     try {
       const itemsPayload = lines.map((l) => ({
-        productId: l.product.id,
-        productName: l.product.name,
-        categorySlug: l.product.categorySlug,
-        comboRole: "" as const,
-        name: l.product.name,
-        size: l.product.size,
-        addons: [],
-        secondFlavor: "",
-        remocoes: [],
-        unitPrice: l.product.price,
-        image_url: l.product.image_url,
-        lineId: l.product.id,
+        productId: l.productId,
+        productName: l.productName,
+        categorySlug: l.categorySlug,
+        comboRole: l.comboRole,
+        name: l.name,
+        size: l.size,
+        addons: l.addons,
+        secondFlavor: l.secondFlavor,
+        remocoes: l.remocoes,
+        unitPrice: l.unitPrice,
+        image_url: l.image_url,
+        lineId: l.lineId,
         quantity: l.quantity,
       }));
 
