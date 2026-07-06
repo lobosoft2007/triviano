@@ -799,7 +799,7 @@ function AdminPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="prod-price">Preço base (R$)</Label>
+                <Label htmlFor="prod-price">Preço revenda (R$)</Label>
                 <Input
                   id="prod-price"
                   inputMode="decimal"
