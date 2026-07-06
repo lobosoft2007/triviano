@@ -135,6 +135,7 @@ async function fetchAdminMenu() {
     image_url: p.image_url ?? "",
     available: p.available,
     free_addon_limit: Number(p.free_addon_limit ?? 0),
+    manipulado: Boolean((p as { manipulado?: boolean }).manipulado ?? true),
     eixo_variacao: (p as { eixo_variacao?: string }).eixo_variacao ?? "Tamanho",
     saldo_estoque: Number(p.saldo_estoque ?? 0),
     estoque_minimo: Number(p.estoque_minimo ?? 0),
