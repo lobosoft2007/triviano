@@ -1193,3 +1193,29 @@ export async function quickAdjustProduct(input: {
     .eq("id", input.id);
   if (error) throw error;
 }
+
+export interface RevendaProduto {
+  id: string;
+  name: string;
+  saldo_estoque: number;
+  custo_compra: number;
+  margem_revenda: number;
+  preco_ideal_revenda: number;
+}
+
+/** Products with the "Manipulado" switch OFF (drinks / resale items). */
+export async function listRevendaProdutos(): Promise<RevendaProduto[]> {
+  const { data, error } = await supabase.rpc("admin_get_products", {
+    p_only_manipulado_false: true,
+  });
+  if (error) throw error;
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    name: p.name,
+    saldo_estoque: Number(p.saldo_estoque ?? 0),
+    custo_compra: Number(p.custo_compra ?? 0),
+    margem_revenda: Number(p.margem_revenda ?? 100),
+    preco_ideal_revenda: Number(p.preco_ideal_revenda ?? 0),
+  }));
+}
+
