@@ -1181,7 +1181,7 @@ export async function quickAdjustProduct(input: {
   saldo_estoque: number;
   custo_compra?: number;
 }): Promise<void> {
-  const payload: Record<string, number> = {
+  const payload: { saldo_estoque: number; custo_compra?: number } = {
     saldo_estoque: round2(input.saldo_estoque),
   };
   if (!input.manipulado && input.custo_compra !== undefined) {
