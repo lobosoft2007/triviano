@@ -31,6 +31,7 @@ import {
   Users,
   FileBarChart,
   PackagePlus,
+  ScanBarcode,
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { StatusControl } from "@/components/caixa/StatusControl";
@@ -44,6 +45,7 @@ import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
 import { ClientesView } from "@/components/admin/ClientesView";
 import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { PartialReportDialog } from "@/components/caixa/PartialReportDialog";
+import { BalcaoView } from "@/components/caixa/BalcaoView";
 
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
@@ -278,7 +280,7 @@ function LockScreen({ userId }: { userId: string }) {
 function OperationalPanel({ caixaId }: { caixaId: string }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<
-    "delivery" | "mesas" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
+    "delivery" | "mesas" | "balcao" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
   >("delivery");
   const [partialOpen, setPartialOpen] = useState(false);
   const [ajusteOpen, setAjusteOpen] = useState(false);
@@ -584,6 +586,12 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             label={`Mesas ativas (${mesaOrders.length})`}
           />
           <TabButton
+            active={tab === "balcao"}
+            onClick={() => setTab("balcao")}
+            icon={<ScanBarcode className="h-4 w-4" />}
+            label="Atendimento Balcão"
+          />
+          <TabButton
             active={tab === "config"}
             onClick={() => setTab("config")}
             icon={<Settings className="h-4 w-4" />}
@@ -622,6 +630,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
           tab !== "fiscal" &&
           tab !== "fiado" &&
           tab !== "clientes" &&
+          tab !== "balcao" &&
           !orders && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -645,6 +654,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
           />
         )}
 
+        {tab === "balcao" && <BalcaoView />}
         {tab === "config" && <ConfigTab />}
         {tab === "pagamento" && <PaymentConfigTab />}
         {tab === "fiscal" && <FiscalConfigTab />}
