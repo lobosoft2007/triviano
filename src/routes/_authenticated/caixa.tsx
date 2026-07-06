@@ -280,7 +280,7 @@ function LockScreen({ userId }: { userId: string }) {
 function OperationalPanel({ caixaId }: { caixaId: string }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<
-    "delivery" | "mesas" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
+    "delivery" | "mesas" | "balcao" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
   >("delivery");
   const [partialOpen, setPartialOpen] = useState(false);
   const [ajusteOpen, setAjusteOpen] = useState(false);
