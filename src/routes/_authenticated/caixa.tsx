@@ -176,12 +176,6 @@ function CaixaPage() {
         <p className="max-w-sm text-sm text-muted-foreground">
           O painel CAIXA é exclusivo para operadores autorizados.
         </p>
-        <Link
-          to="/"
-          className="mt-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
-        >
-          Voltar ao início
-        </Link>
       </div>
     );
   }
