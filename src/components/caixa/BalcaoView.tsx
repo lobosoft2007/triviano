@@ -405,12 +405,12 @@ export function BalcaoView() {
               {lines.map((l) => (
                 <li
                   key={l.lineId}
-                  className="flex items-center gap-2 rounded-lg bg-background px-2.5 py-2"
+                  className="flex items-center gap-3 rounded-lg bg-background px-3 py-2.5"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{l.name}</p>
+                    <p className="text-sm font-semibold leading-snug">{l.name}</p>
                     {(l.addons.length > 0 || l.remocoes.length > 0) && (
-                      <p className="truncate text-[11px] text-muted-foreground">
+                      <p className="text-[11px] leading-snug text-muted-foreground">
                         {[
                           ...l.addons.map(
                             (a) =>
@@ -421,42 +421,41 @@ export function BalcaoView() {
                       </p>
                     )}
                     <p className="text-xs tabular-nums text-muted-foreground">
-                      {formatBRL(l.unitPrice)} un.
+                      {formatBRL(l.unitPrice)} un. ·{" "}
+                      <span className="font-semibold text-foreground">
+                        {formatBRL(l.unitPrice * l.quantity)}
+                      </span>
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     <button
                       onClick={() => changeQty(l.lineId, -1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary text-foreground"
+                      className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-foreground"
                       aria-label="Remover um"
                     >
-                      <Minus className="h-3.5 w-3.5" />
+                      <Minus className="h-4 w-4" />
                     </button>
                     <span className="w-5 text-center text-sm font-bold tabular-nums">
                       {l.quantity}
                     </span>
                     <button
                       onClick={() => changeQty(l.lineId, 1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground"
+                      className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground"
                       aria-label="Adicionar um"
                     >
-                      <Plus className="h-3.5 w-3.5" />
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => removeLine(l.lineId)}
+                      className="ml-1 flex h-8 w-8 items-center justify-center rounded-md bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      aria-label="Remover item"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="w-16 text-right">
-                    <span className="text-sm font-bold tabular-nums">
-                      {formatBRL(l.unitPrice * l.quantity)}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => removeLine(l.lineId)}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
-                    aria-label="Remover item"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </li>
               ))}
+
             </ul>
           )}
         </div>
