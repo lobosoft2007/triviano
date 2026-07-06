@@ -29,6 +29,10 @@ export interface ProductDetailForm {
   manipulado: boolean;
   setor_id: string;
   fornecedor_id: string;
+  /** Mark-up percentage (as text) used to suggest the resale price. */
+  margem_revenda: string;
+  /** Purchase cost (as text) for revenda (non-manipulado) items. */
+  custo_compra: string;
   price_options: PriceOptionRow[];
   addons: RelRow[];
   free_addons: RelRow[];
@@ -41,6 +45,8 @@ export const EMPTY_DETAIL: ProductDetailForm = {
   manipulado: true,
   setor_id: NONE,
   fornecedor_id: NONE,
+  margem_revenda: "100",
+  custo_compra: "",
   price_options: [],
   addons: [],
   free_addons: [],
