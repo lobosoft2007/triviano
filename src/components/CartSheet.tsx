@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   ShoppingBag,
   Plus,
@@ -9,6 +10,7 @@ import {
   BadgePercent,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
 import {
   Sheet,
