@@ -578,6 +578,7 @@ interface PdvPayment {
 }
 
 const isCashMethod = (nome: string) => norm(nome).includes("dinheiro");
+const isPixMethod = (nome: string) => norm(nome).includes("pix");
 
 function BalcaoPaymentDialog({
   open,
