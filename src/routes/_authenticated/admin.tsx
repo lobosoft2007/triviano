@@ -109,6 +109,9 @@ interface AdminProduct {
   estoque_maximo: number;
   custo_total: number;
   disponivel: boolean;
+  margem_revenda: number;
+  custo_compra: number;
+  preco_ideal_revenda: number;
 }
 
 async function fetchAdminMenu() {
