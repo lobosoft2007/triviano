@@ -212,7 +212,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                 size="lg"
                 className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base"
                 disabled={!canCheckout}
-                onClick={() => navigate({ to: "/checkout" })}
+                onClick={handleCheckout}
               >
                 Finalizar pedido
                 <ArrowRight className="h-5 w-5" />
