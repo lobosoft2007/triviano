@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchProductCustoTotal } from "@/lib/cost";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
