@@ -86,6 +86,7 @@ export function makeLineId(line: NewCartItem): string {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
@@ -93,16 +94,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (raw) setItems(JSON.parse(raw));
     } catch {
       // ignore corrupt storage
+    } finally {
+      setHydrated(true);
     }
   }, []);
 
   useEffect(() => {
+    // Never persist before the initial restore has run, otherwise the empty
+    // starting state would clobber a saved cart on first mount.
+    if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch {
       // ignore quota errors
     }
-  }, [items]);
+  }, [items, hydrated]);
 
   const addLine = useCallback((line: NewCartItem, quantity = 1) => {
     const lineId = makeLineId(line);
