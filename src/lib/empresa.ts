@@ -35,15 +35,7 @@ export interface EmpresaBranding extends Empresa {
   logo_display_url: string;
 }
 
-/**
 
- * Branding-only column set. This is the ONLY set anonymous visitors are
- * allowed to read from `empresas` (service fee + full address are hidden from
- * anon via column-level grants). Used by the public/shared branding query.
- * Includes the visual-identity columns so the PWA can theme for anon visitors.
- */
-const EMPRESA_BRANDING_COLS =
-  "id, nome_fantasia, logotipo_url, dominio_customizado, ativo, cor_primaria, cor_secundaria, modo_fundo";
 
 
 /**
