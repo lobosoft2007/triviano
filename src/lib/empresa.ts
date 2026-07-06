@@ -54,7 +54,7 @@ const EMPRESA_BRANDING_COLS =
  */
 export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
   const { data, error } = await supabase
-    .from("empresas")
+    .from("empresas_public_branding")
     .select(EMPRESA_BRANDING_COLS)
     .eq("ativo", true)
     .order("created_at", { ascending: true })
