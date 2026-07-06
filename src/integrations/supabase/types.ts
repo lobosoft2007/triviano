@@ -1538,6 +1538,7 @@ export type Database = {
           created_at: string
           custo_anterior: number | null
           custo_anterior_at: string | null
+          custo_total: number | null
           description: string
           eixo_variacao: string
           empresa_id: string
@@ -1560,6 +1561,7 @@ export type Database = {
           created_at?: string
           custo_anterior?: number | null
           custo_anterior_at?: string | null
+          custo_total?: number | null
           description?: string
           eixo_variacao?: string
           empresa_id?: string
@@ -1582,6 +1584,7 @@ export type Database = {
           created_at?: string
           custo_anterior?: number | null
           custo_anterior_at?: string | null
+          custo_total?: number | null
           description?: string
           eixo_variacao?: string
           empresa_id?: string
@@ -2105,7 +2108,9 @@ export type Database = {
           available: boolean
           category_id: string
           custo_anterior: number
+          custo_total: number
           description: string
+          disponivel: boolean
           eixo_variacao: string
           estoque_maximo: number
           estoque_minimo: number

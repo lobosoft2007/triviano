@@ -107,7 +107,8 @@ interface AdminProduct {
   saldo_estoque: number;
   estoque_minimo: number;
   estoque_maximo: number;
-
+  custo_total: number;
+  disponivel: boolean;
 }
 
 async function fetchAdminMenu() {
@@ -134,7 +135,8 @@ async function fetchAdminMenu() {
     saldo_estoque: Number(p.saldo_estoque ?? 0),
     estoque_minimo: Number(p.estoque_minimo ?? 0),
     estoque_maximo: Number(p.estoque_maximo ?? 0),
-
+    custo_total: Number((p as { custo_total?: number }).custo_total ?? 0),
+    disponivel: Boolean((p as { disponivel?: boolean }).disponivel),
   }));
   const urlMap = await resolveImageUrls(raw.map((p) => p.image_url));
 
@@ -660,7 +662,12 @@ function AdminPage() {
                                   </span>
                                 )}
                               </p>
-                              <p className="text-xs text-primary">{formatBRL(p.price)}</p>
+                              <p className="text-xs text-primary">
+                                {formatBRL(p.price)}
+                                <span className="ml-2 font-medium text-destructive">
+                                  [CMV {formatBRL(p.custo_total)} - {p.disponivel ? "Liberado" : "Esgotado"}]
+                                </span>
+                              </p>
                             </div>
                             <IconBtn
                               label="Editar produto"
