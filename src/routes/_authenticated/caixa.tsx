@@ -586,6 +586,12 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             label={`Mesas ativas (${mesaOrders.length})`}
           />
           <TabButton
+            active={tab === "balcao"}
+            onClick={() => setTab("balcao")}
+            icon={<ScanBarcode className="h-4 w-4" />}
+            label="Atendimento Balcão"
+          />
+          <TabButton
             active={tab === "config"}
             onClick={() => setTab("config")}
             icon={<Settings className="h-4 w-4" />}
