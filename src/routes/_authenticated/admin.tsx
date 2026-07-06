@@ -693,16 +693,8 @@ function AdminPage() {
                                 Sugestão: {formatBRL(p.preco_ideal_revenda)}
                                 <span className="ml-1">({p.margem_revenda}%)</span>
                               </p>
-                              <ProductQuickAdjust
-                                id={p.id}
-                                manipulado={p.manipulado}
-                                saldoEstoque={p.saldo_estoque}
-                                custoCompra={p.custo_compra}
-                                onSaved={() =>
-                                  queryClient.invalidateQueries({ queryKey: ["admin-menu"] })
-                                }
-                              />
                             </div>
+
                             <IconBtn
                               label="Editar produto"
                               onClick={() => openEdit(p)}
