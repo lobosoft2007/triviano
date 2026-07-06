@@ -273,6 +273,16 @@ function LockScreen({ userId }: { userId: string }) {
 
 function OperationalPanel({ caixaId }: { caixaId: string }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const handleLock = useCallback(async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOut();
+    navigate({ to: "/auth", replace: true });
+  }, [queryClient, signOut, navigate]);
+
   const [tab, setTab] = useState<
     "delivery" | "mesas" | "balcao" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
   >("delivery");
