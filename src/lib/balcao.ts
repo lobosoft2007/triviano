@@ -21,11 +21,25 @@ export interface BalcaoProduct {
   esgotado: boolean;
 }
 
+/** A category with how many available products it holds (for the PDV filter row). */
+export interface BalcaoCategory {
+  id: string;
+  name: string;
+  slug: string;
+  count: number;
+}
+
+export interface BalcaoData {
+  categories: BalcaoCategory[];
+  products: BalcaoProduct[];
+}
+
 /**
  * Loads every available product with a resolved default price and (best-effort)
- * its EAN barcode, ready for the counter grid + barcode search.
+ * its EAN barcode, plus the categories that actually have products — ready for
+ * the counter category filter, grid and barcode search.
  */
-export async function fetchBalcaoProducts(): Promise<BalcaoProduct[]> {
+export async function fetchBalcaoData(): Promise<BalcaoData> {
   const { categories, products } = await fetchMenu();
   const catById = new Map(categories.map((c) => [c.id, c]));
 
