@@ -359,9 +359,14 @@ export function ProductDetailFields({
                 id="prod-custo-compra"
                 inputMode="decimal"
                 value={value.custo_compra}
-                onChange={(e) => patch({ custo_compra: e.target.value })}
+                readOnly
+                tabIndex={-1}
+                className="cursor-not-allowed bg-secondary text-muted-foreground"
                 placeholder="0,00"
               />
+              <p className="text-[11px] text-muted-foreground">
+                Atualizado apenas via Entrada de Estoque ou NF.
+              </p>
             </div>
           )}
           <div className="space-y-1.5">
