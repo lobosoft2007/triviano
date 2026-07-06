@@ -58,7 +58,7 @@ export async function fetchBalcaoData(): Promise<BalcaoData> {
     /* EAN is optional; name search still works. */
   }
 
-  return products
+  const mapped = products
     .map((p) => {
       const cat = catById.get(p.category_id);
       const defaultOption = p.price_options[0];
@@ -80,6 +80,22 @@ export async function fetchBalcaoData(): Promise<BalcaoData> {
         a.categoryName.localeCompare(b.categoryName) ||
         a.name.localeCompare(b.name),
     );
+
+  // Only surface categories that actually have available products.
+  const countByCat = new Map<string, number>();
+  for (const p of mapped) {
+    countByCat.set(p.categoryId, (countByCat.get(p.categoryId) ?? 0) + 1);
+  }
+  const balcaoCategories: BalcaoCategory[] = categories
+    .filter((c) => countByCat.has(c.id))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      count: countByCat.get(c.id) ?? 0,
+    }));
+
+  return { categories: balcaoCategories, products: mapped };
 }
 
 /** Reads the server-computed total for a freshly created order. */
