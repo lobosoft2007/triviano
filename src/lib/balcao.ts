@@ -21,11 +21,25 @@ export interface BalcaoProduct {
   esgotado: boolean;
 }
 
+/** A category with how many available products it holds (for the PDV filter row). */
+export interface BalcaoCategory {
+  id: string;
+  name: string;
+  slug: string;
+  count: number;
+}
+
+export interface BalcaoData {
+  categories: BalcaoCategory[];
+  products: BalcaoProduct[];
+}
+
 /**
  * Loads every available product with a resolved default price and (best-effort)
- * its EAN barcode, ready for the counter grid + barcode search.
+ * its EAN barcode, plus the categories that actually have products — ready for
+ * the counter category filter, grid and barcode search.
  */
-export async function fetchBalcaoProducts(): Promise<BalcaoProduct[]> {
+export async function fetchBalcaoData(): Promise<BalcaoData> {
   const { categories, products } = await fetchMenu();
   const catById = new Map(categories.map((c) => [c.id, c]));
 
@@ -44,7 +58,7 @@ export async function fetchBalcaoProducts(): Promise<BalcaoProduct[]> {
     /* EAN is optional; name search still works. */
   }
 
-  return products
+  const mapped = products
     .map((p) => {
       const cat = catById.get(p.category_id);
       const defaultOption = p.price_options[0];
@@ -66,6 +80,22 @@ export async function fetchBalcaoProducts(): Promise<BalcaoProduct[]> {
         a.categoryName.localeCompare(b.categoryName) ||
         a.name.localeCompare(b.name),
     );
+
+  // Only surface categories that actually have available products.
+  const countByCat = new Map<string, number>();
+  for (const p of mapped) {
+    countByCat.set(p.categoryId, (countByCat.get(p.categoryId) ?? 0) + 1);
+  }
+  const balcaoCategories: BalcaoCategory[] = categories
+    .filter((c) => countByCat.has(c.id))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      count: countByCat.get(c.id) ?? 0,
+    }));
+
+  return { categories: balcaoCategories, products: mapped };
 }
 
 /** Reads the server-computed total for a freshly created order. */
