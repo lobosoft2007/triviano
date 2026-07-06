@@ -666,10 +666,12 @@ function AdminPage() {
                                 {formatBRL(p.price)}
                                 <span
                                   className={`ml-2 font-medium ${
-                                    p.disponivel ? "text-green-500" : "text-red-500"
+                                    !p.available || !p.disponivel
+                                      ? "text-red-500"
+                                      : "text-green-500"
                                   }`}
                                 >
-                                  [CMV {formatBRL(p.custo_total)} - {p.disponivel ? "Liberado" : "Esgotado"}]
+                                  [CMV {formatBRL(p.custo_total)} - {!p.available || !p.disponivel ? "Bloqueado" : "Liberado"}]
                                 </span>
                               </p>
                             </div>
