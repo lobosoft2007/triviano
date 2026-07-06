@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
   Loader2,
   Lock,
   ShieldAlert,
