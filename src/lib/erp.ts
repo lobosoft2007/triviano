@@ -458,6 +458,12 @@ export async function fetchProductDetail(
     manipulado: prodMeta?.manipulado ?? true,
     setor_id: prodMeta?.setor_id ?? null,
     fornecedor_id: prodMeta?.fornecedor_id ?? null,
+    margem_revenda: Number(
+      (prodMeta as { margem_revenda?: number })?.margem_revenda ?? 100,
+    ),
+    custo_compra: Number(
+      (prodMeta as { custo_compra?: number })?.custo_compra ?? 0,
+    ),
     price_options: (poRes.data ?? []).map((p) => ({
       id: String(p.id),
       tamanho: String(p.tamanho),
