@@ -692,7 +692,7 @@ function AdminPage() {
                               </p>
                               <ProductQuickAdjust
                                 id={p.id}
-                                manipulado={p.custo_total >= 0 && !p.disponivel === false && p.manipulado}
+                                manipulado={p.manipulado}
                                 saldoEstoque={p.saldo_estoque}
                                 custoCompra={p.custo_compra}
                                 onSaved={() =>
