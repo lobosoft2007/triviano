@@ -58,7 +58,10 @@ export function computeCustoTotal(inputs: CostInputs): number {
 
   const total = inputs.ficha.reduce((sum, line) => {
     if (line.insumo_id) {
-      return sum + line.quantidade * (inputs.insumoCusto.get(line.insumo_id) ?? 0);
+      // Recipe quantity is in the consumption unit; convert to the stock unit
+      // via fator_conversao before multiplying by the unit cost.
+      const fator = inputs.insumoFator.get(line.insumo_id) ?? 1;
+      return sum + line.quantidade * fator * (inputs.insumoCusto.get(line.insumo_id) ?? 0);
     }
     if (line.subproduto_id) {
       return sum + line.quantidade * subprodutoUnitCost(line.subproduto_id, inputs);
