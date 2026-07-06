@@ -603,6 +603,19 @@ export async function saveProductDetail(
       .insert(fichaRows);
     if (error) throw error;
   }
+
+  // Recalcula e persiste o custo total de produção/revenda para BI.
+  try {
+    const custoTotal = await fetchProductCustoTotal(productId);
+    const { error: costErr } = await supabase
+      .from("products")
+      .update({ custo_total: custoTotal })
+      .eq("id", productId);
+    if (costErr) throw costErr;
+  } catch (costErr) {
+    // Não falha o salvamento; o custo pode ser recalculado posteriormente.
+    console.warn("Falha ao recalcular custo_total:", costErr);
+  }
 }
 
 /**
