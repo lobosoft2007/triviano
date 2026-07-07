@@ -39,6 +39,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   } = useCart();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const [open, setOpen] = useState(false);
 
   async function handleCheckout() {
     try {
