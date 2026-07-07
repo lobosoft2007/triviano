@@ -142,9 +142,9 @@ function PerfilPage() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-background pb-16 text-foreground">
-      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3.5 sm:px-6">
+    <AppShell>
+      <ShellHeader className="border-b border-border/60 bg-background/90 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-2xl items-center gap-3 px-4 py-3.5 sm:px-6">
           <Link
             to="/"
             aria-label="Voltar"
