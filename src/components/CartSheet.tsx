@@ -1,5 +1,4 @@
 import { useState, type MouseEvent } from "react";
-import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   ShoppingBag,
@@ -232,19 +231,15 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   {formatBRL(totalPrice)}
                 </span>
               </div>
-              <Button
-                asChild
-                size="lg"
-                className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base"
-                disabled={items.length === 0}
-              >
-                <Link
-                  to={user ? "/checkout" : "/auth"}
+              <Button asChild size="lg" className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base">
+                <a
+                  href={user ? "/checkout" : "/auth"}
+                  aria-disabled={items.length === 0}
                   onClick={handleCheckoutClick}
                 >
                   Finalizar pedido
                   <ArrowRight className="h-5 w-5" />
-                </Link>
+                </a>
               </Button>
             </div>
           </>
