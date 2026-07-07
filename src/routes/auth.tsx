@@ -69,8 +69,9 @@ function AuthPage() {
   });
   const [address, setAddress] = useState<AddressState>(emptyAddress);
 
-  // Staff (admin or funcionário) land on the Caixa; delivery clients on the PWA.
-  const resolveLanding = async (): Promise<"/" | "/caixa"> => {
+  // Staff (admin or funcionário) land on the Caixa; delivery clients continue
+  // to wherever they were headed (e.g. /checkout) or the PWA home.
+  const resolveLanding = async (): Promise<"/" | "/caixa" | "/checkout"> => {
     try {
       const { data } = await supabase.rpc("get_my_permissions");
       const row = Array.isArray(data) ? data[0] : data;
@@ -78,7 +79,15 @@ function AuthPage() {
     } catch {
       // fall through to client landing
     }
-    return "/";
+    // Only clients honor a saved destination — never redirect them elsewhere.
+    let saved: string | null = null;
+    try {
+      saved = sessionStorage.getItem("post_login_redirect");
+      if (saved) sessionStorage.removeItem("post_login_redirect");
+    } catch {
+      /* ignore storage errors */
+    }
+    return saved === "/checkout" ? "/checkout" : "/";
   };
 
   useEffect(() => {
@@ -91,6 +100,7 @@ function AuthPage() {
       active = false;
     };
   }, [user, loading, navigate]);
+
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
