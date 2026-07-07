@@ -430,6 +430,17 @@ function AdminPage() {
   });
 
   const [tab, setTab] = useState<AdminTab>("cardapio");
+
+  // If the current tab is not permitted for this staff level, jump to the first allowed one.
+  useEffect(() => {
+    if (!perms) return;
+    if (!tabAllowed(tab)) {
+      const first = TABS.find((t) => tabAllowed(t.key));
+      if (first) setTab(first.key);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [perms, tab]);
+
   const { data: setores } = useQuery({
     queryKey: ["erp-setores"],
     queryFn: listSetores,
