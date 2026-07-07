@@ -31,7 +31,6 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     appliedCombos,
     totalPrice,
     shortfalls,
-    canCheckout,
     increment,
     decrement,
     removeItem,
@@ -66,7 +65,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
       toast.error(
         err instanceof Error
           ? `Não foi possível abrir o pagamento: ${err.message}`
-          : "Não foi possível abrir a tela de pagamento. Tente novamente.",
+          : `Não foi possível abrir o pagamento: ${String(err)}`,
       );
     }
   }
