@@ -150,9 +150,10 @@ function SuperAdminPage() {
             Nova Empresa
           </Button>
         </div>
-      </header>
+      </ShellHeader>
 
-      <main className="mx-auto max-w-4xl px-4 py-6">
+      <ShellBody>
+        <main className="mx-auto max-w-4xl px-4 py-6 pb-16">
         <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
           <Building2 className="h-4 w-4" />
           <span>
