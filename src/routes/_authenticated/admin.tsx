@@ -388,7 +388,16 @@ function AdminPage() {
     navigate({ to: "/auth", replace: true });
   };
 
-  const { data: isAdmin, isLoading: roleLoading } = useIsAdmin(user?.id);
+  const { data: perms, isLoading: roleLoading } = usePermissions();
+  const isMaster = perms?.is_admin === true;
+  const tabAllowed = (key: AdminTab): boolean => {
+    if (isMaster) return true;
+    const flag = TAB_FLAG[key];
+    return flag !== "master" && Boolean(perms?.[flag]);
+  };
+  const canEnterAdmin = TABS.some((t) => tabAllowed(t.key));
+  // Enables data queries below; funcionários only reach permitted tabs.
+  const isAdmin = canEnterAdmin;
   const { data: isSuperAdmin } = useIsSuperAdmin(user?.id);
   const { data, isLoading } = useQuery({
     queryKey: ["admin-menu"],
