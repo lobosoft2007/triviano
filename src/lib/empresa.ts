@@ -234,6 +234,10 @@ export interface EmpresaUpdate {
   estado: string;
   percentual_cashback: number;
   cashback_ativo: boolean;
+  /** Hybrid KDS-monitor vs physical-print routing per sector. */
+  monitor_cozinha: boolean;
+  monitor_bar: boolean;
+  monitor_pizzaria: boolean;
 }
 
 /** Update the active company configuration (admin only, enforced by RLS). */
