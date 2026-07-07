@@ -83,6 +83,7 @@ import {
 import { useIsSuperAdmin } from "@/lib/superadmin";
 import { ClientesView } from "@/components/admin/ClientesView";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
+import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
