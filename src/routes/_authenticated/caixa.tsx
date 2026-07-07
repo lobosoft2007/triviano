@@ -672,7 +672,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         {tab === "fiscal" && <FiscalConfigTab />}
         {tab === "fiado" && <ContaCorrenteTab mode="caixa" />}
         {tab === "clientes" && <ClientesView canBlock={false} />}
-      </main>
+      </ShellBody>
 
       {/* Partial cash report (X de caixa) */}
       {caixa && (
