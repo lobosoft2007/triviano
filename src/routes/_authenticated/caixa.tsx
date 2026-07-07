@@ -524,7 +524,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         </div>
 
         {/* Cash actions */}
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 pb-3 lg:px-8">
+        <div className="flex w-full flex-wrap items-center gap-2 px-4 pb-3 lg:px-8">
           <Button
             size="sm"
             variant="outline"
