@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -38,29 +39,16 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   } = useCart();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const [open, setOpen] = useState(false);
 
   async function handleCheckout() {
     try {
-      toast.info("Passo 1: Botão clicado!");
-      console.log("--- CHECKOUT DISPARADO ---");
-
       const sessionUser = user ?? null;
       const sessionLoading = Boolean(loading);
-      console.log("[CHECKOUT] Sessão lida", {
-        hasUser: Boolean(sessionUser),
-        loading: sessionLoading,
-      });
-      toast.info("Passo 2: Usuário lido!");
 
       const safeItems = Array.isArray(items)
         ? items.filter((item) => item && typeof item === "object")
         : [];
-      const stockShortfalls = Array.isArray(shortfalls) ? shortfalls : [];
-      console.log("[CHECKOUT] Estoque/regras validados", {
-        itemCount: safeItems.length,
-        shortfalls: stockShortfalls.length,
-      });
-      toast.info("Passo 3: Estoque validado!");
 
       if (safeItems.length === 0) {
         toast.error("Adicione ao menos um item antes de finalizar.");
@@ -71,10 +59,6 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      console.log("[CHECKOUT] Permissões/rota liberadas", {
-        destination: sessionUser ? "/checkout" : "/auth",
-      });
-      toast.info("Passo 4: Permissões liberadas!");
 
       if (!sessionUser) {
         // Remember where the customer wanted to go so login returns them here.
@@ -84,14 +68,14 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           /* ignore storage errors */
         }
         toast.error("Faça login para finalizar o pedido.");
-        toast.info("Passo 5: Disparando redirecionamento para pagamento...");
         console.log("[CHECKOUT] Redirecionando para autenticação");
+        setOpen(false);
         await navigate({ to: "/auth" });
         return;
       }
 
-      toast.info("Passo 5: Disparando redirecionamento para pagamento...");
       console.log("[CHECKOUT] Redirecionando para pagamento");
+      setOpen(false);
       await navigate({ to: "/checkout" });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -101,7 +85,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
         side="bottom"
