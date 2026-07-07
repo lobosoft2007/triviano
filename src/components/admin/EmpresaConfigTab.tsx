@@ -45,6 +45,9 @@ function empresaToForm(e: EmpresaBranding): FormState {
     estado: e.estado,
     percentual_cashback: String(e.percentual_cashback).replace(".", ","),
     cashback_ativo: e.cashback_ativo,
+    monitor_cozinha: e.monitor_cozinha,
+    monitor_bar: e.monitor_bar,
+    monitor_pizzaria: e.monitor_pizzaria,
   };
 }
 
