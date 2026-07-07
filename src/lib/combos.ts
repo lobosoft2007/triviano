@@ -89,9 +89,13 @@ interface Candidate {
 function buildPricePool(items: CartItem[]): Map<string, number[]> {
   const pool = new Map<string, number[]>();
   for (const i of items) {
-    const arr = pool.get(i.categorySlug) ?? [];
-    for (let n = 0; n < i.quantity; n++) arr.push(i.unitPrice);
-    pool.set(i.categorySlug, arr);
+    const slug = i.categorySlug ?? "";
+    if (!slug) continue;
+    const arr = pool.get(slug) ?? [];
+    const unitPrice = Number.isFinite(Number(i.unitPrice)) ? Number(i.unitPrice) : 0;
+    const quantity = Math.max(0, Math.floor(Number.isFinite(Number(i.quantity)) ? Number(i.quantity) : 0));
+    for (let n = 0; n < quantity; n++) arr.push(unitPrice);
+    pool.set(slug, arr);
   }
   for (const arr of pool.values()) arr.sort((a, b) => a - b);
   return pool;

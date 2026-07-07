@@ -55,5 +55,9 @@ export function minOrderShortfalls(
 }
 
 export function subtotalOf(items: CartItem[]): number {
-  return items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+  return items.reduce((sum, i) => {
+    const unitPrice = Number.isFinite(Number(i.unitPrice)) ? Number(i.unitPrice) : 0;
+    const quantity = Number.isFinite(Number(i.quantity)) ? Number(i.quantity) : 0;
+    return sum + unitPrice * quantity;
+  }, 0);
 }

@@ -38,7 +38,7 @@ export function ProductCustomizer({
   const { addLine } = useCart();
   const options = product.price_options.length
     ? product.price_options
-    : [{ tamanho: "Padrão", preco: product.price }];
+    : [{ tamanho: "Padrão", preco: product.price ?? 0 }];
 
   const isAcai = product.free_addon_limit > 0 && product.free_addons.length > 0;
 
