@@ -67,9 +67,10 @@ export async function setFlag(
   flag: PermissionFlag,
   value: boolean,
 ): Promise<void> {
+  const payload = { [flag]: value } as Record<PermissionFlag, boolean>;
   const { error } = await supabase
     .from("permissoes_matriz")
-    .update({ [flag]: value })
+    .update(payload)
     .eq("nivel_id", nivel_id);
   if (error) throw error;
 }
