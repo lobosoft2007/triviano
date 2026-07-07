@@ -43,10 +43,10 @@ function HomeNetflixPage() {
   const [customize, setCustomize] = useState<Selection | null>(null);
 
   return (
-    <div className="min-h-screen bg-background pb-28 text-foreground">
+    <AppShell>
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
+      <ShellHeader className="border-b border-border/60 bg-background/85 backdrop-blur-md">
+        <div className="flex w-full items-center justify-between px-4 py-3.5 sm:px-6">
           <div className="flex items-center gap-2.5">
             <img
               src={empresa?.logo_display_url || "/logo.png"}
