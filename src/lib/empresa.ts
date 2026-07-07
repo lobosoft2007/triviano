@@ -104,6 +104,9 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         modo_fundo: DEFAULT_BRAND_THEME.modo_fundo,
         percentual_cashback: 5,
         cashback_ativo: true,
+        monitor_cozinha: false,
+        monitor_bar: false,
+        monitor_pizzaria: false,
       };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -153,6 +156,9 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     modo_fundo: (row?.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
     percentual_cashback: 5,
     cashback_ativo: true,
+    monitor_cozinha: false,
+    monitor_bar: false,
+    monitor_pizzaria: false,
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -197,6 +203,9 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     modo_fundo: (row?.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
     percentual_cashback: Number(row?.percentual_cashback ?? 5),
     cashback_ativo: row?.cashback_ativo ?? true,
+    monitor_cozinha: row?.monitor_cozinha ?? false,
+    monitor_bar: row?.monitor_bar ?? false,
+    monitor_pizzaria: row?.monitor_pizzaria ?? false,
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);

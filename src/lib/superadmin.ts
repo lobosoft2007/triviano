@@ -49,6 +49,9 @@ export async function listAllEmpresas(): Promise<EmpresaRow[]> {
     modo_fundo: (d.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
     percentual_cashback: Number(d.percentual_cashback ?? 5),
     cashback_ativo: d.cashback_ativo ?? true,
+    monitor_cozinha: false,
+    monitor_bar: false,
+    monitor_pizzaria: false,
     created_at: d.created_at,
   }));
 }
