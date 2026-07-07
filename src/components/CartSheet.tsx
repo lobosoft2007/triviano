@@ -15,6 +15,7 @@ import { formatBRL } from "@/lib/format";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -81,6 +82,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           <SheetTitle className="font-display text-xl">
             Seu carrinho {totalItems > 0 && `(${totalItems})`}
           </SheetTitle>
+          <SheetDescription className="sr-only">
+            Revise os itens do seu pedido antes de finalizar a compra.
+          </SheetDescription>
         </SheetHeader>
 
         {items.length === 0 ? (
