@@ -58,8 +58,8 @@ export function ProductCustomizer({
   const size = options[sizeIdx] ?? options[0];
   const second = siblings.find((s) => s.id === secondId) ?? null;
 
-  const limit = product.free_addon_limit;
-  const overflowPrice = product.free_addon_price;
+  const limit = product.free_addon_limit ?? 0;
+  const overflowPrice = product.free_addon_price ?? 0;
   const totalFree = useMemo(
     () => Object.values(freeCounts).reduce((a, b) => a + b, 0),
     [freeCounts],
@@ -68,21 +68,21 @@ export function ProductCustomizer({
 
   const unitPrice = useMemo(() => {
     if (isAcai) {
-      const base = size.preco;
+      const base = size.preco ?? product.price ?? 0;
       const traditionalCost = paidOverflow * overflowPrice;
       const premiumCost = product.addons.reduce(
-        (s, a) => s + (premiumCounts[a.nome] ?? 0) * a.preco,
+        (s, a) => s + (premiumCounts[a.nome] ?? 0) * (a.preco ?? 0),
         0,
       );
       return round2(base + traditionalCost + premiumCost);
     }
-    let base = size.preco;
+    let base = size.preco ?? product.price ?? 0;
     if (category.allows_half && half && second) {
-      const firstPrice = size.preco;
-      const secondPrice = second.price_options[0]?.preco ?? second.price;
+      const firstPrice = size.preco ?? product.price ?? 0;
+      const secondPrice = second.price_options[0]?.preco ?? second.price ?? 0;
       base = round2((firstPrice + secondPrice) / 2);
     }
-    const addonsTotal = selectedAddons.reduce((s, a) => s + a.price, 0);
+    const addonsTotal = selectedAddons.reduce((s, a) => s + (a.price ?? 0), 0);
     return round2(base + addonsTotal);
   }, [
     isAcai,
@@ -153,14 +153,14 @@ export function ProductCustomizer({
           .filter((a) => (freeCounts[a.nome] ?? 0) > 0)
           .map((a) => ({
             name: a.nome,
-            price: overflowPrice,
+            price: overflowPrice ?? 0,
             quantity: freeCounts[a.nome],
           })),
         ...product.addons
           .filter((a) => (premiumCounts[a.nome] ?? 0) > 0)
           .map((a) => ({
             name: a.nome,
-            price: a.preco,
+            price: a.preco ?? 0,
             quantity: premiumCounts[a.nome],
           })),
       ];

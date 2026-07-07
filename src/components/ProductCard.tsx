@@ -20,7 +20,7 @@ export function ProductCard({
 
   const options = product.price_options.length
     ? product.price_options
-    : [{ tamanho: "Padrão", preco: product.price }];
+    : [{ tamanho: "Padrão", preco: product.price ?? 0 }];
 
   const needsCustomization =
     options.length > 1 ||
@@ -40,7 +40,7 @@ export function ProductCard({
     addons: [],
     secondFlavor: "",
     remocoes: [],
-    unitPrice: options[0].preco,
+    unitPrice: options[0]?.preco ?? product.price ?? 0,
     image_url: product.image_url,
   };
   const simpleLineId = makeLineId(simpleLine);
@@ -82,7 +82,7 @@ export function ProductCard({
                 a partir de
               </span>
             )}
-            {formatBRL(product.price)}
+            {formatBRL(product.price ?? 0)}
           </span>
 
           {esgotado ? (

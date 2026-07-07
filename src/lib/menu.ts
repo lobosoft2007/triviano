@@ -136,7 +136,7 @@ export async function fetchMenu(): Promise<{
   const priceOptionsMap = new Map<string, PriceOption[]>();
   for (const row of poRes.data ?? []) {
     const list = priceOptionsMap.get(row.produto_id) ?? [];
-    list.push({ tamanho: String(row.tamanho), preco: Number(row.preco) });
+    list.push({ tamanho: String(row.tamanho ?? "Padrão"), preco: Number(row.preco ?? 0) });
     priceOptionsMap.set(row.produto_id, list);
   }
 
@@ -144,7 +144,7 @@ export async function fetchMenu(): Promise<{
   const addonsMap = new Map<string, Addon[]>();
   for (const row of addRes.data ?? []) {
     const list = addonsMap.get(row.produto_id) ?? [];
-    list.push({ nome: String(row.nome), preco: Number(row.preco) });
+    list.push({ nome: String(row.nome ?? ""), preco: Number(row.preco ?? 0) });
     addonsMap.set(row.produto_id, list);
   }
 
@@ -157,7 +157,7 @@ export async function fetchMenu(): Promise<{
     freeAddonsMap.set(row.produto_id, list);
     // All free-addon rows of a product share the same overflow price.
     if (!freeAddonPriceMap.has(row.produto_id)) {
-      freeAddonPriceMap.set(row.produto_id, Number(row.preco));
+      freeAddonPriceMap.set(row.produto_id, Number(row.preco ?? 0));
     }
   }
 
@@ -184,7 +184,7 @@ export async function fetchMenu(): Promise<{
       category_id: p.category_id ?? "",
       name: p.name ?? "",
       description: p.description ?? "",
-      price: Number(p.price),
+      price: Number(p.price ?? 0),
       image_url: p.image_url ?? "",
       available: p.available ?? true,
       sort_order: p.sort_order ?? 0,
