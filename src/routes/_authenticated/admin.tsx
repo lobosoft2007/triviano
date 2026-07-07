@@ -626,9 +626,9 @@ function AdminPage() {
               );
             })}
           </div>
-        </header>
+        </ShellHeader>
 
-        <main className="px-4 py-5 lg:px-8">
+        <ShellBody className="w-full px-4 py-5 lg:px-8">
           {tab === "financeiro" && <TesourariaView />}
           {tab === "estoque" && <EntradaEstoqueView />}
           {tab === "ajustes" && <AjusteRapidoView />}
