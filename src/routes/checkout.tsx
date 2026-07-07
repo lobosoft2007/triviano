@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -106,6 +106,24 @@ function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [useCashback, setUseCashback] = useState(false);
 
+  const safeItems = useMemo(
+    () =>
+      (Array.isArray(items) ? items : [])
+        .filter((item) => item && typeof item === "object")
+        .map((item) => ({
+          ...item,
+          name: item.name || item.productName || "Produto",
+          productName: item.productName || item.name || "Produto",
+          addons: Array.isArray(item.addons) ? item.addons : [],
+          remocoes: Array.isArray(item.remocoes) ? item.remocoes : [],
+          unitPrice: Number.isFinite(Number(item.unitPrice)) ? Number(item.unitPrice) : 0,
+          quantity: Number.isFinite(Number(item.quantity))
+            ? Math.max(1, Number(item.quantity))
+            : 1,
+        })),
+    [items],
+  );
+
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: () => fetchProfile(user!.id),
@@ -150,10 +168,10 @@ function CheckoutPage() {
     // Only bounce back to the menu once the cart has actually been restored
     // from storage. Redirecting during the transient empty state was making
     // checkout "flash" and return to the cart without any message.
-    if (hydrated && items.length === 0 && !submitting) {
+    if (hydrated && safeItems.length === 0 && !submitting) {
       navigate({ to: "/", replace: true });
     }
-  }, [hydrated, items.length, submitting, navigate]);
+  }, [hydrated, safeItems.length, submitting, navigate]);
 
   async function copyPix() {
     const ok = await copyPixPayload();
@@ -212,7 +230,7 @@ function CheckoutPage() {
     // Preventive race check: an item may have sold out while browsing.
     try {
       const esgotados = await fetchEsgotadoIds();
-      const blocked = items.find((i) => esgotados.has(i.productId));
+      const blocked = safeItems.find((i) => esgotados.has(i.productId));
       if (blocked) {
         toast.error(
           `Lamento! ${blocked.name} acabou de esgotar em nossa cozinha. Por favor, altere o pedido para prosseguir.`,
@@ -227,7 +245,7 @@ function CheckoutPage() {
     try {
       await placeOrder({
         userId: user.id,
-        items,
+        items: safeItems,
         total: finalTotal,
         discount,
         deliveryAddress: parsed.data.address,
@@ -278,7 +296,7 @@ function CheckoutPage() {
               Resumo do pedido
             </h2>
             <ul className="space-y-2">
-              {items.map((i) => (
+              {safeItems.map((i) => (
                 <li key={i.lineId} className="flex justify-between gap-3 text-sm">
                   <span className="min-w-0 text-muted-foreground">
                     {i.quantity}× {i.name}
