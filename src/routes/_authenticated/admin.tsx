@@ -944,7 +944,7 @@ function AdminPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppShell>
     </TooltipProvider>
   );
 }
