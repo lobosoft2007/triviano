@@ -43,26 +43,12 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
 
   async function handleCheckout() {
     try {
-      toast.info("Passo 1: Botão clicado!");
-      console.log("--- CHECKOUT DISPARADO ---");
-
       const sessionUser = user ?? null;
       const sessionLoading = Boolean(loading);
-      console.log("[CHECKOUT] Sessão lida", {
-        hasUser: Boolean(sessionUser),
-        loading: sessionLoading,
-      });
-      toast.info("Passo 2: Usuário lido!");
 
       const safeItems = Array.isArray(items)
         ? items.filter((item) => item && typeof item === "object")
         : [];
-      const stockShortfalls = Array.isArray(shortfalls) ? shortfalls : [];
-      console.log("[CHECKOUT] Estoque/regras validados", {
-        itemCount: safeItems.length,
-        shortfalls: stockShortfalls.length,
-      });
-      toast.info("Passo 3: Estoque validado!");
 
       if (safeItems.length === 0) {
         toast.error("Adicione ao menos um item antes de finalizar.");
@@ -73,10 +59,6 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      console.log("[CHECKOUT] Permissões/rota liberadas", {
-        destination: sessionUser ? "/checkout" : "/auth",
-      });
-      toast.info("Passo 4: Permissões liberadas!");
 
       if (!sessionUser) {
         // Remember where the customer wanted to go so login returns them here.
