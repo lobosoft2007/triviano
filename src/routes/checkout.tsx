@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -18,9 +18,50 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
-export const Route = createFileRoute("/_authenticated/checkout")({
+export const Route = createFileRoute("/checkout")({
+  ssr: false,
+  errorComponent: CheckoutError,
   component: CheckoutPage,
 });
+
+function CheckoutError({ error, reset }: { error: Error; reset: () => void }) {
+  useEffect(() => {
+    console.error("ERRO CRÍTICO NA TELA DE CHECKOUT:", error);
+    toast.error(`ERRO CRÍTICO NA TELA DE CHECKOUT: ${error.message}`);
+  }, [error]);
+
+  return (
+    <AppShell>
+      <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 py-3.5">
+          <Link
+            to="/"
+            aria-label="Voltar à início"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="font-display text-xl font-bold">Finalizar pedido</h1>
+        </div>
+      </ShellHeader>
+      <ShellBody>
+        <main className="mx-auto flex max-w-md flex-col gap-4 px-5 py-8">
+          <section className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4">
+            <h2 className="font-display text-base font-bold text-destructive">
+              Falha ao abrir o pagamento
+            </h2>
+            <p className="mt-2 break-words text-sm text-destructive">
+              {error.message}
+            </p>
+          </section>
+          <Button type="button" onClick={reset} className="h-12 rounded-2xl">
+            Tentar novamente
+          </Button>
+        </main>
+      </ShellBody>
+    </AppShell>
+  );
+}
 
 
 const schema = z.object({
@@ -51,6 +92,24 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [useCashback, setUseCashback] = useState(false);
+
+  const safeItems = useMemo(
+    () =>
+      (Array.isArray(items) ? items : [])
+        .filter((item) => item && typeof item === "object")
+        .map((item) => ({
+          ...item,
+          name: item.name || item.productName || "Produto",
+          productName: item.productName || item.name || "Produto",
+          addons: Array.isArray(item.addons) ? item.addons : [],
+          remocoes: Array.isArray(item.remocoes) ? item.remocoes : [],
+          unitPrice: Number.isFinite(Number(item.unitPrice)) ? Number(item.unitPrice) : 0,
+          quantity: Number.isFinite(Number(item.quantity))
+            ? Math.max(1, Number(item.quantity))
+            : 1,
+        })),
+    [items],
+  );
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -93,13 +152,26 @@ function CheckoutPage() {
   }, [profile]);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      try {
+        sessionStorage.setItem("post_login_redirect", "/checkout");
+      } catch {
+        /* ignore storage errors */
+      }
+      navigate({ to: "/auth", replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
+  useEffect(() => {
     // Only bounce back to the menu once the cart has actually been restored
     // from storage. Redirecting during the transient empty state was making
     // checkout "flash" and return to the cart without any message.
-    if (hydrated && items.length === 0 && !submitting) {
+    if (authLoading || !user) return;
+    if (hydrated && safeItems.length === 0 && !submitting) {
       navigate({ to: "/", replace: true });
     }
-  }, [hydrated, items.length, submitting, navigate]);
+  }, [authLoading, user, hydrated, safeItems.length, submitting, navigate]);
 
   async function copyPix() {
     const ok = await copyPixPayload();
@@ -158,7 +230,7 @@ function CheckoutPage() {
     // Preventive race check: an item may have sold out while browsing.
     try {
       const esgotados = await fetchEsgotadoIds();
-      const blocked = items.find((i) => esgotados.has(i.productId));
+      const blocked = safeItems.find((i) => esgotados.has(i.productId));
       if (blocked) {
         toast.error(
           `Lamento! ${blocked.name} acabou de esgotar em nossa cozinha. Por favor, altere o pedido para prosseguir.`,
@@ -173,7 +245,7 @@ function CheckoutPage() {
     try {
       await placeOrder({
         userId: user.id,
-        items,
+        items: safeItems,
         total: finalTotal,
         discount,
         deliveryAddress: parsed.data.address,
@@ -224,7 +296,7 @@ function CheckoutPage() {
               Resumo do pedido
             </h2>
             <ul className="space-y-2">
-              {items.map((i) => (
+              {safeItems.map((i) => (
                 <li key={i.lineId} className="flex justify-between gap-3 text-sm">
                   <span className="min-w-0 text-muted-foreground">
                     {i.quantity}× {i.name}
