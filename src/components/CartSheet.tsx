@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -40,7 +40,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
 
-  function handleCheckoutClick(event: React.MouseEvent<HTMLAnchorElement>) {
+  function handleCheckoutClick(event: MouseEvent<HTMLAnchorElement>) {
     try {
       const sessionUser = user ?? null;
       const sessionLoading = Boolean(loading);
