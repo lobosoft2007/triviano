@@ -228,7 +228,9 @@ type AdminTab =
   | "insumos"
   | "subprodutos"
   | "setores"
-  | "fornecedores";
+  | "fornecedores"
+  | "funcionarios"
+  | "permissoes";
 
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
