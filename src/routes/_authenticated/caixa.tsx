@@ -713,7 +713,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
 
       {/* Hidden thermal print surface */}
       <div className="thermal-receipt">{printNode}</div>
-    </div>
+    </AppShell>
   );
 }
 
