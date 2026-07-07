@@ -27,7 +27,7 @@ export const createFuncionario = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertMaster(context);
 
     const { data: prof } = await context.supabase
       .from("profiles")
@@ -53,6 +53,14 @@ export const createFuncionario = createServerFn({ method: "POST" })
       .update({ nivel_id: data.nivel_id, empresa_id, full_name: data.full_name })
       .eq("id", uid);
     if (upErr) throw new Error(upErr.message);
+
+    // Grant the operational role so the staff member can use the Caixa/back-office
+    // RPCs. UI access is still governed by the level's permission matrix, and the
+    // permissions/employees screens remain locked to the master admin (no level).
+    const { error: roleErr } = await supabaseAdmin
+      .from("user_roles")
+      .upsert({ user_id: uid, role: "admin" }, { onConflict: "user_id,role" });
+    if (roleErr) throw new Error(roleErr.message);
 
     return { id: uid };
   });
