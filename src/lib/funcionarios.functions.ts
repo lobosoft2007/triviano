@@ -70,7 +70,7 @@ export const deleteFuncionario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ user_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertMaster(context);
 
     const { data: adminProf } = await context.supabase
       .from("profiles")
