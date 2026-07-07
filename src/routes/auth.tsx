@@ -74,7 +74,6 @@ function AuthPage() {
   const readSavedLanding = (): LandingPath | null => {
     try {
       const saved = sessionStorage.getItem("post_login_redirect");
-      if (saved) sessionStorage.removeItem("post_login_redirect");
       if (saved === "/checkout" || saved === "/caixa" || saved === "/admin" || saved === "/") {
         return saved;
       }
@@ -101,11 +100,22 @@ function AuthPage() {
     return "/";
   };
 
+  const clearSavedLanding = () => {
+    try {
+      sessionStorage.removeItem("post_login_redirect");
+    } catch {
+      /* ignore storage errors */
+    }
+  };
+
   useEffect(() => {
     if (loading || !user) return;
     let active = true;
     resolveLanding().then((to) => {
-      if (active) navigate({ to, replace: true });
+      if (active) {
+        clearSavedLanding();
+        navigate({ to, replace: true });
+      }
     });
     return () => {
       active = false;
@@ -140,6 +150,7 @@ function AuthPage() {
     }
     toast.success("Bem-vindo de volta!");
     const to = await resolveLanding();
+    clearSavedLanding();
     navigate({ to, replace: true });
   }
 
@@ -238,6 +249,7 @@ function AuthPage() {
     }
     toast.success("E-mail confirmado! Bem-vindo ao Clube 23.");
     const to = await resolveLanding();
+    clearSavedLanding();
     navigate({ to, replace: true });
   }
 
