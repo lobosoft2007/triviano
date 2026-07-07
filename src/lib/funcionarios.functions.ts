@@ -4,16 +4,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 
-async function assertAdmin(context: {
+async function assertMaster(context: {
   supabase: SupabaseClient<Database>;
   userId: string;
 }) {
-  const { data, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
+  const { data, error } = await context.supabase.rpc("is_master_admin");
   if (error) throw new Error("Não foi possível validar suas permissões.");
-  if (!data) throw new Error("Acesso restrito. Apenas administradores.");
+  if (!data) throw new Error("Acesso restrito. Apenas o administrador da empresa.");
 }
 
 /** Admin cria uma conta de funcionário e vincula a um nível de acesso. */
