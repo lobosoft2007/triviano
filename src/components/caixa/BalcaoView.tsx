@@ -112,6 +112,7 @@ export function BalcaoView() {
   const [activeCat, setActiveCat] = useState<string>(ALL);
   const [lines, setLines] = useState<BalcaoLine[]>([]);
   const [payOpen, setPayOpen] = useState(false);
+  const [printNode, setPrintNode] = useState<ReactNode>(null);
   const [custom, setCustom] = useState<{
     product: Product;
     category: Category;
@@ -122,6 +123,24 @@ export function BalcaoView() {
     queryFn: fetchBalcaoData,
     staleTime: 1000 * 60 * 2,
   });
+
+  // Production routing (printers + category→printer map) and the company's
+  // hybrid monitor switches, so F12 can decide KDS vs physical print per sector.
+  const { data: printers } = useQuery({
+    queryKey: ["printers"],
+    queryFn: fetchPrinters,
+  });
+  const { data: catRouting } = useQuery({
+    queryKey: ["categories-routing"],
+    queryFn: fetchCategoriesRouting,
+  });
+  const { data: empresa } = useQuery(empresaAdminConfigQueryOptions);
+
+  const resolveSector = useMemo(
+    () => makeSectorResolver(printers ?? [], catRouting ?? []),
+    [printers, catRouting],
+  );
+  const restaurantName = empresa?.nome_fantasia || "PDV";
 
   const products = data?.products;
   const categories = data?.categories;
@@ -135,6 +154,64 @@ export function BalcaoView() {
     () => new Map((data?.menuCategories ?? []).map((c) => [c.id, c])),
     [data?.menuCategories],
   );
+
+  /** Render a node to the hidden thermal surface, then fire the browser print. */
+  const printAndRun = useCallback(async (node: ReactNode) => {
+    setPrintNode(node);
+    await new Promise((r) => setTimeout(r, 120));
+    window.print();
+    await new Promise((r) => setTimeout(r, 200));
+    setPrintNode(null);
+  }, []);
+
+  /**
+   * After a counter sale settles: print the customer's pickup password coupon,
+   * then route each sector's production either to the KDS monitor (switch ON,
+   * no print) or to its thermal printer (switch OFF).
+   */
+  const afterFinalize = useCallback(
+    async (orderId: string) => {
+      const senha = await fetchOrderSenha(orderId);
+      const snapshot = lines;
+
+      // 1) Always print the customer pickup-password coupon.
+      if (senha) {
+        await printAndRun(
+          <SenhaReceipt senha={senha} restaurant={restaurantName} />,
+        );
+      }
+
+      // 2) Group items by destination sector.
+      const groups = new Map<
+        string,
+        { sector: ResolvedSector; items: BalcaoLine[] }
+      >();
+      for (const l of snapshot) {
+        const catId = menuProductById.get(l.productId)?.category_id ?? null;
+        const sector = resolveSector(catId);
+        const key = sector.printerId ?? `fallback:${sector.nome}`;
+        const g = groups.get(key) ?? { sector, items: [] };
+        g.items.push(l);
+        groups.set(key, g);
+      }
+
+      // 3) Print only the sectors NOT routed to a monitor.
+      for (const g of groups.values()) {
+        if (sectorUsesMonitor(g.sector.nome, empresa)) continue;
+        await printAndRun(
+          <ProductionReceipt
+            sector={g.sector}
+            items={g.items}
+            senha={senha}
+            restaurant={restaurantName}
+          />,
+        );
+      }
+    },
+    [lines, menuProductById, resolveSector, empresa, restaurantName, printAndRun],
+  );
+
+
 
   const total = useMemo(
     () => round2(lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0)),
