@@ -175,8 +175,15 @@ function CheckoutPage() {
       toast.success("Pedido realizado com sucesso!");
       navigate({ to: "/", replace: true });
     } catch (err) {
-      console.error(err);
-      toast.error("Não foi possível finalizar o pedido. Tente novamente.");
+      console.error("Falha ao finalizar o pedido:", err);
+      // Surface the real gateway/PIX/RPC error so route vs. data issues are visible.
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : "Não foi possível finalizar o pedido. Tente novamente.";
+      toast.error(message);
       setSubmitting(false);
     }
   }
