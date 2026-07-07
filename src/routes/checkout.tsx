@@ -152,13 +152,26 @@ function CheckoutPage() {
   }, [profile]);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      try {
+        sessionStorage.setItem("post_login_redirect", "/checkout");
+      } catch {
+        /* ignore storage errors */
+      }
+      navigate({ to: "/auth", replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
+  useEffect(() => {
     // Only bounce back to the menu once the cart has actually been restored
     // from storage. Redirecting during the transient empty state was making
     // checkout "flash" and return to the cart without any message.
+    if (authLoading || !user) return;
     if (hydrated && safeItems.length === 0 && !submitting) {
       navigate({ to: "/", replace: true });
     }
-  }, [hydrated, safeItems.length, submitting, navigate]);
+  }, [authLoading, user, hydrated, safeItems.length, submitting, navigate]);
 
   async function copyPix() {
     const ok = await copyPixPayload();
