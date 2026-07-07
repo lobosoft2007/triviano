@@ -28,6 +28,14 @@ export interface Empresa {
   /** Cashback engine. */
   percentual_cashback: number;
   cashback_ativo: boolean;
+  /**
+   * Hybrid production routing per sector. When ON, orders go straight to the
+   * digital KDS monitor for that sector (no physical coupon). When OFF, the
+   * production coupon prints on the sector's thermal printer.
+   */
+  monitor_cozinha: boolean;
+  monitor_bar: boolean;
+  monitor_pizzaria: boolean;
 }
 
 export interface EmpresaBranding extends Empresa {
