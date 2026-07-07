@@ -32,7 +32,7 @@ const schema = z.object({
 function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const {
     items,
     hydrated,
@@ -140,7 +140,20 @@ function CheckoutPage() {
       toast.error(parsed.error.issues[0].message);
       return;
     }
-    if (!user) return;
+    if (authLoading) {
+      toast.info("Carregando sua sessão. Tente novamente em instantes.");
+      return;
+    }
+    if (!user) {
+      try {
+        sessionStorage.setItem("post_login_redirect", "/checkout");
+      } catch {
+        /* ignore storage errors */
+      }
+      toast.error("Faça login para finalizar o pedido.");
+      navigate({ to: "/auth" });
+      return;
+    }
     setSubmitting(true);
     // Preventive race check: an item may have sold out while browsing.
     try {
