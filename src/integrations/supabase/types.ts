@@ -1416,6 +1416,30 @@ export type Database = {
           },
         ]
       }
+      niveis_acesso: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          id: string
+          nome_nivel: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome_nivel: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome_nivel?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notificacoes_cliente: {
         Row: {
           created_at: string
@@ -1677,6 +1701,62 @@ export type Database = {
             columns: ["id_pedido"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permissoes_matriz: {
+        Row: {
+          acesso_atendimento_balcao: boolean
+          acesso_cadastro_produtos: boolean
+          acesso_delivery: boolean
+          acesso_entrada_estoque: boolean
+          acesso_financeiro: boolean
+          acesso_kds_cozinha: boolean
+          acesso_mesas: boolean
+          acesso_sangria_suprimento: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          nivel_id: string
+          updated_at: string
+        }
+        Insert: {
+          acesso_atendimento_balcao?: boolean
+          acesso_cadastro_produtos?: boolean
+          acesso_delivery?: boolean
+          acesso_entrada_estoque?: boolean
+          acesso_financeiro?: boolean
+          acesso_kds_cozinha?: boolean
+          acesso_mesas?: boolean
+          acesso_sangria_suprimento?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nivel_id: string
+          updated_at?: string
+        }
+        Update: {
+          acesso_atendimento_balcao?: boolean
+          acesso_cadastro_produtos?: boolean
+          acesso_delivery?: boolean
+          acesso_entrada_estoque?: boolean
+          acesso_financeiro?: boolean
+          acesso_kds_cozinha?: boolean
+          acesso_mesas?: boolean
+          acesso_sangria_suprimento?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nivel_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permissoes_matriz_nivel_id_fkey"
+            columns: ["nivel_id"]
+            isOneToOne: true
+            referencedRelation: "niveis_acesso"
             referencedColumns: ["id"]
           },
         ]
@@ -1957,6 +2037,7 @@ export type Database = {
           logradouro: string
           longitude: number | null
           municipio: string
+          nivel_id: string | null
           numero: string
           phone: string
           push_token: string | null
@@ -1984,6 +2065,7 @@ export type Database = {
           logradouro?: string
           longitude?: number | null
           municipio?: string
+          nivel_id?: string | null
           numero?: string
           phone?: string
           push_token?: string | null
@@ -2011,6 +2093,7 @@ export type Database = {
           logradouro?: string
           longitude?: number | null
           municipio?: string
+          nivel_id?: string | null
           numero?: string
           phone?: string
           push_token?: string | null
@@ -2033,6 +2116,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_nivel_id_fkey"
+            columns: ["nivel_id"]
+            isOneToOne: false
+            referencedRelation: "niveis_acesso"
             referencedColumns: ["id"]
           },
         ]
@@ -2372,6 +2462,20 @@ export type Database = {
           taxa_servico_mesa: number
         }[]
       }
+      admin_list_funcionarios: {
+        Args: never
+        Returns: {
+          created_at: string
+          full_name: string
+          id: string
+          nivel_id: string
+          nome_nivel: string
+        }[]
+      }
+      admin_set_funcionario_nivel: {
+        Args: { p_nivel_id: string; p_user_id: string }
+        Returns: undefined
+      }
       admin_update_cliente: {
         Args: {
           p_bairro: string
@@ -2430,6 +2534,7 @@ export type Database = {
         }
         Returns: number
       }
+      current_empresa_id: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -2469,6 +2574,21 @@ export type Database = {
         Returns: {
           esgotado: boolean
           id: string
+        }[]
+      }
+      get_my_permissions: {
+        Args: never
+        Returns: {
+          acesso_atendimento_balcao: boolean
+          acesso_cadastro_produtos: boolean
+          acesso_delivery: boolean
+          acesso_entrada_estoque: boolean
+          acesso_financeiro: boolean
+          acesso_kds_cozinha: boolean
+          acesso_mesas: boolean
+          acesso_sangria_suprimento: boolean
+          is_admin: boolean
+          is_funcionario: boolean
         }[]
       }
       get_painel_retirada: {
