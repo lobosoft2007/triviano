@@ -69,9 +69,27 @@ function AuthPage() {
   });
   const [address, setAddress] = useState<AddressState>(emptyAddress);
 
-  // Staff (admin or funcionário) land on the Caixa; delivery clients continue
-  // to wherever they were headed (e.g. /checkout) or the PWA home.
-  const resolveLanding = async (): Promise<"/" | "/caixa" | "/checkout"> => {
+  type LandingPath = "/" | "/checkout" | "/caixa" | "/admin";
+
+  const readSavedLanding = (): LandingPath | null => {
+    try {
+      const saved = sessionStorage.getItem("post_login_redirect");
+      if (saved === "/checkout" || saved === "/caixa" || saved === "/admin" || saved === "/") {
+        return saved;
+      }
+    } catch {
+      /* ignore storage errors */
+    }
+    return null;
+  };
+
+  // Route context wins over role. A login started from the PWA stays in the PWA;
+  // a login started from Caixa/Admin returns there. Role fallback only applies
+  // when /auth was opened directly with no saved origin.
+  const resolveLanding = async (): Promise<LandingPath> => {
+    const saved = readSavedLanding();
+    if (saved) return saved;
+
     try {
       const { data } = await supabase.rpc("get_my_permissions");
       const row = Array.isArray(data) ? data[0] : data;
@@ -79,22 +97,25 @@ function AuthPage() {
     } catch {
       // fall through to client landing
     }
-    // Only clients honor a saved destination — never redirect them elsewhere.
-    let saved: string | null = null;
+    return "/";
+  };
+
+  const clearSavedLanding = () => {
     try {
-      saved = sessionStorage.getItem("post_login_redirect");
-      if (saved) sessionStorage.removeItem("post_login_redirect");
+      sessionStorage.removeItem("post_login_redirect");
     } catch {
       /* ignore storage errors */
     }
-    return saved === "/checkout" ? "/checkout" : "/";
   };
 
   useEffect(() => {
     if (loading || !user) return;
     let active = true;
     resolveLanding().then((to) => {
-      if (active) navigate({ to, replace: true });
+      if (active) {
+        clearSavedLanding();
+        navigate({ to, replace: true });
+      }
     });
     return () => {
       active = false;
@@ -129,6 +150,7 @@ function AuthPage() {
     }
     toast.success("Bem-vindo de volta!");
     const to = await resolveLanding();
+    clearSavedLanding();
     navigate({ to, replace: true });
   }
 
@@ -227,6 +249,7 @@ function AuthPage() {
     }
     toast.success("E-mail confirmado! Bem-vindo ao Clube 23.");
     const to = await resolveLanding();
+    clearSavedLanding();
     navigate({ to, replace: true });
   }
 
