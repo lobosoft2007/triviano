@@ -628,13 +628,13 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             label="Clientes"
           />
         </div>
-      </header>
+      </ShellHeader>
 
-      <main
+      <ShellBody
         className={
           tab === "balcao"
-            ? "w-full max-w-none px-4 py-5"
-            : "mx-auto max-w-6xl px-4 py-5 lg:px-8"
+            ? "w-full px-4 py-5"
+            : "w-full px-4 py-5 lg:px-8"
         }
       >
         {tab !== "config" &&
