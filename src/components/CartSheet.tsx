@@ -86,14 +86,14 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           /* ignore storage errors */
         }
         toast.error("Faça login para finalizar o pedido.");
-        toast.info("Passo 5: Disparando redirecionamento para pagamento...");
         console.log("[CHECKOUT] Redirecionando para autenticação");
+        setOpen(false);
         await navigate({ to: "/auth" });
         return;
       }
 
-      toast.info("Passo 5: Disparando redirecionamento para pagamento...");
       console.log("[CHECKOUT] Redirecionando para pagamento");
+      setOpen(false);
       await navigate({ to: "/checkout" });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
