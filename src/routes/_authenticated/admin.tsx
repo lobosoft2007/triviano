@@ -27,6 +27,8 @@ import {
   Users,
   Wallet,
   ClipboardCheck,
+  UserCog,
+  ShieldCheck,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -70,6 +72,9 @@ import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
 
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
+import { PermissoesTab } from "@/components/admin/PermissoesTab";
+import { FuncionariosTab } from "@/components/admin/FuncionariosTab";
+import { usePermissions, type PermissionFlag } from "@/lib/permissions";
 import { CombosCrud } from "@/components/admin/CombosCrud";
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
 import { IdentidadeVisualTab } from "@/components/admin/IdentidadeVisualTab";
@@ -161,22 +166,6 @@ async function fetchAdminMenu() {
   };
 }
 
-function useIsAdmin(userId: string | undefined) {
-  return useQuery({
-    queryKey: ["is-admin", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId!)
-        .eq("role", "admin")
-        .maybeSingle();
-      if (error) throw error;
-      return !!data;
-    },
-  });
-}
 
 interface FormState {
   id: string | null;
@@ -224,7 +213,9 @@ type AdminTab =
   | "insumos"
   | "subprodutos"
   | "setores"
-  | "fornecedores";
+  | "fornecedores"
+  | "funcionarios"
+  | "permissoes";
 
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
@@ -244,7 +235,32 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "subprodutos", label: "Subprodutos", icon: Boxes },
   { key: "setores", label: "Setores", icon: Layers },
   { key: "fornecedores", label: "Fornecedores", icon: Truck },
+  { key: "funcionarios", label: "Funcionários", icon: UserCog },
+  { key: "permissoes", label: "Permissões", icon: ShieldCheck },
 ];
+
+// Recurso da matriz de permissões exigido por cada aba ("master" = só o admin dono).
+const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
+  cardapio: "acesso_cadastro_produtos",
+  categorias: "acesso_cadastro_produtos",
+  combos: "acesso_cadastro_produtos",
+  empresa: "master",
+  identidade: "master",
+  clientes: "master",
+  conta: "acesso_financeiro",
+  financeiro: "acesso_financeiro",
+  estoque: "acesso_entrada_estoque",
+  ajustes: "acesso_entrada_estoque",
+  compras: "acesso_entrada_estoque",
+  insumos: "acesso_entrada_estoque",
+  subprodutos: "acesso_entrada_estoque",
+  setores: "master",
+  fornecedores: "master",
+  funcionarios: "master",
+  permissoes: "master",
+};
+
+
 
 
 function detailToForm(d: ProductDetail): ProductDetailForm {
@@ -380,7 +396,16 @@ function AdminPage() {
     navigate({ to: "/auth", replace: true });
   };
 
-  const { data: isAdmin, isLoading: roleLoading } = useIsAdmin(user?.id);
+  const { data: perms, isLoading: roleLoading } = usePermissions();
+  const isMaster = perms?.is_admin === true;
+  const tabAllowed = (key: AdminTab): boolean => {
+    if (isMaster) return true;
+    const flag = TAB_FLAG[key];
+    return flag !== "master" && Boolean(perms?.[flag]);
+  };
+  const canEnterAdmin = TABS.some((t) => tabAllowed(t.key));
+  // Enables data queries below; funcionários only reach permitted tabs.
+  const isAdmin = canEnterAdmin;
   const { data: isSuperAdmin } = useIsSuperAdmin(user?.id);
   const { data, isLoading } = useQuery({
     queryKey: ["admin-menu"],
@@ -389,6 +414,17 @@ function AdminPage() {
   });
 
   const [tab, setTab] = useState<AdminTab>("cardapio");
+
+  // If the current tab is not permitted for this staff level, jump to the first allowed one.
+  useEffect(() => {
+    if (!perms) return;
+    if (!tabAllowed(tab)) {
+      const first = TABS.find((t) => tabAllowed(t.key));
+      if (first) setTab(first.key);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [perms, tab]);
+
   const { data: setores } = useQuery({
     queryKey: ["erp-setores"],
     queryFn: listSetores,
@@ -563,7 +599,7 @@ function AdminPage() {
         <ShieldAlert className="h-10 w-10 text-muted-foreground" />
         <div>
           <h1 className="font-display text-lg font-bold">Acesso restrito</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Esta área é exclusiva para administradores.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Seu nível de acesso não permite abrir a Retaguarda. Fale com o administrador da empresa.</p>
         </div>
       </div>
     );
@@ -611,7 +647,7 @@ function AdminPage() {
           </div>
 
           <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-xl bg-secondary p-1">
-            {TABS.map((t) => {
+            {TABS.filter((t) => tabAllowed(t.key)).map((t) => {
               const Icon = t.icon;
               return (
                 <button
@@ -643,6 +679,8 @@ function AdminPage() {
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}
           {tab === "fornecedores" && <FornecedoresCrud />}
+          {tab === "funcionarios" && <FuncionariosTab />}
+          {tab === "permissoes" && <PermissoesTab />}
 
           {tab === "cardapio" && (
             <>

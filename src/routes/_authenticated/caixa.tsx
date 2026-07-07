@@ -50,6 +50,7 @@ import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { usePermissions, canEnterCaixa, type MyPermissions } from "@/lib/permissions";
 import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
@@ -100,22 +101,6 @@ let RESTAURANT = "";
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-function useIsAdmin(userId: string | undefined) {
-  return useQuery({
-    queryKey: ["is-admin", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId!)
-        .eq("role", "admin")
-        .maybeSingle();
-      if (error) throw error;
-      return !!data;
-    },
-  });
-}
 
 function playBeep() {
   try {
@@ -147,8 +132,10 @@ function playBeep() {
 
 function CaixaPage() {
   const { user } = useAuth();
-  const { data: isAdmin, isLoading: roleLoading } = useIsAdmin(user?.id);
+  const { data: perms, isLoading: permLoading } = usePermissions();
   const { data: empresa } = useQuery(empresaQueryOptions);
+
+  const allowed = canEnterCaixa(perms);
 
   useEffect(() => {
     if (empresa?.nome_fantasia) RESTAURANT = empresa.nome_fantasia;
@@ -157,10 +144,10 @@ function CaixaPage() {
   const { data: caixa, isLoading: caixaLoading } = useQuery({
     queryKey: ["caixa-open"],
     queryFn: fetchOpenCaixa,
-    enabled: isAdmin === true,
+    enabled: allowed,
   });
 
-  if (roleLoading || (isAdmin && caixaLoading)) {
+  if (permLoading || (allowed && caixaLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -168,19 +155,23 @@ function CaixaPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!allowed) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-6 text-center">
         <ShieldAlert className="h-10 w-10 text-destructive" />
         <h1 className="font-display text-xl font-bold">Acesso restrito</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          O painel CAIXA é exclusivo para operadores autorizados.
+          Seu nível de acesso não permite abrir o painel CAIXA. Fale com o administrador da empresa.
         </p>
       </div>
     );
   }
 
-  return caixa ? <OperationalPanel caixaId={caixa.id} /> : <LockScreen userId={user!.id} />;
+  return caixa ? (
+    <OperationalPanel caixaId={caixa.id} perms={perms!} />
+  ) : (
+    <LockScreen userId={user!.id} />
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -271,10 +262,19 @@ function LockScreen({ userId }: { userId: string }) {
 /* Operational panel (caixa aberto)                                    */
 /* ------------------------------------------------------------------ */
 
-function OperationalPanel({ caixaId }: { caixaId: string }) {
+function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermissions }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+
+  // Dynamic per-resource access derived from the level's permission matrix.
+  const canDelivery = perms.is_admin || perms.acesso_delivery;
+  const canMesas = perms.is_admin || perms.acesso_mesas;
+  const canBalcao = perms.is_admin || perms.acesso_atendimento_balcao;
+  const canFinanceiro = perms.is_admin || perms.acesso_financeiro;
+  const canSangria = perms.is_admin || perms.acesso_sangria_suprimento;
+  const canEstoque = perms.is_admin || perms.acesso_entrada_estoque;
+  const isMaster = perms.is_admin;
 
   const handleLock = useCallback(async () => {
     await queryClient.cancelQueries();
@@ -283,9 +283,15 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     navigate({ to: "/auth", replace: true });
   }, [queryClient, signOut, navigate]);
 
+  const initialTab: "delivery" | "mesas" | "balcao" = canDelivery
+    ? "delivery"
+    : canMesas
+      ? "mesas"
+      : "balcao";
+
   const [tab, setTab] = useState<
     "delivery" | "mesas" | "balcao" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
-  >("delivery");
+  >(initialTab);
   const [partialOpen, setPartialOpen] = useState(false);
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
@@ -525,110 +531,139 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
 
         {/* Cash actions */}
         <div className="flex w-full flex-wrap items-center gap-2 px-4 pb-3 lg:px-8">
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => handleMov("Suprimento")}
-          >
-            <TrendingUp className="mr-1.5 h-4 w-4 text-success" /> Suprimento
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => handleMov("Sangria")}
-          >
-            <TrendingDown className="mr-1.5 h-4 w-4 text-destructive" /> Sangria
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => setPartialOpen(true)}
-          >
-            <FileBarChart className="mr-1.5 h-4 w-4 text-primary" /> Consultar
-            Caixa do Momento (Parcial)
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => handleMov("Recebimento Pedido")}
-          >
-            <Wallet className="mr-1.5 h-4 w-4 text-primary" /> Recebimento
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => setAjusteOpen(true)}
-          >
-            <PackagePlus className="mr-1.5 h-4 w-4 text-primary" /> Ajuste Rápido
-          </Button>
+          {canSangria && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => handleMov("Suprimento")}
+            >
+              <TrendingUp className="mr-1.5 h-4 w-4 text-success" /> Suprimento
+            </Button>
+          )}
+          {canSangria && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => handleMov("Sangria")}
+            >
+              <TrendingDown className="mr-1.5 h-4 w-4 text-destructive" /> Sangria
+            </Button>
+          )}
+          {canFinanceiro && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => setPartialOpen(true)}
+            >
+              <FileBarChart className="mr-1.5 h-4 w-4 text-primary" /> Consultar
+              Caixa do Momento (Parcial)
+            </Button>
+          )}
+          {canFinanceiro && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => handleMov("Recebimento Pedido")}
+            >
+              <Wallet className="mr-1.5 h-4 w-4 text-primary" /> Recebimento
+            </Button>
+          )}
+          {canEstoque && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => setAjusteOpen(true)}
+            >
+              <PackagePlus className="mr-1.5 h-4 w-4 text-primary" /> Ajuste Rápido
+            </Button>
+          )}
 
-          <Button
-            size="sm"
-            variant="destructive"
-            className="ml-auto rounded-full"
-            onClick={() => setCloseOpen(true)}
-          >
-            <DoorClosed className="mr-1.5 h-4 w-4" /> Fechar caixa
-          </Button>
+          {isMaster && (
+            <Button
+              size="sm"
+              variant="destructive"
+              className="ml-auto rounded-full"
+              onClick={() => setCloseOpen(true)}
+            >
+              <DoorClosed className="mr-1.5 h-4 w-4" /> Fechar caixa
+            </Button>
+          )}
         </div>
 
         {/* Tabs */}
         <div className="flex w-full flex-wrap gap-2 px-4 pb-3 lg:px-8">
-          <TabButton
-            active={tab === "delivery"}
-            onClick={() => setTab("delivery")}
-            icon={<Bike className="h-4 w-4" />}
-            label={`Delivery (${deliveryOrders.length})`}
-          />
-          <TabButton
-            active={tab === "mesas"}
-            onClick={() => setTab("mesas")}
-            icon={<UtensilsCrossed className="h-4 w-4" />}
-            label={`Mesas ativas (${mesaOrders.length})`}
-          />
-          <TabButton
-            active={tab === "balcao"}
-            onClick={() => setTab("balcao")}
-            icon={<ScanBarcode className="h-4 w-4" />}
-            label="Atendimento Balcão"
-          />
-          <TabButton
-            active={tab === "config"}
-            onClick={() => setTab("config")}
-            icon={<Settings className="h-4 w-4" />}
-            label="Impressão"
-          />
-          <TabButton
-            active={tab === "pagamento"}
-            onClick={() => setTab("pagamento")}
-            icon={<CreditCard className="h-4 w-4" />}
-            label="Pagamento"
-          />
-          <TabButton
-            active={tab === "fiscal"}
-            onClick={() => setTab("fiscal")}
-            icon={<ReceiptText className="h-4 w-4" />}
-            label="Fiscal"
-          />
-          <TabButton
-            active={tab === "fiado"}
-            onClick={() => setTab("fiado")}
-            icon={<Users className="h-4 w-4" />}
-            label="Conta Corrente"
-          />
-          <TabButton
-            active={tab === "clientes"}
-            onClick={() => setTab("clientes")}
-            icon={<Users className="h-4 w-4" />}
-            label="Clientes"
-          />
+          {canDelivery && (
+            <TabButton
+              active={tab === "delivery"}
+              onClick={() => setTab("delivery")}
+              icon={<Bike className="h-4 w-4" />}
+              label={`Delivery (${deliveryOrders.length})`}
+            />
+          )}
+          {canMesas && (
+            <TabButton
+              active={tab === "mesas"}
+              onClick={() => setTab("mesas")}
+              icon={<UtensilsCrossed className="h-4 w-4" />}
+              label={`Mesas ativas (${mesaOrders.length})`}
+            />
+          )}
+          {canBalcao && (
+            <TabButton
+              active={tab === "balcao"}
+              onClick={() => setTab("balcao")}
+              icon={<ScanBarcode className="h-4 w-4" />}
+              label="Atendimento Balcão"
+            />
+          )}
+          {isMaster && (
+            <TabButton
+              active={tab === "config"}
+              onClick={() => setTab("config")}
+              icon={<Settings className="h-4 w-4" />}
+              label="Impressão"
+            />
+          )}
+          {isMaster && (
+            <TabButton
+              active={tab === "pagamento"}
+              onClick={() => setTab("pagamento")}
+              icon={<CreditCard className="h-4 w-4" />}
+              label="Pagamento"
+            />
+          )}
+          {isMaster && (
+            <TabButton
+              active={tab === "fiscal"}
+              onClick={() => setTab("fiscal")}
+              icon={<ReceiptText className="h-4 w-4" />}
+              label="Fiscal"
+            />
+          )}
+          {canFinanceiro && (
+            <TabButton
+              active={tab === "fiado"}
+              onClick={() => setTab("fiado")}
+              icon={<Users className="h-4 w-4" />}
+              label="Conta Corrente"
+            />
+          )}
+          {isMaster && (
+            <TabButton
+              active={tab === "clientes"}
+              onClick={() => setTab("clientes")}
+              icon={<Users className="h-4 w-4" />}
+              label="Clientes"
+            />
+          )}
         </div>
       </ShellHeader>
+
 
       <ShellBody
         className={

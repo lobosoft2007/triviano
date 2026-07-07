@@ -69,10 +69,27 @@ function AuthPage() {
   });
   const [address, setAddress] = useState<AddressState>(emptyAddress);
 
-  useEffect(() => {
-    if (!loading && user) {
-      navigate({ to: "/", replace: true });
+  // Staff (admin or funcionário) land on the Caixa; delivery clients on the PWA.
+  const resolveLanding = async (): Promise<"/" | "/caixa"> => {
+    try {
+      const { data } = await supabase.rpc("get_my_permissions");
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row && (row.is_admin || row.is_funcionario)) return "/caixa";
+    } catch {
+      // fall through to client landing
     }
+    return "/";
+  };
+
+  useEffect(() => {
+    if (loading || !user) return;
+    let active = true;
+    resolveLanding().then((to) => {
+      if (active) navigate({ to, replace: true });
+    });
+    return () => {
+      active = false;
+    };
   }, [user, loading, navigate]);
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
@@ -101,7 +118,8 @@ function AuthPage() {
       return;
     }
     toast.success("Bem-vindo de volta!");
-    navigate({ to: "/", replace: true });
+    const to = await resolveLanding();
+    navigate({ to, replace: true });
   }
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
@@ -198,7 +216,8 @@ function AuthPage() {
       return;
     }
     toast.success("E-mail confirmado! Bem-vindo ao Clube 23.");
-    navigate({ to: "/", replace: true });
+    const to = await resolveLanding();
+    navigate({ to, replace: true });
   }
 
   async function handleResend() {
