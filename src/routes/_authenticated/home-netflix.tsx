@@ -71,9 +71,9 @@ function HomeNetflixPage() {
             Home oficial
           </Link>
         </div>
-      </header>
+      </ShellHeader>
 
-      <main className="mx-auto max-w-6xl py-6">
+      <ShellBody className="w-full py-6 pb-28">
         {isLoading && (
           <div className="flex justify-center py-24">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
