@@ -651,6 +651,8 @@ function AdminPage() {
           {tab === "subprodutos" && <SubprodutosCrud />}
           {tab === "setores" && <SetoresCrud />}
           {tab === "fornecedores" && <FornecedoresCrud />}
+          {tab === "funcionarios" && <FuncionariosTab />}
+          {tab === "permissoes" && <PermissoesTab />}
 
           {tab === "cardapio" && (
             <>
