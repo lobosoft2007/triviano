@@ -478,10 +478,10 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppShell>
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8">
+      <ShellHeader className="border-b border-border bg-background/95 backdrop-blur-md">
+        <div className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8">
           <div className="flex items-center gap-3">
             <button
               onClick={handleLock}
