@@ -244,6 +244,47 @@ export function EmpresaConfigTab() {
         </div>
       </section>
 
+      {/* Monitores (KDS) x Impressão por setor */}
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <h3 className="mb-1 font-display text-sm font-bold">
+          Monitores (KDS) x Impressão de produção
+        </h3>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Ligado: o pedido vai direto para a tela do monitor daquele setor (sem
+          comanda impressa). Desligado: imprime automaticamente a comanda física
+          na impressora térmica do setor ao finalizar (F12).
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              { key: "monitor_cozinha", label: "Cozinha" },
+              { key: "monitor_bar", label: "Bar" },
+              { key: "monitor_pizzaria", label: "Pizzaria" },
+            ] as const
+          ).map(({ key, label }) => (
+            <label
+              key={key}
+              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 p-3"
+            >
+              <div className="min-w-0">
+                <span className="block text-sm font-semibold">{label}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {form[key] ? "Monitor (KDS)" : "Imprime comanda"}
+                </span>
+              </div>
+              <Switch
+                checked={form[key]}
+                onCheckedChange={(v: boolean) =>
+                  setForm((f) => (f ? { ...f, [key]: v } : f))
+                }
+              />
+            </label>
+          ))}
+        </div>
+      </section>
+
+
+
 
       {/* Endereço */}
       <section className="rounded-2xl border border-border bg-card p-4">
