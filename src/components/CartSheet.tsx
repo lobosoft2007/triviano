@@ -39,17 +39,44 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
 
-  function handleCheckout() {
+  async function handleCheckout() {
     try {
-      if (items.length === 0) {
+      toast.info("Passo 1: Botão clicado!");
+      console.log("--- CHECKOUT DISPARADO ---");
+
+      const sessionUser = user ?? null;
+      const sessionLoading = Boolean(loading);
+      console.log("[CHECKOUT] Sessão lida", {
+        hasUser: Boolean(sessionUser),
+        loading: sessionLoading,
+      });
+      toast.info("Passo 2: Usuário lido!");
+
+      const safeItems = Array.isArray(items)
+        ? items.filter((item) => item && typeof item === "object")
+        : [];
+      const stockShortfalls = Array.isArray(shortfalls) ? shortfalls : [];
+      console.log("[CHECKOUT] Estoque/regras validados", {
+        itemCount: safeItems.length,
+        shortfalls: stockShortfalls.length,
+      });
+      toast.info("Passo 3: Estoque validado!");
+
+      if (safeItems.length === 0) {
         toast.error("Adicione ao menos um item antes de finalizar.");
         return;
       }
-      if (loading) {
+      if (sessionLoading) {
         toast.info("Carregando sua sessão. Tente novamente em instantes.");
         return;
       }
-      if (!user) {
+
+      console.log("[CHECKOUT] Permissões/rota liberadas", {
+        destination: sessionUser ? "/checkout" : "/auth",
+      });
+      toast.info("Passo 4: Permissões liberadas!");
+
+      if (!sessionUser) {
         // Remember where the customer wanted to go so login returns them here.
         try {
           sessionStorage.setItem("post_login_redirect", "/checkout");
@@ -57,17 +84,19 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           /* ignore storage errors */
         }
         toast.error("Faça login para finalizar o pedido.");
-        navigate({ to: "/auth" });
+        toast.info("Passo 5: Disparando redirecionamento para pagamento...");
+        console.log("[CHECKOUT] Redirecionando para autenticação");
+        await navigate({ to: "/auth" });
         return;
       }
-      navigate({ to: "/checkout" });
-    } catch (err) {
-      console.error("Falha ao abrir o checkout:", err);
-      toast.error(
-        err instanceof Error
-          ? `Não foi possível abrir o pagamento: ${err.message}`
-          : `Não foi possível abrir o pagamento: ${String(err)}`,
-      );
+
+      toast.info("Passo 5: Disparando redirecionamento para pagamento...");
+      console.log("[CHECKOUT] Redirecionando para pagamento");
+      await navigate({ to: "/checkout" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("ERRO CRÍTICO NO CARRINHO:", error);
+      toast.error(`ERRO CRÍTICO NO CARRINHO: ${message}`);
     }
   }
 
