@@ -106,7 +106,7 @@ export function PaymentConfigTab() {
   }
 
   return (
-    <section className="mx-auto max-w-3xl">
+    <section className="w-full">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
