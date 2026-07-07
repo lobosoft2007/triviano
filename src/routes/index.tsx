@@ -140,6 +140,13 @@ function HomePage() {
               <Link
                 to="/auth"
                 aria-label="Entrar"
+                onClick={() => {
+                  try {
+                    sessionStorage.setItem("post_login_redirect", "/");
+                  } catch {
+                    /* ignore storage errors */
+                  }
+                }}
                 className="flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary"
               >
                 <LogIn className="h-4 w-4" />
