@@ -921,7 +921,7 @@ function MesasColumn({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="w-full space-y-4">
       {grouped.map(([mesa, group]) => {
         const total = group.reduce((s, o) => s + o.total, 0);
         return (
