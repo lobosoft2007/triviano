@@ -33,8 +33,48 @@ export const Route = createFileRoute("/checkout")({
     }
     return { user: data.user };
   },
+  errorComponent: CheckoutError,
   component: CheckoutPage,
 });
+
+function CheckoutError({ error, reset }: { error: Error; reset: () => void }) {
+  useEffect(() => {
+    console.error("ERRO CRÍTICO NA TELA DE CHECKOUT:", error);
+    toast.error(`ERRO CRÍTICO NA TELA DE CHECKOUT: ${error.message}`);
+  }, [error]);
+
+  return (
+    <AppShell>
+      <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 py-3.5">
+          <Link
+            to="/"
+            aria-label="Voltar à início"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="font-display text-xl font-bold">Finalizar pedido</h1>
+        </div>
+      </ShellHeader>
+      <ShellBody>
+        <main className="mx-auto flex max-w-md flex-col gap-4 px-5 py-8">
+          <section className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4">
+            <h2 className="font-display text-base font-bold text-destructive">
+              Falha ao abrir o pagamento
+            </h2>
+            <p className="mt-2 break-words text-sm text-destructive">
+              {error.message}
+            </p>
+          </section>
+          <Button type="button" onClick={reset} className="h-12 rounded-2xl">
+            Tentar novamente
+          </Button>
+        </main>
+      </ShellBody>
+    </AppShell>
+  );
+}
 
 
 const schema = z.object({
