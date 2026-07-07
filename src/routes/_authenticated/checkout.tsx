@@ -453,8 +453,8 @@ function CheckoutPage() {
               )}
             </Button>
           </form>
-        </main>
-      </div>
-    </div>
+          </main>
+        </ShellBody>
+    </AppShell>
   );
 }
