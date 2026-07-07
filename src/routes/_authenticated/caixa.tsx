@@ -633,7 +633,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
       <ShellBody
         className={
           tab === "balcao"
-            ? "w-full overflow-hidden px-4 py-4"
+            ? "w-full px-4 py-4"
             : "w-full px-4 py-5 lg:px-8"
         }
       >
