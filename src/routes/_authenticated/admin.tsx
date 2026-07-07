@@ -250,6 +250,8 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "subprodutos", label: "Subprodutos", icon: Boxes },
   { key: "setores", label: "Setores", icon: Layers },
   { key: "fornecedores", label: "Fornecedores", icon: Truck },
+  { key: "funcionarios", label: "Funcionários", icon: UserCog },
+  { key: "permissoes", label: "Permissões", icon: ShieldCheck },
 ];
 
 
