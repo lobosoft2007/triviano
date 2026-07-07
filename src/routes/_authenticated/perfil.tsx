@@ -154,9 +154,10 @@ function PerfilPage() {
           </Link>
           <h1 className="font-display text-lg font-bold">Meus Dados</h1>
         </div>
-      </header>
+      </ShellHeader>
 
-      <main className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
+      <ShellBody>
+        <main className="mx-auto max-w-2xl px-4 py-6 pb-16 sm:px-6">
         {isLoading || !address ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
