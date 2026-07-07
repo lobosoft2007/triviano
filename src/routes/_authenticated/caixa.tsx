@@ -547,110 +547,139 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
 
         {/* Cash actions */}
         <div className="flex w-full flex-wrap items-center gap-2 px-4 pb-3 lg:px-8">
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => handleMov("Suprimento")}
-          >
-            <TrendingUp className="mr-1.5 h-4 w-4 text-success" /> Suprimento
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => handleMov("Sangria")}
-          >
-            <TrendingDown className="mr-1.5 h-4 w-4 text-destructive" /> Sangria
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => setPartialOpen(true)}
-          >
-            <FileBarChart className="mr-1.5 h-4 w-4 text-primary" /> Consultar
-            Caixa do Momento (Parcial)
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => handleMov("Recebimento Pedido")}
-          >
-            <Wallet className="mr-1.5 h-4 w-4 text-primary" /> Recebimento
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => setAjusteOpen(true)}
-          >
-            <PackagePlus className="mr-1.5 h-4 w-4 text-primary" /> Ajuste Rápido
-          </Button>
+          {canSangria && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => handleMov("Suprimento")}
+            >
+              <TrendingUp className="mr-1.5 h-4 w-4 text-success" /> Suprimento
+            </Button>
+          )}
+          {canSangria && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => handleMov("Sangria")}
+            >
+              <TrendingDown className="mr-1.5 h-4 w-4 text-destructive" /> Sangria
+            </Button>
+          )}
+          {canFinanceiro && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => setPartialOpen(true)}
+            >
+              <FileBarChart className="mr-1.5 h-4 w-4 text-primary" /> Consultar
+              Caixa do Momento (Parcial)
+            </Button>
+          )}
+          {canFinanceiro && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => handleMov("Recebimento Pedido")}
+            >
+              <Wallet className="mr-1.5 h-4 w-4 text-primary" /> Recebimento
+            </Button>
+          )}
+          {canEstoque && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => setAjusteOpen(true)}
+            >
+              <PackagePlus className="mr-1.5 h-4 w-4 text-primary" /> Ajuste Rápido
+            </Button>
+          )}
 
-          <Button
-            size="sm"
-            variant="destructive"
-            className="ml-auto rounded-full"
-            onClick={() => setCloseOpen(true)}
-          >
-            <DoorClosed className="mr-1.5 h-4 w-4" /> Fechar caixa
-          </Button>
+          {isMaster && (
+            <Button
+              size="sm"
+              variant="destructive"
+              className="ml-auto rounded-full"
+              onClick={() => setCloseOpen(true)}
+            >
+              <DoorClosed className="mr-1.5 h-4 w-4" /> Fechar caixa
+            </Button>
+          )}
         </div>
 
         {/* Tabs */}
         <div className="flex w-full flex-wrap gap-2 px-4 pb-3 lg:px-8">
-          <TabButton
-            active={tab === "delivery"}
-            onClick={() => setTab("delivery")}
-            icon={<Bike className="h-4 w-4" />}
-            label={`Delivery (${deliveryOrders.length})`}
-          />
-          <TabButton
-            active={tab === "mesas"}
-            onClick={() => setTab("mesas")}
-            icon={<UtensilsCrossed className="h-4 w-4" />}
-            label={`Mesas ativas (${mesaOrders.length})`}
-          />
-          <TabButton
-            active={tab === "balcao"}
-            onClick={() => setTab("balcao")}
-            icon={<ScanBarcode className="h-4 w-4" />}
-            label="Atendimento Balcão"
-          />
-          <TabButton
-            active={tab === "config"}
-            onClick={() => setTab("config")}
-            icon={<Settings className="h-4 w-4" />}
-            label="Impressão"
-          />
-          <TabButton
-            active={tab === "pagamento"}
-            onClick={() => setTab("pagamento")}
-            icon={<CreditCard className="h-4 w-4" />}
-            label="Pagamento"
-          />
-          <TabButton
-            active={tab === "fiscal"}
-            onClick={() => setTab("fiscal")}
-            icon={<ReceiptText className="h-4 w-4" />}
-            label="Fiscal"
-          />
-          <TabButton
-            active={tab === "fiado"}
-            onClick={() => setTab("fiado")}
-            icon={<Users className="h-4 w-4" />}
-            label="Conta Corrente"
-          />
-          <TabButton
-            active={tab === "clientes"}
-            onClick={() => setTab("clientes")}
-            icon={<Users className="h-4 w-4" />}
-            label="Clientes"
-          />
+          {canDelivery && (
+            <TabButton
+              active={tab === "delivery"}
+              onClick={() => setTab("delivery")}
+              icon={<Bike className="h-4 w-4" />}
+              label={`Delivery (${deliveryOrders.length})`}
+            />
+          )}
+          {canMesas && (
+            <TabButton
+              active={tab === "mesas"}
+              onClick={() => setTab("mesas")}
+              icon={<UtensilsCrossed className="h-4 w-4" />}
+              label={`Mesas ativas (${mesaOrders.length})`}
+            />
+          )}
+          {canBalcao && (
+            <TabButton
+              active={tab === "balcao"}
+              onClick={() => setTab("balcao")}
+              icon={<ScanBarcode className="h-4 w-4" />}
+              label="Atendimento Balcão"
+            />
+          )}
+          {isMaster && (
+            <TabButton
+              active={tab === "config"}
+              onClick={() => setTab("config")}
+              icon={<Settings className="h-4 w-4" />}
+              label="Impressão"
+            />
+          )}
+          {isMaster && (
+            <TabButton
+              active={tab === "pagamento"}
+              onClick={() => setTab("pagamento")}
+              icon={<CreditCard className="h-4 w-4" />}
+              label="Pagamento"
+            />
+          )}
+          {isMaster && (
+            <TabButton
+              active={tab === "fiscal"}
+              onClick={() => setTab("fiscal")}
+              icon={<ReceiptText className="h-4 w-4" />}
+              label="Fiscal"
+            />
+          )}
+          {canFinanceiro && (
+            <TabButton
+              active={tab === "fiado"}
+              onClick={() => setTab("fiado")}
+              icon={<Users className="h-4 w-4" />}
+              label="Conta Corrente"
+            />
+          )}
+          {isMaster && (
+            <TabButton
+              active={tab === "clientes"}
+              onClick={() => setTab("clientes")}
+              icon={<Users className="h-4 w-4" />}
+              label="Clientes"
+            />
+          )}
         </div>
       </ShellHeader>
+
 
       <ShellBody
         className={
