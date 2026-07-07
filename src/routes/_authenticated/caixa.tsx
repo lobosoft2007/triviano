@@ -278,10 +278,19 @@ function LockScreen({ userId }: { userId: string }) {
 /* Operational panel (caixa aberto)                                    */
 /* ------------------------------------------------------------------ */
 
-function OperationalPanel({ caixaId }: { caixaId: string }) {
+function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermissions }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+
+  // Dynamic per-resource access derived from the level's permission matrix.
+  const canDelivery = perms.is_admin || perms.acesso_delivery;
+  const canMesas = perms.is_admin || perms.acesso_mesas;
+  const canBalcao = perms.is_admin || perms.acesso_atendimento_balcao;
+  const canFinanceiro = perms.is_admin || perms.acesso_financeiro;
+  const canSangria = perms.is_admin || perms.acesso_sangria_suprimento;
+  const canEstoque = perms.is_admin || perms.acesso_entrada_estoque;
+  const isMaster = perms.is_admin;
 
   const handleLock = useCallback(async () => {
     await queryClient.cancelQueries();
@@ -290,9 +299,15 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
     navigate({ to: "/auth", replace: true });
   }, [queryClient, signOut, navigate]);
 
+  const initialTab: "delivery" | "mesas" | "balcao" = canDelivery
+    ? "delivery"
+    : canMesas
+      ? "mesas"
+      : "balcao";
+
   const [tab, setTab] = useState<
     "delivery" | "mesas" | "balcao" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
-  >("delivery");
+  >(initialTab);
   const [partialOpen, setPartialOpen] = useState(false);
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
