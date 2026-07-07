@@ -578,7 +578,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         </div>
 
         {/* Tabs */}
-        <div className="mx-auto flex max-w-6xl flex-wrap gap-2 px-4 pb-3 lg:px-8">
+        <div className="flex w-full flex-wrap gap-2 px-4 pb-3 lg:px-8">
           <TabButton
             active={tab === "delivery"}
             onClick={() => setTab("delivery")}
