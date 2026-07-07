@@ -216,7 +216,8 @@ function AuthPage() {
       return;
     }
     toast.success("E-mail confirmado! Bem-vindo ao Clube 23.");
-    navigate({ to: "/", replace: true });
+    const to = await resolveLanding();
+    navigate({ to, replace: true });
   }
 
   async function handleResend() {
