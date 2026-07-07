@@ -615,6 +615,7 @@ export function BalcaoView() {
           lines={lines}
           estimatedTotal={total}
           userId={user?.id ?? ""}
+          afterFinalize={afterFinalize}
           onPaid={() => {
             clearCart();
             setPayOpen(false);
@@ -622,9 +623,119 @@ export function BalcaoView() {
           }}
         />
       )}
+
+      {/* Hidden thermal print surface (senha + production coupons) */}
+      <div className="thermal-receipt">{printNode}</div>
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Thermal coupons (80mm): customer pickup password + production        */
+/* ------------------------------------------------------------------ */
+
+const dashed = {
+  border: "none",
+  borderTop: "1px dashed #000",
+  margin: "4px 0",
+} as const;
+
+/** Big, scannable pickup-password coupon handed to the customer to wait. */
+function SenhaReceipt({
+  senha,
+  restaurant,
+}: {
+  senha: string;
+  restaurant: string;
+}) {
+  return (
+    <div>
+      <p style={{ textAlign: "center", fontWeight: 700 }}>{restaurant}</p>
+      <p style={{ textAlign: "center", fontSize: 11 }}>Senha de retirada</p>
+      <hr style={dashed} />
+      <p
+        style={{
+          textAlign: "center",
+          fontWeight: 900,
+          fontSize: 64,
+          lineHeight: 1.1,
+          margin: "6px 0",
+        }}
+      >
+        {senha}
+      </p>
+      <hr style={dashed} />
+      <p style={{ textAlign: "center", fontSize: 11 }}>
+        Aguarde ser chamado pela sua senha.
+      </p>
+      <p style={{ textAlign: "center", fontSize: 10 }}>
+        {new Date().toLocaleString("pt-BR")}
+      </p>
+    </div>
+  );
+}
+
+/** Production coupon printed to a sector's thermal printer (switch OFF). */
+function ProductionReceipt({
+  sector,
+  items,
+  senha,
+  restaurant,
+}: {
+  sector: ResolvedSector;
+  items: BalcaoLine[];
+  senha: string;
+  restaurant: string;
+}) {
+  const conn = sector.printer
+    ? sector.printer.tipo_conexao === "IP"
+      ? `IP ${sector.printer.endereco_ip ?? "-"}${
+          sector.printer.porta ? `:${sector.printer.porta}` : ""
+        }`
+      : `USB ${sector.printer.caminho_usb ?? ""}`.trim()
+    : "Sem impressora vinculada";
+  return (
+    <div>
+      <p style={{ textAlign: "center", fontWeight: 700, fontSize: 14 }}>
+        *** {sector.nome.toUpperCase()} ***
+      </p>
+      <p style={{ textAlign: "center" }}>{restaurant}</p>
+      <p style={{ textAlign: "center", fontSize: 10 }}>{conn}</p>
+      <hr style={dashed} />
+      <p style={{ fontWeight: 700 }}>
+        BALCÃO{senha ? ` · SENHA ${senha}` : ""}
+        <br />
+        {new Date().toLocaleString("pt-BR")}
+      </p>
+      <hr style={dashed} />
+      {items.map((it) => (
+        <div key={it.lineId} style={{ marginBottom: 6 }}>
+          <p style={{ fontWeight: 700 }}>
+            {it.quantity}x {it.name}
+            {it.size && it.size !== "Padrão" ? ` (${it.size})` : ""}
+            {it.secondFlavor ? ` / ${it.secondFlavor}` : ""}
+          </p>
+          {it.addons.length > 0 && (
+            <p style={{ paddingLeft: 8 }}>
+              {it.addons
+                .map(
+                  (a) =>
+                    `+ ${a.name}${(a.quantity ?? 1) > 1 ? ` x${a.quantity}` : ""}`,
+                )
+                .join(", ")}
+            </p>
+          )}
+          {it.remocoes.length > 0 && (
+            <p style={{ paddingLeft: 8, fontWeight: 700 }}>
+              {it.remocoes.map((r) => `>> SEM ${r.toUpperCase()}`).join("  ")}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Square, image-backed category button (Netflix-style filter tile)    */
