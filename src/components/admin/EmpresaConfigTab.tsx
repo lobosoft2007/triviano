@@ -27,6 +27,9 @@ interface FormState {
   estado: string;
   percentual_cashback: string;
   cashback_ativo: boolean;
+  monitor_cozinha: boolean;
+  monitor_bar: boolean;
+  monitor_pizzaria: boolean;
 }
 
 function empresaToForm(e: EmpresaBranding): FormState {
