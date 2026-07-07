@@ -118,7 +118,8 @@ function AuthPage() {
       return;
     }
     toast.success("Bem-vindo de volta!");
-    navigate({ to: "/", replace: true });
+    const to = await resolveLanding();
+    navigate({ to, replace: true });
   }
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
