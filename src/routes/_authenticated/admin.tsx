@@ -255,6 +255,29 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "permissoes", label: "Permissões", icon: ShieldCheck },
 ];
 
+// Recurso da matriz de permissões exigido por cada aba ("master" = só o admin dono).
+const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
+  cardapio: "acesso_cadastro_produtos",
+  categorias: "acesso_cadastro_produtos",
+  combos: "acesso_cadastro_produtos",
+  empresa: "master",
+  identidade: "master",
+  clientes: "master",
+  conta: "acesso_financeiro",
+  financeiro: "acesso_financeiro",
+  estoque: "acesso_entrada_estoque",
+  ajustes: "acesso_entrada_estoque",
+  compras: "acesso_entrada_estoque",
+  insumos: "acesso_entrada_estoque",
+  subprodutos: "acesso_entrada_estoque",
+  setores: "master",
+  fornecedores: "master",
+  funcionarios: "master",
+  permissoes: "master",
+};
+
+
+
 
 function detailToForm(d: ProductDetail): ProductDetailForm {
   return {
