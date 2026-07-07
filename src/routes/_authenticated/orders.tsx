@@ -37,9 +37,11 @@ function OrdersPage() {
           </Link>
           <h1 className="flex-1 font-display text-xl font-bold">Meus pedidos</h1>
           <NotificationBell />
-        </header>
+          </div>
+        </ShellHeader>
 
-        <main className="px-5 py-5">
+        <ShellBody>
+          <main className="mx-auto max-w-md px-5 py-5">
           {isLoading && (
             <div className="flex justify-center py-20">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
