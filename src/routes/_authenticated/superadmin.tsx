@@ -333,6 +333,6 @@ function SuperAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppShell>
   );
 }
