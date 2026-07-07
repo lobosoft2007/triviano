@@ -46,6 +46,12 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         return;
       }
       if (!user) {
+        // Remember where the customer wanted to go so login returns them here.
+        try {
+          sessionStorage.setItem("post_login_redirect", "/checkout");
+        } catch {
+          /* ignore storage errors */
+        }
         toast.error("Faça login para finalizar o pedido.");
         navigate({ to: "/auth" });
         return;
