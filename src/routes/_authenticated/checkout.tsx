@@ -193,9 +193,11 @@ function CheckoutPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="font-display text-xl font-bold">Finalizar pedido</h1>
-        </header>
+          </div>
+        </ShellHeader>
 
-        <main className="px-5 py-5">
+        <ShellBody>
+          <main className="mx-auto max-w-md px-5 py-5">
           {/* Order summary */}
           <section className="mb-5 rounded-2xl bg-card p-4 shadow-card">
             <h2 className="mb-3 font-display text-base font-bold">
