@@ -280,6 +280,11 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     await queryClient.cancelQueries();
     queryClient.clear();
     await signOut();
+    try {
+      sessionStorage.setItem("post_login_redirect", "/caixa");
+    } catch {
+      /* ignore storage errors */
+    }
     navigate({ to: "/auth", replace: true });
   }, [queryClient, signOut, navigate]);
 

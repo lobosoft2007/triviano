@@ -393,6 +393,11 @@ function AdminPage() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await signOut();
+    try {
+      sessionStorage.setItem("post_login_redirect", "/admin");
+    } catch {
+      /* ignore storage errors */
+    }
     navigate({ to: "/auth", replace: true });
   };
 
