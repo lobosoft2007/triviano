@@ -663,7 +663,7 @@ function AdminPage() {
           </div>
 
           <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-xl bg-secondary p-1">
-            {TABS.map((t) => {
+            {TABS.filter((t) => tabAllowed(t.key)).map((t) => {
               const Icon = t.icon;
               return (
                 <button
