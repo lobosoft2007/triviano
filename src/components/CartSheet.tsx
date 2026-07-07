@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   ShoppingBag,
@@ -37,11 +37,10 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     decrement,
     removeItem,
   } = useCart();
-  const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
 
-  async function handleCheckout() {
+  function handleCheckoutClick(event: React.MouseEvent<HTMLAnchorElement>) {
     try {
       const sessionUser = user ?? null;
       const sessionLoading = Boolean(loading);
@@ -51,10 +50,12 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         : [];
 
       if (safeItems.length === 0) {
+        event.preventDefault();
         toast.error("Adicione ao menos um item antes de finalizar.");
         return;
       }
       if (sessionLoading) {
+        event.preventDefault();
         toast.info("Carregando sua sessão. Tente novamente em instantes.");
         return;
       }
@@ -70,14 +71,13 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         toast.error("Faça login para finalizar o pedido.");
         console.log("[CHECKOUT] Redirecionando para autenticação");
         setOpen(false);
-        await navigate({ to: "/auth" });
         return;
       }
 
       console.log("[CHECKOUT] Redirecionando para pagamento");
       setOpen(false);
-      await navigate({ to: "/checkout" });
     } catch (error) {
+      event.preventDefault();
       const message = error instanceof Error ? error.message : String(error);
       console.error("ERRO CRÍTICO NO CARRINHO:", error);
       toast.error(`ERRO CRÍTICO NO CARRINHO: ${message}`);
@@ -235,13 +235,18 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                 </span>
               </div>
               <Button
+                asChild
                 size="lg"
                 className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base"
                 disabled={items.length === 0}
-                onClick={handleCheckout}
               >
-                Finalizar pedido
-                <ArrowRight className="h-5 w-5" />
+                <Link
+                  to={user ? "/checkout" : "/auth"}
+                  onClick={handleCheckoutClick}
+                >
+                  Finalizar pedido
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
               </Button>
             </div>
           </>
