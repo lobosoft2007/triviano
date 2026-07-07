@@ -45,6 +45,7 @@ import { ClientesView } from "@/components/admin/ClientesView";
 import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { PartialReportDialog } from "@/components/caixa/PartialReportDialog";
 import { BalcaoView } from "@/components/caixa/BalcaoView";
+import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
@@ -477,10 +478,10 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppShell>
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8">
+      <ShellHeader className="border-b border-border bg-background/95 backdrop-blur-md">
+        <div className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8">
           <div className="flex items-center gap-3">
             <button
               onClick={handleLock}
@@ -523,7 +524,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         </div>
 
         {/* Cash actions */}
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 pb-3 lg:px-8">
+        <div className="flex w-full flex-wrap items-center gap-2 px-4 pb-3 lg:px-8">
           <Button
             size="sm"
             variant="outline"
@@ -577,7 +578,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         </div>
 
         {/* Tabs */}
-        <div className="mx-auto flex max-w-6xl flex-wrap gap-2 px-4 pb-3 lg:px-8">
+        <div className="flex w-full flex-wrap gap-2 px-4 pb-3 lg:px-8">
           <TabButton
             active={tab === "delivery"}
             onClick={() => setTab("delivery")}
@@ -627,13 +628,13 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
             label="Clientes"
           />
         </div>
-      </header>
+      </ShellHeader>
 
-      <main
+      <ShellBody
         className={
           tab === "balcao"
-            ? "w-full max-w-none px-4 py-5"
-            : "mx-auto max-w-6xl px-4 py-5 lg:px-8"
+            ? "w-full px-4 py-4"
+            : "w-full px-4 py-5 lg:px-8"
         }
       >
         {tab !== "config" &&
@@ -671,7 +672,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
         {tab === "fiscal" && <FiscalConfigTab />}
         {tab === "fiado" && <ContaCorrenteTab mode="caixa" />}
         {tab === "clientes" && <ClientesView canBlock={false} />}
-      </main>
+      </ShellBody>
 
       {/* Partial cash report (X de caixa) */}
       {caixa && (
@@ -712,7 +713,7 @@ function OperationalPanel({ caixaId }: { caixaId: string }) {
 
       {/* Hidden thermal print surface */}
       <div className="thermal-receipt">{printNode}</div>
-    </div>
+    </AppShell>
   );
 }
 
@@ -761,7 +762,7 @@ function DeliveryColumn({
     return <EmptyState label="Nenhum pedido de delivery em aberto." />;
   }
   return (
-    <div className="mx-auto max-w-2xl space-y-3">
+    <div className="w-full space-y-3">
       {orders.map((o) => (
         <CompactOrderRow
           key={o.id}
@@ -920,7 +921,7 @@ function MesasColumn({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="w-full space-y-4">
       {grouped.map(([mesa, group]) => {
         const total = group.reduce((s, o) => s + o.total, 0);
         return (

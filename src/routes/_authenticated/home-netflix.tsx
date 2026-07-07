@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/_authenticated/home-netflix")({
   component: HomeNetflixPage,
@@ -42,10 +43,10 @@ function HomeNetflixPage() {
   const [customize, setCustomize] = useState<Selection | null>(null);
 
   return (
-    <div className="min-h-screen bg-background pb-28 text-foreground">
+    <AppShell>
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
+      <ShellHeader className="border-b border-border/60 bg-background/85 backdrop-blur-md">
+        <div className="flex w-full items-center justify-between px-4 py-3.5 sm:px-6">
           <div className="flex items-center gap-2.5">
             <img
               src={empresa?.logo_display_url || "/logo.png"}
@@ -70,9 +71,9 @@ function HomeNetflixPage() {
             Home oficial
           </Link>
         </div>
-      </header>
+      </ShellHeader>
 
-      <main className="mx-auto max-w-6xl py-6">
+      <ShellBody className="w-full py-6 pb-28">
         {isLoading && (
           <div className="flex justify-center py-24">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -102,7 +103,7 @@ function HomeNetflixPage() {
               />
             );
           })}
-      </main>
+      </ShellBody>
 
       {/* Details modal */}
       <DetailModal
@@ -150,7 +151,7 @@ function HomeNetflixPage() {
           </div>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }
 

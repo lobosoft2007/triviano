@@ -83,6 +83,7 @@ import {
 import { useIsSuperAdmin } from "@/lib/superadmin";
 import { ClientesView } from "@/components/admin/ClientesView";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
+import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -570,9 +571,8 @@ function AdminPage() {
 
   return (
     <TooltipProvider delayDuration={200}>
-    <div className="min-h-screen bg-background pb-24">
-      <div className="mx-auto max-w-6xl">
-        <header className="sticky top-0 z-20 border-b border-border bg-background/90 px-4 py-3.5 backdrop-blur-md lg:px-8">
+    <AppShell>
+        <ShellHeader className="border-b border-border bg-background/90 px-4 py-3.5 backdrop-blur-md lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
@@ -626,9 +626,9 @@ function AdminPage() {
               );
             })}
           </div>
-        </header>
+        </ShellHeader>
 
-        <main className="px-4 py-5 lg:px-8">
+        <ShellBody className="w-full px-4 py-5 lg:px-8">
           {tab === "financeiro" && <TesourariaView />}
           {tab === "estoque" && <EntradaEstoqueView />}
           {tab === "ajustes" && <AjusteRapidoView />}
@@ -737,8 +737,8 @@ function AdminPage() {
                 })}
             </>
           )}
-        </main>
-      </div>
+        </ShellBody>
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent hideClose className="max-h-[90vh] max-w-4xl overflow-y-auto">
@@ -944,7 +944,7 @@ function AdminPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppShell>
     </TooltipProvider>
   );
 }

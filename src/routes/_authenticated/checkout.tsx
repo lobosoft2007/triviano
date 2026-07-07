@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/_authenticated/checkout")({
   component: CheckoutPage,
@@ -181,9 +182,9 @@ function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-md">
-        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/90 px-5 py-3.5 backdrop-blur-md">
+    <AppShell>
+        <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
+          <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 py-3.5">
           <Link
             to="/"
             aria-label="Voltar à início"
@@ -192,9 +193,11 @@ function CheckoutPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="font-display text-xl font-bold">Finalizar pedido</h1>
-        </header>
+          </div>
+        </ShellHeader>
 
-        <main className="px-5 py-5">
+        <ShellBody>
+          <main className="mx-auto max-w-md px-5 py-5">
           {/* Order summary */}
           <section className="mb-5 rounded-2xl bg-card p-4 shadow-card">
             <h2 className="mb-3 font-display text-base font-bold">
@@ -450,8 +453,8 @@ function CheckoutPage() {
               )}
             </Button>
           </form>
-        </main>
-      </div>
-    </div>
+          </main>
+        </ShellBody>
+    </AppShell>
   );
 }

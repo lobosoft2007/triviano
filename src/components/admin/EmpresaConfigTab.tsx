@@ -142,7 +142,7 @@ export function EmpresaConfigTab() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="w-full space-y-6">
       <div className="flex items-center gap-2">
         <Building2 className="h-5 w-5 text-primary" />
         <div>

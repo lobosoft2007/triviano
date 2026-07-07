@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/_authenticated/superadmin")({
   component: SuperAdminPage,
@@ -118,9 +119,9 @@ function SuperAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-16">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3">
+    <AppShell>
+      <ShellHeader className="border-b border-border bg-background/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-4xl items-center gap-3 px-4 py-3">
           <Button asChild variant="ghost" size="icon" className="shrink-0">
             <Link to="/admin">
               <ArrowLeft className="h-5 w-5" />
@@ -149,9 +150,10 @@ function SuperAdminPage() {
             Nova Empresa
           </Button>
         </div>
-      </header>
+      </ShellHeader>
 
-      <main className="mx-auto max-w-4xl px-4 py-6">
+      <ShellBody>
+        <main className="mx-auto max-w-4xl px-4 py-6 pb-16">
         <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
           <Building2 className="h-4 w-4" />
           <span>
@@ -216,7 +218,8 @@ function SuperAdminPage() {
             )}
           </div>
         )}
-      </main>
+        </main>
+      </ShellBody>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -330,6 +333,6 @@ function SuperAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppShell>
   );
 }

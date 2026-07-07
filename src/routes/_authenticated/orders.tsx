@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, ClipboardList, CheckCircle2 } from "lucide-react";
 import { fetchOrders } from "@/lib/orders";
 import { formatBRL } from "@/lib/format";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/_authenticated/orders")({
   component: OrdersPage,
@@ -24,9 +25,9 @@ function OrdersPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-md">
-        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/90 px-5 py-3.5 backdrop-blur-md">
+    <AppShell>
+        <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
+          <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 py-3.5">
           <Link
             to="/"
             aria-label="Voltar ao início"
@@ -36,9 +37,11 @@ function OrdersPage() {
           </Link>
           <h1 className="flex-1 font-display text-xl font-bold">Meus pedidos</h1>
           <NotificationBell />
-        </header>
+          </div>
+        </ShellHeader>
 
-        <main className="px-5 py-5">
+        <ShellBody>
+          <main className="mx-auto max-w-md px-5 py-5">
           {isLoading && (
             <div className="flex justify-center py-20">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -140,8 +143,8 @@ function OrdersPage() {
               </article>
             ))}
           </div>
-        </main>
-      </div>
-    </div>
+          </main>
+        </ShellBody>
+    </AppShell>
   );
 }

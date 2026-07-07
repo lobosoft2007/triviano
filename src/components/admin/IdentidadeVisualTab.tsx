@@ -166,7 +166,7 @@ export function IdentidadeVisualTab() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="w-full">
       <div className="mb-6 flex items-center gap-2">
         <Palette className="h-5 w-5 text-primary" />
         <h2 className="font-display text-xl font-bold">Identidade Visual</h2>
