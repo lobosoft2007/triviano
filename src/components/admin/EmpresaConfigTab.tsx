@@ -27,6 +27,9 @@ interface FormState {
   estado: string;
   percentual_cashback: string;
   cashback_ativo: boolean;
+  monitor_cozinha: boolean;
+  monitor_bar: boolean;
+  monitor_pizzaria: boolean;
 }
 
 function empresaToForm(e: EmpresaBranding): FormState {
@@ -42,6 +45,9 @@ function empresaToForm(e: EmpresaBranding): FormState {
     estado: e.estado,
     percentual_cashback: String(e.percentual_cashback).replace(".", ","),
     cashback_ativo: e.cashback_ativo,
+    monitor_cozinha: e.monitor_cozinha,
+    monitor_bar: e.monitor_bar,
+    monitor_pizzaria: e.monitor_pizzaria,
   };
 }
 
@@ -110,6 +116,9 @@ export function EmpresaConfigTab() {
         estado: form.estado.trim().toUpperCase(),
         percentual_cashback: pctCashback,
         cashback_ativo: form.cashback_ativo,
+        monitor_cozinha: form.monitor_cozinha,
+        monitor_bar: form.monitor_bar,
+        monitor_pizzaria: form.monitor_pizzaria,
       });
 
       toast.success("Configurações da empresa salvas!");
@@ -234,6 +243,47 @@ export function EmpresaConfigTab() {
           </label>
         </div>
       </section>
+
+      {/* Monitores (KDS) x Impressão por setor */}
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <h3 className="mb-1 font-display text-sm font-bold">
+          Monitores (KDS) x Impressão de produção
+        </h3>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Ligado: o pedido vai direto para a tela do monitor daquele setor (sem
+          comanda impressa). Desligado: imprime automaticamente a comanda física
+          na impressora térmica do setor ao finalizar (F12).
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              { key: "monitor_cozinha", label: "Cozinha" },
+              { key: "monitor_bar", label: "Bar" },
+              { key: "monitor_pizzaria", label: "Pizzaria" },
+            ] as const
+          ).map(({ key, label }) => (
+            <label
+              key={key}
+              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 p-3"
+            >
+              <div className="min-w-0">
+                <span className="block text-sm font-semibold">{label}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {form[key] ? "Monitor (KDS)" : "Imprime comanda"}
+                </span>
+              </div>
+              <Switch
+                checked={form[key]}
+                onCheckedChange={(v: boolean) =>
+                  setForm((f) => (f ? { ...f, [key]: v } : f))
+                }
+              />
+            </label>
+          ))}
+        </div>
+      </section>
+
+
 
 
       {/* Endereço */}

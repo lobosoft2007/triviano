@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -24,10 +25,18 @@ import { formatBRL } from "@/lib/format";
 import {
   fetchBalcaoData,
   fetchOrderTotal,
+  fetchOrderSenha,
   type BalcaoProduct,
 } from "@/lib/balcao";
 import type { Category, Product } from "@/lib/menu";
 import { makeLineId, type NewCartItem } from "@/lib/cart";
+import {
+  fetchPrinters,
+  fetchCategoriesRouting,
+  makeSectorResolver,
+  type ResolvedSector,
+} from "@/lib/printers";
+import { empresaAdminConfigQueryOptions } from "@/lib/empresa";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductCustomizer } from "@/components/ProductCustomizer";
 import { usePixPayment } from "@/hooks/usePixPayment";
@@ -77,6 +86,25 @@ function quickLineFrom(p: BalcaoProduct): NewCartItem {
   };
 }
 
+/**
+ * Decide whether a resolved sector should be routed to a digital KDS monitor
+ * (true) or print a physical production coupon (false), based on the company's
+ * hybrid switches (Cozinha / Bar / Pizzaria).
+ */
+function sectorUsesMonitor(
+  sectorName: string,
+  flags:
+    | { monitor_cozinha: boolean; monitor_bar: boolean; monitor_pizzaria: boolean }
+    | undefined,
+): boolean {
+  if (!flags) return false;
+  const n = norm(sectorName);
+  if (n.includes("pizza")) return flags.monitor_pizzaria;
+  if (n.includes("bar")) return flags.monitor_bar;
+  if (n.includes("cozinha") || n.includes("kitchen")) return flags.monitor_cozinha;
+  return false;
+}
+
 export function BalcaoView() {
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -84,6 +112,7 @@ export function BalcaoView() {
   const [activeCat, setActiveCat] = useState<string>(ALL);
   const [lines, setLines] = useState<BalcaoLine[]>([]);
   const [payOpen, setPayOpen] = useState(false);
+  const [printNode, setPrintNode] = useState<ReactNode>(null);
   const [custom, setCustom] = useState<{
     product: Product;
     category: Category;
@@ -94,6 +123,24 @@ export function BalcaoView() {
     queryFn: fetchBalcaoData,
     staleTime: 1000 * 60 * 2,
   });
+
+  // Production routing (printers + category→printer map) and the company's
+  // hybrid monitor switches, so F12 can decide KDS vs physical print per sector.
+  const { data: printers } = useQuery({
+    queryKey: ["printers"],
+    queryFn: fetchPrinters,
+  });
+  const { data: catRouting } = useQuery({
+    queryKey: ["categories-routing"],
+    queryFn: fetchCategoriesRouting,
+  });
+  const { data: empresa } = useQuery(empresaAdminConfigQueryOptions);
+
+  const resolveSector = useMemo(
+    () => makeSectorResolver(printers ?? [], catRouting ?? []),
+    [printers, catRouting],
+  );
+  const restaurantName = empresa?.nome_fantasia || "PDV";
 
   const products = data?.products;
   const categories = data?.categories;
@@ -107,6 +154,64 @@ export function BalcaoView() {
     () => new Map((data?.menuCategories ?? []).map((c) => [c.id, c])),
     [data?.menuCategories],
   );
+
+  /** Render a node to the hidden thermal surface, then fire the browser print. */
+  const printAndRun = useCallback(async (node: ReactNode) => {
+    setPrintNode(node);
+    await new Promise((r) => setTimeout(r, 120));
+    window.print();
+    await new Promise((r) => setTimeout(r, 200));
+    setPrintNode(null);
+  }, []);
+
+  /**
+   * After a counter sale settles: print the customer's pickup password coupon,
+   * then route each sector's production either to the KDS monitor (switch ON,
+   * no print) or to its thermal printer (switch OFF).
+   */
+  const afterFinalize = useCallback(
+    async (orderId: string) => {
+      const senha = await fetchOrderSenha(orderId);
+      const snapshot = lines;
+
+      // 1) Always print the customer pickup-password coupon.
+      if (senha) {
+        await printAndRun(
+          <SenhaReceipt senha={senha} restaurant={restaurantName} />,
+        );
+      }
+
+      // 2) Group items by destination sector.
+      const groups = new Map<
+        string,
+        { sector: ResolvedSector; items: BalcaoLine[] }
+      >();
+      for (const l of snapshot) {
+        const catId = menuProductById.get(l.productId)?.category_id ?? null;
+        const sector = resolveSector(catId);
+        const key = sector.printerId ?? `fallback:${sector.nome}`;
+        const g = groups.get(key) ?? { sector, items: [] };
+        g.items.push(l);
+        groups.set(key, g);
+      }
+
+      // 3) Print only the sectors NOT routed to a monitor.
+      for (const g of groups.values()) {
+        if (sectorUsesMonitor(g.sector.nome, empresa)) continue;
+        await printAndRun(
+          <ProductionReceipt
+            sector={g.sector}
+            items={g.items}
+            senha={senha}
+            restaurant={restaurantName}
+          />,
+        );
+      }
+    },
+    [lines, menuProductById, resolveSector, empresa, restaurantName, printAndRun],
+  );
+
+
 
   const total = useMemo(
     () => round2(lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0)),
@@ -510,6 +615,7 @@ export function BalcaoView() {
           lines={lines}
           estimatedTotal={total}
           userId={user?.id ?? ""}
+          afterFinalize={afterFinalize}
           onPaid={() => {
             clearCart();
             setPayOpen(false);
@@ -517,9 +623,119 @@ export function BalcaoView() {
           }}
         />
       )}
+
+      {/* Hidden thermal print surface (senha + production coupons) */}
+      <div className="thermal-receipt">{printNode}</div>
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Thermal coupons (80mm): customer pickup password + production        */
+/* ------------------------------------------------------------------ */
+
+const dashed = {
+  border: "none",
+  borderTop: "1px dashed #000",
+  margin: "4px 0",
+} as const;
+
+/** Big, scannable pickup-password coupon handed to the customer to wait. */
+function SenhaReceipt({
+  senha,
+  restaurant,
+}: {
+  senha: string;
+  restaurant: string;
+}) {
+  return (
+    <div>
+      <p style={{ textAlign: "center", fontWeight: 700 }}>{restaurant}</p>
+      <p style={{ textAlign: "center", fontSize: 11 }}>Senha de retirada</p>
+      <hr style={dashed} />
+      <p
+        style={{
+          textAlign: "center",
+          fontWeight: 900,
+          fontSize: 64,
+          lineHeight: 1.1,
+          margin: "6px 0",
+        }}
+      >
+        {senha}
+      </p>
+      <hr style={dashed} />
+      <p style={{ textAlign: "center", fontSize: 11 }}>
+        Aguarde ser chamado pela sua senha.
+      </p>
+      <p style={{ textAlign: "center", fontSize: 10 }}>
+        {new Date().toLocaleString("pt-BR")}
+      </p>
+    </div>
+  );
+}
+
+/** Production coupon printed to a sector's thermal printer (switch OFF). */
+function ProductionReceipt({
+  sector,
+  items,
+  senha,
+  restaurant,
+}: {
+  sector: ResolvedSector;
+  items: BalcaoLine[];
+  senha: string;
+  restaurant: string;
+}) {
+  const conn = sector.printer
+    ? sector.printer.tipo_conexao === "IP"
+      ? `IP ${sector.printer.endereco_ip ?? "-"}${
+          sector.printer.porta ? `:${sector.printer.porta}` : ""
+        }`
+      : `USB ${sector.printer.caminho_usb ?? ""}`.trim()
+    : "Sem impressora vinculada";
+  return (
+    <div>
+      <p style={{ textAlign: "center", fontWeight: 700, fontSize: 14 }}>
+        *** {sector.nome.toUpperCase()} ***
+      </p>
+      <p style={{ textAlign: "center" }}>{restaurant}</p>
+      <p style={{ textAlign: "center", fontSize: 10 }}>{conn}</p>
+      <hr style={dashed} />
+      <p style={{ fontWeight: 700 }}>
+        BALCÃO{senha ? ` · SENHA ${senha}` : ""}
+        <br />
+        {new Date().toLocaleString("pt-BR")}
+      </p>
+      <hr style={dashed} />
+      {items.map((it) => (
+        <div key={it.lineId} style={{ marginBottom: 6 }}>
+          <p style={{ fontWeight: 700 }}>
+            {it.quantity}x {it.name}
+            {it.size && it.size !== "Padrão" ? ` (${it.size})` : ""}
+            {it.secondFlavor ? ` / ${it.secondFlavor}` : ""}
+          </p>
+          {it.addons.length > 0 && (
+            <p style={{ paddingLeft: 8 }}>
+              {it.addons
+                .map(
+                  (a) =>
+                    `+ ${a.name}${(a.quantity ?? 1) > 1 ? ` x${a.quantity}` : ""}`,
+                )
+                .join(", ")}
+            </p>
+          )}
+          {it.remocoes.length > 0 && (
+            <p style={{ paddingLeft: 8, fontWeight: 700 }}>
+              {it.remocoes.map((r) => `>> SEM ${r.toUpperCase()}`).join("  ")}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Square, image-backed category button (Netflix-style filter tile)    */
@@ -589,6 +805,7 @@ function BalcaoPaymentDialog({
   estimatedTotal,
   userId,
   onPaid,
+  afterFinalize,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -596,6 +813,8 @@ function BalcaoPaymentDialog({
   estimatedTotal: number;
   userId: string;
   onPaid: () => void;
+  /** Runs after settlement (prints senha + production coupons / KDS routing). */
+  afterFinalize: (orderId: string) => Promise<void>;
 }) {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
@@ -771,6 +990,14 @@ function BalcaoPaymentDialog({
       await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
       await queryClient.invalidateQueries({ queryKey: ["balcao-data"] });
+
+      // Print the customer pickup password + route production to KDS/printers
+      // according to the per-sector monitor switches. Never blocks the sale.
+      try {
+        await afterFinalize(orderId);
+      } catch (e) {
+        console.error("[balcao] afterFinalize (senha/impressão)", e);
+      }
 
       const trocoMsg = trocoTotal > 0 ? ` · Troco ${formatBRL(trocoTotal)}` : "";
       toast.success(`Venda finalizada · ${formatBRL(serverTotal)}${trocoMsg}`);

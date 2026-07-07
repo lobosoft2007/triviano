@@ -28,6 +28,14 @@ export interface Empresa {
   /** Cashback engine. */
   percentual_cashback: number;
   cashback_ativo: boolean;
+  /**
+   * Hybrid production routing per sector. When ON, orders go straight to the
+   * digital KDS monitor for that sector (no physical coupon). When OFF, the
+   * production coupon prints on the sector's thermal printer.
+   */
+  monitor_cozinha: boolean;
+  monitor_bar: boolean;
+  monitor_pizzaria: boolean;
 }
 
 export interface EmpresaBranding extends Empresa {
@@ -73,6 +81,9 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         modo_fundo: (data.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
         percentual_cashback: 5,
         cashback_ativo: true,
+        monitor_cozinha: false,
+        monitor_bar: false,
+        monitor_pizzaria: false,
       }
     : {
         id: DEFAULT_EMPRESA_ID,
@@ -93,6 +104,9 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         modo_fundo: DEFAULT_BRAND_THEME.modo_fundo,
         percentual_cashback: 5,
         cashback_ativo: true,
+        monitor_cozinha: false,
+        monitor_bar: false,
+        monitor_pizzaria: false,
       };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -142,6 +156,9 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     modo_fundo: (row?.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
     percentual_cashback: 5,
     cashback_ativo: true,
+    monitor_cozinha: false,
+    monitor_bar: false,
+    monitor_pizzaria: false,
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -186,6 +203,9 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     modo_fundo: (row?.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
     percentual_cashback: Number(row?.percentual_cashback ?? 5),
     cashback_ativo: row?.cashback_ativo ?? true,
+    monitor_cozinha: row?.monitor_cozinha ?? false,
+    monitor_bar: row?.monitor_bar ?? false,
+    monitor_pizzaria: row?.monitor_pizzaria ?? false,
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -214,6 +234,10 @@ export interface EmpresaUpdate {
   estado: string;
   percentual_cashback: number;
   cashback_ativo: boolean;
+  /** Hybrid KDS-monitor vs physical-print routing per sector. */
+  monitor_cozinha: boolean;
+  monitor_bar: boolean;
+  monitor_pizzaria: boolean;
 }
 
 /** Update the active company configuration (admin only, enforced by RLS). */

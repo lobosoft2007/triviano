@@ -142,3 +142,19 @@ export async function fetchOrderTotal(orderId: string): Promise<number> {
   if (error) throw error;
   return Number(data.total ?? 0);
 }
+
+/**
+ * Reads the server-generated daily pickup password (formato DD-N) for a
+ * counter order. Assigned automatically by a trigger on insert; empty for
+ * table/delivery orders.
+ */
+export async function fetchOrderSenha(orderId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("senha")
+    .eq("id", orderId)
+    .single();
+  if (error) throw error;
+  return (data as { senha?: string | null }).senha ?? "";
+}
+
