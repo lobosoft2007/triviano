@@ -31,7 +31,6 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     appliedCombos,
     totalPrice,
     shortfalls,
-    canCheckout,
     increment,
     decrement,
     removeItem,
@@ -41,8 +40,8 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
 
   function handleCheckout() {
     try {
-      if (!canCheckout) {
-        toast.error("Revise as regras do pedido antes de finalizar.");
+      if (items.length === 0) {
+        toast.error("Adicione ao menos um item antes de finalizar.");
         return;
       }
       if (loading) {
@@ -66,7 +65,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
       toast.error(
         err instanceof Error
           ? `Não foi possível abrir o pagamento: ${err.message}`
-          : "Não foi possível abrir a tela de pagamento. Tente novamente.",
+          : `Não foi possível abrir o pagamento: ${String(err)}`,
       );
     }
   }
@@ -131,7 +130,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       </p>
                     )}
                     <p className="text-sm font-bold text-primary">
-                      {formatBRL(item.unitPrice * item.quantity)}
+                      {formatBRL((item.unitPrice ?? 0) * (item.quantity ?? 1))}
                     </p>
                     <div className="mt-1 flex items-center gap-2">
                       <button
@@ -221,7 +220,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
               <Button
                 size="lg"
                 className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base"
-                disabled={!canCheckout}
+                disabled={items.length === 0}
                 onClick={handleCheckout}
               >
                 Finalizar pedido

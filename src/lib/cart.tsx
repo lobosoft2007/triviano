@@ -75,6 +75,70 @@ const CartContext = createContext<CartContextValue | undefined>(undefined);
 
 const STORAGE_KEY = "delivery_cart_v2";
 
+const toFiniteNumber = (value: unknown, fallback = 0): number => {
+  const parsed = Number(value ?? fallback);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const toSafeString = (value: unknown, fallback = ""): string =>
+  typeof value === "string" ? value : fallback;
+
+function sanitizeAddon(addon: unknown): CartAddon | null {
+  if (!addon || typeof addon !== "object") return null;
+  const raw = addon as Partial<CartAddon>;
+  const name = toSafeString(raw.name).trim();
+  if (!name) return null;
+  return {
+    name,
+    price: Math.max(0, toFiniteNumber(raw.price, 0)),
+    quantity: Math.max(1, Math.floor(toFiniteNumber(raw.quantity, 1))),
+  };
+}
+
+function sanitizeCartItem(item: unknown, index = 0): CartItem | null {
+  if (!item || typeof item !== "object") return null;
+  const raw = item as Partial<CartItem>;
+  const productId = toSafeString(raw.productId, `legacy-${index}`);
+  const size = toSafeString(raw.size, "Padrão");
+  const secondFlavor = toSafeString(raw.secondFlavor);
+  const addons = Array.isArray(raw.addons)
+    ? raw.addons.map(sanitizeAddon).filter((a): a is CartAddon => Boolean(a))
+    : [];
+  const remocoes = Array.isArray(raw.remocoes)
+    ? raw.remocoes.map((r) => toSafeString(r).trim()).filter(Boolean)
+    : [];
+  const comboRole =
+    raw.comboRole === "burger" || raw.comboRole === "side" || raw.comboRole === "beverage"
+      ? raw.comboRole
+      : "";
+  const line: NewCartItem = {
+    productId,
+    productName: toSafeString(raw.productName, toSafeString(raw.name, "Produto")),
+    categorySlug: toSafeString(raw.categorySlug),
+    comboRole,
+    name: toSafeString(raw.name, toSafeString(raw.productName, "Produto")),
+    size,
+    addons,
+    secondFlavor,
+    remocoes,
+    unitPrice: Math.max(0, toFiniteNumber(raw.unitPrice, 0)),
+    image_url: toSafeString(raw.image_url),
+  };
+  const quantity = Math.max(1, Math.floor(toFiniteNumber(raw.quantity, 1)));
+  return {
+    ...line,
+    lineId: toSafeString(raw.lineId, makeLineId(line)),
+    quantity,
+  };
+}
+
+function sanitizeNewCartItem(line: NewCartItem): NewCartItem {
+  const sanitized = sanitizeCartItem({ ...line, quantity: 1 });
+  if (!sanitized) return line;
+  const { lineId: _lineId, quantity: _quantity, ...cleanLine } = sanitized;
+  return cleanLine;
+}
+
 export function makeLineId(line: NewCartItem): string {
   const addonKey = [...line.addons]
     .map((a) => `${a.name}:${a.price}x${a.quantity ?? 1}`)
@@ -91,7 +155,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setItems(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const restored = Array.isArray(parsed)
+          ? parsed.map(sanitizeCartItem).filter((i): i is CartItem => Boolean(i))
+          : [];
+        setItems(restored);
+      }
     } catch {
       // ignore corrupt storage
     } finally {
@@ -111,17 +181,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, hydrated]);
 
   const addLine = useCallback((line: NewCartItem, quantity = 1) => {
-    const lineId = makeLineId(line);
+    const safeLine = sanitizeNewCartItem(line);
+    const safeQuantity = Math.max(1, Math.floor(toFiniteNumber(quantity, 1)));
+    const lineId = makeLineId(safeLine);
     setItems((prev) => {
       const existing = prev.find((i) => i.lineId === lineId);
       if (existing) {
         return prev.map((i) =>
           i.lineId === lineId
-            ? { ...i, quantity: i.quantity + quantity }
+            ? { ...i, quantity: i.quantity + safeQuantity }
             : i,
         );
       }
-      return [...prev, { ...line, lineId, quantity }];
+      return [...prev, { ...safeLine, lineId, quantity: safeQuantity }];
     });
   }, []);
 
