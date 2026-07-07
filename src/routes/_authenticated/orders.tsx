@@ -143,8 +143,8 @@ function OrdersPage() {
               </article>
             ))}
           </div>
-        </main>
-      </div>
-    </div>
+          </main>
+        </ShellBody>
+    </AppShell>
   );
 }
