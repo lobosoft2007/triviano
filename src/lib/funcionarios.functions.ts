@@ -1,0 +1,93 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+async function assertAdmin(context: {
+  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> };
+  userId: string;
+}) {
+  const { data, error } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (error) throw new Error("Não foi possível validar suas permissões.");
+  if (!data) throw new Error("Acesso restrito. Apenas administradores.");
+}
+
+/** Admin cria uma conta de funcionário e vincula a um nível de acesso. */
+export const createFuncionario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        full_name: z.string().min(1),
+        nivel_id: z.string().uuid(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+
+    const { data: prof } = await context.supabase
+      .from("profiles")
+      .select("empresa_id")
+      .eq("id", context.userId)
+      .single();
+    const empresa_id = (prof as { empresa_id?: string } | null)?.empresa_id;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: { full_name: data.full_name, empresa_id },
+    });
+    if (error) throw new Error(error.message);
+    const uid = created.user?.id;
+    if (!uid) throw new Error("Falha ao criar o funcionário.");
+
+    const { error: upErr } = await supabaseAdmin
+      .from("profiles")
+      .update({ nivel_id: data.nivel_id, empresa_id, full_name: data.full_name })
+      .eq("id", uid);
+    if (upErr) throw new Error(upErr.message);
+
+    return { id: uid };
+  });
+
+/** Admin remove definitivamente a conta de um funcionário da sua empresa. */
+export const deleteFuncionario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ user_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+
+    const { data: adminProf } = await context.supabase
+      .from("profiles")
+      .select("empresa_id")
+      .eq("id", context.userId)
+      .single();
+    const adminEmpresa = (adminProf as { empresa_id?: string } | null)?.empresa_id;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: target } = await supabaseAdmin
+      .from("profiles")
+      .select("empresa_id, nivel_id")
+      .eq("id", data.user_id)
+      .single();
+    const targetRow = target as { empresa_id?: string; nivel_id?: string | null } | null;
+    if (!targetRow || targetRow.empresa_id !== adminEmpresa) {
+      throw new Error("Funcionário não encontrado nesta empresa.");
+    }
+    if (!targetRow.nivel_id) {
+      throw new Error("Este usuário não é um funcionário.");
+    }
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
