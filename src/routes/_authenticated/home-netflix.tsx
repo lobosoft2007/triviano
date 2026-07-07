@@ -151,7 +151,7 @@ function HomeNetflixPage() {
           </div>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }
 
