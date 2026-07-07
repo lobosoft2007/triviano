@@ -589,6 +589,7 @@ function BalcaoPaymentDialog({
   estimatedTotal,
   userId,
   onPaid,
+  afterFinalize,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -596,6 +597,8 @@ function BalcaoPaymentDialog({
   estimatedTotal: number;
   userId: string;
   onPaid: () => void;
+  /** Runs after settlement (prints senha + production coupons / KDS routing). */
+  afterFinalize: (orderId: string) => Promise<void>;
 }) {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
