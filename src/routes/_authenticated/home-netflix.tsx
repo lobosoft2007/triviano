@@ -103,7 +103,7 @@ function HomeNetflixPage() {
               />
             );
           })}
-      </main>
+      </ShellBody>
 
       {/* Details modal */}
       <DetailModal
