@@ -15,6 +15,7 @@ import { formatBRL } from "@/lib/format";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
