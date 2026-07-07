@@ -450,7 +450,8 @@ function PerfilPage() {
             </Button>
           </div>
         )}
-      </main>
-    </div>
+        </main>
+      </ShellBody>
+    </AppShell>
   );
 }
