@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -24,10 +25,18 @@ import { formatBRL } from "@/lib/format";
 import {
   fetchBalcaoData,
   fetchOrderTotal,
+  fetchOrderSenha,
   type BalcaoProduct,
 } from "@/lib/balcao";
 import type { Category, Product } from "@/lib/menu";
 import { makeLineId, type NewCartItem } from "@/lib/cart";
+import {
+  fetchPrinters,
+  fetchCategoriesRouting,
+  makeSectorResolver,
+  type ResolvedSector,
+} from "@/lib/printers";
+import { empresaAdminConfigQueryOptions } from "@/lib/empresa";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductCustomizer } from "@/components/ProductCustomizer";
 import { usePixPayment } from "@/hooks/usePixPayment";
