@@ -50,6 +50,7 @@ import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { usePermissions, canEnterCaixa, type MyPermissions } from "@/lib/permissions";
 import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
