@@ -81,6 +81,9 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         modo_fundo: (data.modo_fundo as ModoFundo) ?? DEFAULT_BRAND_THEME.modo_fundo,
         percentual_cashback: 5,
         cashback_ativo: true,
+        monitor_cozinha: data.monitor_cozinha ?? false,
+        monitor_bar: data.monitor_bar ?? false,
+        monitor_pizzaria: data.monitor_pizzaria ?? false,
       }
     : {
         id: DEFAULT_EMPRESA_ID,
