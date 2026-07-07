@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/_authenticated/home-netflix")({
   component: HomeNetflixPage,
