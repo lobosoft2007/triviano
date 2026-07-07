@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useState, type MouseEvent } from "react";
 import { toast } from "sonner";
 import {
   ShoppingBag,
@@ -37,11 +36,10 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     decrement,
     removeItem,
   } = useCart();
-  const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
 
-  async function handleCheckout() {
+  function handleCheckoutClick(event: MouseEvent<HTMLAnchorElement>) {
     try {
       const sessionUser = user ?? null;
       const sessionLoading = Boolean(loading);
@@ -51,10 +49,12 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         : [];
 
       if (safeItems.length === 0) {
+        event.preventDefault();
         toast.error("Adicione ao menos um item antes de finalizar.");
         return;
       }
       if (sessionLoading) {
+        event.preventDefault();
         toast.info("Carregando sua sessão. Tente novamente em instantes.");
         return;
       }
@@ -69,15 +69,12 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         }
         toast.error("Faça login para finalizar o pedido.");
         console.log("[CHECKOUT] Redirecionando para autenticação");
-        setOpen(false);
-        await navigate({ to: "/auth" });
         return;
       }
 
       console.log("[CHECKOUT] Redirecionando para pagamento");
-      setOpen(false);
-      await navigate({ to: "/checkout" });
     } catch (error) {
+      event.preventDefault();
       const message = error instanceof Error ? error.message : String(error);
       console.error("ERRO CRÍTICO NO CARRINHO:", error);
       toast.error(`ERRO CRÍTICO NO CARRINHO: ${message}`);
@@ -89,7 +86,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
         side="bottom"
-        className="mx-auto flex h-[85vh] max-w-md flex-col rounded-t-3xl p-0"
+        className="mx-auto flex max-h-[85dvh] max-w-md flex-col rounded-t-3xl p-0"
       >
         <SheetHeader className="border-b border-border px-5 py-4">
           <SheetTitle className="font-display text-xl">
@@ -234,14 +231,15 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   {formatBRL(totalPrice)}
                 </span>
               </div>
-              <Button
-                size="lg"
-                className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base"
-                disabled={items.length === 0}
-                onClick={handleCheckout}
-              >
-                Finalizar pedido
-                <ArrowRight className="h-5 w-5" />
+              <Button asChild size="lg" className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base">
+                <a
+                  href={user ? "/checkout" : "/auth"}
+                  aria-disabled={items.length === 0}
+                  onClick={handleCheckoutClick}
+                >
+                  Finalizar pedido
+                  <ArrowRight className="h-5 w-5" />
+                </a>
               </Button>
             </div>
           </>
