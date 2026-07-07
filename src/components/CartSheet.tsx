@@ -85,7 +85,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
         side="bottom"
