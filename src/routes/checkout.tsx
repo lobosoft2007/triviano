@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
-export const Route = createFileRoute("/_authenticated/checkout")({
+export const Route = createFileRoute("/checkout")({
   ssr: false,
   beforeLoad: async () => {
     const { supabase } = await import("@/integrations/supabase/client");
