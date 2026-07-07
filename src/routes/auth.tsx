@@ -71,32 +71,35 @@ function AuthPage() {
 
   type LandingPath = "/" | "/checkout" | "/caixa" | "/admin";
 
+  const sanitizeLandingPath = (path: string | null): LandingPath | null => {
+    if (!path) return null;
+    if (path.includes("/admin")) return "/admin";
+    if (path.includes("/caixa")) return "/caixa";
+    if (path.includes("/checkout")) return "/checkout";
+    if (path === "/" || path.includes("/menu") || path.includes("/cardapio")) return "/";
+    return null;
+  };
+
   const readSavedLanding = (): LandingPath | null => {
     try {
       const saved = sessionStorage.getItem("post_login_redirect");
-      if (saved === "/checkout" || saved === "/caixa" || saved === "/admin" || saved === "/") {
-        return saved;
-      }
+      return sanitizeLandingPath(saved);
     } catch {
       /* ignore storage errors */
     }
     return null;
   };
 
-  // Route context wins over role. A login started from the PWA stays in the PWA;
-  // a login started from Caixa/Admin returns there. Role fallback only applies
-  // when /auth was opened directly with no saved origin.
-  const resolveLanding = async (): Promise<LandingPath> => {
+  // Route context is the only post-login authority. Never send a customer or
+  // admin to Caixa just because of their role; only a Caixa-origin login returns there.
+  const resolveLanding = (): LandingPath => {
     const saved = readSavedLanding();
     if (saved) return saved;
 
-    try {
-      const { data } = await supabase.rpc("get_my_permissions");
-      const row = Array.isArray(data) ? data[0] : data;
-      if (row && (row.is_admin || row.is_funcionario)) return "/caixa";
-    } catch {
-      // fall through to client landing
-    }
+    const currentPath = typeof window === "undefined" ? null : window.location.pathname;
+    const current = sanitizeLandingPath(currentPath);
+    if (current) return current;
+
     return "/";
   };
 
@@ -111,12 +114,11 @@ function AuthPage() {
   useEffect(() => {
     if (loading || !user) return;
     let active = true;
-    resolveLanding().then((to) => {
-      if (active) {
-        clearSavedLanding();
-        navigate({ to, replace: true });
-      }
-    });
+    const to = resolveLanding();
+    if (active) {
+      clearSavedLanding();
+      navigate({ to, replace: true });
+    }
     return () => {
       active = false;
     };
@@ -149,7 +151,7 @@ function AuthPage() {
       return;
     }
     toast.success("Bem-vindo de volta!");
-    const to = await resolveLanding();
+    const to = resolveLanding();
     clearSavedLanding();
     navigate({ to, replace: true });
   }
@@ -248,7 +250,7 @@ function AuthPage() {
       return;
     }
     toast.success("E-mail confirmado! Bem-vindo ao Clube 23.");
-    const to = await resolveLanding();
+    const to = resolveLanding();
     clearSavedLanding();
     navigate({ to, replace: true });
   }

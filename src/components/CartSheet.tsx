@@ -37,12 +37,16 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     removeItem,
   } = useCart();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   function handleCheckout() {
     try {
       if (!canCheckout) {
         toast.error("Revise as regras do pedido antes de finalizar.");
+        return;
+      }
+      if (loading) {
+        toast.info("Carregando sua sessão. Tente novamente em instantes.");
         return;
       }
       if (!user) {
