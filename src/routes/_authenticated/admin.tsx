@@ -615,7 +615,7 @@ function AdminPage() {
         <ShieldAlert className="h-10 w-10 text-muted-foreground" />
         <div>
           <h1 className="font-display text-lg font-bold">Acesso restrito</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Esta área é exclusiva para administradores.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Seu nível de acesso não permite abrir a Retaguarda. Fale com o administrador da empresa.</p>
         </div>
       </div>
     );
