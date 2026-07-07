@@ -182,9 +182,9 @@ function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-md">
-        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/90 px-5 py-3.5 backdrop-blur-md">
+    <AppShell>
+        <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
+          <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 py-3.5">
           <Link
             to="/"
             aria-label="Voltar à início"
