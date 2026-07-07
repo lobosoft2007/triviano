@@ -86,7 +86,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
         side="bottom"
-        className="mx-auto flex h-[85vh] max-w-md flex-col rounded-t-3xl p-0"
+        className="mx-auto flex max-h-[85dvh] max-w-md flex-col rounded-t-3xl p-0"
       >
         <SheetHeader className="border-b border-border px-5 py-4">
           <SheetTitle className="font-display text-xl">
