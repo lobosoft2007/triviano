@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
@@ -20,19 +20,6 @@ import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/checkout")({
   ssr: false,
-  beforeLoad: async () => {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
-      try {
-        sessionStorage.setItem("post_login_redirect", "/checkout");
-      } catch {
-        /* ignore storage errors */
-      }
-      throw redirect({ to: "/auth" });
-    }
-    return { user: data.user };
-  },
   errorComponent: CheckoutError,
   component: CheckoutPage,
 });
