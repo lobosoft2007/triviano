@@ -367,6 +367,30 @@ export type Database = {
         }
         Relationships: []
       }
+      contadores_senha: {
+        Row: {
+          contador: number
+          created_at: string
+          dia: string
+          empresa_id: string
+          updated_at: string
+        }
+        Insert: {
+          contador?: number
+          created_at?: string
+          dia: string
+          empresa_id: string
+          updated_at?: string
+        }
+        Update: {
+          contador?: number
+          created_at?: string
+          dia?: string
+          empresa_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contas_financeiras: {
         Row: {
           ativo: boolean
@@ -535,6 +559,9 @@ export type Database = {
           logotipo_url: string
           logradouro: string
           modo_fundo: string
+          monitor_bar: boolean
+          monitor_cozinha: boolean
+          monitor_pizzaria: boolean
           nome_fantasia: string
           numero: string
           percentual_cashback: number
@@ -557,6 +584,9 @@ export type Database = {
           logotipo_url?: string
           logradouro?: string
           modo_fundo?: string
+          monitor_bar?: boolean
+          monitor_cozinha?: boolean
+          monitor_pizzaria?: boolean
           nome_fantasia?: string
           numero?: string
           percentual_cashback?: number
@@ -579,6 +609,9 @@ export type Database = {
           logotipo_url?: string
           logradouro?: string
           modo_fundo?: string
+          monitor_bar?: boolean
+          monitor_cozinha?: boolean
+          monitor_pizzaria?: boolean
           nome_fantasia?: string
           numero?: string
           percentual_cashback?: number
@@ -1538,6 +1571,8 @@ export type Database = {
           numero_mesa: number | null
           observacoes_operador: string
           phone: string
+          senha: string | null
+          senha_diaria: number | null
           status: string
           status_pedido: string
           tipo_atendimento: Database["public"]["Enums"]["attendance_type"]
@@ -1559,6 +1594,8 @@ export type Database = {
           numero_mesa?: number | null
           observacoes_operador?: string
           phone?: string
+          senha?: string | null
+          senha_diaria?: number | null
           status?: string
           status_pedido?: string
           tipo_atendimento?: Database["public"]["Enums"]["attendance_type"]
@@ -1580,6 +1617,8 @@ export type Database = {
           numero_mesa?: number | null
           observacoes_operador?: string
           phone?: string
+          senha?: string | null
+          senha_diaria?: number | null
           status?: string
           status_pedido?: string
           tipo_atendimento?: Database["public"]["Enums"]["attendance_type"]
@@ -2259,6 +2298,9 @@ export type Database = {
           logotipo_url: string
           logradouro: string
           modo_fundo: string
+          monitor_bar: boolean
+          monitor_cozinha: boolean
+          monitor_pizzaria: boolean
           nome_fantasia: string
           numero: string
           percentual_cashback: number
@@ -2427,6 +2469,15 @@ export type Database = {
         Returns: {
           esgotado: boolean
           id: string
+        }[]
+      }
+      get_painel_retirada: {
+        Args: { _empresa_id?: string }
+        Returns: {
+          created_at: string
+          senha: string
+          senha_diaria: number
+          status_pedido: string
         }[]
       }
       get_patrimonio_estoque: { Args: never; Returns: number }
