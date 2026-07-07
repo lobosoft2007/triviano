@@ -775,6 +775,14 @@ function BalcaoPaymentDialog({
       await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
       await queryClient.invalidateQueries({ queryKey: ["balcao-data"] });
 
+      // Print the customer pickup password + route production to KDS/printers
+      // according to the per-sector monitor switches. Never blocks the sale.
+      try {
+        await afterFinalize(orderId);
+      } catch (e) {
+        console.error("[balcao] afterFinalize (senha/impressão)", e);
+      }
+
       const trocoMsg = trocoTotal > 0 ? ` · Troco ${formatBRL(trocoTotal)}` : "";
       toast.success(`Venda finalizada · ${formatBRL(serverTotal)}${trocoMsg}`);
       onPaid();
