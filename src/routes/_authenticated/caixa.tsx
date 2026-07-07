@@ -148,8 +148,10 @@ function playBeep() {
 
 function CaixaPage() {
   const { user } = useAuth();
-  const { data: isAdmin, isLoading: roleLoading } = useIsAdmin(user?.id);
+  const { data: perms, isLoading: permLoading } = usePermissions();
   const { data: empresa } = useQuery(empresaQueryOptions);
+
+  const allowed = canEnterCaixa(perms);
 
   useEffect(() => {
     if (empresa?.nome_fantasia) RESTAURANT = empresa.nome_fantasia;
@@ -158,10 +160,10 @@ function CaixaPage() {
   const { data: caixa, isLoading: caixaLoading } = useQuery({
     queryKey: ["caixa-open"],
     queryFn: fetchOpenCaixa,
-    enabled: isAdmin === true,
+    enabled: allowed,
   });
 
-  if (roleLoading || (isAdmin && caixaLoading)) {
+  if (permLoading || (allowed && caixaLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -169,19 +171,23 @@ function CaixaPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!allowed) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-6 text-center">
         <ShieldAlert className="h-10 w-10 text-destructive" />
         <h1 className="font-display text-xl font-bold">Acesso restrito</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          O painel CAIXA é exclusivo para operadores autorizados.
+          Seu nível de acesso não permite abrir o painel CAIXA. Fale com o administrador da empresa.
         </p>
       </div>
     );
   }
 
-  return caixa ? <OperationalPanel caixaId={caixa.id} /> : <LockScreen userId={user!.id} />;
+  return caixa ? (
+    <OperationalPanel caixaId={caixa.id} perms={perms!} />
+  ) : (
+    <LockScreen userId={user!.id} />
+  );
 }
 
 /* ------------------------------------------------------------------ */
