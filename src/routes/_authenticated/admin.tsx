@@ -27,6 +27,8 @@ import {
   Users,
   Wallet,
   ClipboardCheck,
+  UserCog,
+  ShieldCheck,
 } from "lucide-react";
 
 import { toast } from "sonner";
