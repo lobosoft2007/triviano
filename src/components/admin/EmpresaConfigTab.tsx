@@ -116,6 +116,9 @@ export function EmpresaConfigTab() {
         estado: form.estado.trim().toUpperCase(),
         percentual_cashback: pctCashback,
         cashback_ativo: form.cashback_ativo,
+        monitor_cozinha: form.monitor_cozinha,
+        monitor_bar: form.monitor_bar,
+        monitor_pizzaria: form.monitor_pizzaria,
       });
 
       toast.success("Configurações da empresa salvas!");
