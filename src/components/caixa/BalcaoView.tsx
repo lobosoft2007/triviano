@@ -86,6 +86,25 @@ function quickLineFrom(p: BalcaoProduct): NewCartItem {
   };
 }
 
+/**
+ * Decide whether a resolved sector should be routed to a digital KDS monitor
+ * (true) or print a physical production coupon (false), based on the company's
+ * hybrid switches (Cozinha / Bar / Pizzaria).
+ */
+function sectorUsesMonitor(
+  sectorName: string,
+  flags:
+    | { monitor_cozinha: boolean; monitor_bar: boolean; monitor_pizzaria: boolean }
+    | undefined,
+): boolean {
+  if (!flags) return false;
+  const n = norm(sectorName);
+  if (n.includes("pizza")) return flags.monitor_pizzaria;
+  if (n.includes("bar")) return flags.monitor_bar;
+  if (n.includes("cozinha") || n.includes("kitchen")) return flags.monitor_cozinha;
+  return false;
+}
+
 export function BalcaoView() {
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
