@@ -32,7 +32,7 @@ export interface ResolvedScope {
 }
 
 /** Apex/host da holding Triviano (o "Banco 1" mora em outro projeto). */
-const TRIVIANO_APEX = ["triviano.com.br", "usetriviano.com"];
+const TRIVIANO_APEX = ["triviano.com.br"];
 
 /** Hosts de desenvolvimento/preview onde não há subdomínio real de escopo. */
 function isDevOrPreviewHost(host: string): boolean {
