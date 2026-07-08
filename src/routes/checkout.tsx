@@ -78,7 +78,6 @@ function CheckoutPage() {
   const {
     items,
     hydrated,
-    userId: cartUserId,
     subtotal,
     discount,
     appliedCombos,
@@ -122,18 +121,7 @@ function CheckoutPage() {
 
   const { data: empresa } = useQuery(empresaConfigQueryOptions);
 
-  // === AUDITORIA CRÍTICA (Multi-Tenant) ===
-  // Confirma, no momento do checkout, DE QUEM é o carrinho e o produto.
-  // Roda sempre que o usuário, o carrinho ou o tenant resolvido mudam.
-  useEffect(() => {
-    console.log("[AUDITORIA] UserID Logado no Supabase:", user?.id);
-    console.log("[AUDITORIA] UserID vinculado ao Carrinho:", cartUserId);
-    console.log(
-      "[AUDITORIA CRÍTICA] Empresa_id detectado no item do carrinho:",
-      (items[0] as { empresa_id?: string } | undefined)?.empresa_id,
-    );
-    console.log("[AUDITORIA CRÍTICA] Tenant Atual da Sessão:", empresa?.id);
-  }, [user?.id, cartUserId, items, empresa?.id]);
+
 
 
 
@@ -206,7 +194,6 @@ function CheckoutPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    console.log("[CHECKOUT] 📤 handleSubmit iniciado", { canCheckout, tipo });
     if (!canCheckout) {
       toast.error("Revise as regras do pedido antes de finalizar.");
       return;
@@ -265,7 +252,6 @@ function CheckoutPage() {
       /* availability is best-effort; never block checkout on its failure */
     }
     try {
-      console.log("[CHECKOUT] 🚀 chamando placeOrder…", { total: finalTotal });
       await placeOrder({
         userId: user.id,
         items: safeItems,
@@ -278,7 +264,6 @@ function CheckoutPage() {
         numeroMesa: mesaNumber,
         cashbackUsed: cashbackApplied,
       });
-      console.log("[CHECKOUT] ✅ placeOrder concluído com sucesso");
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Pedido realizado com sucesso!");
@@ -299,15 +284,7 @@ function CheckoutPage() {
   // While the session or the cart is still settling, show a stable loader
   // instead of rendering (and then tearing down) the payment screen. This
   // prevents the "QR flashes for a few seconds then disappears" behaviour.
-  console.log("[CHECKOUT] render →", {
-    authLoading,
-    hydrated,
-    hasUser: !!user,
-    itemCount: safeItems.length,
-    finalTotal,
-  });
   if (authLoading || !hydrated || !user) {
-    console.log("[CHECKOUT] 🌀 render LOADER (aguardando sessão/carrinho)");
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
@@ -335,7 +312,6 @@ function CheckoutPage() {
   // nothing to pay for, guide the customer back to the menu instead of
   // silently redirecting them.
   if (safeItems.length === 0) {
-    console.warn("[CHECKOUT] 🧺 render CARRINHO VAZIO");
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
@@ -366,7 +342,6 @@ function CheckoutPage() {
     );
   }
 
-  console.log("[CHECKOUT] ✅ render TELA DE PAGAMENTO (QR + formulário)");
   return (
 
     <AppShell>
