@@ -37,6 +37,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     removeItem,
   } = useCart();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   function handleCheckoutClick(event: MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();
@@ -50,14 +51,21 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Client-side navigation (NOT window.location.href). A full page reload
+      // races with the modal history guard: closing the Sheet fires
+      // history.back() while the guard still sees its synthetic entry on top,
+      // which cancels the in-flight navigation and dumps the user back on "/".
+      // Router navigation pushes the /checkout entry first, so the guard sees a
+      // new route on top and skips the back(), letting checkout open reliably.
+      void navigate({ to: "/checkout" });
       setOpen(false);
-      window.location.href = "/checkout";
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error("ERRO CRÍTICO NO CARRINHO:", error);
       toast.error(`ERRO CRÍTICO NO CARRINHO: ${message}`);
     }
   }
+
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
