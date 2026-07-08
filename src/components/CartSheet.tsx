@@ -56,13 +56,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         ? items.filter((item) => item && typeof item === "object")
         : [];
 
-      // [AUDITORIA] O carrinho é anônimo (persistido em localStorage) e NÃO
-      // carrega userId próprio — por isso `cart.userId` é sempre undefined hoje.
-      const cartUserId = (items as unknown as { userId?: string }).userId;
-      console.log("[AUDITORIA] UserID Logado no Supabase:", sessionUser?.id);
-      console.log("[AUDITORIA] UserID vinculado ao Carrinho:", cartUserId);
-      console.log("[AUDITORIA] Itens no Carrinho:", items);
-      console.log("[AUDITORIA] O Carrinho possui UserID? ", !!cartUserId);
+
 
 
 
