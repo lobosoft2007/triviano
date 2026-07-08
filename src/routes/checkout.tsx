@@ -122,6 +122,21 @@ function CheckoutPage() {
 
   const { data: empresa } = useQuery(empresaConfigQueryOptions);
 
+  // === AUDITORIA CRÍTICA (Multi-Tenant) ===
+  // Confirma, no momento do checkout, DE QUEM é o carrinho e o produto.
+  // Roda sempre que o usuário, o carrinho ou o tenant resolvido mudam.
+  useEffect(() => {
+    console.log("[AUDITORIA] UserID Logado no Supabase:", user?.id);
+    console.log("[AUDITORIA] UserID vinculado ao Carrinho:", cartUserId);
+    console.log(
+      "[AUDITORIA CRÍTICA] Empresa_id detectado no item do carrinho:",
+      (items[0] as { empresa_id?: string } | undefined)?.empresa_id,
+    );
+    console.log("[AUDITORIA CRÍTICA] Tenant Atual da Sessão:", empresa?.id);
+  }, [user?.id, cartUserId, items, empresa?.id]);
+
+
+
   // Taxa de serviço aplicada automaticamente em pedidos presenciais (mesa).
   const serviceRate = empresa?.taxa_servico_mesa ?? 0;
   const serviceFee =
