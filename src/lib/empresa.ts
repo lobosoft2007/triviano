@@ -195,6 +195,7 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     logotipo_url: row?.logotipo_url ?? "/logo.png",
     taxa_servico_mesa: Number(row?.taxa_servico_mesa ?? 0),
     dominio_customizado: row?.dominio_customizado ?? null,
+    subdominio: null,
     cep: row?.cep ?? "",
     logradouro: row?.logradouro ?? "",
     numero: row?.numero ?? "",
