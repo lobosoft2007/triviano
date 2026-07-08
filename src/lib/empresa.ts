@@ -13,6 +13,8 @@ export interface Empresa {
   logotipo_url: string;
   taxa_servico_mesa: number;
   dominio_customizado: string | null;
+  /** Tenant subdomain slug registered for this company (multi-tenant guard). */
+  subdominio: string | null;
   cep: string;
   logradouro: string;
   numero: string;
