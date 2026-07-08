@@ -153,23 +153,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const previousPathname = useRef<string | null>(null);
 
-  useEffect(() => {
-    const previous = previousPathname.current;
-    console.log("[ROUTER] rota atual →", { previous, current: pathname });
-    if (previous === "/checkout" && pathname !== "/checkout") {
-      console.warn("[CHECKOUT] 🚫 Expulso do Checkout por: mudança global de rota", {
-        from: previous,
-        to: pathname,
-      });
-      toast.error(`Expulso do Checkout por: mudança global de rota para ${pathname}`, {
-        duration: 12000,
-      });
-    }
-    previousPathname.current = pathname;
-  }, [pathname]);
+
 
   useEffect(() => {
     // Supabase emits an auth event during its async session recovery
