@@ -153,14 +153,24 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    // Supabase re-emits SIGNED_IN on every token refresh and tab focus, not
+    // only on a real login. Reacting to each echo triggered a global
+    // router + query invalidation a few seconds after any page load, which
+    // caused screens like /checkout to churn and appear to "reset". Only act
+    // when the authenticated user identity actually changes.
+    let lastUserId: string | null = null;
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED")
         return;
+      const nextUserId = session?.user?.id ?? null;
+      if (event === "SIGNED_IN" && nextUserId === lastUserId) return;
+      lastUserId = nextUserId;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
     return () => sub.subscription.unsubscribe();
   }, [router, queryClient]);
+
 
   return (
     <QueryClientProvider client={queryClient}>

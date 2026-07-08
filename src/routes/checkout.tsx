@@ -164,15 +164,13 @@ function CheckoutPage() {
     }
   }, [authLoading, user, navigate]);
 
-  useEffect(() => {
-    // Only bounce back to the menu once the cart has actually been restored
-    // from storage. Redirecting during the transient empty state was making
-    // checkout "flash" and return to the cart without any message.
-    if (authLoading || !user) return;
-    if (hydrated && safeItems.length === 0 && !submitting) {
-      navigate({ to: "/", replace: true });
-    }
-  }, [authLoading, user, hydrated, safeItems.length, submitting, navigate]);
+  // NOTE: we deliberately do NOT auto-navigate to "/" when the cart looks
+  // empty. That silent redirect used to fire during transient states (cart
+  // re-hydration or a Supabase auth refresh that invalidates queries a few
+  // seconds after mount), making the payment screen "flash" and dump the user
+  // back home with no message. Instead we render a loading state until the
+  // cart is restored and only then show a friendly empty state (see below).
+
 
   async function copyPix() {
     const ok = await copyPixPayload();
@@ -273,7 +271,69 @@ function CheckoutPage() {
     }
   }
 
+  // While the session or the cart is still settling, show a stable loader
+  // instead of rendering (and then tearing down) the payment screen. This
+  // prevents the "QR flashes for a few seconds then disappears" behaviour.
+  if (authLoading || !hydrated || !user) {
+    return (
+      <AppShell>
+        <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
+          <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 py-3.5">
+            <Link
+              to="/"
+              aria-label="Voltar à início"
+              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <h1 className="font-display text-xl font-bold">Finalizar pedido</h1>
+          </div>
+        </ShellHeader>
+        <ShellBody>
+          <div className="flex flex-1 items-center justify-center py-20 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        </ShellBody>
+      </AppShell>
+    );
+  }
+
+  // Cart is restored and the user is authenticated: if there is genuinely
+  // nothing to pay for, guide the customer back to the menu instead of
+  // silently redirecting them.
+  if (safeItems.length === 0) {
+    return (
+      <AppShell>
+        <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
+          <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 py-3.5">
+            <Link
+              to="/"
+              aria-label="Voltar à início"
+              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <h1 className="font-display text-xl font-bold">Finalizar pedido</h1>
+          </div>
+        </ShellHeader>
+        <ShellBody>
+          <main className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center gap-4 px-5 py-16 text-center">
+            <p className="text-sm text-muted-foreground">
+              Seu carrinho está vazio.
+              <br />
+              Adicione itens do cardápio para finalizar o pedido.
+            </p>
+            <Button asChild size="lg" className="h-12 rounded-2xl">
+              <Link to="/">Voltar ao cardápio</Link>
+            </Button>
+          </main>
+        </ShellBody>
+      </AppShell>
+    );
+  }
+
   return (
+
     <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
           <div className="mx-auto flex w-full max-w-md items-center gap-3 px-5 py-3.5">
