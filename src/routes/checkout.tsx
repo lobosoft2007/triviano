@@ -200,6 +200,17 @@ function CheckoutPage() {
     }
   }, [authLoading, hydrated, user, safeItems.length, navigate, reportCheckoutExpulsion]);
 
+  useEffect(() => {
+    if (authLoading || !hydrated || !user) return;
+    if (safeItems.length === 0) {
+      reportCheckoutExpulsion("carrinho vazio após hidratação", {
+        authLoading,
+        hydrated,
+        itemCount: safeItems.length,
+      });
+    }
+  }, [authLoading, hydrated, user, safeItems.length, reportCheckoutExpulsion]);
+
   // NOTE: we deliberately do NOT auto-navigate to "/" when the cart looks
   // empty. That silent redirect used to fire during transient states (cart
   // re-hydration or a Supabase auth refresh that invalidates queries a few
