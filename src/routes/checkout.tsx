@@ -366,6 +366,18 @@ function CheckoutPage() {
   const calculatedFinalTotal = Math.round((baseTotal - cashbackApplied) * 100) / 100;
   const finalTotal = pendingPayment?.total ?? calculatedFinalTotal;
 
+  /* ---- Conta corrente (fiado) — permissão e saldo do cliente -------------- */
+  // Espelha a trava do motor financeiro do caixa (finalize_order_paid valida o
+  // limite no servidor). Aqui garantimos que o cliente só consiga escolher
+  // "Lançar na Conta" quando está autorizado E tem crédito suficiente.
+  const fiadoAutorizado = profile?.fiado_autorizado ?? false;
+  const limiteFiado = profile?.limite_fiado ?? 0;
+  const saldoDevedorFiado = profile?.saldo_devedor_fiado ?? 0;
+  const creditoDisponivel =
+    Math.round((limiteFiado - saldoDevedorFiado) * 100) / 100;
+  const contaCorrenteDisponivel =
+    fiadoAutorizado && creditoDisponivel + 1e-9 >= finalTotal;
+
   // Forma de pagamento efetiva (ao reabrir a tela de pagamento pendente,
   // usamos o método já registrado no pedido).
   const effectivePayMethod = pendingPayment?.payMethod ?? payMethod;
