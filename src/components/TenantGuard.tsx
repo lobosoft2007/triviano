@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { useScope } from "@/hooks/useScope";
 import { empresaQueryOptions } from "@/lib/empresa";
 
@@ -19,15 +22,45 @@ import { empresaQueryOptions } from "@/lib/empresa";
 export function TenantGuard({ children }: { children: React.ReactNode }) {
   const { tenantSlug, hydrated } = useScope();
   const { data: empresa, isLoading } = useQuery(empresaQueryOptions);
+  const location = useLocation();
+  const warnedReasons = useRef(new Set<string>());
 
   const expected = empresa?.subdominio?.trim().toLowerCase() || null;
   const requested = tenantSlug?.trim().toLowerCase() || null;
+  const isCheckoutRoute = location.pathname === "/checkout";
 
   // Só bloqueia quando temos ambos os lados resolvidos e eles divergem.
   const mismatch =
     hydrated && !isLoading && requested !== null && expected !== null && requested !== expected;
 
-  console.log("[TENANT] guard →", { hydrated, isLoading, requested, expected, mismatch });
+  console.log("[TENANT] guard →", {
+    hydrated,
+    isLoading,
+    requested,
+    expected,
+    mismatch,
+    pathname: location.pathname,
+    checkoutBypass: isCheckoutRoute && mismatch,
+  });
+
+  useEffect(() => {
+    if (!mismatch) return;
+    const reason = isCheckoutRoute
+      ? "tenant divergente ignorado no checkout"
+      : "tenant divergente";
+    console.warn(`[TENANT] 🚫 Expulso do Checkout por: ${reason}`, {
+      requested,
+      expected,
+      pathname: location.pathname,
+    });
+    if (warnedReasons.current.has(reason)) return;
+    warnedReasons.current.add(reason);
+    toast.error(`Expulso do Checkout por: ${reason}`, { duration: 12000 });
+  }, [expected, isCheckoutRoute, location.pathname, mismatch, requested]);
+
+  if (isCheckoutRoute && mismatch) {
+    return <>{children}</>;
+  }
 
   if (mismatch) {
     return (
