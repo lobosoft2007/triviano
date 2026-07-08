@@ -946,6 +946,60 @@ function CheckoutPage() {
               />
             </div>
 
+            {/* Forma de pagamento */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Banknote className="h-4 w-4 text-primary" />
+                Forma de pagamento
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {PAY_METHODS.map((m) => (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setPayMethod(m.value)}
+                    className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                      payMethod === m.value
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-card"
+                    }`}
+                  >
+                    <span className="text-sm font-semibold">{m.label}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {m.hint}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {payMethod === "Dinheiro" && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="troco">Troco para quanto? (opcional)</Label>
+                  <Input
+                    id="troco"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    inputMode="decimal"
+                    value={trocoPara}
+                    onChange={(e) => setTrocoPara(e.target.value)}
+                    placeholder={`Ex: ${Math.ceil(finalTotal / 10) * 10}`}
+                    className="h-12 rounded-xl"
+                  />
+                  {trocoValido && trocoValor > 0 ? (
+                    <p className="text-xs text-success">
+                      Troco: {formatBRL(trocoValor)}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Deixe em branco se tiver o valor exato.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+
             <Button
               type="submit"
               size="lg"
