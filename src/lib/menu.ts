@@ -1,5 +1,21 @@
 import { supabase } from "@/integrations/supabase/client";
 import { resolveImageUrls } from "@/lib/storage";
+import { currentHost } from "@/lib/empresa";
+
+/**
+ * Resolve o empresa_id do endereço atual (domínio próprio ou subdomínio).
+ * Retorna null em preview/dev sem host mapeado — nesse caso o cardápio não é
+ * filtrado (comportamento single-tenant preservado, pois só há 1 empresa).
+ */
+async function resolveTenantEmpresaId(): Promise<string | null> {
+  const host = currentHost();
+  if (!host) return null;
+  const { data, error } = await supabase.rpc("resolve_empresa_id_by_host", {
+    p_host: host,
+  });
+  if (error) return null;
+  return (data as string | null) ?? null;
+}
 
 export interface PriceOption {
   tamanho: string;
