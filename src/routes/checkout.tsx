@@ -726,7 +726,7 @@ function CheckoutPage() {
             </p>
           ))}
 
-          {pendingPayment ? (
+          {pendingPayment && effectivePayMethod === "PIX" ? (
             <section className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
               <div className="mb-1 flex items-center gap-2">
                 <QrCode className="h-5 w-5 text-primary" />
@@ -781,7 +781,70 @@ function CheckoutPage() {
                 className="mt-4 h-12 w-full rounded-2xl"
                 onClick={() => {
                   clearCheckoutSnapshot();
-                  console.log("REDIRECIONAMENTO DISPARADO POR: src/routes/checkout.tsx");
+                  navigate({ to: "/", replace: true });
+                }}
+              >
+                Voltar ao cardápio
+              </Button>
+            </section>
+          ) : pendingPayment ? (
+            <section className="mb-5 rounded-2xl border border-success/30 bg-success/5 p-4">
+              <div className="mb-1 flex items-center gap-2">
+                {effectivePayMethod === "Dinheiro" ? (
+                  <Banknote className="h-5 w-5 text-success" />
+                ) : (
+                  <CreditCard className="h-5 w-5 text-success" />
+                )}
+                <h2 className="font-display text-base font-bold">
+                  Pedido confirmado!
+                </h2>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Seu pedido foi registrado na cozinha. O pagamento de{" "}
+                <span className="font-semibold text-foreground">
+                  {formatBRL(finalTotal)}
+                </span>{" "}
+                será feito{" "}
+                {tipo === "Delivery" ? "na entrega" : "na retirada"} com{" "}
+                <span className="font-semibold text-foreground">
+                  {effectivePayMethod}
+                </span>
+                .
+              </p>
+
+              {effectivePayMethod === "Dinheiro" && (
+                <p className="mt-2 rounded-xl bg-background/60 px-3 py-2 text-xs">
+                  {trocoValido ? (
+                    <>
+                      Você pediu troco para{" "}
+                      <span className="font-semibold text-foreground">
+                        {formatBRL(trocoParaNum)}
+                      </span>
+                      . Leve o valor certo — o entregador levará{" "}
+                      <span className="font-semibold text-success">
+                        {formatBRL(trocoValor)}
+                      </span>{" "}
+                      de troco.
+                    </>
+                  ) : (
+                    "Você não pediu troco. Tenha o valor exato em mãos."
+                  )}
+                </p>
+              )}
+              {(effectivePayMethod === "Cartão de Crédito" ||
+                effectivePayMethod === "Cartão de Débito") && (
+                <p className="mt-2 rounded-xl bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                  A maquininha estará disponível no momento{" "}
+                  {tipo === "Delivery" ? "da entrega" : "da retirada"}.
+                </p>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 h-12 w-full rounded-2xl"
+                onClick={() => {
+                  clearCheckoutSnapshot();
                   navigate({ to: "/", replace: true });
                 }}
               >
