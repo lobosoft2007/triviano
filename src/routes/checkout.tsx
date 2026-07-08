@@ -78,7 +78,12 @@ const CHECKOUT_SNAPSHOT_KEY = "checkout_payment_snapshot_v1";
 const CHECKOUT_PENDING_PAYMENT_KEY = "checkout_pending_payment_v1";
 const CHECKOUT_AUTH_LATCH_TTL = 30 * 60 * 1000;
 
-type PayMethod = "PIX" | "Dinheiro" | "Cartão de Crédito" | "Cartão de Débito";
+type PayMethod =
+  | "PIX"
+  | "Dinheiro"
+  | "Cartão de Crédito"
+  | "Cartão de Débito"
+  | "Conta Corrente";
 
 const PAY_METHODS: { value: PayMethod; label: string; hint: string }[] = [
   { value: "PIX", label: "PIX", hint: "QR Code na hora" },
