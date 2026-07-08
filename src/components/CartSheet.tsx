@@ -39,8 +39,15 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   } = useCart();
   const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   function handleCheckoutClick(event: MouseEvent<HTMLAnchorElement>) {
+    // Always drive navigation through the client router. A plain <a href> full
+    // reload was fragile inside the Sheet portal (coordinate-dependent clicks,
+    // stale PWA shell) and kept "swallowing" the transition. Client-side
+    // navigation also keeps the cart + auth in memory, so /checkout can never
+    // bounce back to "/" on a transient empty/hydrating state.
+    event.preventDefault();
     try {
       const sessionUser = user ?? null;
       const sessionLoading = Boolean(loading);
@@ -50,16 +57,13 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         : [];
 
       if (safeItems.length === 0) {
-        event.preventDefault();
         toast.error("Adicione ao menos um item antes de finalizar.");
         return;
       }
       if (sessionLoading) {
-        event.preventDefault();
         toast.info("Carregando sua sessão. Tente novamente em instantes.");
         return;
       }
-
 
       if (!sessionUser) {
         // Remember where the customer wanted to go so login returns them here.
@@ -70,12 +74,15 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         }
         toast.error("Faça login para finalizar o pedido.");
         console.log("[CHECKOUT] Redirecionando para autenticação");
+        setOpen(false);
+        navigate({ to: "/auth" });
         return;
       }
 
       console.log("[CHECKOUT] Redirecionando para pagamento");
+      setOpen(false);
+      navigate({ to: "/checkout" });
     } catch (error) {
-      event.preventDefault();
       const message = error instanceof Error ? error.message : String(error);
       console.error("ERRO CRÍTICO NO CARRINHO:", error);
       toast.error(`ERRO CRÍTICO NO CARRINHO: ${message}`);
