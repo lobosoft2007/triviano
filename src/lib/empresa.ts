@@ -6,6 +6,15 @@ import { DEFAULT_BRAND_THEME, type ModoFundo } from "@/lib/theme";
 /** UUID fixo da empresa raiz (Clube 23). Usado como tenant padrão. */
 export const DEFAULT_EMPRESA_ID = "00000000-0000-0000-0000-000000000023";
 
+/**
+ * Hostname atual (browser). No SSR/preview retorna "" — nesse caso o backend
+ * cai na primeira empresa ativa (retrocompatível com o modelo single-tenant).
+ */
+export function currentHost(): string {
+  if (typeof window === "undefined") return "";
+  return window.location.hostname;
+}
+
 export interface Empresa {
   id: string;
   nome_fantasia: string;
@@ -57,8 +66,12 @@ export interface EmpresaBranding extends Empresa {
 export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
   // Anonymous visitors can no longer read the empresas base table (which would
   // expose address + service fee). Public branding is served by a SECURITY
-  // DEFINER function that returns only the safe branding columns.
-  const { data: rows, error } = await supabase.rpc("get_public_branding");
+  // DEFINER function that resolves the correct tenant from the current host
+  // (custom domain OR subdomain). Falls back to the first active company when
+  // no domain matches (preview/dev), preserving single-tenant behavior.
+  const { data: rows, error } = await supabase.rpc("get_public_branding_by_host", {
+    p_host: currentHost(),
+  });
   if (error) throw error;
   const data = (rows ?? [])[0] ?? null;
 

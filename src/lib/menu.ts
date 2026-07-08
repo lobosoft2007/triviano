@@ -1,5 +1,21 @@
 import { supabase } from "@/integrations/supabase/client";
 import { resolveImageUrls } from "@/lib/storage";
+import { currentHost } from "@/lib/empresa";
+
+/**
+ * Resolve o empresa_id do endereço atual (domínio próprio ou subdomínio).
+ * Retorna null em preview/dev sem host mapeado — nesse caso o cardápio não é
+ * filtrado (comportamento single-tenant preservado, pois só há 1 empresa).
+ */
+async function resolveTenantEmpresaId(): Promise<string | null> {
+  const host = currentHost();
+  if (!host) return null;
+  const { data, error } = await supabase.rpc("resolve_empresa_id_by_host", {
+    p_host: host,
+  });
+  if (error) return null;
+  return (data as string | null) ?? null;
+}
 
 export interface PriceOption {
   tamanho: string;
@@ -75,19 +91,28 @@ export async function fetchMenu(): Promise<{
   categories: Category[];
   products: Product[];
 }> {
+  // Multi-tenant: descobre a empresa do endereço atual e escopa o cardápio.
+  const empresaId = await resolveTenantEmpresaId();
+
+  let catQuery = supabase.from("categories").select("*").order("sort_order");
+  // Client menu reads ONLY the safe public view (no cost/stock/supplier
+  // columns). The raw products table is admin-only via RLS.
+  let prodQuery = supabase
+    .from("view_products_public")
+    .select(
+      "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, eixo_variacao, empresa_id",
+    )
+    .eq("available", true)
+    .order("sort_order");
+  if (empresaId) {
+    catQuery = catQuery.eq("empresa_id", empresaId);
+    prodQuery = prodQuery.eq("empresa_id", empresaId);
+  }
+
   const [catRes, prodRes, ingRes, poRes, addRes, freeRes, availRes] =
     await Promise.all([
-      supabase.from("categories").select("*").order("sort_order"),
-      // Client menu reads ONLY the safe public view (no cost/stock/supplier
-      // columns). The raw products table is admin-only via RLS.
-      supabase
-        .from("view_products_public")
-        .select(
-          "id, category_id, name, description, price, image_url, available, sort_order, free_addon_limit, eixo_variacao, empresa_id",
-        )
-
-        .eq("available", true)
-        .order("sort_order"),
+      catQuery,
+      prodQuery,
       supabase
         .from("ingredientes_produto")
         .select("product_id, nome, permitir_exclusao, sort_order")
