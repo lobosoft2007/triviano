@@ -18,6 +18,8 @@ import {
   matchedCombos,
   type AppliedCombo,
 } from "@/lib/combos";
+import { supabase } from "@/integrations/supabase/client";
+
 
 
 export interface CartAddon {
