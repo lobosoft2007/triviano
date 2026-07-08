@@ -197,7 +197,7 @@ export type Database = {
           ativo?: boolean
           autorizado_fiado?: boolean
           created_at?: string
-          empresa_id: string
+          empresa_id?: string
           id?: string
           limite_credito?: number
           saldo_devedor_atual?: number
@@ -277,6 +277,7 @@ export type Database = {
           caminho_usb: string | null
           cor: string
           created_at: string
+          empresa_id: string
           endereco_ip: string | null
           id: string
           is_default: boolean
@@ -290,6 +291,7 @@ export type Database = {
           caminho_usb?: string | null
           cor?: string
           created_at?: string
+          empresa_id?: string
           endereco_ip?: string | null
           id?: string
           is_default?: boolean
@@ -303,6 +305,7 @@ export type Database = {
           caminho_usb?: string | null
           cor?: string
           created_at?: string
+          empresa_id?: string
           endereco_ip?: string | null
           id?: string
           is_default?: boolean
@@ -311,7 +314,22 @@ export type Database = {
           tipo_conexao?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "config_impressoras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "config_impressoras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       config_pagamentos: {
         Row: {
