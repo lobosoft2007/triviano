@@ -2616,6 +2616,7 @@ export type Database = {
           logotipo_url: string
           modo_fundo: string
           nome_fantasia: string
+          subdominio: string
         }[]
       }
       get_public_branding_by_slug: {
