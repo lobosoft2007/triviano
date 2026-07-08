@@ -51,6 +51,37 @@ const signupSchema = z
 
 type Mode = "auth" | "otp" | "forgot";
 
+const isCheckoutNeutralZone = () =>
+  typeof window !== "undefined" && window.location.pathname === "/checkout";
+
+const isAdminUser = (user: ReturnType<typeof useAuth>["user"]) => {
+  if (!user) return false;
+  const directRole = (user as { role?: string }).role;
+  const metadataRole = (user.app_metadata as { role?: string } | undefined)?.role;
+  return directRole === "admin" || metadataRole === "admin";
+};
+
+const clearCorruptedAuthStorageForCheckout = (error: unknown) => {
+  const maybeError = error as { message?: string; status?: number; code?: string } | null;
+  const message = String(maybeError?.message ?? error ?? "").toLowerCase();
+  const isRefreshToken400 =
+    maybeError?.status === 400 &&
+    (message.includes("refresh_token") || message.includes("refresh token"));
+
+  if (!isRefreshToken400 || !isCheckoutNeutralZone()) return false;
+
+  try {
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith("sb-") || key.includes("supabase") || key.includes("auth-token"))
+      .forEach((key) => localStorage.removeItem(key));
+  } catch {
+    /* ignore storage errors */
+  }
+
+  console.warn("Sessão corrompida limpa no checkout; prosseguindo como anônimo.");
+  return true;
+};
+
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -112,11 +143,14 @@ function AuthPage() {
   };
 
   useEffect(() => {
+    if (isCheckoutNeutralZone()) return;
     if (loading || !user) return;
+    if (isAdminUser(user)) return;
     let active = true;
     const to = resolveLanding();
     if (active) {
       clearSavedLanding();
+      if (to === "/checkout") return;
       if (to === "/") console.log("REDIRECIONAMENTO DISPARADO POR: src/routes/auth.tsx");
       navigate({ to, replace: true });
     }
@@ -141,6 +175,7 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
     setSubmitting(false);
     if (error) {
+      if (clearCorruptedAuthStorageForCheckout(error)) return;
       const msg = error.message.toLowerCase();
       if (msg.includes("not confirmed") || msg.includes("confirm")) {
         setPendingEmail(parsed.data.email);
