@@ -5,7 +5,6 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
 import { empresaQueryOptions, DEFAULT_EMPRESA_ID } from "@/lib/empresa";
 import { AddressFields, emptyAddress, type AddressState } from "@/components/AddressFields";
 import { geocodeAddress } from "@/lib/cep";
@@ -53,13 +52,6 @@ type Mode = "auth" | "otp" | "forgot";
 
 const isCheckoutNeutralZone = () => typeof window !== "undefined" && window.location.pathname === "/checkout";
 
-const isAdminUser = (user: ReturnType<typeof useAuth>["user"]) => {
-  if (!user) return false;
-  const directRole = (user as { role?: string }).role;
-  const metadataRole = (user.app_metadata as { role?: string } | undefined)?.role;
-  return directRole === "admin" || metadataRole === "admin";
-};
-
 const clearCorruptedAuthStorageForCheckout = (error: unknown) => {
   const maybeError = error as { message?: string; status?: number; code?: string } | null;
   const message = String(maybeError?.message ?? error ?? "").toLowerCase();
@@ -82,7 +74,6 @@ const clearCorruptedAuthStorageForCheckout = (error: unknown) => {
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { data: empresa } = useQuery(empresaQueryOptions);
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode] = useState<Mode>("auth");
