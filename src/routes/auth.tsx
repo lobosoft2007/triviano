@@ -151,9 +151,6 @@ function AuthPage() {
       return;
     }
     toast.success("Bem-vindo de volta!");
-    const to = resolveLanding();
-    clearSavedLanding();
-    navigate({ to, replace: true });
   }
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
@@ -250,9 +247,6 @@ function AuthPage() {
       return;
     }
     toast.success("E-mail confirmado! Bem-vindo ao Clube 23.");
-    const to = resolveLanding();
-    clearSavedLanding();
-    navigate({ to, replace: true });
   }
 
   async function handleResend() {

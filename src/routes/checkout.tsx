@@ -71,6 +71,32 @@ const schema = z.object({
   notes: z.string().trim().max(300).optional(),
 });
 
+const CHECKOUT_AUTH_LATCH_KEY = "checkout_auth_latch_v1";
+const CHECKOUT_AUTH_LATCH_TTL = 30 * 60 * 1000;
+
+function readCheckoutAuthLatch() {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = sessionStorage.getItem(CHECKOUT_AUTH_LATCH_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as { at?: number };
+    return typeof parsed.at === "number" && Date.now() - parsed.at < CHECKOUT_AUTH_LATCH_TTL;
+  } catch {
+    return false;
+  }
+}
+
+function writeCheckoutAuthLatch(userId: string) {
+  try {
+    sessionStorage.setItem(
+      CHECKOUT_AUTH_LATCH_KEY,
+      JSON.stringify({ userId, at: Date.now() }),
+    );
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
 function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -103,9 +129,11 @@ function CheckoutPage() {
   // "some em 0,5s") and the redirect effect below ejects the customer to
   // /auth mid-payment. The latch keeps the screen mounted through the blip;
   // AuthProvider recovers the session on its own moments later.
-  const [everAuthed, setEverAuthed] = useState(false);
+  const [everAuthed, setEverAuthed] = useState(readCheckoutAuthLatch);
   useEffect(() => {
-    if (user && !everAuthed) setEverAuthed(true);
+    if (!user) return;
+    writeCheckoutAuthLatch(user.id);
+    if (!everAuthed) setEverAuthed(true);
   }, [user, everAuthed]);
 
 
