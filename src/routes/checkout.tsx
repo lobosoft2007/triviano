@@ -312,7 +312,6 @@ function CheckoutPage() {
   // nothing to pay for, guide the customer back to the menu instead of
   // silently redirecting them.
   if (safeItems.length === 0) {
-    console.warn("[CHECKOUT] 🧺 render CARRINHO VAZIO");
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
