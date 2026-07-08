@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "@tanstack/react-router";
 import {
   minOrderShortfalls,
   subtotalOf,
@@ -19,7 +20,7 @@ import {
   matchedCombos,
   type AppliedCombo,
 } from "@/lib/combos";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 
 
@@ -94,8 +95,6 @@ const STORAGE_PREFIX = "delivery_cart_v2";
 const ANON_KEY = `${STORAGE_PREFIX}:anon`;
 const keyForUser = (uid: string) => `${STORAGE_PREFIX}:u:${uid}`;
 const storageKeyFor = (uid: string | null) => (uid ? keyForUser(uid) : ANON_KEY);
-const isCheckoutPath = () =>
-  typeof window !== "undefined" && window.location.pathname === "/checkout";
 
 function loadCart(key: string): CartItem[] {
   try {
@@ -192,6 +191,8 @@ export function makeLineId(line: NewCartItem): string {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
+  const location = useLocation();
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -200,24 +201,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // without re-subscribing on every change.
   const userIdRef = useRef<string | null>(null);
   const hydratedRef = useRef(false);
-  const pendingAnonymousRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkoutPath = location.pathname === "/checkout";
 
   // Resolve the session first, then hydrate the cart from the bucket that
   // belongs to THAT user. This is what stops user B from inheriting user A's
   // cart: each account reads/writes its own key, and switching accounts loads
   // the target account's own cart instead of carrying items over.
   useEffect(() => {
-    let active = true;
-
-    const cancelPendingAnonymous = () => {
-      if (pendingAnonymousRef.current) {
-        clearTimeout(pendingAnonymousRef.current);
-        pendingAnonymousRef.current = null;
-      }
-    };
+    if (authLoading) return;
+    const nextUid = user?.id ?? null;
 
     const applyUser = (nextUid: string | null) => {
-      if (!active) return;
       const prevUid = userIdRef.current;
 
       // First resolution: decide which bucket to hydrate from.
@@ -249,6 +243,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Same user (token refresh, tab focus): nothing to move.
       if (prevUid === nextUid) return;
 
+      // If auth drops while the customer is already on the PIX checkout, keep
+      // the visible payment/cart snapshot stable. Outside checkout, anonymous
+      // state is applied normally so logout/account switching remains isolated.
+      if (prevUid && nextUid === null && checkoutPath) return;
+
       // Anonymous → logged in: adopt whatever is currently in memory into the
       // account, unless the account already has its own saved cart.
       if (prevUid === null && nextUid) {
@@ -273,39 +272,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems(loadCart(storageKeyFor(nextUid)));
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      applyUser(data.session?.user?.id ?? null);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      const nextUid = session?.user?.id ?? null;
-      if (nextUid) {
-        cancelPendingAnonymous();
-        applyUser(nextUid);
-        return;
-      }
-
-      // Returning from a PIX/bank app may produce a short SIGNED_OUT blip.
-      // Keep the current user's cart in memory unless the session is still gone
-      // after the auth client has had time to recover it.
-      if (event === "SIGNED_OUT" && userIdRef.current && isCheckoutPath()) {
-        cancelPendingAnonymous();
-        pendingAnonymousRef.current = setTimeout(() => {
-          supabase.auth.getSession().then(({ data }) => {
-            applyUser(data.session?.user?.id ?? null);
-          });
-        }, 1500);
-        return;
-      }
-
-      cancelPendingAnonymous();
-      applyUser(null);
-    });
-    return () => {
-      active = false;
-      cancelPendingAnonymous();
-      sub.subscription.unsubscribe();
-    };
-  }, []);
+    applyUser(nextUid);
+  }, [authLoading, checkoutPath, user?.id]);
 
   useEffect(() => {
     // Never persist before the initial restore has run, otherwise the empty
