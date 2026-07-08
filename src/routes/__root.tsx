@@ -169,23 +169,17 @@ function RootComponent() {
     let lastUserId: string | null = null;
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       const nextUserId = session?.user?.id ?? null;
-      console.log("[ROOT] onAuthStateChange →", { event, nextUserId, lastUserId, initialized });
 
       if (!initialized) {
         initialized = true;
         lastUserId = nextUserId;
-        console.log("[ROOT] evento inicial (restauração de sessão) → só registra, NÃO invalida");
         return;
       }
 
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED")
         return;
-      if (nextUserId === lastUserId) {
-        console.log("[ROOT] identidade inalterada → ignorado");
-        return;
-      }
+      if (nextUserId === lastUserId) return;
       lastUserId = nextUserId;
-      console.warn("[ROOT] 🔄 invalidando router + queries por mudança REAL de identidade");
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
