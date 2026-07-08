@@ -146,6 +146,7 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     logotipo_url: row?.logotipo_url ?? "/logo.png",
     taxa_servico_mesa: Number(row?.taxa_servico_mesa ?? 0),
     dominio_customizado: row?.dominio_customizado ?? null,
+    subdominio: null,
     // Address & cashback columns are not readable by regular customers.
     cep: "",
     logradouro: "",
