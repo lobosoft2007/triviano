@@ -443,6 +443,15 @@ function CheckoutPage() {
       toast.error(parsed.error.issues[0].message);
       return;
     }
+    // Validação do troco para pagamento em dinheiro (opcional; se informado,
+    // deve ser suficiente para cobrir o total).
+    if (payMethod === "Dinheiro" && trocoPara.trim() !== "") {
+      const troco = Number(trocoPara.replace(",", "."));
+      if (!Number.isFinite(troco) || troco < finalTotal) {
+        toast.error("O valor para troco deve ser igual ou maior que o total.");
+        return;
+      }
+    }
     if (authLoading) {
       toast.info("Carregando sua sessão. Tente novamente em instantes.");
       return;
