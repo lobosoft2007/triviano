@@ -18,6 +18,8 @@ import {
   matchedCombos,
   type AppliedCombo,
 } from "@/lib/combos";
+import { supabase } from "@/integrations/supabase/client";
+
 
 
 export interface CartAddon {
@@ -56,6 +58,13 @@ interface CartContextValue {
   items: CartItem[];
   /** True once the cart has been restored from localStorage. */
   hydrated: boolean;
+  /**
+   * Id of the signed-in user this cart is bound to (null while anonymous).
+   * The cart itself lives in localStorage per device; on login we "adopt" it
+   * by stamping the current user's id so downstream code can associate the
+   * order with the right account.
+   */
+  userId: string | null;
   totalItems: number;
   subtotal: number;
   discount: number;
@@ -69,6 +78,7 @@ interface CartContextValue {
   removeItem: (lineId: string) => void;
   clear: () => void;
 }
+
 
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -151,6 +161,7 @@ export function makeLineId(line: NewCartItem): string {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -168,6 +179,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setHydrated(true);
     }
   }, []);
+
+  // Bind (adopt) the cart to the signed-in user. The cart is a per-device
+  // localStorage cart; when a session exists we stamp its owner id so any
+  // anonymous cart becomes "owned" by the logged-in user without discarding
+  // the items already added.
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (active) setUserId(data.session?.user?.id ?? null);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id ?? null);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
 
   useEffect(() => {
     // Never persist before the initial restore has run, otherwise the empty
@@ -254,6 +284,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     () => ({
       items,
       hydrated,
+      userId,
       totalItems,
       subtotal,
       discount,
@@ -270,6 +301,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [
       items,
       hydrated,
+      userId,
       totalItems,
       subtotal,
       discount,

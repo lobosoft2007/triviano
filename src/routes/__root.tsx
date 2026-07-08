@@ -12,11 +12,10 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -26,7 +25,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { BrandThemeInjector } from "@/components/BrandThemeInjector";
 import { TenantGuard } from "@/components/TenantGuard";
-import { toast } from "sonner";
 
 function NotFoundComponent() {
   return (
@@ -153,23 +151,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const previousPathname = useRef<string | null>(null);
 
-  useEffect(() => {
-    const previous = previousPathname.current;
-    console.log("[ROUTER] rota atual →", { previous, current: pathname });
-    if (previous === "/checkout" && pathname !== "/checkout") {
-      console.warn("[CHECKOUT] 🚫 Expulso do Checkout por: mudança global de rota", {
-        from: previous,
-        to: pathname,
-      });
-      toast.error(`Expulso do Checkout por: mudança global de rota para ${pathname}`, {
-        duration: 12000,
-      });
-    }
-    previousPathname.current = pathname;
-  }, [pathname]);
+
 
   useEffect(() => {
     // Supabase emits an auth event during its async session recovery
