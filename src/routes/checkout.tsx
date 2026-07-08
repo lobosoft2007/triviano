@@ -560,7 +560,9 @@ function CheckoutPage() {
       toast.success(
         payMethod === "PIX"
           ? "Pedido registrado! Agora finalize o PIX."
-          : "Pedido registrado! Confira as instruções de pagamento.",
+          : payMethod === "Conta Corrente"
+            ? "Pedido registrado e lançado na sua conta corrente!"
+            : "Pedido registrado! Confira as instruções de pagamento.",
       );
       setSubmitting(false);
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
