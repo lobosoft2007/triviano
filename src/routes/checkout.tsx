@@ -342,7 +342,6 @@ function CheckoutPage() {
     );
   }
 
-  console.log("[CHECKOUT] ✅ render TELA DE PAGAMENTO (QR + formulário)");
   return (
 
     <AppShell>
