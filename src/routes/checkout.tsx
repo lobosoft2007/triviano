@@ -164,15 +164,13 @@ function CheckoutPage() {
     }
   }, [authLoading, user, navigate]);
 
-  useEffect(() => {
-    // Only bounce back to the menu once the cart has actually been restored
-    // from storage. Redirecting during the transient empty state was making
-    // checkout "flash" and return to the cart without any message.
-    if (authLoading || !user) return;
-    if (hydrated && safeItems.length === 0 && !submitting) {
-      navigate({ to: "/", replace: true });
-    }
-  }, [authLoading, user, hydrated, safeItems.length, submitting, navigate]);
+  // NOTE: we deliberately do NOT auto-navigate to "/" when the cart looks
+  // empty. That silent redirect used to fire during transient states (cart
+  // re-hydration or a Supabase auth refresh that invalidates queries a few
+  // seconds after mount), making the payment screen "flash" and dump the user
+  // back home with no message. Instead we render a loading state until the
+  // cart is restored and only then show a friendly empty state (see below).
+
 
   async function copyPix() {
     const ok = await copyPixPayload();
