@@ -53,6 +53,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // PASSIVE PROVIDER: this listener NEVER navigates or redirects. It only
+      // reports session state (user/session/loading). Redirect decisions live
+      // exclusively in the route guards under src/routes/.
+
       // Mobile/PWA returns from a bank app can briefly emit SIGNED_OUT before
       // the stored session is recovered. Do not tear down checkout/cart on that
       // transient frame; confirm the session is still gone after a short grace.
