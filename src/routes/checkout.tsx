@@ -94,6 +94,21 @@ function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [useCashback, setUseCashback] = useState(false);
 
+  // Session latch: once an authenticated user has been seen on this screen we
+  // never tear the payment screen down again over a TRANSIENT auth blip.
+  // Paying via PIX means the customer leaves to their bank app and comes back;
+  // on return Supabase re-validates the session and can briefly emit a
+  // SIGNED_OUT/SIGNED_IN pair. Without this latch that blip flips `user` to
+  // null for a frame — the render guard falls back to the loader (the QR
+  // "some em 0,5s") and the redirect effect below ejects the customer to
+  // /auth mid-payment. The latch keeps the screen mounted through the blip;
+  // AuthProvider recovers the session on its own moments later.
+  const [everAuthed, setEverAuthed] = useState(false);
+  useEffect(() => {
+    if (user && !everAuthed) setEverAuthed(true);
+  }, [user, everAuthed]);
+
+
   const safeItems = useMemo(
 
     () =>
@@ -158,12 +173,13 @@ function CheckoutPage() {
   }, [profile]);
 
   // Auth guard: only send the visitor to /auth when we're SURE there is no
-  // session (auth settled AND cart hydrated). We never expel a logged-in user
-  // just because the cart looks "orphan" — the cart is anonymous by design and
-  // is adopted (userId stamped) by the CartProvider once a session exists.
+  // session (auth settled AND cart hydrated) AND we have NEVER seen an
+  // authenticated user on this screen. Once the customer was authenticated
+  // here, a transient SIGNED_OUT blip (e.g. returning from the bank app while
+  // paying PIX) must NOT redirect — AuthProvider recovers the session shortly.
   useEffect(() => {
     if (authLoading || !hydrated) return;
-    if (!user) {
+    if (!user && !everAuthed) {
       try {
         sessionStorage.setItem("post_login_redirect", "/checkout");
       } catch {
@@ -171,7 +187,7 @@ function CheckoutPage() {
       }
       navigate({ to: "/auth", replace: true });
     }
-  }, [authLoading, hydrated, user, navigate]);
+  }, [authLoading, hydrated, user, everAuthed, navigate]);
 
 
   // NOTE: we deliberately do NOT auto-navigate to "/" when the cart looks
@@ -281,10 +297,11 @@ function CheckoutPage() {
     }
   }
 
-  // While the session or the cart is still settling, show a stable loader
-  // instead of rendering (and then tearing down) the payment screen. This
-  // prevents the "QR flashes for a few seconds then disappears" behaviour.
-  if (authLoading || !hydrated || !user) {
+  // While the session or the cart is FIRST settling, show a stable loader
+  // instead of rendering (and then tearing down) the payment screen. Once the
+  // customer has been authenticated on this screen (everAuthed) we keep the
+  // page mounted through any transient auth blip so the QR never disappears.
+  if ((authLoading || !hydrated || !user) && !everAuthed) {
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
