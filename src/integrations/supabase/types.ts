@@ -326,6 +326,7 @@ export type Database = {
           client_id: string
           client_secret: string
           created_at: string
+          empresa_id: string
           gateway_banco: string
           id: string
           nome_recebedor: string
@@ -343,6 +344,7 @@ export type Database = {
           client_id?: string
           client_secret?: string
           created_at?: string
+          empresa_id: string
           gateway_banco?: string
           id?: string
           nome_recebedor?: string
@@ -360,12 +362,28 @@ export type Database = {
           client_id?: string
           client_secret?: string
           created_at?: string
+          empresa_id?: string
           gateway_banco?: string
           id?: string
           nome_recebedor?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "config_pagamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "config_pagamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contadores_senha: {
         Row: {
@@ -1351,6 +1369,7 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          empresa_id: string
           exige_maquineta: boolean
           id: string
           nome: string
@@ -1359,6 +1378,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          empresa_id: string
           exige_maquineta?: boolean
           id?: string
           nome: string
@@ -1367,12 +1387,28 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          empresa_id?: string
           exige_maquineta?: boolean
           id?: string
           nome?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meios_pagamento_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meios_pagamento_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       movimentacoes_caixa: {
         Row: {
@@ -2770,6 +2806,7 @@ export type Database = {
         Returns: undefined
       }
       subproduto_unit_cost: { Args: { p_sub_id: string }; Returns: number }
+      user_empresa_id: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       ambiente_emissao_tipo: "Homologação/Testes" | "Produção"
