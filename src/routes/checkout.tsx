@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
-import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode, Banknote, CreditCard } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
@@ -78,6 +78,15 @@ const CHECKOUT_SNAPSHOT_KEY = "checkout_payment_snapshot_v1";
 const CHECKOUT_PENDING_PAYMENT_KEY = "checkout_pending_payment_v1";
 const CHECKOUT_AUTH_LATCH_TTL = 30 * 60 * 1000;
 
+type PayMethod = "PIX" | "Dinheiro" | "Cartão de Crédito" | "Cartão de Débito";
+
+const PAY_METHODS: { value: PayMethod; label: string; hint: string }[] = [
+  { value: "PIX", label: "PIX", hint: "QR Code na hora" },
+  { value: "Dinheiro", label: "Dinheiro", hint: "Pague na entrega" },
+  { value: "Cartão de Crédito", label: "Crédito", hint: "Maquininha na entrega" },
+  { value: "Cartão de Débito", label: "Débito", hint: "Maquininha na entrega" },
+];
+
 interface CheckoutSnapshot {
   at: number;
   items: CartItem[];
@@ -93,6 +102,8 @@ interface CheckoutSnapshot {
   phone: string;
   notes: string;
   useCashback: boolean;
+  payMethod: PayMethod;
+  trocoPara: string;
 }
 
 interface PendingPaymentSnapshot {
@@ -104,6 +115,8 @@ interface PendingPaymentSnapshot {
   address: string;
   phone: string;
   notes: string;
+  payMethod: PayMethod;
+  trocoPara: string;
 }
 
 function readCheckoutAuthLatch() {
@@ -211,6 +224,10 @@ function CheckoutPage() {
   const [phone, setPhone] = useState(checkoutSnapshot?.phone ?? "");
   const [notes, setNotes] = useState(checkoutSnapshot?.notes ?? "");
   const [useCashback, setUseCashback] = useState(checkoutSnapshot?.useCashback ?? false);
+  const [payMethod, setPayMethod] = useState<PayMethod>(
+    checkoutSnapshot?.payMethod ?? "PIX",
+  );
+  const [trocoPara, setTrocoPara] = useState(checkoutSnapshot?.trocoPara ?? "");
 
   useEffect(() => {
     supabase.auth.stopAutoRefresh();
@@ -305,6 +322,8 @@ function CheckoutPage() {
       phone,
       notes,
       useCashback,
+      payMethod,
+      trocoPara,
     };
     writeCheckoutSnapshot(nextSnapshot);
     setCheckoutSnapshot(nextSnapshot);
@@ -318,6 +337,8 @@ function CheckoutPage() {
     safeItems.length,
     tipo,
     useCashback,
+    payMethod,
+    trocoPara,
   ]);
 
 
@@ -339,6 +360,21 @@ function CheckoutPage() {
     : 0;
   const calculatedFinalTotal = Math.round((baseTotal - cashbackApplied) * 100) / 100;
   const finalTotal = pendingPayment?.total ?? calculatedFinalTotal;
+
+  // Forma de pagamento efetiva (ao reabrir a tela de pagamento pendente,
+  // usamos o método já registrado no pedido).
+  const effectivePayMethod = pendingPayment?.payMethod ?? payMethod;
+  const effectiveTroco = pendingPayment?.trocoPara ?? trocoPara;
+
+  // Troco: só faz sentido para pagamento em dinheiro.
+  const trocoParaNum = Number(String(effectiveTroco).replace(",", "."));
+  const trocoValido =
+    effectivePayMethod === "Dinheiro" &&
+    Number.isFinite(trocoParaNum) &&
+    trocoParaNum >= finalTotal;
+  const trocoValor = trocoValido
+    ? Math.round((trocoParaNum - finalTotal) * 100) / 100
+    : 0;
 
   const {
     payload: pixPayload,
@@ -407,6 +443,15 @@ function CheckoutPage() {
       toast.error(parsed.error.issues[0].message);
       return;
     }
+    // Validação do troco para pagamento em dinheiro (opcional; se informado,
+    // deve ser suficiente para cobrir o total).
+    if (payMethod === "Dinheiro" && trocoPara.trim() !== "") {
+      const troco = Number(trocoPara.replace(",", "."));
+      if (!Number.isFinite(troco) || troco < finalTotal) {
+        toast.error("O valor para troco deve ser igual ou maior que o total.");
+        return;
+      }
+    }
     if (authLoading) {
       toast.info("Carregando sua sessão. Tente novamente em instantes.");
       return;
@@ -433,6 +478,21 @@ function CheckoutPage() {
       /* availability is best-effort; never block checkout on its failure */
     }
     try {
+      // Registra a forma de pagamento escolhida nas observações para que a
+      // cozinha e o operador do caixa saibam como o cliente vai pagar.
+      const paymentLabel =
+        payMethod === "Dinheiro"
+          ? trocoPara.trim() !== ""
+            ? `Dinheiro (troco para ${formatBRL(Number(trocoPara.replace(",", ".")))})`
+            : "Dinheiro (sem troco)"
+          : payMethod;
+      const composedNotes = [
+        `Forma de pagamento: ${paymentLabel}`,
+        (parsed.data.notes ?? "").trim(),
+      ]
+        .filter(Boolean)
+        .join(" — ");
+
       const orderId = await placeOrder({
         userId: user.id,
         items: effectiveItems,
@@ -440,7 +500,7 @@ function CheckoutPage() {
         discount: effectiveDiscount,
         deliveryAddress: parsed.data.address,
         phone: parsed.data.phone,
-        notes: parsed.data.notes ?? "",
+        notes: composedNotes,
         tipoAtendimento: tipo,
         numeroMesa: mesaNumber,
         cashbackUsed: cashbackApplied,
@@ -454,12 +514,18 @@ function CheckoutPage() {
         address,
         phone: parsed.data.phone,
         notes: parsed.data.notes ?? "",
+        payMethod,
+        trocoPara,
       };
       writePendingPaymentSnapshot(paymentSnapshot);
       setPendingPayment(paymentSnapshot);
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Pedido registrado! Agora finalize o PIX.");
+      toast.success(
+        payMethod === "PIX"
+          ? "Pedido registrado! Agora finalize o PIX."
+          : "Pedido registrado! Confira as instruções de pagamento.",
+      );
       setSubmitting(false);
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -660,7 +726,7 @@ function CheckoutPage() {
             </p>
           ))}
 
-          {pendingPayment ? (
+          {pendingPayment && effectivePayMethod === "PIX" ? (
             <section className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
               <div className="mb-1 flex items-center gap-2">
                 <QrCode className="h-5 w-5 text-primary" />
@@ -715,7 +781,70 @@ function CheckoutPage() {
                 className="mt-4 h-12 w-full rounded-2xl"
                 onClick={() => {
                   clearCheckoutSnapshot();
-                  console.log("REDIRECIONAMENTO DISPARADO POR: src/routes/checkout.tsx");
+                  navigate({ to: "/", replace: true });
+                }}
+              >
+                Voltar ao cardápio
+              </Button>
+            </section>
+          ) : pendingPayment ? (
+            <section className="mb-5 rounded-2xl border border-success/30 bg-success/5 p-4">
+              <div className="mb-1 flex items-center gap-2">
+                {effectivePayMethod === "Dinheiro" ? (
+                  <Banknote className="h-5 w-5 text-success" />
+                ) : (
+                  <CreditCard className="h-5 w-5 text-success" />
+                )}
+                <h2 className="font-display text-base font-bold">
+                  Pedido confirmado!
+                </h2>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Seu pedido foi registrado na cozinha. O pagamento de{" "}
+                <span className="font-semibold text-foreground">
+                  {formatBRL(finalTotal)}
+                </span>{" "}
+                será feito{" "}
+                {tipo === "Delivery" ? "na entrega" : "na retirada"} com{" "}
+                <span className="font-semibold text-foreground">
+                  {effectivePayMethod}
+                </span>
+                .
+              </p>
+
+              {effectivePayMethod === "Dinheiro" && (
+                <p className="mt-2 rounded-xl bg-background/60 px-3 py-2 text-xs">
+                  {trocoValido ? (
+                    <>
+                      Você pediu troco para{" "}
+                      <span className="font-semibold text-foreground">
+                        {formatBRL(trocoParaNum)}
+                      </span>
+                      . Leve o valor certo — o entregador levará{" "}
+                      <span className="font-semibold text-success">
+                        {formatBRL(trocoValor)}
+                      </span>{" "}
+                      de troco.
+                    </>
+                  ) : (
+                    "Você não pediu troco. Tenha o valor exato em mãos."
+                  )}
+                </p>
+              )}
+              {(effectivePayMethod === "Cartão de Crédito" ||
+                effectivePayMethod === "Cartão de Débito") && (
+                <p className="mt-2 rounded-xl bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                  A maquininha estará disponível no momento{" "}
+                  {tipo === "Delivery" ? "da entrega" : "da retirada"}.
+                </p>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 h-12 w-full rounded-2xl"
+                onClick={() => {
+                  clearCheckoutSnapshot();
                   navigate({ to: "/", replace: true });
                 }}
               >
@@ -724,7 +853,8 @@ function CheckoutPage() {
             </section>
           ) : (
             <section className="mb-5 rounded-2xl border border-primary/20 bg-card p-4 text-sm text-muted-foreground">
-              Confirme o pedido abaixo para registrar na cozinha e liberar o QR Code PIX.
+              Escolha a forma de pagamento e confirme o pedido abaixo para
+              registrá-lo na cozinha.
             </section>
           )}
 
@@ -815,6 +945,60 @@ function CheckoutPage() {
                 className="min-h-20 rounded-xl"
               />
             </div>
+
+            {/* Forma de pagamento */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Banknote className="h-4 w-4 text-primary" />
+                Forma de pagamento
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {PAY_METHODS.map((m) => (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setPayMethod(m.value)}
+                    className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                      payMethod === m.value
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-card"
+                    }`}
+                  >
+                    <span className="text-sm font-semibold">{m.label}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {m.hint}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {payMethod === "Dinheiro" && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="troco">Troco para quanto? (opcional)</Label>
+                  <Input
+                    id="troco"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    inputMode="decimal"
+                    value={trocoPara}
+                    onChange={(e) => setTrocoPara(e.target.value)}
+                    placeholder={`Ex: ${Math.ceil(finalTotal / 10) * 10}`}
+                    className="h-12 rounded-xl"
+                  />
+                  {trocoValido && trocoValor > 0 ? (
+                    <p className="text-xs text-success">
+                      Troco: {formatBRL(trocoValor)}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Deixe em branco se tiver o valor exato.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
 
             <Button
               type="submit"
