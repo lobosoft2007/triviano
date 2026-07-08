@@ -5,13 +5,14 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
 import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode } from "lucide-react";
-import { useCart } from "@/lib/cart";
+import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
 import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { usePixPayment } from "@/hooks/usePixPayment";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,7 +73,25 @@ const schema = z.object({
 });
 
 const CHECKOUT_AUTH_LATCH_KEY = "checkout_auth_latch_v1";
+const CHECKOUT_SNAPSHOT_KEY = "checkout_payment_snapshot_v1";
 const CHECKOUT_AUTH_LATCH_TTL = 30 * 60 * 1000;
+
+interface CheckoutSnapshot {
+  at: number;
+  items: CartItem[];
+  subtotal: number;
+  discount: number;
+  appliedCombos: typeof import("@/lib/combos").AppliedCombo[];
+  totalPrice: number;
+  canCheckout: boolean;
+  shortfalls: { slug: string; name: string; required: number; missing: number }[];
+  tipo: "Delivery" | "Presencial";
+  mesa: string;
+  address: string;
+  phone: string;
+  notes: string;
+  useCashback: boolean;
+}
 
 function readCheckoutAuthLatch() {
   if (typeof window === "undefined") return false;
@@ -97,6 +116,37 @@ function writeCheckoutAuthLatch(userId: string) {
   }
 }
 
+function readCheckoutSnapshot(): CheckoutSnapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CHECKOUT_SNAPSHOT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CheckoutSnapshot;
+    if (!parsed?.at || Date.now() - parsed.at > CHECKOUT_AUTH_LATCH_TTL) return null;
+    if (!Array.isArray(parsed.items) || parsed.items.length === 0) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCheckoutSnapshot(snapshot: CheckoutSnapshot) {
+  try {
+    sessionStorage.setItem(CHECKOUT_SNAPSHOT_KEY, JSON.stringify(snapshot));
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
+function clearCheckoutSnapshot() {
+  try {
+    sessionStorage.removeItem(CHECKOUT_AUTH_LATCH_KEY);
+    sessionStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
 function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -112,13 +162,23 @@ function CheckoutPage() {
     shortfalls,
     clear,
   } = useCart();
+  const [checkoutSnapshot, setCheckoutSnapshot] = useState(readCheckoutSnapshot);
   const [submitting, setSubmitting] = useState(false);
-  const [tipo, setTipo] = useState<"Delivery" | "Presencial">("Delivery");
-  const [mesa, setMesa] = useState("");
-  const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState("");
-  const [notes, setNotes] = useState("");
-  const [useCashback, setUseCashback] = useState(false);
+  const [tipo, setTipo] = useState<"Delivery" | "Presencial">(
+    checkoutSnapshot?.tipo ?? "Delivery",
+  );
+  const [mesa, setMesa] = useState(checkoutSnapshot?.mesa ?? "");
+  const [address, setAddress] = useState(checkoutSnapshot?.address ?? "");
+  const [phone, setPhone] = useState(checkoutSnapshot?.phone ?? "");
+  const [notes, setNotes] = useState(checkoutSnapshot?.notes ?? "");
+  const [useCashback, setUseCashback] = useState(checkoutSnapshot?.useCashback ?? false);
+
+  useEffect(() => {
+    supabase.auth.stopAutoRefresh();
+    return () => {
+      supabase.auth.startAutoRefresh();
+    };
+  }, []);
 
   // Session latch: once an authenticated user has been seen on this screen we
   // never tear the payment screen down again over a TRANSIENT auth blip.
@@ -167,15 +227,72 @@ function CheckoutPage() {
 
 
 
+  const liveCheckoutState = useMemo(
+    () => ({
+      items: safeItems,
+      subtotal,
+      discount,
+      appliedCombos,
+      totalPrice,
+      canCheckout,
+      shortfalls,
+    }),
+    [safeItems, subtotal, discount, appliedCombos, totalPrice, canCheckout, shortfalls],
+  );
+
+  const effectiveCheckoutState =
+    safeItems.length > 0
+      ? liveCheckoutState
+      : everAuthed && checkoutSnapshot
+        ? checkoutSnapshot
+        : liveCheckoutState;
+
+  const effectiveItems = effectiveCheckoutState.items;
+  const effectiveSubtotal = effectiveCheckoutState.subtotal;
+  const effectiveDiscount = effectiveCheckoutState.discount;
+  const effectiveAppliedCombos = effectiveCheckoutState.appliedCombos;
+  const effectiveTotalPrice = effectiveCheckoutState.totalPrice;
+  const effectiveCanCheckout = effectiveCheckoutState.canCheckout;
+  const effectiveShortfalls = effectiveCheckoutState.shortfalls;
+
+  useEffect(() => {
+    if (!hydrated || safeItems.length === 0) return;
+    const nextSnapshot: CheckoutSnapshot = {
+      ...liveCheckoutState,
+      at: Date.now(),
+      tipo,
+      mesa,
+      address,
+      phone,
+      notes,
+      useCashback,
+    };
+    writeCheckoutSnapshot(nextSnapshot);
+    setCheckoutSnapshot(nextSnapshot);
+  }, [
+    address,
+    hydrated,
+    liveCheckoutState,
+    mesa,
+    notes,
+    phone,
+    safeItems.length,
+    tipo,
+    useCashback,
+  ]);
+
+
+
+
 
   // Taxa de serviço aplicada automaticamente em pedidos presenciais (mesa).
   const serviceRate = empresa?.taxa_servico_mesa ?? 0;
   const serviceFee =
     tipo === "Presencial" && serviceRate > 0
-      ? Math.round(subtotal * serviceRate) / 100
+      ? Math.round(effectiveSubtotal * serviceRate) / 100
       : 0;
 
-  const baseTotal = Math.round((totalPrice + serviceFee) * 100) / 100;
+  const baseTotal = Math.round((effectiveTotalPrice + serviceFee) * 100) / 100;
   const saldoCashback = profile?.saldo_cashback ?? 0;
   const cashbackApplied = useCashback
     ? Math.min(Math.round(saldoCashback * 100), Math.round(baseTotal * 100)) /
@@ -238,7 +355,7 @@ function CheckoutPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canCheckout) {
+    if (!effectiveCanCheckout) {
       toast.error("Revise as regras do pedido antes de finalizar.");
       return;
     }
@@ -283,7 +400,7 @@ function CheckoutPage() {
     // Preventive race check: an item may have sold out while browsing.
     try {
       const esgotados = await fetchEsgotadoIds();
-      const blocked = safeItems.find((i) => esgotados.has(i.productId));
+      const blocked = effectiveItems.find((i) => esgotados.has(i.productId));
       if (blocked) {
         toast.error(
           `Lamento! ${blocked.name} acabou de esgotar em nossa cozinha. Por favor, altere o pedido para prosseguir.`,
@@ -298,9 +415,9 @@ function CheckoutPage() {
     try {
       await placeOrder({
         userId: user.id,
-        items: safeItems,
+        items: effectiveItems,
         total: finalTotal,
-        discount,
+        discount: effectiveDiscount,
         deliveryAddress: parsed.data.address,
         phone: parsed.data.phone,
         notes: parsed.data.notes ?? "",
@@ -308,6 +425,7 @@ function CheckoutPage() {
         numeroMesa: mesaNumber,
         cashbackUsed: cashbackApplied,
       });
+      clearCheckoutSnapshot();
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Pedido realizado com sucesso!");
@@ -356,7 +474,7 @@ function CheckoutPage() {
   // Cart is restored and the user is authenticated: if there is genuinely
   // nothing to pay for, guide the customer back to the menu instead of
   // silently redirecting them.
-  if (safeItems.length === 0) {
+  if (effectiveItems.length === 0) {
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
