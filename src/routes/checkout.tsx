@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
+import type { AppliedCombo } from "@/lib/combos";
 
 export const Route = createFileRoute("/checkout")({
   ssr: false,
@@ -81,7 +82,7 @@ interface CheckoutSnapshot {
   items: CartItem[];
   subtotal: number;
   discount: number;
-  appliedCombos: typeof import("@/lib/combos").AppliedCombo[];
+  appliedCombos: AppliedCombo[];
   totalPrice: number;
   canCheckout: boolean;
   shortfalls: { slug: string; name: string; required: number; missing: number }[];
