@@ -193,34 +193,80 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const restored = Array.isArray(parsed)
-          ? parsed.map(sanitizeCartItem).filter((i): i is CartItem => Boolean(i))
-          : [];
-        setItems(restored);
-      }
-    } catch {
-      // ignore corrupt storage
-    } finally {
-      setHydrated(true);
-    }
-  }, []);
+  // Refs let the auth subscriber react to the CURRENT user/hydration state
+  // without re-subscribing on every change.
+  const userIdRef = useRef<string | null>(null);
+  const hydratedRef = useRef(false);
 
-  // Bind (adopt) the cart to the signed-in user. The cart is a per-device
-  // localStorage cart; when a session exists we stamp its owner id so any
-  // anonymous cart becomes "owned" by the logged-in user without discarding
-  // the items already added.
+  // Resolve the session first, then hydrate the cart from the bucket that
+  // belongs to THAT user. This is what stops user B from inheriting user A's
+  // cart: each account reads/writes its own key, and switching accounts loads
+  // the target account's own cart instead of carrying items over.
   useEffect(() => {
     let active = true;
+
+    const applyUser = (nextUid: string | null) => {
+      if (!active) return;
+      const prevUid = userIdRef.current;
+
+      // First resolution: decide which bucket to hydrate from.
+      if (!hydratedRef.current) {
+        let loaded: CartItem[];
+        if (nextUid) {
+          const own = loadCart(keyForUser(nextUid));
+          const anon = loadCart(ANON_KEY);
+          // Adopt an anonymous cart built before login (only if the account
+          // has no cart of its own yet), then clear the anon bucket.
+          if (own.length === 0 && anon.length > 0) {
+            loaded = anon;
+            saveCart(keyForUser(nextUid), anon);
+            localStorage.removeItem(ANON_KEY);
+          } else {
+            loaded = own;
+          }
+        } else {
+          loaded = loadCart(ANON_KEY);
+        }
+        userIdRef.current = nextUid;
+        hydratedRef.current = true;
+        setUserId(nextUid);
+        setItems(loaded);
+        setHydrated(true);
+        return;
+      }
+
+      // Same user (token refresh, tab focus): nothing to move.
+      if (prevUid === nextUid) return;
+
+      // Anonymous → logged in: adopt whatever is currently in memory into the
+      // account, unless the account already has its own saved cart.
+      if (prevUid === null && nextUid) {
+        setItems((current) => {
+          const own = loadCart(keyForUser(nextUid));
+          if (own.length === 0 && current.length > 0) {
+            saveCart(keyForUser(nextUid), current);
+            localStorage.removeItem(ANON_KEY);
+            return current;
+          }
+          return own;
+        });
+        userIdRef.current = nextUid;
+        setUserId(nextUid);
+        return;
+      }
+
+      // Logout OR account switch (A → B): load the target's OWN cart and never
+      // carry the previous user's items across.
+      userIdRef.current = nextUid;
+      setUserId(nextUid);
+      setItems(loadCart(storageKeyFor(nextUid)));
+    };
+
     supabase.auth.getSession().then(({ data }) => {
-      if (active) setUserId(data.session?.user?.id ?? null);
+      applyUser(data.session?.user?.id ?? null);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null);
+      applyUser(session?.user?.id ?? null);
     });
     return () => {
       active = false;
@@ -228,17 +274,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-
   useEffect(() => {
     // Never persist before the initial restore has run, otherwise the empty
-    // starting state would clobber a saved cart on first mount.
+    // starting state would clobber a saved cart on first mount. Always write to
+    // the bucket that belongs to the current user.
     if (!hydrated) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      // ignore quota errors
-    }
-  }, [items, hydrated]);
+    saveCart(storageKeyFor(userId), items);
+  }, [items, hydrated, userId]);
+
 
   const addLine = useCallback((line: NewCartItem, quantity = 1) => {
     const safeLine = sanitizeNewCartItem(line);
