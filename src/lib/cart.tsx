@@ -94,6 +94,8 @@ const STORAGE_PREFIX = "delivery_cart_v2";
 const ANON_KEY = `${STORAGE_PREFIX}:anon`;
 const keyForUser = (uid: string) => `${STORAGE_PREFIX}:u:${uid}`;
 const storageKeyFor = (uid: string | null) => (uid ? keyForUser(uid) : ANON_KEY);
+const isCheckoutPath = () =>
+  typeof window !== "undefined" && window.location.pathname === "/checkout";
 
 function loadCart(key: string): CartItem[] {
   try {
@@ -285,7 +287,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Returning from a PIX/bank app may produce a short SIGNED_OUT blip.
       // Keep the current user's cart in memory unless the session is still gone
       // after the auth client has had time to recover it.
-      if (event === "SIGNED_OUT" && userIdRef.current) {
+      if (event === "SIGNED_OUT" && userIdRef.current && isCheckoutPath()) {
         cancelPendingAnonymous();
         pendingAnonymousRef.current = setTimeout(() => {
           supabase.auth.getSession().then(({ data }) => {

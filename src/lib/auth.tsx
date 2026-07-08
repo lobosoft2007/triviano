@@ -11,6 +11,9 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+const isCheckoutPath = () =>
+  typeof window !== "undefined" && window.location.pathname === "/checkout";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,6 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const confirmSignedOut = () => {
+      if (!isCheckoutPath()) {
+        applySession(null);
+        return;
+      }
       cancelPendingSignedOut();
       pendingSignedOutRef.current = setTimeout(() => {
         supabase.auth.getSession().then(({ data }) => {
