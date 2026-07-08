@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
-import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode, Banknote, CreditCard } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
