@@ -103,11 +103,7 @@ function CheckoutPage() {
   // "some em 0,5s") and the redirect effect below ejects the customer to
   // /auth mid-payment. The latch keeps the screen mounted through the blip;
   // AuthProvider recovers the session on its own moments later.
-  const everAuthedRef = useRef(false);
   const [everAuthed, setEverAuthed] = useState(false);
-  if (user && !everAuthedRef.current) {
-    everAuthedRef.current = true;
-  }
   useEffect(() => {
     if (user && !everAuthed) setEverAuthed(true);
   }, [user, everAuthed]);
