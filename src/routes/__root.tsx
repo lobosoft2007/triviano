@@ -24,6 +24,7 @@ import { CartProvider } from "../lib/cart";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { BrandThemeInjector } from "@/components/BrandThemeInjector";
+import { TenantGuard } from "@/components/TenantGuard";
 
 function NotFoundComponent() {
   return (
@@ -166,8 +167,10 @@ function RootComponent() {
       <AuthProvider>
         <CartProvider>
           <BrandThemeInjector />
-          {/* Required: nested routes render here. */}
-          <Outlet />
+          <TenantGuard>
+            {/* Required: nested routes render here. */}
+            <Outlet />
+          </TenantGuard>
           <Toaster position="top-center" richColors />
         </CartProvider>
       </AuthProvider>

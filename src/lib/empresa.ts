@@ -13,6 +13,8 @@ export interface Empresa {
   logotipo_url: string;
   taxa_servico_mesa: number;
   dominio_customizado: string | null;
+  /** Tenant subdomain slug registered for this company (multi-tenant guard). */
+  subdominio: string | null;
   cep: string;
   logradouro: string;
   numero: string;
@@ -68,6 +70,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         // Sensitive config is not exposed by the branding query.
         taxa_servico_mesa: 0,
         dominio_customizado: data.dominio_customizado ?? null,
+        subdominio: data.subdominio ?? null,
         cep: "",
         logradouro: "",
         numero: "",
@@ -91,6 +94,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         logotipo_url: "/logo.png",
         taxa_servico_mesa: 0,
         dominio_customizado: null,
+        subdominio: null,
         cep: "",
         logradouro: "",
         numero: "",
@@ -142,6 +146,7 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     logotipo_url: row?.logotipo_url ?? "/logo.png",
     taxa_servico_mesa: Number(row?.taxa_servico_mesa ?? 0),
     dominio_customizado: row?.dominio_customizado ?? null,
+    subdominio: null,
     // Address & cashback columns are not readable by regular customers.
     cep: "",
     logradouro: "",
@@ -190,6 +195,7 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     logotipo_url: row?.logotipo_url ?? "/logo.png",
     taxa_servico_mesa: Number(row?.taxa_servico_mesa ?? 0),
     dominio_customizado: row?.dominio_customizado ?? null,
+    subdominio: null,
     cep: row?.cep ?? "",
     logradouro: row?.logradouro ?? "",
     numero: row?.numero ?? "",
