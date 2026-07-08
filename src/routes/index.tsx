@@ -109,7 +109,7 @@ function HomePage() {
           <div className="flex items-center gap-1">
             {user ? (
               <>
-                {isAdmin && (
+                {isAdmin && showBackofficeShortcuts && (
                   <Link
                     to="/caixa"
                     aria-label="Painel do caixa"
@@ -118,7 +118,7 @@ function HomePage() {
                     <Wallet className="h-5 w-5" />
                   </Link>
                 )}
-                {isAdmin && (
+                {isAdmin && showBackofficeShortcuts && (
                   <Link
                     to="/admin"
                     aria-label="Administração do cardápio"
