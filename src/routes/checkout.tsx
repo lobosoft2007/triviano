@@ -26,8 +26,9 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutError({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
+    // Log the full error server-side/console only; never surface raw text to the user.
     console.error("ERRO CRÍTICO NA TELA DE CHECKOUT:", error);
-    toast.error(`ERRO CRÍTICO NA TELA DE CHECKOUT: ${error.message}`);
+    toast.error("Algo deu errado ao abrir o pagamento. Tente novamente.");
   }, [error]);
 
   return (
@@ -51,7 +52,7 @@ function CheckoutError({ error, reset }: { error: Error; reset: () => void }) {
               Falha ao abrir o pagamento
             </h2>
             <p className="mt-2 break-words text-sm text-destructive">
-              {error.message}
+              Algo deu errado. Tente novamente ou volte ao início.
             </p>
           </section>
           <Button type="button" onClick={reset} className="h-12 rounded-2xl">
@@ -260,15 +261,14 @@ function CheckoutPage() {
       toast.success("Pedido realizado com sucesso!");
       navigate({ to: "/", replace: true });
     } catch (err) {
+      // Log the full error for observability; never surface raw DB/gateway text.
       console.error("Falha ao finalizar o pedido:", err);
-      // Surface the real gateway/PIX/RPC error so route vs. data issues are visible.
-      const message =
-        err instanceof Error && err.message
-          ? err.message
-          : typeof err === "string"
-            ? err
-            : "Não foi possível finalizar o pedido. Tente novamente.";
-      toast.error(message);
+      const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+      // Whitelist only user-friendly messages raised intentionally by the RPC.
+      const isSafe = /^(Lamento|Pedido|Revise|Informe|Faça|Não foi possível|Saldo|Cliente|Endereço|Mesa)/.test(
+        raw.trim(),
+      );
+      toast.error(isSafe ? raw : "Não foi possível finalizar o pedido. Tente novamente.");
       setSubmitting(false);
     }
   }
