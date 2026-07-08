@@ -224,6 +224,10 @@ function CheckoutPage() {
   const [phone, setPhone] = useState(checkoutSnapshot?.phone ?? "");
   const [notes, setNotes] = useState(checkoutSnapshot?.notes ?? "");
   const [useCashback, setUseCashback] = useState(checkoutSnapshot?.useCashback ?? false);
+  const [payMethod, setPayMethod] = useState<PayMethod>(
+    checkoutSnapshot?.payMethod ?? "PIX",
+  );
+  const [trocoPara, setTrocoPara] = useState(checkoutSnapshot?.trocoPara ?? "");
 
   useEffect(() => {
     supabase.auth.stopAutoRefresh();
