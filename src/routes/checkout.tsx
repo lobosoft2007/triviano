@@ -329,7 +329,7 @@ function CheckoutPage() {
   // instead of rendering (and then tearing down) the payment screen. Once the
   // customer has been authenticated on this screen (everAuthed) we keep the
   // page mounted through any transient auth blip so the QR never disappears.
-  if ((authLoading || !hydrated || !user) && !everAuthed) {
+  if (!hydrated || ((authLoading || !user) && !everAuthed)) {
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
