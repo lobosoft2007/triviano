@@ -36,17 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    const confirmSignedOut = () => {
+    const delayCheckoutSignedOut = () => {
       if (!isCheckoutPath()) {
         applySession(null);
         return;
       }
       cancelPendingSignedOut();
       pendingSignedOutRef.current = setTimeout(() => {
-        supabase.auth.getSession().then(({ data }) => {
-          applySession(data.session ?? null);
-        });
-      }, 1500);
+        applySession(null);
+      }, 3000);
     };
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
@@ -59,15 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // the stored session is recovered. Do not tear down checkout/cart on that
       // transient frame; confirm the session is still gone after a short grace.
       if (event === "SIGNED_OUT") {
-        confirmSignedOut();
+        delayCheckoutSignedOut();
         return;
       }
 
       applySession(null);
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      applySession(data.session ?? null);
     });
 
     return () => {
