@@ -83,7 +83,37 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "delivery_cart_v2";
+// The cart lives in localStorage, which is scoped per ORIGIN (domain). Since
+// each tenant is served from its own domain, tenants are already isolated at
+// the storage layer. What was NOT isolated was two different USERS on the same
+// browser/domain: the old single fixed key made user B inherit user A's cart.
+// We now scope the storage key by user id, with a dedicated anonymous bucket,
+// and "adopt" the anonymous cart into the account on first login.
+const STORAGE_PREFIX = "delivery_cart_v2";
+const ANON_KEY = `${STORAGE_PREFIX}:anon`;
+const keyForUser = (uid: string) => `${STORAGE_PREFIX}:u:${uid}`;
+const storageKeyFor = (uid: string | null) => (uid ? keyForUser(uid) : ANON_KEY);
+
+function loadCart(key: string): CartItem[] {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.map(sanitizeCartItem).filter((i): i is CartItem => Boolean(i))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCart(key: string, items: CartItem[]) {
+  try {
+    localStorage.setItem(key, JSON.stringify(items));
+  } catch {
+    // ignore quota errors
+  }
+}
 
 const toFiniteNumber = (value: unknown, fallback = 0): number => {
   const parsed = Number(value ?? fallback);
