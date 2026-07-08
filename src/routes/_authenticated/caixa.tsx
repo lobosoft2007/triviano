@@ -150,7 +150,7 @@ function CaixaPage() {
     enabled: allowed,
   });
 
-  if (permLoading || (allowed && caixaLoading)) {
+  if ((userRole !== "admin" && permLoading) || (allowed && caixaLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -158,7 +158,10 @@ function CaixaPage() {
     );
   }
 
-  if (userRole === "admin") return caixa ? <OperationalPanel caixaId={caixa.id} perms={perms ?? ({ is_admin: true } as MyPermissions)} /> : <LockScreen userId={user!.id} />;
+  if (userRole === "admin") {
+    const adminPerms = perms ?? ({ is_admin: true, is_funcionario: false } as MyPermissions);
+    return caixa ? <OperationalPanel caixaId={caixa.id} perms={adminPerms} /> : <LockScreen userId={user!.id} />;
+  }
 
   if (!allowed) {
     return (

@@ -414,7 +414,7 @@ function AdminPage() {
   };
   const canEnterAdmin = TABS.some((t) => tabAllowed(t.key));
   // Enables data queries below; funcionários only reach permitted tabs.
-  const isAdmin = canEnterAdmin;
+  const isAdmin = userRole === "admin" || canEnterAdmin;
   const { data: isSuperAdmin } = useIsSuperAdmin(user?.id);
   const { data, isLoading } = useQuery({
     queryKey: ["admin-menu"],
@@ -594,7 +594,7 @@ function AdminPage() {
     }
   };
 
-  if (roleLoading) {
+  if (userRole !== "admin" && roleLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-7 w-7 animate-spin text-primary" />
