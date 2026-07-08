@@ -228,14 +228,10 @@ function CheckoutPage() {
       } catch {
         /* ignore storage errors */
       }
-      reportCheckoutExpulsion("submit sem usuário autenticado", {
-        authLoading,
-        hydrated,
-        itemCount: safeItems.length,
-      });
       navigate({ to: "/auth" });
       return;
     }
+
     setSubmitting(true);
     // Preventive race check: an item may have sold out while browsing.
     try {
