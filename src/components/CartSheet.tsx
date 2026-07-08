@@ -1,5 +1,4 @@
 import { useState, type MouseEvent } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   ShoppingBag,
@@ -11,7 +10,6 @@ import {
   BadgePercent,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { useAuth } from "@/lib/auth";
 import { formatBRL } from "@/lib/format";
 import {
   Sheet,
@@ -37,53 +35,22 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     decrement,
     removeItem,
   } = useCart();
-  const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
 
   function handleCheckoutClick(event: MouseEvent<HTMLAnchorElement>) {
-    // Always drive navigation through the client router. A plain <a href> full
-    // reload was fragile inside the Sheet portal (coordinate-dependent clicks,
-    // stale PWA shell) and kept "swallowing" the transition. Client-side
-    // navigation also keeps the cart + auth in memory, so /checkout can never
-    // bounce back to "/" on a transient empty/hydrating state.
     event.preventDefault();
     try {
-      const sessionUser = user ?? null;
-      const sessionLoading = Boolean(loading);
-
       const safeItems = Array.isArray(items)
         ? items.filter((item) => item && typeof item === "object")
         : [];
-
-
-
-
 
       if (safeItems.length === 0) {
         toast.error("Adicione ao menos um item antes de finalizar.");
         return;
       }
-      if (sessionLoading) {
-        toast.info("Carregando sua sessão. Tente novamente em instantes.");
-        return;
-      }
-
-      if (!sessionUser) {
-        // Remember where the customer wanted to go so login returns them here.
-        try {
-          sessionStorage.setItem("post_login_redirect", "/checkout");
-        } catch {
-          /* ignore storage errors */
-        }
-        toast.error("Faça login para finalizar o pedido.");
-        setOpen(false);
-        navigate({ to: "/auth" });
-        return;
-      }
 
       setOpen(false);
-      navigate({ to: "/checkout" });
+      window.location.href = "/checkout";
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error("ERRO CRÍTICO NO CARRINHO:", error);
@@ -243,7 +210,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
               </div>
               <Button asChild size="lg" className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base">
                 <a
-                  href={user ? "/checkout" : "/auth"}
+                  href="/checkout"
                   aria-disabled={items.length === 0}
                   onClick={handleCheckoutClick}
                 >

@@ -135,7 +135,10 @@ function CaixaPage() {
   const { data: perms, isLoading: permLoading } = usePermissions();
   const { data: empresa } = useQuery(empresaQueryOptions);
 
-  const allowed = canEnterCaixa(perms);
+  const userRole =
+    (user as { role?: string } | null)?.role ??
+    (user?.app_metadata as { role?: string } | undefined)?.role;
+  const allowed = userRole === "admin" || canEnterCaixa(perms);
 
   useEffect(() => {
     if (empresa?.nome_fantasia) RESTAURANT = empresa.nome_fantasia;
@@ -147,12 +150,17 @@ function CaixaPage() {
     enabled: allowed,
   });
 
-  if (permLoading || (allowed && caixaLoading)) {
+  if ((userRole !== "admin" && permLoading) || (allowed && caixaLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-7 w-7 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (userRole === "admin") {
+    const adminPerms = perms ?? ({ is_admin: true, is_funcionario: false } as MyPermissions);
+    return caixa ? <OperationalPanel caixaId={caixa.id} perms={adminPerms} /> : <LockScreen userId={user!.id} />;
   }
 
   if (!allowed) {

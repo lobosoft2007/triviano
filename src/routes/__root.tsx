@@ -12,6 +12,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -155,13 +156,25 @@ function RootComponent() {
       <AuthProvider>
         <CartProvider>
           <BrandThemeInjector />
-          <TenantGuard>
-            {/* Required: nested routes render here. */}
-            <Outlet />
-          </TenantGuard>
+          <RootOutlet />
           <Toaster position="top-center" richColors />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+function RootOutlet() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  if (pathname === "/checkout") {
+    return <Outlet />;
+  }
+
+  return (
+    <TenantGuard>
+      {/* Required: nested routes render here. */}
+      <Outlet />
+    </TenantGuard>
   );
 }

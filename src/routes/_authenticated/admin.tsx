@@ -402,15 +402,19 @@ function AdminPage() {
   };
 
   const { data: perms, isLoading: roleLoading } = usePermissions();
-  const isMaster = perms?.is_admin === true;
+  const userRole =
+    (user as { role?: string } | null)?.role ??
+    (user?.app_metadata as { role?: string } | undefined)?.role;
+  const isMaster = userRole === "admin" || perms?.is_admin === true;
   const tabAllowed = (key: AdminTab): boolean => {
+    if (userRole === "admin") return true;
     if (isMaster) return true;
     const flag = TAB_FLAG[key];
     return flag !== "master" && Boolean(perms?.[flag]);
   };
   const canEnterAdmin = TABS.some((t) => tabAllowed(t.key));
   // Enables data queries below; funcionários only reach permitted tabs.
-  const isAdmin = canEnterAdmin;
+  const isAdmin = userRole === "admin" || canEnterAdmin;
   const { data: isSuperAdmin } = useIsSuperAdmin(user?.id);
   const { data, isLoading } = useQuery({
     queryKey: ["admin-menu"],
@@ -590,7 +594,7 @@ function AdminPage() {
     }
   };
 
-  if (roleLoading) {
+  if (userRole !== "admin" && roleLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-7 w-7 animate-spin text-primary" />
