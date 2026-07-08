@@ -1026,6 +1026,41 @@ function CheckoutPage() {
                 ))}
               </div>
 
+              {/* Conta corrente (fiado): só aparece para clientes autorizados */}
+              {fiadoAutorizado && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    contaCorrenteDisponivel && setPayMethod("Conta Corrente")
+                  }
+                  disabled={!contaCorrenteDisponivel}
+                  aria-pressed={payMethod === "Conta Corrente"}
+                  className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                    payMethod === "Conta Corrente"
+                      ? "border-primary bg-primary/10"
+                      : "border-border bg-card"
+                  }`}
+                >
+                  <Wallet className="h-5 w-5 shrink-0 text-primary" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">
+                      Lançar na Conta
+                    </span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      Conta corrente • disponível{" "}
+                      {formatBRL(Math.max(0, creditoDisponivel))}
+                    </span>
+                  </span>
+                </button>
+              )}
+
+              {fiadoAutorizado && !contaCorrenteDisponivel && (
+                <p className="text-[11px] text-destructive">
+                  Crédito insuficiente na conta corrente para este pedido
+                  (disponível {formatBRL(Math.max(0, creditoDisponivel))}).
+                </p>
+              )}
+
               {payMethod === "Dinheiro" && (
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="troco">Troco para quanto? (opcional)</Label>
