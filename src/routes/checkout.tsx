@@ -153,35 +153,22 @@ function CheckoutPage() {
     }
   }, [profile]);
 
+  // Auth guard: only send the visitor to /auth when we're SURE there is no
+  // session (auth settled AND cart hydrated). We never expel a logged-in user
+  // just because the cart looks "orphan" — the cart is anonymous by design and
+  // is adopted (userId stamped) by the CartProvider once a session exists.
   useEffect(() => {
-    console.log("[CHECKOUT] guard auth →", { authLoading, hydrated, hasUser: !!user });
     if (authLoading || !hydrated) return;
     if (!user) {
-      console.warn("[CHECKOUT] ⚠️ sem usuário → redirecionando para /auth");
       try {
         sessionStorage.setItem("post_login_redirect", "/checkout");
       } catch {
         /* ignore storage errors */
       }
-      reportCheckoutExpulsion("falta de usuário autenticado", {
-        authLoading,
-        hydrated,
-        itemCount: safeItems.length,
-      });
       navigate({ to: "/auth", replace: true });
     }
-  }, [authLoading, hydrated, user, safeItems.length, navigate, reportCheckoutExpulsion]);
+  }, [authLoading, hydrated, user, navigate]);
 
-  useEffect(() => {
-    if (authLoading || !hydrated || !user) return;
-    if (safeItems.length === 0) {
-      reportCheckoutExpulsion("carrinho vazio após hidratação", {
-        authLoading,
-        hydrated,
-        itemCount: safeItems.length,
-      });
-    }
-  }, [authLoading, hydrated, user, safeItems.length, reportCheckoutExpulsion]);
 
   // NOTE: we deliberately do NOT auto-navigate to "/" when the cart looks
   // empty. That silent redirect used to fire during transient states (cart
