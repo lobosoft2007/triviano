@@ -153,23 +153,37 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
-    // Supabase re-emits SIGNED_IN on every token refresh and tab focus, not
-    // only on a real login. Reacting to each echo triggered a global
-    // router + query invalidation a few seconds after any page load, which
-    // caused screens like /checkout to churn and appear to "reset". Only act
-    // when the authenticated user identity actually changes.
+    // Supabase emits an auth event during its async session recovery
+    // (`_recoverAndRefresh`) a few seconds after page load — this arrives as a
+    // `SIGNED_IN` even though nothing actually changed (it's just the stored
+    // session being restored). Reacting to it fired a global
+    // router + query invalidation that tore down whatever screen the user was
+    // on — most visibly /checkout, which "flashed" the QR then reset.
+    //
+    // Fix: the FIRST auth event only seeds the known identity and never
+    // invalidates. Only genuine identity changes AFTER initialization (real
+    // login / logout / account switch) trigger an invalidation.
+    let initialized = false;
     let lastUserId: string | null = null;
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       const nextUserId = session?.user?.id ?? null;
-      console.log("[ROOT] onAuthStateChange →", { event, nextUserId, lastUserId });
+      console.log("[ROOT] onAuthStateChange →", { event, nextUserId, lastUserId, initialized });
+
+      if (!initialized) {
+        initialized = true;
+        lastUserId = nextUserId;
+        console.log("[ROOT] evento inicial (restauração de sessão) → só registra, NÃO invalida");
+        return;
+      }
+
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED")
         return;
-      if (event === "SIGNED_IN" && nextUserId === lastUserId) {
-        console.log("[ROOT] SIGNED_IN redundante (mesmo usuário) → ignorado");
+      if (nextUserId === lastUserId) {
+        console.log("[ROOT] identidade inalterada → ignorado");
         return;
       }
       lastUserId = nextUserId;
-      console.warn("[ROOT] 🔄 invalidando router + queries por mudança de identidade");
+      console.warn("[ROOT] 🔄 invalidando router + queries por mudança REAL de identidade");
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
