@@ -191,6 +191,7 @@ function CheckoutPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log("[CHECKOUT] 📤 handleSubmit iniciado", { canCheckout, tipo });
     if (!canCheckout) {
       toast.error("Revise as regras do pedido antes de finalizar.");
       return;
