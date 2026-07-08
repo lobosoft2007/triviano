@@ -565,6 +565,7 @@ export type Database = {
           nome_fantasia: string
           numero: string
           percentual_cashback: number
+          subdominio: string | null
           taxa_servico_mesa: number
           updated_at: string
         }
@@ -590,6 +591,7 @@ export type Database = {
           nome_fantasia?: string
           numero?: string
           percentual_cashback?: number
+          subdominio?: string | null
           taxa_servico_mesa?: number
           updated_at?: string
         }
@@ -615,6 +617,7 @@ export type Database = {
           nome_fantasia?: string
           numero?: string
           percentual_cashback?: number
+          subdominio?: string | null
           taxa_servico_mesa?: number
           updated_at?: string
         }
@@ -2613,6 +2616,21 @@ export type Database = {
           logotipo_url: string
           modo_fundo: string
           nome_fantasia: string
+        }[]
+      }
+      get_public_branding_by_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          ativo: boolean
+          cor_primaria: string
+          cor_secundaria: string
+          created_at: string
+          dominio_customizado: string
+          id: string
+          logotipo_url: string
+          modo_fundo: string
+          nome_fantasia: string
+          subdominio: string
         }[]
       }
       get_public_menu: {

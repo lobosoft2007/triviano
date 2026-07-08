@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useScope } from "@/hooks/useScope";
 import {
   ShoppingBag,
   Loader2,
@@ -78,6 +79,19 @@ function HomePage() {
     },
   });
 
+  // Escopo de subdomínio: PDV e Gerência não usam o cardápio como landing.
+  const navigate = useNavigate();
+  const { scope, hydrated } = useScope();
+  useEffect(() => {
+    if (!hydrated) return;
+    if (scope === "pdv") navigate({ to: "/caixa", replace: true });
+    else if (scope === "gerencia") navigate({ to: "/admin", replace: true });
+  }, [hydrated, scope, navigate]);
+
+  // No universo de vendas (delivery) o cliente fica fixo na sacola/cardápio:
+  // atalhos de fuga para retaguarda/caixa só aparecem fora do delivery.
+  const showBackofficeShortcuts = scope !== "delivery";
+
   // Product currently shown in the details modal.
   const [detail, setDetail] = useState<Selection | null>(null);
   // Product routed to the customization sheet after "Escolher".
@@ -95,7 +109,7 @@ function HomePage() {
           <div className="flex items-center gap-1">
             {user ? (
               <>
-                {isAdmin && (
+                {isAdmin && showBackofficeShortcuts && (
                   <Link
                     to="/caixa"
                     aria-label="Painel do caixa"
@@ -104,7 +118,7 @@ function HomePage() {
                     <Wallet className="h-5 w-5" />
                   </Link>
                 )}
-                {isAdmin && (
+                {isAdmin && showBackofficeShortcuts && (
                   <Link
                     to="/admin"
                     aria-label="Administração do cardápio"
