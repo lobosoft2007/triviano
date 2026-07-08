@@ -58,6 +58,13 @@ interface CartContextValue {
   items: CartItem[];
   /** True once the cart has been restored from localStorage. */
   hydrated: boolean;
+  /**
+   * Id of the signed-in user this cart is bound to (null while anonymous).
+   * The cart itself lives in localStorage per device; on login we "adopt" it
+   * by stamping the current user's id so downstream code can associate the
+   * order with the right account.
+   */
+  userId: string | null;
   totalItems: number;
   subtotal: number;
   discount: number;
@@ -71,6 +78,7 @@ interface CartContextValue {
   removeItem: (lineId: string) => void;
   clear: () => void;
 }
+
 
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
