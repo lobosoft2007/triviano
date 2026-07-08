@@ -410,6 +410,19 @@ function CheckoutPage() {
     }
   }, [profile]);
 
+  // Se o cliente tinha "Conta Corrente" selecionado mas perdeu a permissão ou
+  // ficou sem crédito (ex.: total mudou), voltamos para PIX para nunca enviar
+  // um pedido com forma de pagamento inválida. Não mexe em pedidos já pagos.
+  useEffect(() => {
+    if (
+      !pendingPayment &&
+      payMethod === "Conta Corrente" &&
+      !contaCorrenteDisponivel
+    ) {
+      setPayMethod("PIX");
+    }
+  }, [pendingPayment, payMethod, contaCorrenteDisponivel]);
+
   // Rota liberada: não existe redirecionamento automático por autenticação.
 
 
