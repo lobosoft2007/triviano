@@ -830,6 +830,8 @@ function CheckoutPage() {
               <div className="mb-1 flex items-center gap-2">
                 {effectivePayMethod === "Dinheiro" ? (
                   <Banknote className="h-5 w-5 text-success" />
+                ) : effectivePayMethod === "Conta Corrente" ? (
+                  <Wallet className="h-5 w-5 text-success" />
                 ) : (
                   <CreditCard className="h-5 w-5 text-success" />
                 )}
@@ -837,18 +839,32 @@ function CheckoutPage() {
                   Pedido confirmado!
                 </h2>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Seu pedido foi registrado na cozinha. O pagamento de{" "}
-                <span className="font-semibold text-foreground">
-                  {formatBRL(finalTotal)}
-                </span>{" "}
-                será feito{" "}
-                {tipo === "Delivery" ? "na entrega" : "na retirada"} com{" "}
-                <span className="font-semibold text-foreground">
-                  {effectivePayMethod}
-                </span>
-                .
-              </p>
+              {effectivePayMethod === "Conta Corrente" ? (
+                <p className="text-xs text-muted-foreground">
+                  Seu pedido foi registrado na cozinha e o valor de{" "}
+                  <span className="font-semibold text-foreground">
+                    {formatBRL(finalTotal)}
+                  </span>{" "}
+                  foi lançado na sua{" "}
+                  <span className="font-semibold text-foreground">
+                    conta corrente
+                  </span>
+                  .
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Seu pedido foi registrado na cozinha. O pagamento de{" "}
+                  <span className="font-semibold text-foreground">
+                    {formatBRL(finalTotal)}
+                  </span>{" "}
+                  será feito{" "}
+                  {tipo === "Delivery" ? "na entrega" : "na retirada"} com{" "}
+                  <span className="font-semibold text-foreground">
+                    {effectivePayMethod}
+                  </span>
+                  .
+                </p>
+              )}
 
               {effectivePayMethod === "Dinheiro" && (
                 <p className="mt-2 rounded-xl bg-background/60 px-3 py-2 text-xs">
