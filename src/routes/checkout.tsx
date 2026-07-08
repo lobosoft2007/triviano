@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -93,6 +93,25 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [useCashback, setUseCashback] = useState(false);
+
+  // Session latch: once an authenticated user has been seen on this screen we
+  // never tear the payment screen down again over a TRANSIENT auth blip.
+  // Paying via PIX means the customer leaves to their bank app and comes back;
+  // on return Supabase re-validates the session and can briefly emit a
+  // SIGNED_OUT/SIGNED_IN pair. Without this latch that blip flips `user` to
+  // null for a frame — the render guard falls back to the loader (the QR
+  // "some em 0,5s") and the redirect effect below ejects the customer to
+  // /auth mid-payment. The latch keeps the screen mounted through the blip;
+  // AuthProvider recovers the session on its own moments later.
+  const everAuthedRef = useRef(false);
+  const [everAuthed, setEverAuthed] = useState(false);
+  if (user && !everAuthedRef.current) {
+    everAuthedRef.current = true;
+  }
+  useEffect(() => {
+    if (user && !everAuthed) setEverAuthed(true);
+  }, [user, everAuthed]);
+
 
   const safeItems = useMemo(
 
