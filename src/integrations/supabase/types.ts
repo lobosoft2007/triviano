@@ -2619,6 +2619,21 @@ export type Database = {
           subdominio: string
         }[]
       }
+      get_public_branding_by_host: {
+        Args: { p_host: string }
+        Returns: {
+          ativo: boolean
+          cor_primaria: string
+          cor_secundaria: string
+          created_at: string
+          dominio_customizado: string
+          id: string
+          logotipo_url: string
+          modo_fundo: string
+          nome_fantasia: string
+          subdominio: string
+        }[]
+      }
       get_public_branding_by_slug: {
         Args: { p_slug: string }
         Returns: {
@@ -2636,6 +2651,22 @@ export type Database = {
       }
       get_public_menu: {
         Args: never
+        Returns: {
+          available: boolean
+          category_id: string
+          description: string
+          eixo_variacao: string
+          empresa_id: string
+          free_addon_limit: number
+          id: string
+          image_url: string
+          name: string
+          price: number
+          sort_order: number
+        }[]
+      }
+      get_public_menu_by_host: {
+        Args: { p_host: string }
         Returns: {
           available: boolean
           category_id: string
@@ -2669,6 +2700,7 @@ export type Database = {
         }
         Returns: number
       }
+      normalize_host: { Args: { p_host: string }; Returns: string }
       notify_cashback: {
         Args: { p_tipo: string; p_user: string; p_valor: number }
         Returns: undefined
@@ -2720,6 +2752,7 @@ export type Database = {
         }
         Returns: number
       }
+      resolve_empresa_id_by_host: { Args: { p_host: string }; Returns: string }
       reverse_order_stock: { Args: { p_order_id: string }; Returns: undefined }
       set_cliente_bloqueado: {
         Args: { p_bloqueado: boolean; p_user_id: string }
