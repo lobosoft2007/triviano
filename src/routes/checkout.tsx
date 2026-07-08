@@ -75,6 +75,11 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    console.log("[CHECKOUT] 🟢 CheckoutPage MONTADO");
+    return () => console.log("[CHECKOUT] 🔴 CheckoutPage DESMONTADO");
+  }, []);
   const {
     items,
     hydrated,
