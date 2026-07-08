@@ -70,6 +70,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         // Sensitive config is not exposed by the branding query.
         taxa_servico_mesa: 0,
         dominio_customizado: data.dominio_customizado ?? null,
+        subdominio: data.subdominio ?? null,
         cep: "",
         logradouro: "",
         numero: "",
