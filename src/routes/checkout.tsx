@@ -93,45 +93,9 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [useCashback, setUseCashback] = useState(false);
-  const expulsionToastReasons = useRef(new Set<string>());
-
-  const reportCheckoutExpulsion = useCallback((reason: string, details?: unknown) => {
-    console.warn(`[CHECKOUT] 🚫 Expulso do Checkout por: ${reason}`, details ?? {});
-    if (expulsionToastReasons.current.has(reason)) return;
-    expulsionToastReasons.current.add(reason);
-    toast.error(`Expulso do Checkout por: ${reason}`, { duration: 12000 });
-  }, []);
-
-  useEffect(() => {
-    console.log(
-      "[AUDITORIA CHECKOUT] Montando para o usuário:",
-      user?.id,
-      "com",
-      items.length,
-      "itens",
-    );
-    console.log("[CHECKOUT] Montando com itens:", items.length, {
-      hydrated,
-      authLoading,
-      hasUser: !!user,
-    });
-    return () => console.log("[CHECKOUT] 🔴 CheckoutPage DESMONTADO", {
-      lastKnownItems: items.length,
-      hydrated,
-      hasUser: !!user,
-    });
-  }, []);
-
-
-  useEffect(() => {
-    console.log("[CHECKOUT] carrinho/hidratação →", {
-      hydrated,
-      itemCount: items.length,
-      hasItems: items.length > 0,
-    });
-  }, [hydrated, items.length]);
 
   const safeItems = useMemo(
+
     () =>
       (Array.isArray(items) ? items : [])
         .filter((item) => item && typeof item === "object")
