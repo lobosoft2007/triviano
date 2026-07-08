@@ -284,15 +284,7 @@ function CheckoutPage() {
   // While the session or the cart is still settling, show a stable loader
   // instead of rendering (and then tearing down) the payment screen. This
   // prevents the "QR flashes for a few seconds then disappears" behaviour.
-  console.log("[CHECKOUT] render →", {
-    authLoading,
-    hydrated,
-    hasUser: !!user,
-    itemCount: safeItems.length,
-    finalTotal,
-  });
   if (authLoading || !hydrated || !user) {
-    console.log("[CHECKOUT] 🌀 render LOADER (aguardando sessão/carrinho)");
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
