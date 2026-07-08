@@ -853,7 +853,8 @@ function CheckoutPage() {
             </section>
           ) : (
             <section className="mb-5 rounded-2xl border border-primary/20 bg-card p-4 text-sm text-muted-foreground">
-              Confirme o pedido abaixo para registrar na cozinha e liberar o QR Code PIX.
+              Escolha a forma de pagamento e confirme o pedido abaixo para
+              registrá-lo na cozinha.
             </section>
           )}
 
