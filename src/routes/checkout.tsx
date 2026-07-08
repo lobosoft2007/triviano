@@ -519,7 +519,9 @@ function CheckoutPage() {
           ? trocoPara.trim() !== ""
             ? `Dinheiro (troco para ${formatBRL(Number(trocoPara.replace(",", ".")))})`
             : "Dinheiro (sem troco)"
-          : payMethod;
+          : payMethod === "Conta Corrente"
+            ? "Conta Corrente (Lançar na Conta / Fiado)"
+            : payMethod;
       const composedNotes = [
         `Forma de pagamento: ${paymentLabel}`,
         (parsed.data.notes ?? "").trim(),
