@@ -25,9 +25,13 @@ export function TenantGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const warnedReasons = useRef(new Set<string>());
 
-  const expected = empresa?.subdominio?.trim().toLowerCase() || null;
-  const requested = tenantSlug?.trim().toLowerCase() || null;
   const isCheckoutRoute = location.pathname === "/checkout";
+
+  const expected = empresa?.subdominio?.trim().toLowerCase() || null;
+  // Domínio principal (sem subdomínio de tenant na URL): assume o slug do
+  // restaurante servido por ESTE ambiente. Assim `requested: null` nunca é
+  // tratado como divergência — ele passa a valer o próprio tenant esperado.
+  const requested = tenantSlug?.trim().toLowerCase() || expected;
 
   // Só bloqueia quando temos ambos os lados resolvidos e eles divergem.
   const mismatch =
@@ -40,25 +44,26 @@ export function TenantGuard({ children }: { children: React.ReactNode }) {
     expected,
     mismatch,
     pathname: location.pathname,
-    checkoutBypass: isCheckoutRoute && mismatch,
+    checkoutBypass: isCheckoutRoute,
   });
 
   useEffect(() => {
-    if (!mismatch) return;
-    const reason = isCheckoutRoute
-      ? "tenant divergente ignorado no checkout"
-      : "tenant divergente";
-    console.warn(`[TENANT] 🚫 Expulso do Checkout por: ${reason}`, {
+    // O checkout NUNCA é bloqueado pelo tenant guard — sai cedo.
+    if (isCheckoutRoute || !mismatch) return;
+    const reason = "tenant divergente";
+    console.warn(`[TENANT] 🚫 tenant divergente`, {
       requested,
       expected,
       pathname: location.pathname,
     });
     if (warnedReasons.current.has(reason)) return;
     warnedReasons.current.add(reason);
-    toast.error(`Expulso do Checkout por: ${reason}`, { duration: 12000 });
+    toast.error(`Endereço não corresponde a este estabelecimento.`, { duration: 8000 });
   }, [expected, isCheckoutRoute, location.pathname, mismatch, requested]);
 
-  if (isCheckoutRoute && mismatch) {
+  // Exceção explícita: a rota /checkout SEMPRE renderiza o conteúdo, sem
+  // qualquer verificação de tenant e sem NENHUM redirecionamento.
+  if (isCheckoutRoute) {
     return <>{children}</>;
   }
 
