@@ -322,6 +322,8 @@ function CheckoutPage() {
       phone,
       notes,
       useCashback,
+      payMethod,
+      trocoPara,
     };
     writeCheckoutSnapshot(nextSnapshot);
     setCheckoutSnapshot(nextSnapshot);
@@ -335,6 +337,8 @@ function CheckoutPage() {
     safeItems.length,
     tipo,
     useCashback,
+    payMethod,
+    trocoPara,
   ]);
 
 
