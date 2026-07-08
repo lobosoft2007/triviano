@@ -75,6 +75,7 @@ const schema = z.object({
 
 const CHECKOUT_AUTH_LATCH_KEY = "checkout_auth_latch_v1";
 const CHECKOUT_SNAPSHOT_KEY = "checkout_payment_snapshot_v1";
+const CHECKOUT_PENDING_PAYMENT_KEY = "checkout_pending_payment_v1";
 const CHECKOUT_AUTH_LATCH_TTL = 30 * 60 * 1000;
 
 interface CheckoutSnapshot {
@@ -92,6 +93,17 @@ interface CheckoutSnapshot {
   phone: string;
   notes: string;
   useCashback: boolean;
+}
+
+interface PendingPaymentSnapshot {
+  at: number;
+  orderId: string;
+  total: number;
+  tipo: "Delivery" | "Presencial";
+  mesa: string;
+  address: string;
+  phone: string;
+  notes: string;
 }
 
 function readCheckoutAuthLatch() {
@@ -143,6 +155,31 @@ function clearCheckoutSnapshot() {
   try {
     sessionStorage.removeItem(CHECKOUT_AUTH_LATCH_KEY);
     sessionStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
+    sessionStorage.removeItem(CHECKOUT_PENDING_PAYMENT_KEY);
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
+function readPendingPaymentSnapshot(): PendingPaymentSnapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CHECKOUT_PENDING_PAYMENT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PendingPaymentSnapshot;
+    if (!parsed?.at || Date.now() - parsed.at > CHECKOUT_AUTH_LATCH_TTL) return null;
+    if (!parsed.orderId || !Number.isFinite(Number(parsed.total)) || Number(parsed.total) <= 0) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writePendingPaymentSnapshot(snapshot: PendingPaymentSnapshot) {
+  try {
+    sessionStorage.setItem(CHECKOUT_PENDING_PAYMENT_KEY, JSON.stringify(snapshot));
   } catch {
     /* ignore storage errors */
   }
@@ -164,6 +201,7 @@ function CheckoutPage() {
     clear,
   } = useCart();
   const [checkoutSnapshot, setCheckoutSnapshot] = useState(readCheckoutSnapshot);
+  const [pendingPayment, setPendingPayment] = useState(readPendingPaymentSnapshot);
   const [submitting, setSubmitting] = useState(false);
   const [tipo, setTipo] = useState<"Delivery" | "Presencial">(
     checkoutSnapshot?.tipo ?? "Delivery",
@@ -299,7 +337,8 @@ function CheckoutPage() {
     ? Math.min(Math.round(saldoCashback * 100), Math.round(baseTotal * 100)) /
       100
     : 0;
-  const finalTotal = Math.round((baseTotal - cashbackApplied) * 100) / 100;
+  const calculatedFinalTotal = Math.round((baseTotal - cashbackApplied) * 100) / 100;
+  const finalTotal = pendingPayment?.total ?? calculatedFinalTotal;
 
   const {
     payload: pixPayload,
@@ -325,7 +364,7 @@ function CheckoutPage() {
   // paying PIX) must NOT redirect — AuthProvider recovers the session shortly.
   useEffect(() => {
     if (authLoading || !hydrated) return;
-    if (!user && !everAuthed) {
+    if (!user && !everAuthed && !pendingPayment) {
       try {
         sessionStorage.setItem("post_login_redirect", "/checkout");
       } catch {
@@ -333,7 +372,7 @@ function CheckoutPage() {
       }
       navigate({ to: "/auth", replace: true });
     }
-  }, [authLoading, hydrated, user, everAuthed, navigate]);
+  }, [authLoading, hydrated, user, everAuthed, pendingPayment, navigate]);
 
 
   // NOTE: we deliberately do NOT auto-navigate to "/" when the cart looks
@@ -414,7 +453,7 @@ function CheckoutPage() {
       /* availability is best-effort; never block checkout on its failure */
     }
     try {
-      await placeOrder({
+      const orderId = await placeOrder({
         userId: user.id,
         items: effectiveItems,
         total: finalTotal,
@@ -426,11 +465,23 @@ function CheckoutPage() {
         numeroMesa: mesaNumber,
         cashbackUsed: cashbackApplied,
       });
-      clearCheckoutSnapshot();
+      const paymentSnapshot: PendingPaymentSnapshot = {
+        at: Date.now(),
+        orderId,
+        total: finalTotal,
+        tipo,
+        mesa,
+        address,
+        phone: parsed.data.phone,
+        notes: parsed.data.notes ?? "",
+      };
+      writePendingPaymentSnapshot(paymentSnapshot);
+      setPendingPayment(paymentSnapshot);
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Pedido realizado com sucesso!");
-      navigate({ to: "/", replace: true });
+      toast.success("Pedido registrado! Agora finalize o PIX.");
+      setSubmitting(false);
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       // Log the full error for observability; never surface raw DB/gateway text.
       console.error("Falha ao finalizar o pedido:", err);
@@ -448,7 +499,7 @@ function CheckoutPage() {
   // instead of rendering (and then tearing down) the payment screen. Once the
   // customer has been authenticated on this screen (everAuthed) we keep the
   // page mounted through any transient auth blip so the QR never disappears.
-  if (!hydrated || ((authLoading || !user) && !everAuthed)) {
+  if (!hydrated || ((authLoading || !user) && !everAuthed && !pendingPayment)) {
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
@@ -475,7 +526,7 @@ function CheckoutPage() {
   // Cart is restored and the user is authenticated: if there is genuinely
   // nothing to pay for, guide the customer back to the menu instead of
   // silently redirecting them.
-  if (effectiveItems.length === 0) {
+  if (effectiveItems.length === 0 && !pendingPayment) {
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
@@ -629,58 +680,76 @@ function CheckoutPage() {
             </p>
           ))}
 
-          {/* PIX payment — BR Code (Copia e Cola) + QR Code dinâmico */}
-          <section className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
-            <div className="mb-1 flex items-center gap-2">
-              <QrCode className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-base font-bold">
-                Pagamento via PIX
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
-              <span className="font-semibold text-foreground">
-                {formatBRL(finalTotal)}
-              </span>{" "}
-              já vem preenchido.
-            </p>
-
-            <div className="mt-4 flex flex-col items-center">
-              <div className="rounded-2xl bg-white p-3 shadow-card">
-                <QRCodeCanvas
-                  value={pixPayload}
-                  size={196}
-                  level="M"
-                  marginSize={1}
-                  aria-label="QR Code para pagamento PIX"
-                />
+          {pendingPayment ? (
+            <section className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+              <div className="mb-1 flex items-center gap-2">
+                <QrCode className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-base font-bold">
+                  Pagamento via PIX
+                </h2>
               </div>
-            </div>
+              <p className="text-xs text-muted-foreground">
+                Pedido registrado. Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
+                <span className="font-semibold text-foreground">
+                  {formatBRL(finalTotal)}
+                </span>{" "}
+                já vem preenchido.
+              </p>
 
-            <button
-              type="button"
-              onClick={copyPix}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
-            >
-              {copied ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-              {copied ? "Código copiado com sucesso!" : "Copiar Código PIX (Copia e Cola)"}
-            </button>
+              <div className="mt-4 flex flex-col items-center">
+                <div className="rounded-2xl bg-white p-3 shadow-card">
+                  <QRCodeCanvas
+                    value={pixPayload}
+                    size={196}
+                    level="M"
+                    marginSize={1}
+                    aria-label="QR Code para pagamento PIX"
+                  />
+                </div>
+              </div>
 
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Favorecido:{" "}
-              <span className="font-medium text-foreground">
-                {pixMerchantName}
-              </span>{" "}
-              • {pixMerchantCity}
-            </p>
-          </section>
+              <button
+                type="button"
+                onClick={copyPix}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {copied ? "Código copiado com sucesso!" : "Copiar Código PIX (Copia e Cola)"}
+              </button>
+
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Favorecido:{" "}
+                <span className="font-medium text-foreground">
+                  {pixMerchantName}
+                </span>{" "}
+                • {pixMerchantCity}
+              </p>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 h-12 w-full rounded-2xl"
+                onClick={() => {
+                  clearCheckoutSnapshot();
+                  navigate({ to: "/", replace: true });
+                }}
+              >
+                Voltar ao cardápio
+              </Button>
+            </section>
+          ) : (
+            <section className="mb-5 rounded-2xl border border-primary/20 bg-card p-4 text-sm text-muted-foreground">
+              Confirme o pedido abaixo para registrar na cozinha e liberar o QR Code PIX.
+            </section>
+          )}
 
 
           {/* Order form */}
+          {!pendingPayment && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Attendance type */}
             <div className="grid grid-cols-2 gap-2 rounded-2xl bg-secondary p-1">
@@ -779,6 +848,7 @@ function CheckoutPage() {
               )}
             </Button>
           </form>
+          )}
           </main>
         </ShellBody>
     </AppShell>
