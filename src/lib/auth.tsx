@@ -17,12 +17,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Register listener first, then read the existing session.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
+      console.log("[AUTH] onAuthStateChange →", {
+        event,
+        userId: newSession?.user?.id ?? null,
+      });
       setSession(newSession);
       setLoading(false);
     });
 
     supabase.auth.getSession().then(({ data }) => {
+      console.log("[AUTH] getSession resolvido →", {
+        userId: data.session?.user?.id ?? null,
+      });
       setSession(data.session);
       setLoading(false);
     });
