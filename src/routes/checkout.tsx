@@ -478,6 +478,21 @@ function CheckoutPage() {
       /* availability is best-effort; never block checkout on its failure */
     }
     try {
+      // Registra a forma de pagamento escolhida nas observações para que a
+      // cozinha e o operador do caixa saibam como o cliente vai pagar.
+      const paymentLabel =
+        payMethod === "Dinheiro"
+          ? trocoPara.trim() !== ""
+            ? `Dinheiro (troco para ${formatBRL(Number(trocoPara.replace(",", ".")))})`
+            : "Dinheiro (sem troco)"
+          : payMethod;
+      const composedNotes = [
+        `Forma de pagamento: ${paymentLabel}`,
+        (parsed.data.notes ?? "").trim(),
+      ]
+        .filter(Boolean)
+        .join(" — ");
+
       const orderId = await placeOrder({
         userId: user.id,
         items: effectiveItems,
@@ -485,7 +500,7 @@ function CheckoutPage() {
         discount: effectiveDiscount,
         deliveryAddress: parsed.data.address,
         phone: parsed.data.phone,
-        notes: parsed.data.notes ?? "",
+        notes: composedNotes,
         tipoAtendimento: tipo,
         numeroMesa: mesaNumber,
         cashbackUsed: cashbackApplied,
@@ -499,12 +514,18 @@ function CheckoutPage() {
         address,
         phone: parsed.data.phone,
         notes: parsed.data.notes ?? "",
+        payMethod,
+        trocoPara,
       };
       writePendingPaymentSnapshot(paymentSnapshot);
       setPendingPayment(paymentSnapshot);
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Pedido registrado! Agora finalize o PIX.");
+      toast.success(
+        payMethod === "PIX"
+          ? "Pedido registrado! Agora finalize o PIX."
+          : "Pedido registrado! Confira as instruções de pagamento.",
+      );
       setSubmitting(false);
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
