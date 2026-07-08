@@ -78,6 +78,15 @@ const CHECKOUT_SNAPSHOT_KEY = "checkout_payment_snapshot_v1";
 const CHECKOUT_PENDING_PAYMENT_KEY = "checkout_pending_payment_v1";
 const CHECKOUT_AUTH_LATCH_TTL = 30 * 60 * 1000;
 
+type PayMethod = "PIX" | "Dinheiro" | "Cartão de Crédito" | "Cartão de Débito";
+
+const PAY_METHODS: { value: PayMethod; label: string; hint: string }[] = [
+  { value: "PIX", label: "PIX", hint: "QR Code na hora" },
+  { value: "Dinheiro", label: "Dinheiro", hint: "Pague na entrega" },
+  { value: "Cartão de Crédito", label: "Crédito", hint: "Maquininha na entrega" },
+  { value: "Cartão de Débito", label: "Débito", hint: "Maquininha na entrega" },
+];
+
 interface CheckoutSnapshot {
   at: number;
   items: CartItem[];
@@ -93,6 +102,8 @@ interface CheckoutSnapshot {
   phone: string;
   notes: string;
   useCashback: boolean;
+  payMethod: PayMethod;
+  trocoPara: string;
 }
 
 interface PendingPaymentSnapshot {
@@ -104,6 +115,8 @@ interface PendingPaymentSnapshot {
   address: string;
   phone: string;
   notes: string;
+  payMethod: PayMethod;
+  trocoPara: string;
 }
 
 function readCheckoutAuthLatch() {
