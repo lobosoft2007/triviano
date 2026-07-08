@@ -77,13 +77,11 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           /* ignore storage errors */
         }
         toast.error("Faça login para finalizar o pedido.");
-        console.log("[CHECKOUT] Redirecionando para autenticação");
         setOpen(false);
         navigate({ to: "/auth" });
         return;
       }
 
-      console.log("[CHECKOUT] Redirecionando para pagamento");
       setOpen(false);
       navigate({ to: "/checkout" });
     } catch (error) {
