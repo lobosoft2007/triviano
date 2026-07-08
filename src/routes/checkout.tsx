@@ -103,6 +103,13 @@ function CheckoutPage() {
   }, []);
 
   useEffect(() => {
+    console.log(
+      "[AUDITORIA CHECKOUT] Montando para o usuário:",
+      user?.id,
+      "com",
+      items.length,
+      "itens",
+    );
     console.log("[CHECKOUT] Montando com itens:", items.length, {
       hydrated,
       authLoading,
@@ -114,6 +121,7 @@ function CheckoutPage() {
       hasUser: !!user,
     });
   }, []);
+
 
   useEffect(() => {
     console.log("[CHECKOUT] carrinho/hidratação →", {
