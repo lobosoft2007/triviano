@@ -261,15 +261,14 @@ function CheckoutPage() {
       toast.success("Pedido realizado com sucesso!");
       navigate({ to: "/", replace: true });
     } catch (err) {
+      // Log the full error for observability; never surface raw DB/gateway text.
       console.error("Falha ao finalizar o pedido:", err);
-      // Surface the real gateway/PIX/RPC error so route vs. data issues are visible.
-      const message =
-        err instanceof Error && err.message
-          ? err.message
-          : typeof err === "string"
-            ? err
-            : "Não foi possível finalizar o pedido. Tente novamente.";
-      toast.error(message);
+      const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+      // Whitelist only user-friendly messages raised intentionally by the RPC.
+      const isSafe = /^(Lamento|Pedido|Revise|Informe|Faça|Não foi possível|Saldo|Cliente|Endereço|Mesa)/.test(
+        raw.trim(),
+      );
+      toast.error(isSafe ? raw : "Não foi possível finalizar o pedido. Tente novamente.");
       setSubmitting(false);
     }
   }
