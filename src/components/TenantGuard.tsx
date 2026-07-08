@@ -27,6 +27,8 @@ export function TenantGuard({ children }: { children: React.ReactNode }) {
   const mismatch =
     hydrated && !isLoading && requested !== null && expected !== null && requested !== expected;
 
+  console.log("[TENANT] guard →", { hydrated, isLoading, requested, expected, mismatch });
+
   if (mismatch) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6 text-foreground">

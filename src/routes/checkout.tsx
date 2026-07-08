@@ -75,6 +75,11 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    console.log("[CHECKOUT] 🟢 CheckoutPage MONTADO");
+    return () => console.log("[CHECKOUT] 🔴 CheckoutPage DESMONTADO");
+  }, []);
   const {
     items,
     hydrated,
@@ -153,8 +158,10 @@ function CheckoutPage() {
   }, [profile]);
 
   useEffect(() => {
+    console.log("[CHECKOUT] guard auth →", { authLoading, hasUser: !!user });
     if (authLoading) return;
     if (!user) {
+      console.warn("[CHECKOUT] ⚠️ sem usuário → redirecionando para /auth");
       try {
         sessionStorage.setItem("post_login_redirect", "/checkout");
       } catch {
@@ -184,6 +191,7 @@ function CheckoutPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log("[CHECKOUT] 📤 handleSubmit iniciado", { canCheckout, tipo });
     if (!canCheckout) {
       toast.error("Revise as regras do pedido antes de finalizar.");
       return;
@@ -242,6 +250,7 @@ function CheckoutPage() {
       /* availability is best-effort; never block checkout on its failure */
     }
     try {
+      console.log("[CHECKOUT] 🚀 chamando placeOrder…", { total: finalTotal });
       await placeOrder({
         userId: user.id,
         items: safeItems,
@@ -254,6 +263,7 @@ function CheckoutPage() {
         numeroMesa: mesaNumber,
         cashbackUsed: cashbackApplied,
       });
+      console.log("[CHECKOUT] ✅ placeOrder concluído com sucesso");
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Pedido realizado com sucesso!");
@@ -274,7 +284,15 @@ function CheckoutPage() {
   // While the session or the cart is still settling, show a stable loader
   // instead of rendering (and then tearing down) the payment screen. This
   // prevents the "QR flashes for a few seconds then disappears" behaviour.
+  console.log("[CHECKOUT] render →", {
+    authLoading,
+    hydrated,
+    hasUser: !!user,
+    itemCount: safeItems.length,
+    finalTotal,
+  });
   if (authLoading || !hydrated || !user) {
+    console.log("[CHECKOUT] 🌀 render LOADER (aguardando sessão/carrinho)");
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
@@ -302,6 +320,7 @@ function CheckoutPage() {
   // nothing to pay for, guide the customer back to the menu instead of
   // silently redirecting them.
   if (safeItems.length === 0) {
+    console.warn("[CHECKOUT] 🧺 render CARRINHO VAZIO");
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
@@ -332,6 +351,7 @@ function CheckoutPage() {
     );
   }
 
+  console.log("[CHECKOUT] ✅ render TELA DE PAGAMENTO (QR + formulário)");
   return (
 
     <AppShell>
