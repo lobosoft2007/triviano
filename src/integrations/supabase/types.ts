@@ -2217,6 +2217,7 @@ export type Database = {
       setores: {
         Row: {
           created_at: string
+          empresa_id: string
           id: string
           ordem_exibicao: number
           setor: string
@@ -2224,6 +2225,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          empresa_id?: string
           id?: string
           ordem_exibicao?: number
           setor: string
@@ -2231,6 +2233,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          empresa_id?: string
           id?: string
           ordem_exibicao?: number
           setor?: string
@@ -2241,6 +2244,7 @@ export type Database = {
       subprodutos: {
         Row: {
           created_at: string
+          empresa_id: string
           id: string
           modo_preparo: string
           nome: string
@@ -2249,6 +2253,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          empresa_id?: string
           id?: string
           modo_preparo?: string
           nome: string
@@ -2257,6 +2262,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          empresa_id?: string
           id?: string
           modo_preparo?: string
           nome?: string
@@ -2506,6 +2512,7 @@ export type Database = {
         }
         Returns: number
       }
+      can_manage_empresa: { Args: { _empresa_id: string }; Returns: boolean }
       cancel_order: { Args: { p_order_id: string }; Returns: undefined }
       compute_product_cmv: { Args: { p_product_id: string }; Returns: number }
       conciliar_ajuste_nf: {
