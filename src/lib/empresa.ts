@@ -6,6 +6,15 @@ import { DEFAULT_BRAND_THEME, type ModoFundo } from "@/lib/theme";
 /** UUID fixo da empresa raiz (Clube 23). Usado como tenant padrão. */
 export const DEFAULT_EMPRESA_ID = "00000000-0000-0000-0000-000000000023";
 
+/**
+ * Hostname atual (browser). No SSR/preview retorna "" — nesse caso o backend
+ * cai na primeira empresa ativa (retrocompatível com o modelo single-tenant).
+ */
+export function currentHost(): string {
+  if (typeof window === "undefined") return "";
+  return window.location.hostname;
+}
+
 export interface Empresa {
   id: string;
   nome_fantasia: string;
