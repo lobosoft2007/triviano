@@ -79,6 +79,19 @@ function HomePage() {
     },
   });
 
+  // Escopo de subdomínio: PDV e Gerência não usam o cardápio como landing.
+  const navigate = useNavigate();
+  const { scope, hydrated } = useScope();
+  useEffect(() => {
+    if (!hydrated) return;
+    if (scope === "pdv") navigate({ to: "/caixa", replace: true });
+    else if (scope === "gerencia") navigate({ to: "/admin", replace: true });
+  }, [hydrated, scope, navigate]);
+
+  // No universo de vendas (delivery) o cliente fica fixo na sacola/cardápio:
+  // atalhos de fuga para retaguarda/caixa só aparecem fora do delivery.
+  const showBackofficeShortcuts = scope !== "delivery";
+
   // Product currently shown in the details modal.
   const [detail, setDetail] = useState<Selection | null>(null);
   // Product routed to the customization sheet after "Escolher".
