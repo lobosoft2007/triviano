@@ -8,22 +8,39 @@ export interface Profile {
   phone: string;
   address: string;
   saldo_cashback: number;
+  /** Whether this customer is allowed to charge orders to their store account. */
+  fiado_autorizado: boolean;
+  /** Credit ceiling for the store account (conta corrente). */
+  limite_fiado: number;
+  /** Current outstanding debt on the store account. */
+  saldo_devedor_fiado: number;
 }
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, phone, address, saldo_cashback")
+    .select(
+      "id, full_name, phone, address, saldo_cashback, fiado_autorizado, limite_fiado, saldo_devedor_fiado",
+    )
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+  const row = data as {
+    saldo_cashback?: number;
+    fiado_autorizado?: boolean;
+    limite_fiado?: number;
+    saldo_devedor_fiado?: number;
+  };
   return {
     id: data.id,
     full_name: data.full_name ?? "",
     phone: data.phone ?? "",
     address: data.address ?? "",
-    saldo_cashback: Number((data as { saldo_cashback?: number }).saldo_cashback ?? 0),
+    saldo_cashback: Number(row.saldo_cashback ?? 0),
+    fiado_autorizado: !!row.fiado_autorizado,
+    limite_fiado: Number(row.limite_fiado ?? 0),
+    saldo_devedor_fiado: Number(row.saldo_devedor_fiado ?? 0),
   };
 }
 
