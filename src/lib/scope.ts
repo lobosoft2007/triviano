@@ -42,7 +42,8 @@ function isDevOrPreviewHost(host: string): boolean {
     host.endsWith(".local") ||
     host.includes("id-preview--") ||
     host.endsWith(".lovable.app") ||
-    host.endsWith(".lovable.dev")
+    host.endsWith(".lovable.dev") ||
+    host.endsWith(".lovableproject.com")
   );
 }
 
