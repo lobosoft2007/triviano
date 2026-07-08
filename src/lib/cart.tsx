@@ -284,6 +284,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     () => ({
       items,
       hydrated,
+      userId,
       totalItems,
       subtotal,
       discount,
@@ -300,6 +301,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [
       items,
       hydrated,
+      userId,
       totalItems,
       subtotal,
       discount,
