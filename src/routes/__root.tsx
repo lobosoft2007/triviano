@@ -21,7 +21,6 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/auth";
 import { CartProvider } from "../lib/cart";
-import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { BrandThemeInjector } from "@/components/BrandThemeInjector";
 import { TenantGuard } from "@/components/TenantGuard";
@@ -150,42 +149,6 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const router = useRouter();
-
-
-
-  useEffect(() => {
-    // Supabase emits an auth event during its async session recovery
-    // (`_recoverAndRefresh`) a few seconds after page load — this arrives as a
-    // `SIGNED_IN` even though nothing actually changed (it's just the stored
-    // session being restored). Reacting to it fired a global
-    // router + query invalidation that tore down whatever screen the user was
-    // on — most visibly /checkout, which "flashed" the QR then reset.
-    //
-    // Fix: the FIRST auth event only seeds the known identity and never
-    // invalidates. Only genuine identity changes AFTER initialization (real
-    // login / logout / account switch) trigger an invalidation.
-    let initialized = false;
-    let lastUserId: string | null = null;
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      const nextUserId = session?.user?.id ?? null;
-
-      if (!initialized) {
-        initialized = true;
-        lastUserId = nextUserId;
-        return;
-      }
-
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED")
-        return;
-      if (nextUserId === lastUserId) return;
-      lastUserId = nextUserId;
-      router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [router, queryClient]);
-
 
   return (
     <QueryClientProvider client={queryClient}>

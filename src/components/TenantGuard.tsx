@@ -37,25 +37,10 @@ export function TenantGuard({ children }: { children: React.ReactNode }) {
   const mismatch =
     hydrated && !isLoading && requested !== null && expected !== null && requested !== expected;
 
-  console.log("[TENANT] guard →", {
-    hydrated,
-    isLoading,
-    requested,
-    expected,
-    mismatch,
-    pathname: location.pathname,
-    checkoutBypass: isCheckoutRoute,
-  });
-
   useEffect(() => {
     // O checkout NUNCA é bloqueado pelo tenant guard — sai cedo.
     if (isCheckoutRoute || !mismatch) return;
     const reason = "tenant divergente";
-    console.warn(`[TENANT] 🚫 tenant divergente`, {
-      requested,
-      expected,
-      pathname: location.pathname,
-    });
     if (warnedReasons.current.has(reason)) return;
     warnedReasons.current.add(reason);
     toast.error(`Endereço não corresponde a este estabelecimento.`, { duration: 8000 });
