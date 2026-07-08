@@ -160,11 +160,16 @@ function RootComponent() {
     // when the authenticated user identity actually changes.
     let lastUserId: string | null = null;
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      const nextUserId = session?.user?.id ?? null;
+      console.log("[ROOT] onAuthStateChange →", { event, nextUserId, lastUserId });
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED")
         return;
-      const nextUserId = session?.user?.id ?? null;
-      if (event === "SIGNED_IN" && nextUserId === lastUserId) return;
+      if (event === "SIGNED_IN" && nextUserId === lastUserId) {
+        console.log("[ROOT] SIGNED_IN redundante (mesmo usuário) → ignorado");
+        return;
+      }
       lastUserId = nextUserId;
+      console.warn("[ROOT] 🔄 invalidando router + queries por mudança de identidade");
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
