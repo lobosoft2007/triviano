@@ -26,8 +26,9 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutError({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
+    // Log the full error server-side/console only; never surface raw text to the user.
     console.error("ERRO CRÍTICO NA TELA DE CHECKOUT:", error);
-    toast.error(`ERRO CRÍTICO NA TELA DE CHECKOUT: ${error.message}`);
+    toast.error("Algo deu errado ao abrir o pagamento. Tente novamente.");
   }, [error]);
 
   return (
@@ -51,7 +52,7 @@ function CheckoutError({ error, reset }: { error: Error; reset: () => void }) {
               Falha ao abrir o pagamento
             </h2>
             <p className="mt-2 break-words text-sm text-destructive">
-              {error.message}
+              Algo deu errado. Tente novamente ou volte ao início.
             </p>
           </section>
           <Button type="button" onClick={reset} className="h-12 rounded-2xl">
