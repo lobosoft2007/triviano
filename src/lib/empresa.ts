@@ -94,6 +94,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         logotipo_url: "/logo.png",
         taxa_servico_mesa: 0,
         dominio_customizado: null,
+        subdominio: null,
         cep: "",
         logradouro: "",
         numero: "",
