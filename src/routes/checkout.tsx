@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
@@ -75,11 +75,6 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
-
-  useEffect(() => {
-    console.log("[CHECKOUT] 🟢 CheckoutPage MONTADO");
-    return () => console.log("[CHECKOUT] 🔴 CheckoutPage DESMONTADO");
-  }, []);
   const {
     items,
     hydrated,
@@ -98,6 +93,35 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [useCashback, setUseCashback] = useState(false);
+  const expulsionToastReasons = useRef(new Set<string>());
+
+  const reportCheckoutExpulsion = useCallback((reason: string, details?: unknown) => {
+    console.warn(`[CHECKOUT] 🚫 Expulso do Checkout por: ${reason}`, details ?? {});
+    if (expulsionToastReasons.current.has(reason)) return;
+    expulsionToastReasons.current.add(reason);
+    toast.error(`Expulso do Checkout por: ${reason}`, { duration: 12000 });
+  }, []);
+
+  useEffect(() => {
+    console.log("[CHECKOUT] Montando com itens:", items.length, {
+      hydrated,
+      authLoading,
+      hasUser: !!user,
+    });
+    return () => console.log("[CHECKOUT] 🔴 CheckoutPage DESMONTADO", {
+      lastKnownItems: items.length,
+      hydrated,
+      hasUser: !!user,
+    });
+  }, []);
+
+  useEffect(() => {
+    console.log("[CHECKOUT] carrinho/hidratação →", {
+      hydrated,
+      itemCount: items.length,
+      hasItems: items.length > 0,
+    });
+  }, [hydrated, items.length]);
 
   const safeItems = useMemo(
     () =>
@@ -120,7 +144,7 @@ function CheckoutPage() {
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: () => fetchProfile(user!.id),
-    enabled: !!user,
+    enabled: hydrated && !!user,
   });
 
   const { data: empresa } = useQuery(empresaConfigQueryOptions);
@@ -158,8 +182,8 @@ function CheckoutPage() {
   }, [profile]);
 
   useEffect(() => {
-    console.log("[CHECKOUT] guard auth →", { authLoading, hasUser: !!user });
-    if (authLoading) return;
+    console.log("[CHECKOUT] guard auth →", { authLoading, hydrated, hasUser: !!user });
+    if (authLoading || !hydrated) return;
     if (!user) {
       console.warn("[CHECKOUT] ⚠️ sem usuário → redirecionando para /auth");
       try {
@@ -167,9 +191,14 @@ function CheckoutPage() {
       } catch {
         /* ignore storage errors */
       }
+      reportCheckoutExpulsion("falta de usuário autenticado", {
+        authLoading,
+        hydrated,
+        itemCount: safeItems.length,
+      });
       navigate({ to: "/auth", replace: true });
     }
-  }, [authLoading, user, navigate]);
+  }, [authLoading, hydrated, user, safeItems.length, navigate, reportCheckoutExpulsion]);
 
   // NOTE: we deliberately do NOT auto-navigate to "/" when the cart looks
   // empty. That silent redirect used to fire during transient states (cart
@@ -229,7 +258,11 @@ function CheckoutPage() {
       } catch {
         /* ignore storage errors */
       }
-      toast.error("Faça login para finalizar o pedido.");
+      reportCheckoutExpulsion("submit sem usuário autenticado", {
+        authLoading,
+        hydrated,
+        itemCount: safeItems.length,
+      });
       navigate({ to: "/auth" });
       return;
     }
