@@ -177,12 +177,13 @@ function CheckoutPage() {
   }, [profile]);
 
   // Auth guard: only send the visitor to /auth when we're SURE there is no
-  // session (auth settled AND cart hydrated). We never expel a logged-in user
-  // just because the cart looks "orphan" — the cart is anonymous by design and
-  // is adopted (userId stamped) by the CartProvider once a session exists.
+  // session (auth settled AND cart hydrated) AND we have NEVER seen an
+  // authenticated user on this screen. Once the customer was authenticated
+  // here, a transient SIGNED_OUT blip (e.g. returning from the bank app while
+  // paying PIX) must NOT redirect — AuthProvider recovers the session shortly.
   useEffect(() => {
     if (authLoading || !hydrated) return;
-    if (!user) {
+    if (!user && !everAuthed) {
       try {
         sessionStorage.setItem("post_login_redirect", "/checkout");
       } catch {
@@ -190,7 +191,7 @@ function CheckoutPage() {
       }
       navigate({ to: "/auth", replace: true });
     }
-  }, [authLoading, hydrated, user, navigate]);
+  }, [authLoading, hydrated, user, everAuthed, navigate]);
 
 
   // NOTE: we deliberately do NOT auto-navigate to "/" when the cart looks
