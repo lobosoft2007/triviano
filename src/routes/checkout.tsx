@@ -361,6 +361,21 @@ function CheckoutPage() {
   const calculatedFinalTotal = Math.round((baseTotal - cashbackApplied) * 100) / 100;
   const finalTotal = pendingPayment?.total ?? calculatedFinalTotal;
 
+  // Forma de pagamento efetiva (ao reabrir a tela de pagamento pendente,
+  // usamos o método já registrado no pedido).
+  const effectivePayMethod = pendingPayment?.payMethod ?? payMethod;
+  const effectiveTroco = pendingPayment?.trocoPara ?? trocoPara;
+
+  // Troco: só faz sentido para pagamento em dinheiro.
+  const trocoParaNum = Number(String(effectiveTroco).replace(",", "."));
+  const trocoValido =
+    effectivePayMethod === "Dinheiro" &&
+    Number.isFinite(trocoParaNum) &&
+    trocoParaNum >= finalTotal;
+  const trocoValor = trocoValido
+    ? Math.round((trocoParaNum - finalTotal) * 100) / 100
+    : 0;
+
   const {
     payload: pixPayload,
     copied,
