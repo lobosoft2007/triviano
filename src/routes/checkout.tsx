@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
-import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode, Banknote, CreditCard } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder } from "@/lib/orders";
@@ -78,7 +78,12 @@ const CHECKOUT_SNAPSHOT_KEY = "checkout_payment_snapshot_v1";
 const CHECKOUT_PENDING_PAYMENT_KEY = "checkout_pending_payment_v1";
 const CHECKOUT_AUTH_LATCH_TTL = 30 * 60 * 1000;
 
-type PayMethod = "PIX" | "Dinheiro" | "Cartão de Crédito" | "Cartão de Débito";
+type PayMethod =
+  | "PIX"
+  | "Dinheiro"
+  | "Cartão de Crédito"
+  | "Cartão de Débito"
+  | "Conta Corrente";
 
 const PAY_METHODS: { value: PayMethod; label: string; hint: string }[] = [
   { value: "PIX", label: "PIX", hint: "QR Code na hora" },
@@ -361,6 +366,18 @@ function CheckoutPage() {
   const calculatedFinalTotal = Math.round((baseTotal - cashbackApplied) * 100) / 100;
   const finalTotal = pendingPayment?.total ?? calculatedFinalTotal;
 
+  /* ---- Conta corrente (fiado) — permissão e saldo do cliente -------------- */
+  // Espelha a trava do motor financeiro do caixa (finalize_order_paid valida o
+  // limite no servidor). Aqui garantimos que o cliente só consiga escolher
+  // "Lançar na Conta" quando está autorizado E tem crédito suficiente.
+  const fiadoAutorizado = profile?.fiado_autorizado ?? false;
+  const limiteFiado = profile?.limite_fiado ?? 0;
+  const saldoDevedorFiado = profile?.saldo_devedor_fiado ?? 0;
+  const creditoDisponivel =
+    Math.round((limiteFiado - saldoDevedorFiado) * 100) / 100;
+  const contaCorrenteDisponivel =
+    fiadoAutorizado && creditoDisponivel + 1e-9 >= finalTotal;
+
   // Forma de pagamento efetiva (ao reabrir a tela de pagamento pendente,
   // usamos o método já registrado no pedido).
   const effectivePayMethod = pendingPayment?.payMethod ?? payMethod;
@@ -392,6 +409,19 @@ function CheckoutPage() {
       setPhone((p) => p || profile.phone);
     }
   }, [profile]);
+
+  // Se o cliente tinha "Conta Corrente" selecionado mas perdeu a permissão ou
+  // ficou sem crédito (ex.: total mudou), voltamos para PIX para nunca enviar
+  // um pedido com forma de pagamento inválida. Não mexe em pedidos já pagos.
+  useEffect(() => {
+    if (
+      !pendingPayment &&
+      payMethod === "Conta Corrente" &&
+      !contaCorrenteDisponivel
+    ) {
+      setPayMethod("PIX");
+    }
+  }, [pendingPayment, payMethod, contaCorrenteDisponivel]);
 
   // Rota liberada: não existe redirecionamento automático por autenticação.
 
@@ -452,6 +482,23 @@ function CheckoutPage() {
         return;
       }
     }
+    // Trava da conta corrente (fiado): revalida permissão e crédito no envio,
+    // espelhando a checagem do motor financeiro. O caixa ainda revalida no
+    // servidor ao liquidar (finalize_order_paid).
+    if (payMethod === "Conta Corrente") {
+      if (!fiadoAutorizado) {
+        toast.error("Sua conta corrente não está autorizada para lançamentos.");
+        return;
+      }
+      if (finalTotal > creditoDisponivel + 1e-9) {
+        toast.error(
+          `Crédito insuficiente na conta. Disponível: ${formatBRL(
+            Math.max(0, creditoDisponivel),
+          )}.`,
+        );
+        return;
+      }
+    }
     if (authLoading) {
       toast.info("Carregando sua sessão. Tente novamente em instantes.");
       return;
@@ -485,7 +532,9 @@ function CheckoutPage() {
           ? trocoPara.trim() !== ""
             ? `Dinheiro (troco para ${formatBRL(Number(trocoPara.replace(",", ".")))})`
             : "Dinheiro (sem troco)"
-          : payMethod;
+          : payMethod === "Conta Corrente"
+            ? "Conta Corrente (Lançar na Conta / Fiado)"
+            : payMethod;
       const composedNotes = [
         `Forma de pagamento: ${paymentLabel}`,
         (parsed.data.notes ?? "").trim(),
@@ -524,7 +573,9 @@ function CheckoutPage() {
       toast.success(
         payMethod === "PIX"
           ? "Pedido registrado! Agora finalize o PIX."
-          : "Pedido registrado! Confira as instruções de pagamento.",
+          : payMethod === "Conta Corrente"
+            ? "Pedido registrado e lançado na sua conta corrente!"
+            : "Pedido registrado! Confira as instruções de pagamento.",
       );
       setSubmitting(false);
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -792,6 +843,8 @@ function CheckoutPage() {
               <div className="mb-1 flex items-center gap-2">
                 {effectivePayMethod === "Dinheiro" ? (
                   <Banknote className="h-5 w-5 text-success" />
+                ) : effectivePayMethod === "Conta Corrente" ? (
+                  <Wallet className="h-5 w-5 text-success" />
                 ) : (
                   <CreditCard className="h-5 w-5 text-success" />
                 )}
@@ -799,18 +852,32 @@ function CheckoutPage() {
                   Pedido confirmado!
                 </h2>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Seu pedido foi registrado na cozinha. O pagamento de{" "}
-                <span className="font-semibold text-foreground">
-                  {formatBRL(finalTotal)}
-                </span>{" "}
-                será feito{" "}
-                {tipo === "Delivery" ? "na entrega" : "na retirada"} com{" "}
-                <span className="font-semibold text-foreground">
-                  {effectivePayMethod}
-                </span>
-                .
-              </p>
+              {effectivePayMethod === "Conta Corrente" ? (
+                <p className="text-xs text-muted-foreground">
+                  Seu pedido foi registrado na cozinha e o valor de{" "}
+                  <span className="font-semibold text-foreground">
+                    {formatBRL(finalTotal)}
+                  </span>{" "}
+                  foi lançado na sua{" "}
+                  <span className="font-semibold text-foreground">
+                    conta corrente
+                  </span>
+                  .
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Seu pedido foi registrado na cozinha. O pagamento de{" "}
+                  <span className="font-semibold text-foreground">
+                    {formatBRL(finalTotal)}
+                  </span>{" "}
+                  será feito{" "}
+                  {tipo === "Delivery" ? "na entrega" : "na retirada"} com{" "}
+                  <span className="font-semibold text-foreground">
+                    {effectivePayMethod}
+                  </span>
+                  .
+                </p>
+              )}
 
               {effectivePayMethod === "Dinheiro" && (
                 <p className="mt-2 rounded-xl bg-background/60 px-3 py-2 text-xs">
@@ -971,6 +1038,41 @@ function CheckoutPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Conta corrente (fiado): só aparece para clientes autorizados */}
+              {fiadoAutorizado && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    contaCorrenteDisponivel && setPayMethod("Conta Corrente")
+                  }
+                  disabled={!contaCorrenteDisponivel}
+                  aria-pressed={payMethod === "Conta Corrente"}
+                  className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                    payMethod === "Conta Corrente"
+                      ? "border-primary bg-primary/10"
+                      : "border-border bg-card"
+                  }`}
+                >
+                  <Wallet className="h-5 w-5 shrink-0 text-primary" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">
+                      Lançar na Conta
+                    </span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      Conta corrente • disponível{" "}
+                      {formatBRL(Math.max(0, creditoDisponivel))}
+                    </span>
+                  </span>
+                </button>
+              )}
+
+              {fiadoAutorizado && !contaCorrenteDisponivel && (
+                <p className="text-[11px] text-destructive">
+                  Crédito insuficiente na conta corrente para este pedido
+                  (disponível {formatBRL(Math.max(0, creditoDisponivel))}).
+                </p>
+              )}
 
               {payMethod === "Dinheiro" && (
                 <div className="flex flex-col gap-1.5">
