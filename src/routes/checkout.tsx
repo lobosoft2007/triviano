@@ -158,8 +158,10 @@ function CheckoutPage() {
   }, [profile]);
 
   useEffect(() => {
+    console.log("[CHECKOUT] guard auth →", { authLoading, hasUser: !!user });
     if (authLoading) return;
     if (!user) {
+      console.warn("[CHECKOUT] ⚠️ sem usuário → redirecionando para /auth");
       try {
         sessionStorage.setItem("post_login_redirect", "/checkout");
       } catch {
