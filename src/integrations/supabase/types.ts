@@ -344,7 +344,7 @@ export type Database = {
           client_id?: string
           client_secret?: string
           created_at?: string
-          empresa_id: string
+          empresa_id?: string
           gateway_banco?: string
           id?: string
           nome_recebedor?: string
@@ -1378,7 +1378,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
-          empresa_id: string
+          empresa_id?: string
           exige_maquineta?: boolean
           id?: string
           nome: string
