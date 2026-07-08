@@ -252,7 +252,6 @@ function CheckoutPage() {
       /* availability is best-effort; never block checkout on its failure */
     }
     try {
-      console.log("[CHECKOUT] 🚀 chamando placeOrder…", { total: finalTotal });
       await placeOrder({
         userId: user.id,
         items: safeItems,
@@ -265,7 +264,6 @@ function CheckoutPage() {
         numeroMesa: mesaNumber,
         cashbackUsed: cashbackApplied,
       });
-      console.log("[CHECKOUT] ✅ placeOrder concluído com sucesso");
       clear();
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Pedido realizado com sucesso!");
