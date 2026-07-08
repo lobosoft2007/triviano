@@ -1,11 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
 import { empresaQueryOptions, DEFAULT_EMPRESA_ID } from "@/lib/empresa";
 import { AddressFields, emptyAddress, type AddressState } from "@/components/AddressFields";
 import { geocodeAddress } from "@/lib/cep";
@@ -53,13 +52,6 @@ type Mode = "auth" | "otp" | "forgot";
 
 const isCheckoutNeutralZone = () => typeof window !== "undefined" && window.location.pathname === "/checkout";
 
-const isAdminUser = (user: ReturnType<typeof useAuth>["user"]) => {
-  if (!user) return false;
-  const directRole = (user as { role?: string }).role;
-  const metadataRole = (user.app_metadata as { role?: string } | undefined)?.role;
-  return directRole === "admin" || metadataRole === "admin";
-};
-
 const clearCorruptedAuthStorageForCheckout = (error: unknown) => {
   const maybeError = error as { message?: string; status?: number; code?: string } | null;
   const message = String(maybeError?.message ?? error ?? "").toLowerCase();
@@ -82,7 +74,6 @@ const clearCorruptedAuthStorageForCheckout = (error: unknown) => {
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
   const { data: empresa } = useQuery(empresaQueryOptions);
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode] = useState<Mode>("auth");
@@ -140,33 +131,13 @@ function AuthPage() {
     }
   };
 
-  useEffect(() => {
-    // 1. Prioridade Máxima: Se estamos no checkout, ABORTE qualquer lógica de redirecionamento.
-    if (window.location.pathname.includes("/checkout")) {
-      console.log("[AUTH] Zona neutra detectada: Redirecionamento abortado.");
-      return;
+  const navigateAfterConfirmedAuth = () => {
+    const to = resolveLanding();
+    clearSavedLanding();
+    if (to !== window.location.pathname) {
+      navigate({ to, replace: true });
     }
-
-    if (loading) return;
-
-    // 2. Se o usuário estiver logado, decida para onde ele deve ir
-    if (user) {
-      // Se for ADMIN, ele tem passe livre, não redirecione para a home
-      if (isAdminUser(user)) {
-        console.log("[AUTH] Admin detectado: Mantendo na rota atual.");
-        return;
-      }
-
-      const to = resolveLanding();
-
-      // 3. Só redirecione se o destino for diferente da página atual e não for checkout
-      if (to && to !== window.location.pathname && to !== "/checkout") {
-        clearSavedLanding();
-        console.log("REDIRECIONAMENTO DISPARADO POR: src/routes/auth.tsx para:", to);
-        navigate({ to, replace: true });
-      }
-    }
-  }, [user, loading, navigate]);
+  };
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -195,6 +166,7 @@ function AuthPage() {
       return;
     }
     toast.success("Bem-vindo de volta!");
+    navigateAfterConfirmedAuth();
   }
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
@@ -291,6 +263,7 @@ function AuthPage() {
       return;
     }
     toast.success("E-mail confirmado! Bem-vindo ao Clube 23.");
+    navigateAfterConfirmedAuth();
   }
 
   async function handleResend() {

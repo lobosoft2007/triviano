@@ -14,6 +14,32 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const isCheckoutPath = () =>
   typeof window !== "undefined" && window.location.pathname === "/checkout";
 
+const clearAuthStorage = () => {
+  if (typeof window === "undefined") return;
+  try {
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith("sb-") || key.includes("supabase") || key.includes("auth-token"))
+      .forEach((key) => localStorage.removeItem(key));
+  } catch {
+    /* ignore storage errors */
+  }
+};
+
+const isInvalidAuthError = (error: unknown) => {
+  const maybeError = error as { message?: string; status?: number; code?: string; name?: string } | null;
+  const message = String(maybeError?.message ?? error ?? "").toLowerCase();
+  return (
+    maybeError?.status === 400 ||
+    maybeError?.status === 401 ||
+    maybeError?.code === "refresh_token_not_found" ||
+    maybeError?.code === "invalid_grant" ||
+    message.includes("refresh_token") ||
+    message.includes("refresh token") ||
+    message.includes("invalid refresh") ||
+    message.includes("jwt")
+  );
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,9 +73,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }, 3000);
     };
 
+    const validateSession = (nextSession: Session | null) => {
+      if (!nextSession) {
+        applySession(null);
+        return;
+      }
+
+      void supabase.auth.getUser().then(({ data, error }) => {
+        if (!active) return;
+        if (error || !data.user) {
+          if (isInvalidAuthError(error)) clearAuthStorage();
+          applySession(null);
+          return;
+        }
+        applySession({ ...nextSession, user: data.user });
+      });
+    };
+
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!active) return;
+      if (error) {
+        if (isInvalidAuthError(error)) clearAuthStorage();
+        applySession(null);
+        return;
+      }
+      validateSession(data.session);
+    });
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (newSession) {
-        applySession(newSession);
+        validateSession(newSession);
         return;
       }
 
