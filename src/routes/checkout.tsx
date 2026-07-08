@@ -469,6 +469,23 @@ function CheckoutPage() {
         return;
       }
     }
+    // Trava da conta corrente (fiado): revalida permissão e crédito no envio,
+    // espelhando a checagem do motor financeiro. O caixa ainda revalida no
+    // servidor ao liquidar (finalize_order_paid).
+    if (payMethod === "Conta Corrente") {
+      if (!fiadoAutorizado) {
+        toast.error("Sua conta corrente não está autorizada para lançamentos.");
+        return;
+      }
+      if (finalTotal > creditoDisponivel + 1e-9) {
+        toast.error(
+          `Crédito insuficiente na conta. Disponível: ${formatBRL(
+            Math.max(0, creditoDisponivel),
+          )}.`,
+        );
+        return;
+      }
+    }
     if (authLoading) {
       toast.info("Carregando sua sessão. Tente novamente em instantes.");
       return;
