@@ -644,6 +644,7 @@ export type Database = {
       entradas_avulsas_estoque: {
         Row: {
           created_at: string
+          empresa_id: string
           id: string
           id_fornecedor: string | null
           numero_documento_interno: number
@@ -652,6 +653,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          empresa_id?: string
           id?: string
           id_fornecedor?: string | null
           numero_documento_interno?: number
@@ -660,6 +662,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          empresa_id?: string
           id?: string
           id_fornecedor?: string | null
           numero_documento_interno?: number
@@ -667,6 +670,20 @@ export type Database = {
           valor_total?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "entradas_avulsas_estoque_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entradas_avulsas_estoque_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "entradas_avulsas_estoque_id_fornecedor_fkey"
             columns: ["id_fornecedor"]
@@ -907,6 +924,7 @@ export type Database = {
           contato: string | null
           created_at: string
           email: string | null
+          empresa_id: string
           endereco: string | null
           fornecedor: string
           i_estadual: string | null
@@ -922,6 +940,7 @@ export type Database = {
           contato?: string | null
           created_at?: string
           email?: string | null
+          empresa_id?: string
           endereco?: string | null
           fornecedor: string
           i_estadual?: string | null
@@ -937,6 +956,7 @@ export type Database = {
           contato?: string | null
           created_at?: string
           email?: string | null
+          empresa_id?: string
           endereco?: string | null
           fornecedor?: string
           i_estadual?: string | null
@@ -946,7 +966,22 @@ export type Database = {
           telefone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fornecedores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       historico_cashback: {
         Row: {
@@ -1520,6 +1555,7 @@ export type Database = {
       ordens_compra: {
         Row: {
           created_at: string
+          empresa_id: string
           id: string
           id_fornecedor: string | null
           numero: number
@@ -1531,6 +1567,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          empresa_id?: string
           id?: string
           id_fornecedor?: string | null
           numero?: number
@@ -1542,6 +1579,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          empresa_id?: string
           id?: string
           id_fornecedor?: string | null
           numero?: number
@@ -1552,6 +1590,20 @@ export type Database = {
           valor_total?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "ordens_compra_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_compra_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ordens_compra_id_fornecedor_fkey"
             columns: ["id_fornecedor"]
