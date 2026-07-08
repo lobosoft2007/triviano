@@ -75,6 +75,7 @@ function UpdatePasswordPage() {
       return;
     }
     toast.success("Senha redefinida com sucesso!");
+    console.log("REDIRECIONAMENTO DISPARADO POR: src/routes/auth_.update-password.tsx");
     navigate({ to: "/", replace: true });
   }
 

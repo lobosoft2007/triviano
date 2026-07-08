@@ -5,6 +5,10 @@ export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
+    const userRole =
+      (data.user as { role?: string } | null)?.role ??
+      (data.user?.app_metadata as { role?: string } | undefined)?.role;
+    if (userRole === "admin") return { user: data.user };
     if (error || !data.user) {
       const path = location.pathname;
       if (path === "/caixa" || path === "/admin") {

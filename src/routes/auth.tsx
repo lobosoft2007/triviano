@@ -117,6 +117,7 @@ function AuthPage() {
     const to = resolveLanding();
     if (active) {
       clearSavedLanding();
+      if (to === "/") console.log("REDIRECIONAMENTO DISPARADO POR: src/routes/auth.tsx");
       navigate({ to, replace: true });
     }
     return () => {

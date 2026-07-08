@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useScope } from "@/hooks/useScope";
+import { useAuth } from "@/lib/auth";
 import { empresaQueryOptions } from "@/lib/empresa";
 
 /**
@@ -20,10 +21,16 @@ import { empresaQueryOptions } from "@/lib/empresa";
  * holding não carregam slug, então passam direto sem verificação.
  */
 export function TenantGuard({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const { tenantSlug, hydrated } = useScope();
   const { data: empresa, isLoading } = useQuery(empresaQueryOptions);
   const location = useLocation();
   const warnedReasons = useRef(new Set<string>());
+
+  const userRole =
+    (user as { role?: string } | null)?.role ??
+    (user?.app_metadata as { role?: string } | undefined)?.role;
+  if (userRole === "admin") return <>{children}</>;
 
   const isCheckoutRoute = location.pathname === "/checkout";
 

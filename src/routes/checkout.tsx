@@ -357,22 +357,7 @@ function CheckoutPage() {
     }
   }, [profile]);
 
-  // Auth guard: only send the visitor to /auth when we're SURE there is no
-  // session (auth settled AND cart hydrated) AND we have NEVER seen an
-  // authenticated user on this screen. Once the customer was authenticated
-  // here, a transient SIGNED_OUT blip (e.g. returning from the bank app while
-  // paying PIX) must NOT redirect — AuthProvider recovers the session shortly.
-  useEffect(() => {
-    if (authLoading || !hydrated) return;
-    if (!user && !everAuthed && !pendingPayment) {
-      try {
-        sessionStorage.setItem("post_login_redirect", "/checkout");
-      } catch {
-        /* ignore storage errors */
-      }
-      navigate({ to: "/auth", replace: true });
-    }
-  }, [authLoading, hydrated, user, everAuthed, pendingPayment, navigate]);
+  // Rota liberada: não existe redirecionamento automático por autenticação.
 
 
   // NOTE: we deliberately do NOT auto-navigate to "/" when the cart looks
@@ -427,12 +412,7 @@ function CheckoutPage() {
       return;
     }
     if (!user) {
-      try {
-        sessionStorage.setItem("post_login_redirect", "/checkout");
-      } catch {
-        /* ignore storage errors */
-      }
-      navigate({ to: "/auth" });
+      toast.error("Faça login para registrar o pedido.");
       return;
     }
 
@@ -499,7 +479,7 @@ function CheckoutPage() {
   // instead of rendering (and then tearing down) the payment screen. Once the
   // customer has been authenticated on this screen (everAuthed) we keep the
   // page mounted through any transient auth blip so the QR never disappears.
-  if (!hydrated || ((authLoading || !user) && !everAuthed && !pendingPayment)) {
+  if (!hydrated) {
     return (
       <AppShell>
         <ShellHeader className="border-b border-border bg-background/90 backdrop-blur-md">
@@ -735,6 +715,7 @@ function CheckoutPage() {
                 className="mt-4 h-12 w-full rounded-2xl"
                 onClick={() => {
                   clearCheckoutSnapshot();
+                  console.log("REDIRECIONAMENTO DISPARADO POR: src/routes/checkout.tsx");
                   navigate({ to: "/", replace: true });
                 }}
               >
