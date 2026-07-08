@@ -63,6 +63,15 @@ function closeModal(id: string) {
   // Already removed by a popstate (hardware back) — nothing to unwind.
   if (idx === -1) return;
   stack.splice(idx, 1);
+  // Only unwind our synthetic entry if it is STILL the top of the history
+  // stack. When the overlay closes because the app navigated forward to a new
+  // route (e.g. cart Sheet → /checkout), the router already pushed a fresh
+  // history entry on top of ours. Calling history.back() in that case would
+  // eject the user from the brand-new route back to the previous one — this is
+  // exactly what "flashed" the /checkout screen and dumped the user on "/".
+  const currentState =
+    (window.history.state as Record<string, unknown> | null) ?? {};
+  if (currentState.__modal !== id) return;
   ignoreCount += 1;
   window.history.back();
 }
