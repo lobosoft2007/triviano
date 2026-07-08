@@ -4,17 +4,16 @@ import { currentHost } from "@/lib/empresa";
 
 /**
  * Resolve o empresa_id do endereço atual (domínio próprio ou subdomínio).
- * Retorna null em preview/dev sem host mapeado — nesse caso o cardápio não é
- * filtrado (comportamento single-tenant preservado, pois só há 1 empresa).
+ * Usa a mesma função de branding, que já cai na 1ª empresa ativa quando o host
+ * não casa (preview/dev) — garantindo que o cardápio sempre fique escopado a
+ * UMA empresa, nunca misturando tenants.
  */
 async function resolveTenantEmpresaId(): Promise<string | null> {
-  const host = currentHost();
-  if (!host) return null;
-  const { data, error } = await supabase.rpc("resolve_empresa_id_by_host", {
-    p_host: host,
+  const { data, error } = await supabase.rpc("get_public_branding_by_host", {
+    p_host: currentHost(),
   });
   if (error) return null;
-  return (data as string | null) ?? null;
+  return (data ?? [])[0]?.id ?? null;
 }
 
 export interface PriceOption {
