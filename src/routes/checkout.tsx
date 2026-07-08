@@ -530,7 +530,7 @@ function CheckoutPage() {
               Resumo do pedido
             </h2>
             <ul className="space-y-2">
-              {safeItems.map((i) => (
+              {effectiveItems.map((i) => (
                 <li key={i.lineId} className="flex justify-between gap-3 text-sm">
                   <span className="min-w-0 text-muted-foreground">
                     {i.quantity}× {i.name}
@@ -554,9 +554,9 @@ function CheckoutPage() {
             <div className="mt-3 space-y-1 border-t border-border pt-3">
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Subtotal</span>
-                <span className="tabular-nums">{formatBRL(subtotal)}</span>
+                <span className="tabular-nums">{formatBRL(effectiveSubtotal)}</span>
               </div>
-              {appliedCombos.map((c) => (
+              {effectiveAppliedCombos.map((c) => (
                 <div
                   key={c.id}
                   className="flex justify-between text-sm text-success"
@@ -570,10 +570,10 @@ function CheckoutPage() {
                   </span>
                 </div>
               ))}
-              {discount > 0 && appliedCombos.length === 0 && (
+              {effectiveDiscount > 0 && effectiveAppliedCombos.length === 0 && (
                 <div className="flex justify-between text-sm text-success">
                   <span>Desconto combo</span>
-                  <span className="tabular-nums">− {formatBRL(discount)}</span>
+                  <span className="tabular-nums">− {formatBRL(effectiveDiscount)}</span>
                 </div>
               )}
               {serviceFee > 0 && (
@@ -619,7 +619,7 @@ function CheckoutPage() {
           </section>
 
 
-          {shortfalls.map((s) => (
+          {effectiveShortfalls.map((s) => (
             <p
               key={s.slug}
               className="mb-4 rounded-xl bg-destructive/10 px-4 py-3 text-xs text-destructive"
@@ -770,7 +770,7 @@ function CheckoutPage() {
               type="submit"
               size="lg"
               className="mt-2 h-13 rounded-2xl py-3.5 text-base"
-              disabled={submitting || !canCheckout}
+              disabled={submitting || !effectiveCanCheckout}
             >
               {submitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
