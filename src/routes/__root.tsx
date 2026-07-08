@@ -167,8 +167,10 @@ function RootComponent() {
       <AuthProvider>
         <CartProvider>
           <BrandThemeInjector />
-          {/* Required: nested routes render here. */}
-          <Outlet />
+          <TenantGuard>
+            {/* Required: nested routes render here. */}
+            <Outlet />
+          </TenantGuard>
           <Toaster position="top-center" richColors />
         </CartProvider>
       </AuthProvider>
