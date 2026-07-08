@@ -51,8 +51,7 @@ const signupSchema = z
 
 type Mode = "auth" | "otp" | "forgot";
 
-const isCheckoutNeutralZone = () =>
-  typeof window !== "undefined" && window.location.pathname === "/checkout";
+const isCheckoutNeutralZone = () => typeof window !== "undefined" && window.location.pathname === "/checkout";
 
 const isAdminUser = (user: ReturnType<typeof useAuth>["user"]) => {
   if (!user) return false;
@@ -65,8 +64,7 @@ const clearCorruptedAuthStorageForCheckout = (error: unknown) => {
   const maybeError = error as { message?: string; status?: number; code?: string } | null;
   const message = String(maybeError?.message ?? error ?? "").toLowerCase();
   const isRefreshToken400 =
-    maybeError?.status === 400 &&
-    (message.includes("refresh_token") || message.includes("refresh token"));
+    maybeError?.status === 400 && (message.includes("refresh_token") || message.includes("refresh token"));
 
   if (!isRefreshToken400 || !isCheckoutNeutralZone()) return false;
 
@@ -143,22 +141,32 @@ function AuthPage() {
   };
 
   useEffect(() => {
-    if (isCheckoutNeutralZone()) return;
-    if (loading || !user) return;
-    if (isAdminUser(user)) return;
-    let active = true;
-    const to = resolveLanding();
-    if (active) {
-      clearSavedLanding();
-      if (to === "/checkout") return;
-      if (to === "/") console.log("REDIRECIONAMENTO DISPARADO POR: src/routes/auth.tsx");
-      navigate({ to, replace: true });
+    // 1. Prioridade Máxima: Se estamos no checkout, ABORTE qualquer lógica de redirecionamento.
+    if (window.location.pathname.includes("/checkout")) {
+      console.log("[AUTH] Zona neutra detectada: Redirecionamento abortado.");
+      return;
     }
-    return () => {
-      active = false;
-    };
-  }, [user, loading, navigate]);
 
+    if (loading) return;
+
+    // 2. Se o usuário estiver logado, decida para onde ele deve ir
+    if (user) {
+      // Se for ADMIN, ele tem passe livre, não redirecione para a home
+      if (isAdminUser(user)) {
+        console.log("[AUTH] Admin detectado: Mantendo na rota atual.");
+        return;
+      }
+
+      const to = resolveLanding();
+
+      // 3. Só redirecione se o destino for diferente da página atual e não for checkout
+      if (to && to !== window.location.pathname && to !== "/checkout") {
+        clearSavedLanding();
+        console.log("REDIRECIONAMENTO DISPARADO POR: src/routes/auth.tsx para:", to);
+        navigate({ to, replace: true });
+      }
+    }
+  }, [user, loading, navigate]);
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
