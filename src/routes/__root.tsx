@@ -167,7 +167,11 @@ function RootComponent() {
 function RootOutlet() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
-  if (pathname === "/checkout") {
+  const isPublicCheckoutRoute = pathname === "/checkout" || pathname.startsWith("/checkout/");
+
+  // Prioridade absoluta: /checkout é rota pública de topo e não passa por
+  // nenhum guard de tenant/auth que possa devolver o cliente para a home.
+  if (isPublicCheckoutRoute) {
     return <Outlet />;
   }
 
