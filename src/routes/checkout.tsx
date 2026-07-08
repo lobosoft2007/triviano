@@ -78,6 +78,7 @@ function CheckoutPage() {
   const {
     items,
     hydrated,
+    userId: cartUserId,
     subtotal,
     discount,
     appliedCombos,
