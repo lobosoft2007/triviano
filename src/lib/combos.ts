@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { currentHost } from "@/lib/empresa";
 import type { CartItem } from "@/lib/cart";
 
 export type TipoPromocao = "Combo" | "Pack";
@@ -22,23 +23,19 @@ export interface ActiveComboRule {
 
 /** Fetches active promotional rules and resolves their category slugs. */
 export async function fetchActiveCombos(): Promise<ActiveComboRule[]> {
-  const { data, error } = await supabase
-    .from("regras_combos")
-    .select(
-      `id, nome_combo, valor_desconto, tipo_promocao, quantidade_requerida, frase_promocional,
-       c1:categories!regras_combos_id_categoria_1_fkey(slug),
-       c2:categories!regras_combos_id_categoria_2_fkey(slug),
-       c3:categories!regras_combos_id_categoria_3_fkey(slug)`,
-    )
-    .eq("ativo", true);
+  // Tenant isolation: combos are read through a SECURITY DEFINER RPC that
+  // resolves the current establishment from the access host and returns ONLY
+  // that tenant's active rules. The regras_combos table itself is no longer
+  // publicly readable, so a cart can never apply another company's discount.
+  const { data, error } = await supabase.rpc("get_public_combos_by_host", {
+    p_host: currentHost(),
+  });
   if (error) throw error;
 
   return (data ?? []).map((r) => {
-    const slugs = [
-      (r.c1 as { slug: string } | null)?.slug,
-      (r.c2 as { slug: string } | null)?.slug,
-      (r.c3 as { slug: string } | null)?.slug,
-    ].filter((s): s is string => Boolean(s));
+    const slugs = [r.slug1, r.slug2, r.slug3].filter(
+      (s): s is string => Boolean(s),
+    );
     return {
       id: r.id,
       nome_combo: r.nome_combo,
