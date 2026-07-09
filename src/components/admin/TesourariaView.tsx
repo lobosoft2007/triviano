@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -13,15 +13,8 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+// recharts is heavy; load it only when the Treasury tab renders its chart.
+const TesourariaChart = lazy(() => import("./TesourariaChart"));
 import {
   listContasFinanceiras,
   saveContaFinanceira,
