@@ -2762,6 +2762,20 @@ export type Database = {
           subdominio: string
         }[]
       }
+      get_public_combos_by_host: {
+        Args: { p_host: string }
+        Returns: {
+          frase_promocional: string
+          id: string
+          nome_combo: string
+          quantidade_requerida: number
+          slug1: string
+          slug2: string
+          slug3: string
+          tipo_promocao: string
+          valor_desconto: number
+        }[]
+      }
       get_public_menu: {
         Args: never
         Returns: {
