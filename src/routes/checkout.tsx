@@ -1,9 +1,13 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { QRCodeCanvas } from "qrcode.react";
+// Lazy-loaded: qrcode.react ships its own canvas renderer and is only needed on
+// the PIX step, so it is split out of the initial checkout bundle.
+const QRCodeCanvas = lazy(() =>
+  import("qrcode.react").then((m) => ({ default: m.QRCodeCanvas })),
+);
 import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
@@ -794,14 +798,18 @@ function CheckoutPage() {
               </p>
 
               <div className="mt-4 flex flex-col items-center">
-                <div className="rounded-2xl bg-white p-3 shadow-card">
-                  <QRCodeCanvas
-                    value={pixPayload}
-                    size={196}
-                    level="M"
-                    marginSize={1}
-                    aria-label="QR Code para pagamento PIX"
-                  />
+                <div className="flex h-[214px] w-[214px] items-center justify-center rounded-2xl bg-white p-3 shadow-card">
+                  <Suspense
+                    fallback={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />}
+                  >
+                    <QRCodeCanvas
+                      value={pixPayload}
+                      size={196}
+                      level="M"
+                      marginSize={1}
+                      aria-label="QR Code para pagamento PIX"
+                    />
+                  </Suspense>
                 </div>
               </div>
 

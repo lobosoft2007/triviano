@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
+import { z } from "zod";
 import {
   minOrderShortfalls,
   subtotalOf,
@@ -85,6 +86,35 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
+// Zod schema that guards everything we read back from localStorage. The cart is
+// user-editable persisted state, so it is treated as untrusted input: a
+// tampered or corrupted payload (e.g. the "token 400" style breakage) must
+// never reach the pricing engine. `sanitizeCartItem` first repairs loose/legacy
+// shapes, then this schema is the final integrity gate.
+const cartAddonSchema = z.object({
+  name: z.string().min(1),
+  price: z.number().nonnegative(),
+  quantity: z.number().int().positive().optional(),
+});
+
+const cartItemSchema = z.object({
+  lineId: z.string().min(1),
+  productId: z.string().min(1),
+  productName: z.string(),
+  categorySlug: z.string(),
+  comboRole: z.enum(["burger", "side", "beverage", ""]),
+  name: z.string(),
+  size: z.string(),
+  addons: z.array(cartAddonSchema),
+  secondFlavor: z.string(),
+  remocoes: z.array(z.string()),
+  unitPrice: z.number().nonnegative(),
+  image_url: z.string(),
+  quantity: z.number().int().positive(),
+});
+
+const cartArraySchema = z.array(cartItemSchema);
+
 // The cart lives in localStorage, which is scoped per ORIGIN (domain). Since
 // each tenant is served from its own domain, tenants are already isolated at
 // the storage layer. What was NOT isolated was two different USERS on the same
@@ -96,15 +126,36 @@ const ANON_KEY = `${STORAGE_PREFIX}:anon`;
 const keyForUser = (uid: string) => `${STORAGE_PREFIX}:u:${uid}`;
 const storageKeyFor = (uid: string | null) => (uid ? keyForUser(uid) : ANON_KEY);
 
+function clearCartKey(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // ignore storage errors
+  }
+}
+
 function loadCart(key: string): CartItem[] {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.map(sanitizeCartItem).filter((i): i is CartItem => Boolean(i))
-      : [];
+    if (!Array.isArray(parsed)) {
+      // Not even the right shape → corrupted bucket, reset it.
+      clearCartKey(key);
+      return [];
+    }
+    // Repair loose/legacy items first, then validate the result with Zod.
+    const repaired = parsed
+      .map((item, index) => sanitizeCartItem(item, index))
+      .filter((i): i is CartItem => Boolean(i));
+    const result = cartArraySchema.safeParse(repaired);
+    if (result.success) return result.data;
+    // Malformed beyond repair → clear storage and reset the session cleanly.
+    clearCartKey(key);
+    return [];
   } catch {
+    // Invalid JSON / storage failure → reset this bucket automatically.
+    clearCartKey(key);
     return [];
   }
 }

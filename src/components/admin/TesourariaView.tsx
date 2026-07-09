@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -13,15 +13,8 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+// recharts is heavy; load it only when the Treasury tab renders its chart.
+const TesourariaChart = lazy(() => import("./TesourariaChart"));
 import {
   listContasFinanceiras,
   saveContaFinanceira,
@@ -225,50 +218,15 @@ export function TesourariaView() {
           Projeção de fluxo de caixa (30 dias)
         </h3>
         <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={painel?.projecao ?? []}
-              margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                className="stroke-border"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 11 }}
-                interval={4}
-                stroke="currentColor"
-                className="text-muted-foreground"
-              />
-              <YAxis
-                tick={{ fontSize: 11 }}
-                width={64}
-                stroke="currentColor"
-                className="text-muted-foreground"
-                tickFormatter={(v) => formatBRL(Number(v))}
-              />
-              <Tooltip
-                formatter={(v: number) => formatBRL(Number(v))}
-                labelFormatter={(l) => `Dia ${l}`}
-                contentStyle={{
-                  borderRadius: 12,
-                  border: "1px solid var(--border)",
-                  background: "var(--card)",
-                  fontSize: 12,
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="saldoAcumulado"
-                name="Saldo projetado"
-                stroke="var(--primary)"
-                strokeWidth={2.5}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <Suspense
+            fallback={
+              <div className="flex h-full w-full items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            }
+          >
+            <TesourariaChart data={painel?.projecao ?? []} />
+          </Suspense>
         </div>
       </div>
 
