@@ -798,14 +798,18 @@ function CheckoutPage() {
               </p>
 
               <div className="mt-4 flex flex-col items-center">
-                <div className="rounded-2xl bg-white p-3 shadow-card">
-                  <QRCodeCanvas
-                    value={pixPayload}
-                    size={196}
-                    level="M"
-                    marginSize={1}
-                    aria-label="QR Code para pagamento PIX"
-                  />
+                <div className="flex h-[214px] w-[214px] items-center justify-center rounded-2xl bg-white p-3 shadow-card">
+                  <Suspense
+                    fallback={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />}
+                  >
+                    <QRCodeCanvas
+                      value={pixPayload}
+                      size={196}
+                      level="M"
+                      marginSize={1}
+                      aria-label="QR Code para pagamento PIX"
+                    />
+                  </Suspense>
                 </div>
               </div>
 
