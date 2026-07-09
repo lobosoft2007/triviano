@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { currentHost } from "@/lib/empresa";
 import type { CartItem } from "@/lib/cart";
 
 export type TipoPromocao = "Combo" | "Pack";
