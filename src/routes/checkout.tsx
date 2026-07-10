@@ -808,42 +808,61 @@ function CheckoutPage() {
                 já vem preenchido.
               </p>
 
-              <div className="mt-4 flex flex-col items-center">
-                <div className="flex h-[214px] w-[214px] items-center justify-center rounded-2xl bg-white p-3 shadow-card">
-                  <Suspense
-                    fallback={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />}
-                  >
-                    <QRCodeCanvas
-                      value={pixPayload}
-                      size={196}
-                      level="M"
-                      marginSize={1}
-                      aria-label="QR Code para pagamento PIX"
-                    />
-                  </Suspense>
+              {mpActive && mpConfig && pendingPayment?.orderId ? (
+                <div className="mt-4">
+                  <MercadoPagoCheckout
+                    orderId={pendingPayment.orderId}
+                    total={finalTotal}
+                    method="pix"
+                    config={mpConfig}
+                    payerEmail={user?.email ?? undefined}
+                    onPaid={() => {
+                      clearCheckoutSnapshot();
+                      queryClient.invalidateQueries({ queryKey: ["orders"] });
+                      navigate({ to: "/orders", replace: true });
+                    }}
+                  />
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="mt-4 flex flex-col items-center">
+                    <div className="flex h-[214px] w-[214px] items-center justify-center rounded-2xl bg-white p-3 shadow-card">
+                      <Suspense
+                        fallback={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />}
+                      >
+                        <QRCodeCanvas
+                          value={pixPayload}
+                          size={196}
+                          level="M"
+                          marginSize={1}
+                          aria-label="QR Code para pagamento PIX"
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
 
-              <button
-                type="button"
-                onClick={copyPix}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-                {copied ? "Código copiado com sucesso!" : "Copiar Código PIX (Copia e Cola)"}
-              </button>
+                  <button
+                    type="button"
+                    onClick={copyPix}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    {copied ? "Código copiado com sucesso!" : "Copiar Código PIX (Copia e Cola)"}
+                  </button>
 
-              <p className="mt-3 text-center text-xs text-muted-foreground">
-                Favorecido:{" "}
-                <span className="font-medium text-foreground">
-                  {pixMerchantName}
-                </span>{" "}
-                • {pixMerchantCity}
-              </p>
+                  <p className="mt-3 text-center text-xs text-muted-foreground">
+                    Favorecido:{" "}
+                    <span className="font-medium text-foreground">
+                      {pixMerchantName}
+                    </span>{" "}
+                    • {pixMerchantCity}
+                  </p>
+                </>
+              )}
 
               <Button
                 type="button"
