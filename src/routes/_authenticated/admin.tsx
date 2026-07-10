@@ -250,6 +250,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   combos: "acesso_cadastro_produtos",
   empresa: "master",
   identidade: "master",
+  pagamentos: "master",
   clientes: "master",
   conta: "acesso_financeiro",
   financeiro: "acesso_financeiro",
