@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Empresas ativas visiveis a autenticados" ON public.empresas;
