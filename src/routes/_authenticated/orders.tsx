@@ -20,9 +20,12 @@ const statusLabels: Record<string, string> = {
 };
 
 function OrdersPage() {
+  const { data: empresa } = useQuery(empresaQueryOptions);
+  const empresaId = empresa?.id;
   const { data, isLoading } = useQuery({
-    queryKey: ["orders"],
-    queryFn: fetchOrders,
+    queryKey: ["orders", empresaId ?? "all"],
+    queryFn: () => fetchOrders(empresaId),
+    enabled: !!empresaId,
   });
 
   return (
