@@ -7,12 +7,45 @@ import { DEFAULT_BRAND_THEME, type ModoFundo } from "@/lib/theme";
 export const DEFAULT_EMPRESA_ID = "00000000-0000-0000-0000-000000000023";
 
 /**
- * Hostname atual (browser). No SSR/preview retorna "" — nesse caso o backend
- * cai na primeira empresa ativa (retrocompatível com o modelo single-tenant).
+ * Slug do tenant de STAGING (sandbox). Todos os hosts nativos da Lovable
+ * (preview + URL publicada *.lovable.app) e o localhost são resolvidos para
+ * ESTA empresa, isolando os testes dos dados de produção. A produção real só
+ * responde em domínios próprios (ex.: app.clube23.com.br).
+ *
+ * Empresa correspondente: "Pizzaria Teste" (subdominio = "pizzaria-teste").
+ */
+const STAGING_TENANT_SLUG = "pizzaria-teste";
+
+/** Hosts nativos da Lovable (preview/publicação) e de desenvolvimento local. */
+function isStagingHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return (
+    h === "localhost" ||
+    h.startsWith("127.") ||
+    h.endsWith(".local") ||
+    h.includes("id-preview--") ||
+    h.endsWith(".lovable.app") ||
+    h.endsWith(".lovable.dev") ||
+    h.endsWith(".lovableproject.com")
+  );
+}
+
+/**
+ * Hostname usado para resolver o tenant (branding, menu, combos e claim de
+ * login). Em produção retorna o host real (domínio próprio do cliente). Em
+ * qualquer host de STAGING da Lovable retorna um host sintético que o banco
+ * resolve para o tenant sandbox "Pizzaria Teste" — assim o ambiente de Preview
+ * fica 100% isolado dos dados de produção. No SSR retorna "".
  */
 export function currentHost(): string {
   if (typeof window === "undefined") return "";
-  return window.location.hostname;
+  const host = window.location.hostname;
+  if (isStagingHost(host)) {
+    // Host sintético cujo primeiro rótulo é o slug do tenant de teste; o
+    // resolve_empresa_id_by_host casa pelo subdominio "pizzaria-teste".
+    return `${STAGING_TENANT_SLUG}.triviano.com.br`;
+  }
+  return host;
 }
 
 export interface Empresa {
