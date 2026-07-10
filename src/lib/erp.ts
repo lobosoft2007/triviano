@@ -692,13 +692,19 @@ export interface ConfigPagamento {
   nome_recebedor: string;
   cidade_recebedor: string;
   ativo: boolean;
+  /** Credenciais do Mercado Pago (Checkout Transparente) por empresa. */
+  mp_access_token: string;
+  mp_public_key: string;
+  mp_webhook_secret: string;
+  mp_ativo: boolean;
+  mp_ambiente: string;
 }
 
 export async function listConfigPagamentos(): Promise<ConfigPagamento[]> {
   const { data, error } = await supabase
     .from("config_pagamentos")
     .select(
-      "id, gateway_banco, client_id, client_secret, chave_pix_padrao, nome_recebedor, cidade_recebedor, ativo",
+      "id, gateway_banco, client_id, client_secret, chave_pix_padrao, nome_recebedor, cidade_recebedor, ativo, mp_access_token, mp_public_key, mp_webhook_secret, mp_ativo, mp_ambiente",
     )
     .order("created_at");
   if (error) throw error;
@@ -711,6 +717,11 @@ export async function listConfigPagamentos(): Promise<ConfigPagamento[]> {
     nome_recebedor: c.nome_recebedor ?? "",
     cidade_recebedor: c.cidade_recebedor ?? "",
     ativo: c.ativo ?? false,
+    mp_access_token: (c as { mp_access_token?: string }).mp_access_token ?? "",
+    mp_public_key: (c as { mp_public_key?: string }).mp_public_key ?? "",
+    mp_webhook_secret: (c as { mp_webhook_secret?: string }).mp_webhook_secret ?? "",
+    mp_ativo: (c as { mp_ativo?: boolean }).mp_ativo ?? false,
+    mp_ambiente: (c as { mp_ambiente?: string }).mp_ambiente ?? "test",
   }));
 }
 
