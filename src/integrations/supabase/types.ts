@@ -1738,6 +1738,7 @@ export type Database = {
           status: string
           status_pedido: string
           tipo_atendimento: Database["public"]["Enums"]["attendance_type"]
+          tipo_pagamento: string
           total: number
           user_id: string
         }
@@ -1766,6 +1767,7 @@ export type Database = {
           status?: string
           status_pedido?: string
           tipo_atendimento?: Database["public"]["Enums"]["attendance_type"]
+          tipo_pagamento?: string
           total: number
           user_id: string
         }
@@ -1794,6 +1796,7 @@ export type Database = {
           status?: string
           status_pedido?: string
           tipo_atendimento?: Database["public"]["Enums"]["attendance_type"]
+          tipo_pagamento?: string
           total?: number
           user_id?: string
         }

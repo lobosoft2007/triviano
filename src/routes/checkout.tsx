@@ -1,24 +1,17 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-// Lazy-loaded: qrcode.react ships its own canvas renderer and is only needed on
-// the PIX step, so it is split out of the initial checkout bundle.
-const QRCodeCanvas = lazy(() =>
-  import("qrcode.react").then((m) => ({ default: m.QRCodeCanvas })),
-);
-import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder, discardUnpaidDrafts } from "@/lib/orders";
 import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
-import { usePixPayment } from "@/hooks/usePixPayment";
 import { fetchMpPublicConfig } from "@/lib/mercadopago";
 import { MercadoPagoCheckout } from "@/components/checkout/MercadoPagoCheckout";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -240,13 +233,6 @@ function CheckoutPage() {
   );
   const [trocoPara, setTrocoPara] = useState(checkoutSnapshot?.trocoPara ?? "");
 
-  useEffect(() => {
-    supabase.auth.stopAutoRefresh();
-    return () => {
-      supabase.auth.startAutoRefresh();
-    };
-  }, []);
-
   // Session latch: once an authenticated user has been seen on this screen we
   // never tear the payment screen down again over a TRANSIENT auth blip.
   // Paying via PIX means the customer leaves to their bank app and comes back;
@@ -293,18 +279,20 @@ function CheckoutPage() {
 
   // Configuração pública do Mercado Pago do tenant do host atual (só chave
   // pública). Quando ativa, PIX e Cartão são processados online via MP.
-  const { data: mpConfig } = useQuery({
+  const { data: mpConfig, isLoading: mpConfigLoading } = useQuery({
     queryKey: ["mp-public-config"],
     queryFn: fetchMpPublicConfig,
     staleTime: 5 * 60 * 1000,
   });
   const mpActive = !!mpConfig?.ativo;
-  // Panoramas de flexibilidade (padrão: liberado quando não há config ativa).
+  // Panoramas de flexibilidade. PIX só pode aparecer quando o MP do tenant já
+  // foi carregado e está ativo; o PIX estático não tem webhook e não pode mais
+  // registrar pedido que depende de confirmação bancária.
   const allowPixOnline = mpConfig ? mpConfig.aceita_pix_online : true;
   const allowCardOnline = mpConfig ? mpConfig.aceita_cartao_online : true;
   const allowNaEntrega = mpConfig ? mpConfig.aceita_na_entrega : true;
   const visibleMethods = PAY_METHODS.filter((m) => {
-    if (m.value === "PIX") return allowPixOnline;
+    if (m.value === "PIX") return mpConfigLoading || (mpActive && allowPixOnline);
     if (m.value === "Dinheiro") return allowNaEntrega;
     if (m.value === "Cartão de Crédito" || m.value === "Cartão de Débito") {
       return mpActive ? allowCardOnline : allowNaEntrega;
@@ -318,10 +306,10 @@ function CheckoutPage() {
    * webhook confirms; cash and maquininha-on-delivery stay visible as before.
    */
   const isOnlinePayment =
-    mpActive &&
-    ((payMethod === "PIX" && allowPixOnline) ||
-      ((payMethod === "Cartão de Crédito" || payMethod === "Cartão de Débito") &&
-        allowCardOnline));
+    payMethod === "PIX" ||
+    (mpActive &&
+      (payMethod === "Cartão de Crédito" || payMethod === "Cartão de Débito") &&
+      allowCardOnline);
 
 
 
@@ -432,16 +420,6 @@ function CheckoutPage() {
     ? Math.round((trocoParaNum - finalTotal) * 100) / 100
     : 0;
 
-  const {
-    payload: pixPayload,
-    copied,
-    copy: copyPixPayload,
-    merchantName: pixMerchantName,
-    merchantCity: pixMerchantCity,
-  } = usePixPayment(finalTotal);
-
-
-
   useEffect(() => {
     if (profile) {
       setAddress((a) => a || profile.address);
@@ -484,18 +462,6 @@ function CheckoutPage() {
   // seconds after mount), making the payment screen "flash" and dump the user
   // back home with no message. Instead we render a loading state until the
   // cart is restored and only then show a friendly empty state (see below).
-
-
-  async function copyPix() {
-    const ok = await copyPixPayload();
-    if (ok) {
-      toast.success("Código copiado com sucesso!");
-    } else {
-      toast.error("Não foi possível copiar. Tente novamente.");
-    }
-  }
-
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!effectiveCanCheckout) {
@@ -558,6 +524,16 @@ function CheckoutPage() {
     if (!user) {
       toast.error("Faça login para registrar o pedido.");
       return;
+    }
+    if (payMethod === "PIX") {
+      if (mpConfigLoading) {
+        toast.info("Carregando pagamento PIX. Tente novamente em instantes.");
+        return;
+      }
+      if (!mpActive || !mpConfig?.public_key || !allowPixOnline) {
+        toast.error("PIX online indisponível para esta loja no momento.");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -858,7 +834,12 @@ function CheckoutPage() {
                 já vem preenchido.
               </p>
 
-              {mpActive && mpConfig && pendingPayment?.orderId ? (
+              {mpConfigLoading ? (
+                <div className="mt-4 flex flex-col items-center gap-2 py-8 text-muted-foreground">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-sm">Carregando pagamento PIX…</p>
+                </div>
+              ) : mpActive && mpConfig && pendingPayment?.orderId ? (
                 <div className="mt-4">
                   <MercadoPagoCheckout
                     orderId={pendingPayment.orderId}
@@ -874,44 +855,9 @@ function CheckoutPage() {
                   />
                 </div>
               ) : (
-                <>
-                  <div className="mt-4 flex flex-col items-center">
-                    <div className="flex h-[214px] w-[214px] items-center justify-center rounded-2xl bg-white p-3 shadow-card">
-                      <Suspense
-                        fallback={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />}
-                      >
-                        <QRCodeCanvas
-                          value={pixPayload}
-                          size={196}
-                          level="M"
-                          marginSize={1}
-                          aria-label="QR Code para pagamento PIX"
-                        />
-                      </Suspense>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={copyPix}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
-                  >
-                    {copied ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                    {copied ? "Código copiado com sucesso!" : "Copiar Código PIX (Copia e Cola)"}
-                  </button>
-
-                  <p className="mt-3 text-center text-xs text-muted-foreground">
-                    Favorecido:{" "}
-                    <span className="font-medium text-foreground">
-                      {pixMerchantName}
-                    </span>{" "}
-                    • {pixMerchantCity}
-                  </p>
-                </>
+                <p className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  PIX online indisponível para este pedido. Volte ao cardápio e escolha outra forma de pagamento.
+                </p>
               )}
 
               <Button
@@ -1237,7 +1183,9 @@ function CheckoutPage() {
               type="submit"
               size="lg"
               className="mt-2 h-13 rounded-2xl py-3.5 text-base"
-              disabled={submitting || !effectiveCanCheckout}
+              disabled={
+                submitting || !effectiveCanCheckout || (payMethod === "PIX" && mpConfigLoading)
+              }
             >
               {submitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

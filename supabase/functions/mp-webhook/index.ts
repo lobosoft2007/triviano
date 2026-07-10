@@ -94,12 +94,68 @@ Deno.serve(async (req) => {
     return new Response("no resource id", { status: 200, headers: corsHeaders });
   }
 
+  const isPaymentTopic = topic.includes("payment");
+
   // Localizar o pedido pelos ids salvos na criação do pagamento.
-  const { data: order } = await admin
+  let { data: order } = await admin
     .from("orders")
     .select("id, empresa_id, mp_order_id, mp_payment_id, pago_online")
     .or(`mp_payment_id.eq.${resourceId},mp_order_id.eq.${resourceId}`)
     .maybeSingle();
+
+  let discoveredCfg:
+    | { empresa_id: string; mp_access_token?: string | null; mp_webhook_secret?: string | null }
+    | null = null;
+  let discoveredPayment: Record<string, unknown> | null = null;
+
+  // Fallback crítico: se o cliente voltou ao carrinho e a criação de pagamento
+  // gerou/salvou outro mp_payment_id, o webhook de um PIX anterior chega com um
+  // payment id que não bate mais na linha local. Para não perder a confirmação,
+  // reconsultamos o pagamento nos tenants ativos e usamos external_reference
+  // (= order.id) como fonte de verdade.
+  if (!order && isPaymentTopic) {
+    const { data: cfgs } = await admin
+      .from("config_pagamentos")
+      .select("empresa_id, mp_access_token, mp_webhook_secret")
+      .eq("ativo", true)
+      .not("mp_access_token", "is", null);
+
+    for (const cfgItem of cfgs ?? []) {
+      const token = cfgItem.mp_access_token?.trim();
+      if (!token) continue;
+      try {
+        const r = await fetch(`${MP_API}/v1/payments/${resourceId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!r.ok) continue;
+        const payment = await r.json().catch(() => ({}));
+        const externalReference = String(payment?.external_reference ?? "");
+        if (!externalReference) continue;
+        const { data: byExternalReference } = await admin
+          .from("orders")
+          .select("id, empresa_id, mp_order_id, mp_payment_id, pago_online")
+          .eq("id", externalReference)
+          .eq("empresa_id", cfgItem.empresa_id)
+          .maybeSingle();
+        if (byExternalReference) {
+          order = byExternalReference;
+          discoveredCfg = cfgItem;
+          discoveredPayment = payment;
+          console.log("mp-webhook: pedido localizado por external_reference", {
+            order_id: order.id,
+            resourceId,
+            empresa_id: order.empresa_id,
+          });
+          break;
+        }
+      } catch (e) {
+        console.warn("mp-webhook: fallback external_reference falhou para tenant", {
+          empresa_id: cfgItem.empresa_id,
+          error: String(e),
+        });
+      }
+    }
+  }
 
   if (!order) {
     // Pedido ainda não conhecido (corrida) — 200 para reentrega posterior.
@@ -115,14 +171,16 @@ Deno.serve(async (req) => {
   });
 
   // Credenciais da empresa dona do pedido (lidas de config_pagamentos).
-  const { data: cfg } = await admin
-    .from("config_pagamentos")
-    .select("mp_access_token, mp_webhook_secret")
-    .eq("empresa_id", order.empresa_id)
-    .eq("ativo", true)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data: cfg } = discoveredCfg
+    ? { data: discoveredCfg }
+    : await admin
+        .from("config_pagamentos")
+        .select("mp_access_token, mp_webhook_secret")
+        .eq("empresa_id", order.empresa_id)
+        .eq("ativo", true)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
   const accessToken = cfg?.mp_access_token?.trim();
   const webhookSecret = cfg?.mp_webhook_secret?.trim();
@@ -189,17 +247,18 @@ Deno.serve(async (req) => {
   }
 
   // Reconsultar o status REAL na API do MP (fonte da verdade).
-  const isPaymentTopic = topic.includes("payment");
   const endpoint = isPaymentTopic
     ? `${MP_API}/v1/payments/${resourceId}`
     : `${MP_API}/v1/orders/${order.mp_order_id || resourceId}`;
 
   let status = "";
   try {
-    const r = await fetch(endpoint, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    const j = await r.json().catch(() => ({}));
+    const r = discoveredPayment
+      ? ({ status: 200 } as Response)
+      : await fetch(endpoint, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+    const j = (discoveredPayment ?? (await r.json().catch(() => ({})))) as any;
     status = String(j?.status ?? j?.transactions?.payments?.[0]?.status ?? "");
     console.log("mp-webhook: status reconsultado", {
       order_id: order.id,
@@ -222,6 +281,7 @@ Deno.serve(async (req) => {
         pago_online: true,
         aguardando_pagamento: false,
         mp_status: status,
+        mp_payment_id: isPaymentTopic ? resourceId : order.mp_payment_id,
         status: "pending",
         status_pedido: "Recebido",
       })
