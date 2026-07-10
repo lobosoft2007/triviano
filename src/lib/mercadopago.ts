@@ -18,6 +18,9 @@ export interface MpPublicConfig {
   public_key: string;
   ambiente: string;
   ativo: boolean;
+  aceita_pix_online: boolean;
+  aceita_cartao_online: boolean;
+  aceita_na_entrega: boolean;
 }
 
 /** Configuração pública (chave pública + ambiente) do tenant do host atual. */
@@ -33,6 +36,9 @@ export async function fetchMpPublicConfig(): Promise<MpPublicConfig | null> {
     public_key: row.public_key,
     ambiente: row.ambiente ?? "test",
     ativo: !!row.ativo,
+    aceita_pix_online: row.aceita_pix_online ?? true,
+    aceita_cartao_online: row.aceita_cartao_online ?? true,
+    aceita_na_entrega: row.aceita_na_entrega ?? true,
   };
 }
 
