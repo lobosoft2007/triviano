@@ -119,13 +119,18 @@ export interface OrderRow {
   }[];
 }
 
-export async function fetchOrders(): Promise<OrderRow[]> {
-  const { data, error } = await supabase
+export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
+  let query = supabase
     .from("orders")
     .select(
       "id, status, total, discount, delivery_address, created_at, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes)",
     )
     .order("created_at", { ascending: false });
+  // Isolamento por ambiente: mostra apenas os pedidos do tenant do host atual.
+  // Em produção resolve para o restaurante real; no staging (Pizzaria Teste)
+  // esconde os pedidos de produção e vice-versa.
+  if (empresaId) query = query.eq("empresa_id", empresaId);
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map((o) => ({
     id: o.id,
