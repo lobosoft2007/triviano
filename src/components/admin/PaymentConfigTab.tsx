@@ -32,6 +32,11 @@ interface FormState {
   nome_recebedor: string;
   cidade_recebedor: string;
   ativo: boolean;
+  mp_access_token: string;
+  mp_public_key: string;
+  mp_webhook_secret: string;
+  mp_ativo: boolean;
+  mp_ambiente: string;
 }
 
 const EMPTY: FormState = {
@@ -43,6 +48,11 @@ const EMPTY: FormState = {
   nome_recebedor: "",
   cidade_recebedor: "",
   ativo: true,
+  mp_access_token: "",
+  mp_public_key: "",
+  mp_webhook_secret: "",
+  mp_ativo: false,
+  mp_ambiente: "test",
 };
 
 export function PaymentConfigTab() {
