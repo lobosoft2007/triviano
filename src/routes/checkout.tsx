@@ -291,6 +291,15 @@ function CheckoutPage() {
 
   const { data: empresa } = useQuery(empresaConfigQueryOptions);
 
+  // Configuração pública do Mercado Pago do tenant do host atual (só chave
+  // pública). Quando ativa, PIX e Cartão são processados online via MP.
+  const { data: mpConfig } = useQuery({
+    queryKey: ["mp-public-config"],
+    queryFn: fetchMpPublicConfig,
+    staleTime: 5 * 60 * 1000,
+  });
+  const mpActive = !!mpConfig?.ativo;
+
 
 
 
