@@ -2677,6 +2677,7 @@ export type Database = {
           p_items: Json
           p_notes: string
           p_numero_mesa: number
+          p_pagamento_online?: boolean
           p_phone: string
           p_tipo_atendimento: string
         }

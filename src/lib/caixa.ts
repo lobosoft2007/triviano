@@ -230,11 +230,17 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
       "id, user_id, status, status_pedido, total, discount, desconto_manual, delivery_address, phone, notes, observacoes_operador, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
     )
     .not("status_pedido", "in", '("Encerrado e pago",Cancelado)')
-    // Pedidos com pagamento online ainda pendente ficam ocultos até o webhook
-    // do Mercado Pago confirmar (evita cobrar/produzir sem pagamento).
+    // BLINDAGEM FINANCEIRA DA COZINHA (KDS/Caixa):
+    // um pedido só aparece aqui quando NÃO está aguardando pagamento online.
+    // Pedidos PIX/cartão via Mercado Pago nascem com aguardando_pagamento=true
+    // e só passam a false quando o webhook confirma o pagamento real
+    // (pago_online=true). Pedidos na entrega (dinheiro/maquininha) já nascem
+    // com aguardando_pagamento=false e continuam visíveis normalmente. Assim
+    // NENHUM pedido não pago chega ao chapeiro.
     .eq("aguardando_pagamento", false)
     .order("created_at", { ascending: false });
   if (error) throw error;
+
 
   // Resolve customer names in a second query (no FK embed orders->profiles).
   const rows = data ?? [];

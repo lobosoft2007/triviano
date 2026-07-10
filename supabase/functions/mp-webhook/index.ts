@@ -79,6 +79,16 @@ Deno.serve(async (req) => {
     url.searchParams.get("id") ||
     "";
 
+  // -------- Log de auditoria (entrada) --------
+  const xRequestId = req.headers.get("x-request-id") ?? "";
+  const xSignature = req.headers.get("x-signature") ?? "";
+  console.log("mp-webhook: recebido", {
+    topic,
+    resourceId,
+    xRequestId,
+    hasSignature: xSignature.length > 0,
+  });
+
   if (!resourceId) {
     // Nada para processar; responde 200 para não gerar reentrega.
     return new Response("no resource id", { status: 200, headers: corsHeaders });
@@ -93,10 +103,18 @@ Deno.serve(async (req) => {
 
   if (!order) {
     // Pedido ainda não conhecido (corrida) — 200 para reentrega posterior.
+    console.warn("mp-webhook: pedido ainda não encontrado", { resourceId });
     return new Response("order not found yet", { status: 200, headers: corsHeaders });
   }
+  console.log("mp-webhook: pedido localizado", {
+    order_id: order.id,
+    empresa_id: order.empresa_id,
+    mp_order_id: order.mp_order_id,
+    mp_payment_id: order.mp_payment_id,
+    pago_online: order.pago_online,
+  });
 
-  // Credenciais da empresa dona do pedido.
+  // Credenciais da empresa dona do pedido (lidas de config_pagamentos).
   const { data: cfg } = await admin
     .from("config_pagamentos")
     .select("mp_access_token, mp_webhook_secret")
@@ -108,14 +126,23 @@ Deno.serve(async (req) => {
 
   const accessToken = cfg?.mp_access_token?.trim();
   const webhookSecret = cfg?.mp_webhook_secret?.trim();
+  console.log("mp-webhook: credenciais da empresa", {
+    empresa_id: order.empresa_id,
+    hasAccessToken: !!accessToken,
+    hasWebhookSecret: !!webhookSecret,
+  });
   if (!accessToken) {
+    console.error("mp-webhook: empresa sem access token configurado", {
+      empresa_id: order.empresa_id,
+    });
     return new Response("empresa sem credenciais", { status: 200, headers: corsHeaders });
   }
 
-  // Validação de assinatura (quando o segredo está configurado).
+  // Validação de assinatura HMAC (quando o segredo está configurado no tenant).
+  // Manifesto oficial do Mercado Pago:  id:<data.id>;request-id:<x-request-id>;ts:<ts>;
+  // O Mercado Pago recomenda usar o data.id em minúsculas quando alfanumérico,
+  // então validamos contra as duas formas (original e minúscula) por robustez.
   if (webhookSecret) {
-    const xSignature = req.headers.get("x-signature") ?? "";
-    const xRequestId = req.headers.get("x-request-id") ?? "";
     const parts = Object.fromEntries(
       xSignature.split(",").map((p) => {
         const [k, v] = p.split("=");
@@ -125,14 +152,40 @@ Deno.serve(async (req) => {
     const ts = parts["ts"];
     const v1 = parts["v1"];
     if (!ts || !v1) {
+      console.error("mp-webhook: assinatura ausente ou malformada", {
+        resourceId,
+        rawSignature: xSignature,
+      });
       return new Response("assinatura ausente", { status: 401, headers: corsHeaders });
     }
-    const manifest = `id:${resourceId};request-id:${xRequestId};ts:${ts};`;
-    const expected = await hmacHex(webhookSecret, manifest);
-    if (!timingSafeEqual(expected, v1)) {
-      console.error("mp-webhook: assinatura inválida", { resourceId });
+    const candidates = [
+      `id:${resourceId};request-id:${xRequestId};ts:${ts};`,
+      `id:${resourceId.toLowerCase()};request-id:${xRequestId};ts:${ts};`,
+    ];
+    let valid = false;
+    for (const manifest of candidates) {
+      const expected = await hmacHex(webhookSecret, manifest);
+      if (timingSafeEqual(expected, v1)) {
+        valid = true;
+        break;
+      }
+    }
+    if (!valid) {
+      // Diagnóstico seguro: nunca logamos o segredo nem o hash esperado.
+      console.error("mp-webhook: assinatura HMAC inválida", {
+        resourceId,
+        xRequestId,
+        ts,
+        v1Prefix: v1.slice(0, 8),
+      });
       return new Response("assinatura inválida", { status: 401, headers: corsHeaders });
     }
+    console.log("mp-webhook: assinatura HMAC válida", { resourceId });
+  } else {
+    console.warn(
+      "mp-webhook: sem webhook secret configurado — pulando validação de assinatura",
+      { empresa_id: order.empresa_id },
+    );
   }
 
   // Reconsultar o status REAL na API do MP (fonte da verdade).
@@ -148,14 +201,21 @@ Deno.serve(async (req) => {
     });
     const j = await r.json().catch(() => ({}));
     status = String(j?.status ?? j?.transactions?.payments?.[0]?.status ?? "");
+    console.log("mp-webhook: status reconsultado", {
+      order_id: order.id,
+      endpoint,
+      httpStatus: r.status,
+      mpStatus: status,
+    });
   } catch (e) {
-    console.error("mp-webhook: falha ao reconsultar", e);
+    console.error("mp-webhook: falha ao reconsultar status", { order_id: order.id, error: String(e) });
     return new Response("retry", { status: 500, headers: corsHeaders });
   }
 
   const paid = ["paid", "processed", "approved"].includes(status.toLowerCase());
 
   if (paid && !order.pago_online) {
+    // Pagamento confirmado: libera o pedido para o Caixa/KDS (dispara realtime).
     await admin
       .from("orders")
       .update({
@@ -166,9 +226,14 @@ Deno.serve(async (req) => {
         status_pedido: "Recebido",
       })
       .eq("id", order.id);
+    console.log("mp-webhook: PEDIDO LIBERADO (pago)", { order_id: order.id, mpStatus: status });
   } else if (!paid) {
     await admin.from("orders").update({ mp_status: status }).eq("id", order.id);
+    console.log("mp-webhook: pedido ainda não pago", { order_id: order.id, mpStatus: status });
+  } else {
+    console.log("mp-webhook: pedido já estava pago (idempotente)", { order_id: order.id });
   }
 
   return new Response("ok", { status: 200, headers: corsHeaders });
 });
+

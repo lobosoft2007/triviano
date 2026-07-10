@@ -65,7 +65,15 @@ export interface PlaceOrderInput {
   numeroMesa: number | null;
   /** Cashback the customer chose to redeem on this order. */
   cashbackUsed?: number;
+  /**
+   * When true, the customer chose an ONLINE payment (PIX/card via Mercado
+   * Pago). The order is created hidden from the Caixa/KDS
+   * (aguardando_pagamento = true) and only surfaces after the webhook
+   * confirms payment. Never set this for cash/maquininha-on-delivery orders.
+   */
+  pagamentoOnline?: boolean;
 }
+
 
 export async function placeOrder(input: PlaceOrderInput): Promise<string> {
   // The order total, per-item unit prices, combo discount and cashback
@@ -94,7 +102,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
     // Tenant do ambiente atual (host). O backend usa isto para marcar o pedido
     // com a empresa correta, isolando staging (Pizzaria Teste) de produção.
     p_host: currentHost(),
+    // Pagamento online (PIX/cartão MP): nasce oculto do Caixa/KDS até o
+    // webhook confirmar o pagamento (blindagem financeira da cozinha).
+    p_pagamento_online: input.pagamentoOnline ?? false,
   });
+
 
   if (error) throw error;
   return data as string;
