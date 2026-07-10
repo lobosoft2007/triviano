@@ -230,6 +230,9 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
       "id, user_id, status, status_pedido, total, discount, desconto_manual, delivery_address, phone, notes, observacoes_operador, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
     )
     .not("status_pedido", "in", '("Encerrado e pago",Cancelado)')
+    // Pedidos com pagamento online ainda pendente ficam ocultos até o webhook
+    // do Mercado Pago confirmar (evita cobrar/produzir sem pagamento).
+    .eq("aguardando_pagamento", false)
     .order("created_at", { ascending: false });
   if (error) throw error;
 
