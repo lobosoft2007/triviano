@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { CartItem } from "@/lib/cart";
 import type { Json } from "@/integrations/supabase/types";
+import { currentHost } from "@/lib/empresa";
 
 export interface Profile {
   id: string;
@@ -90,6 +91,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
       ? input.numeroMesa
       : null) as unknown as number,
     p_cashback_used: input.cashbackUsed ?? 0,
+    // Tenant do ambiente atual (host). O backend usa isto para marcar o pedido
+    // com a empresa correta, isolando staging (Pizzaria Teste) de produção.
+    p_host: currentHost(),
   });
 
   if (error) throw error;
@@ -115,13 +119,18 @@ export interface OrderRow {
   }[];
 }
 
-export async function fetchOrders(): Promise<OrderRow[]> {
-  const { data, error } = await supabase
+export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
+  let query = supabase
     .from("orders")
     .select(
       "id, status, total, discount, delivery_address, created_at, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes)",
     )
     .order("created_at", { ascending: false });
+  // Isolamento por ambiente: mostra apenas os pedidos do tenant do host atual.
+  // Em produção resolve para o restaurante real; no staging (Pizzaria Teste)
+  // esconde os pedidos de produção e vice-versa.
+  if (empresaId) query = query.eq("empresa_id", empresaId);
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map((o) => ({
     id: o.id,

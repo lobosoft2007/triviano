@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, ClipboardList, CheckCircle2 } from "lucide-react";
 import { fetchOrders } from "@/lib/orders";
+import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
@@ -19,9 +20,12 @@ const statusLabels: Record<string, string> = {
 };
 
 function OrdersPage() {
+  const { data: empresa } = useQuery(empresaQueryOptions);
+  const empresaId = empresa?.id;
   const { data, isLoading } = useQuery({
-    queryKey: ["orders"],
-    queryFn: fetchOrders,
+    queryKey: ["orders", empresaId ?? "all"],
+    queryFn: () => fetchOrders(empresaId),
+    enabled: !!empresaId,
   });
 
   return (
