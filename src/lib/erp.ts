@@ -698,6 +698,10 @@ export interface ConfigPagamento {
   mp_webhook_secret: string;
   mp_ativo: boolean;
   mp_ambiente: string;
+  /** Panoramas de flexibilidade oferecidos ao cliente no checkout. */
+  aceita_pix_online: boolean;
+  aceita_cartao_online: boolean;
+  aceita_na_entrega: boolean;
 }
 
 export async function listConfigPagamentos(): Promise<ConfigPagamento[]> {
