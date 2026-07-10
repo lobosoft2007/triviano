@@ -336,6 +336,9 @@ export function PaymentConfigTab() {
               </div>
             </div>
 
+            <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5">
+              <div>
+                <Label className="cursor-pointer">Configuração ativa</Label>
                 <p className="text-xs text-muted-foreground">
                   Ao ativar, as demais configurações são desativadas.
                 </p>
