@@ -112,6 +112,22 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
   return data as string;
 }
 
+/**
+ * Descarta qualquer rascunho de pedido ONLINE do próprio cliente que ainda
+ * não foi pago (aguardando_pagamento = true e pago_online = false), antes de
+ * registrar um novo pedido. Isto impede que idas e voltas entre carrinho e
+ * checkout PIX acumulem "pedidos-fantasma" no banco — e nunca toca em pedidos
+ * já pagos ou em pedidos presenciais já enviados à cozinha. Best-effort: se
+ * falhar, não bloqueia o checkout.
+ */
+export async function discardUnpaidDrafts(): Promise<number> {
+  const { data, error } = await supabase.rpc("discard_unpaid_drafts", {
+    p_host: currentHost(),
+  });
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
 export interface OrderRow {
   id: string;
   status: string;

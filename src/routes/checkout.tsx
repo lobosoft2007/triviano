@@ -11,7 +11,7 @@ const QRCodeCanvas = lazy(() =>
 import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
-import { fetchProfile, placeOrder } from "@/lib/orders";
+import { fetchProfile, placeOrder, discardUnpaidDrafts } from "@/lib/orders";
 import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
@@ -593,6 +593,17 @@ function CheckoutPage() {
       ]
         .filter(Boolean)
         .join(" — ");
+
+      // TRAVA ATÔMICA / ANTI-FANTASMA: antes de gravar um novo pedido,
+      // descarta qualquer rascunho online do próprio cliente que ainda não foi
+      // pago. Assim, ir e voltar entre o carrinho e o checkout PIX nunca libera
+      // um pedido não pago para a cozinha nem acumula pedidos duplicados. Nunca
+      // afeta pedidos já pagos ou presenciais já enviados. Best-effort.
+      try {
+        await discardUnpaidDrafts();
+      } catch (cleanupErr) {
+        console.warn("Falha ao limpar rascunhos não pagos (ignorado):", cleanupErr);
+      }
 
       const orderId = await placeOrder({
         userId: user.id,
