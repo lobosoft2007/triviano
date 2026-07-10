@@ -1,6 +1,20 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { currentHost } from "@/lib/empresa";
+
+/**
+ * Tenant claim on login: bind the freshly signed-in account to the company that
+ * serves the CURRENT host. Runs on every SIGNED_IN event (password, OTP, magic
+ * link, future OAuth). All guards live server-side in `claim_tenant_by_host`:
+ * it only re-binds new customer accounts (no prior orders), never staff/admins,
+ * and does nothing on preview/dev hosts where no tenant is resolvable.
+ */
+const claimTenantForCurrentHost = () => {
+  const host = currentHost();
+  if (!host) return;
+  void supabase.rpc("claim_tenant_by_host", { p_host: host });
+};
 
 interface AuthContextValue {
   user: User | null;
@@ -102,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (newSession) {
+        // Bind a fresh account to the tenant of the current host on login.
+        if (event === "SIGNED_IN") claimTenantForCurrentHost();
         validateSession(newSession);
         return;
       }
