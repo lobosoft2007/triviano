@@ -136,7 +136,12 @@ Deno.serve(async (req) => {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        "X-Idempotency-Key": `${order.id}-${body.method}-${Date.now()}`,
+        // A chave precisa ser estável por pedido + método. Antes usávamos
+        // Date.now(), então voltar ao carrinho/reabrir o checkout podia criar
+        // múltiplas Orders no MP e sobrescrever mp_payment_id no pedido local;
+        // se o cliente pagasse uma cobrança antiga, o webhook não encontrava
+        // mais a linha e o polling ficava preso no QR.
+        "X-Idempotency-Key": `${order.id}-${body.method}`,
       },
       body: JSON.stringify(mpBody),
     });
@@ -179,6 +184,7 @@ Deno.serve(async (req) => {
       pago_online: isPaid,
       // Enquanto não confirmado, o pedido fica oculto do Caixa/KDS.
       aguardando_pagamento: !isPaid,
+      tipo_pagamento: body.method === "pix" ? "pix" : "cartao_credito_online",
     })
     .eq("id", order.id);
 
