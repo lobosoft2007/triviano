@@ -687,6 +687,7 @@ function AdminPage() {
           {tab === "combos" && <CombosCrud />}
           {tab === "empresa" && <EmpresaConfigTab />}
           {tab === "identidade" && <IdentidadeVisualTab />}
+          {tab === "pagamentos" && <PaymentConfigTab />}
           {tab === "clientes" && <ClientesView canBlock />}
           {tab === "conta" && <ContaCorrenteTab mode="admin" />}
           {tab === "insumos" && <InsumosCrud />}
