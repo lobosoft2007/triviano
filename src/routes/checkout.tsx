@@ -1183,7 +1183,9 @@ function CheckoutPage() {
               type="submit"
               size="lg"
               className="mt-2 h-13 rounded-2xl py-3.5 text-base"
-              disabled={submitting || !effectiveCanCheckout}
+              disabled={
+                submitting || !effectiveCanCheckout || (payMethod === "PIX" && mpConfigLoading)
+              }
             >
               {submitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
