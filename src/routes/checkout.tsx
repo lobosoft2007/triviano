@@ -299,6 +299,18 @@ function CheckoutPage() {
     staleTime: 5 * 60 * 1000,
   });
   const mpActive = !!mpConfig?.ativo;
+  // Panoramas de flexibilidade (padrão: liberado quando não há config ativa).
+  const allowPixOnline = mpConfig ? mpConfig.aceita_pix_online : true;
+  const allowCardOnline = mpConfig ? mpConfig.aceita_cartao_online : true;
+  const allowNaEntrega = mpConfig ? mpConfig.aceita_na_entrega : true;
+  const visibleMethods = PAY_METHODS.filter((m) => {
+    if (m.value === "PIX") return allowPixOnline;
+    if (m.value === "Dinheiro") return allowNaEntrega;
+    if (m.value === "Cartão de Crédito" || m.value === "Cartão de Débito") {
+      return mpActive ? allowCardOnline : allowNaEntrega;
+    }
+    return true;
+  });
 
 
 
