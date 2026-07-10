@@ -746,6 +746,9 @@ export async function saveConfigPagamento(input: {
   mp_webhook_secret?: string;
   mp_ativo?: boolean;
   mp_ambiente?: string;
+  aceita_pix_online?: boolean;
+  aceita_cartao_online?: boolean;
+  aceita_na_entrega?: boolean;
 }): Promise<void> {
   const payload = {
     gateway_banco: input.gateway_banco.trim(),
@@ -760,6 +763,9 @@ export async function saveConfigPagamento(input: {
     mp_webhook_secret: (input.mp_webhook_secret ?? "").trim(),
     mp_ativo: input.mp_ativo ?? false,
     mp_ambiente: (input.mp_ambiente ?? "test").trim(),
+    aceita_pix_online: input.aceita_pix_online ?? true,
+    aceita_cartao_online: input.aceita_cartao_online ?? true,
+    aceita_na_entrega: input.aceita_na_entrega ?? true,
   };
 
   let id = input.id ?? null;
