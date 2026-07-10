@@ -450,6 +450,19 @@ function CheckoutPage() {
     }
   }, [pendingPayment, payMethod, contaCorrenteDisponivel]);
 
+  // Se a forma escolhida deixou de ser oferecida (panoramas de flexibilidade),
+  // seleciona a primeira forma disponível.
+  useEffect(() => {
+    if (pendingPayment || payMethod === "Conta Corrente") return;
+    const stillVisible = visibleMethods.some((m) => m.value === payMethod);
+    if (!stillVisible && visibleMethods[0]) {
+      setPayMethod(visibleMethods[0].value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPayment, payMethod, visibleMethods.length]);
+
+
+
   // Rota liberada: não existe redirecionamento automático por autenticação.
 
 
