@@ -708,7 +708,7 @@ export async function listConfigPagamentos(): Promise<ConfigPagamento[]> {
   const { data, error } = await supabase
     .from("config_pagamentos")
     .select(
-      "id, gateway_banco, client_id, client_secret, chave_pix_padrao, nome_recebedor, cidade_recebedor, ativo, mp_access_token, mp_public_key, mp_webhook_secret, mp_ativo, mp_ambiente",
+      "id, gateway_banco, client_id, client_secret, chave_pix_padrao, nome_recebedor, cidade_recebedor, ativo, mp_access_token, mp_public_key, mp_webhook_secret, mp_ativo, mp_ambiente, aceita_pix_online, aceita_cartao_online, aceita_na_entrega",
     )
     .order("created_at");
   if (error) throw error;
