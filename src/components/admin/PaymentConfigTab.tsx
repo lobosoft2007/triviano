@@ -37,6 +37,9 @@ interface FormState {
   mp_webhook_secret: string;
   mp_ativo: boolean;
   mp_ambiente: string;
+  aceita_pix_online: boolean;
+  aceita_cartao_online: boolean;
+  aceita_na_entrega: boolean;
 }
 
 const EMPTY: FormState = {
@@ -53,6 +56,9 @@ const EMPTY: FormState = {
   mp_webhook_secret: "",
   mp_ativo: false,
   mp_ambiente: "test",
+  aceita_pix_online: true,
+  aceita_cartao_online: true,
+  aceita_na_entrega: true,
 };
 
 export function PaymentConfigTab() {
