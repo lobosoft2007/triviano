@@ -333,6 +333,9 @@ export type Database = {
       }
       config_pagamentos: {
         Row: {
+          aceita_cartao_online: boolean
+          aceita_na_entrega: boolean
+          aceita_pix_online: boolean
           ambiente_emissao: Database["public"]["Enums"]["ambiente_emissao_tipo"]
           ativo: boolean
           certificado_a1_nome: string
@@ -356,6 +359,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aceita_cartao_online?: boolean
+          aceita_na_entrega?: boolean
+          aceita_pix_online?: boolean
           ambiente_emissao?: Database["public"]["Enums"]["ambiente_emissao_tipo"]
           ativo?: boolean
           certificado_a1_nome?: string
@@ -379,6 +385,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aceita_cartao_online?: boolean
+          aceita_na_entrega?: boolean
+          aceita_pix_online?: boolean
           ambiente_emissao?: Database["public"]["Enums"]["ambiente_emissao_tipo"]
           ativo?: boolean
           certificado_a1_nome?: string
@@ -2727,6 +2736,9 @@ export type Database = {
       get_mp_public_config: {
         Args: { p_host?: string }
         Returns: {
+          aceita_cartao_online: boolean
+          aceita_na_entrega: boolean
+          aceita_pix_online: boolean
           ambiente: string
           ativo: boolean
           empresa_id: string

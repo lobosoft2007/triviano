@@ -299,6 +299,18 @@ function CheckoutPage() {
     staleTime: 5 * 60 * 1000,
   });
   const mpActive = !!mpConfig?.ativo;
+  // Panoramas de flexibilidade (padrão: liberado quando não há config ativa).
+  const allowPixOnline = mpConfig ? mpConfig.aceita_pix_online : true;
+  const allowCardOnline = mpConfig ? mpConfig.aceita_cartao_online : true;
+  const allowNaEntrega = mpConfig ? mpConfig.aceita_na_entrega : true;
+  const visibleMethods = PAY_METHODS.filter((m) => {
+    if (m.value === "PIX") return allowPixOnline;
+    if (m.value === "Dinheiro") return allowNaEntrega;
+    if (m.value === "Cartão de Crédito" || m.value === "Cartão de Débito") {
+      return mpActive ? allowCardOnline : allowNaEntrega;
+    }
+    return true;
+  });
 
 
 
@@ -437,6 +449,19 @@ function CheckoutPage() {
       setPayMethod("PIX");
     }
   }, [pendingPayment, payMethod, contaCorrenteDisponivel]);
+
+  // Se a forma escolhida deixou de ser oferecida (panoramas de flexibilidade),
+  // seleciona a primeira forma disponível.
+  useEffect(() => {
+    if (pendingPayment || payMethod === "Conta Corrente") return;
+    const stillVisible = visibleMethods.some((m) => m.value === payMethod);
+    if (!stillVisible && visibleMethods[0]) {
+      setPayMethod(visibleMethods[0].value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPayment, payMethod, visibleMethods.length]);
+
+
 
   // Rota liberada: não existe redirecionamento automático por autenticação.
 
@@ -1101,7 +1126,7 @@ function CheckoutPage() {
                 Forma de pagamento
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {PAY_METHODS.map((m) => (
+                {visibleMethods.map((m) => (
                   <button
                     key={m.value}
                     type="button"

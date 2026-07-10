@@ -29,6 +29,7 @@ import {
   ClipboardCheck,
   UserCog,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -77,6 +78,7 @@ import { FuncionariosTab } from "@/components/admin/FuncionariosTab";
 import { usePermissions, type PermissionFlag } from "@/lib/permissions";
 import { CombosCrud } from "@/components/admin/CombosCrud";
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
+import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { IdentidadeVisualTab } from "@/components/admin/IdentidadeVisualTab";
 import {
   ProductDetailFields,
@@ -204,6 +206,7 @@ type AdminTab =
   | "combos"
   | "empresa"
   | "identidade"
+  | "pagamentos"
   | "clientes"
   | "conta"
   | "financeiro"
@@ -224,6 +227,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "combos", label: "Campanhas", icon: Megaphone },
   { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
   { key: "identidade", label: "Identidade Visual", icon: Palette },
+  { key: "pagamentos", label: "Pagamentos", icon: CreditCard },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "conta", label: "Conta Corrente", icon: Wallet },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
@@ -246,6 +250,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   combos: "acesso_cadastro_produtos",
   empresa: "master",
   identidade: "master",
+  pagamentos: "master",
   clientes: "master",
   conta: "acesso_financeiro",
   financeiro: "acesso_financeiro",
@@ -682,6 +687,7 @@ function AdminPage() {
           {tab === "combos" && <CombosCrud />}
           {tab === "empresa" && <EmpresaConfigTab />}
           {tab === "identidade" && <IdentidadeVisualTab />}
+          {tab === "pagamentos" && <PaymentConfigTab />}
           {tab === "clientes" && <ClientesView canBlock />}
           {tab === "conta" && <ContaCorrenteTab mode="admin" />}
           {tab === "insumos" && <InsumosCrud />}

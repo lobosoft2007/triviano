@@ -698,13 +698,17 @@ export interface ConfigPagamento {
   mp_webhook_secret: string;
   mp_ativo: boolean;
   mp_ambiente: string;
+  /** Panoramas de flexibilidade oferecidos ao cliente no checkout. */
+  aceita_pix_online: boolean;
+  aceita_cartao_online: boolean;
+  aceita_na_entrega: boolean;
 }
 
 export async function listConfigPagamentos(): Promise<ConfigPagamento[]> {
   const { data, error } = await supabase
     .from("config_pagamentos")
     .select(
-      "id, gateway_banco, client_id, client_secret, chave_pix_padrao, nome_recebedor, cidade_recebedor, ativo, mp_access_token, mp_public_key, mp_webhook_secret, mp_ativo, mp_ambiente",
+      "id, gateway_banco, client_id, client_secret, chave_pix_padrao, nome_recebedor, cidade_recebedor, ativo, mp_access_token, mp_public_key, mp_webhook_secret, mp_ativo, mp_ambiente, aceita_pix_online, aceita_cartao_online, aceita_na_entrega",
     )
     .order("created_at");
   if (error) throw error;
@@ -722,6 +726,9 @@ export async function listConfigPagamentos(): Promise<ConfigPagamento[]> {
     mp_webhook_secret: (c as { mp_webhook_secret?: string }).mp_webhook_secret ?? "",
     mp_ativo: (c as { mp_ativo?: boolean }).mp_ativo ?? false,
     mp_ambiente: (c as { mp_ambiente?: string }).mp_ambiente ?? "test",
+    aceita_pix_online: (c as { aceita_pix_online?: boolean }).aceita_pix_online ?? true,
+    aceita_cartao_online: (c as { aceita_cartao_online?: boolean }).aceita_cartao_online ?? true,
+    aceita_na_entrega: (c as { aceita_na_entrega?: boolean }).aceita_na_entrega ?? true,
   }));
 }
 
@@ -739,6 +746,9 @@ export async function saveConfigPagamento(input: {
   mp_webhook_secret?: string;
   mp_ativo?: boolean;
   mp_ambiente?: string;
+  aceita_pix_online?: boolean;
+  aceita_cartao_online?: boolean;
+  aceita_na_entrega?: boolean;
 }): Promise<void> {
   const payload = {
     gateway_banco: input.gateway_banco.trim(),
@@ -753,6 +763,9 @@ export async function saveConfigPagamento(input: {
     mp_webhook_secret: (input.mp_webhook_secret ?? "").trim(),
     mp_ativo: input.mp_ativo ?? false,
     mp_ambiente: (input.mp_ambiente ?? "test").trim(),
+    aceita_pix_online: input.aceita_pix_online ?? true,
+    aceita_cartao_online: input.aceita_cartao_online ?? true,
+    aceita_na_entrega: input.aceita_na_entrega ?? true,
   };
 
   let id = input.id ?? null;

@@ -37,6 +37,9 @@ interface FormState {
   mp_webhook_secret: string;
   mp_ativo: boolean;
   mp_ambiente: string;
+  aceita_pix_online: boolean;
+  aceita_cartao_online: boolean;
+  aceita_na_entrega: boolean;
 }
 
 const EMPTY: FormState = {
@@ -53,6 +56,9 @@ const EMPTY: FormState = {
   mp_webhook_secret: "",
   mp_ativo: false,
   mp_ambiente: "test",
+  aceita_pix_online: true,
+  aceita_cartao_online: true,
+  aceita_na_entrega: true,
 };
 
 export function PaymentConfigTab() {
@@ -85,6 +91,9 @@ export function PaymentConfigTab() {
       mp_webhook_secret: c.mp_webhook_secret,
       mp_ativo: c.mp_ativo,
       mp_ambiente: c.mp_ambiente || "test",
+      aceita_pix_online: c.aceita_pix_online,
+      aceita_cartao_online: c.aceita_cartao_online,
+      aceita_na_entrega: c.aceita_na_entrega,
     });
     setOpen(true);
   };
@@ -335,6 +344,54 @@ export function PaymentConfigTab() {
                 </div>
               </div>
             </div>
+
+            {/* ---- 3 Panoramas de Flexibilidade ---- */}
+            <div className="space-y-3 rounded-xl border border-border p-3">
+              <div>
+                <Label>Panoramas de flexibilidade</Label>
+                <p className="text-xs text-muted-foreground">
+                  Controle quais formas de pagamento aparecem para o cliente no
+                  checkout do app.
+                </p>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2.5">
+                <div>
+                  <Label className="cursor-pointer">PIX Online</Label>
+                  <p className="text-xs text-muted-foreground">
+                    QR dinâmico pago dentro do app.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.aceita_pix_online}
+                  onCheckedChange={(v) => setForm({ ...form, aceita_pix_online: v })}
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2.5">
+                <div>
+                  <Label className="cursor-pointer">Cartão Online</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Crédito/débito processado no checkout.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.aceita_cartao_online}
+                  onCheckedChange={(v) => setForm({ ...form, aceita_cartao_online: v })}
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2.5">
+                <div>
+                  <Label className="cursor-pointer">Pagamento na Entrega</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Dinheiro e maquininha na entrega/retirada.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.aceita_na_entrega}
+                  onCheckedChange={(v) => setForm({ ...form, aceita_na_entrega: v })}
+                />
+              </div>
+            </div>
+
 
             <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5">
               <div>
