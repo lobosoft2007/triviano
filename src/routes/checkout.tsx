@@ -876,6 +876,49 @@ function CheckoutPage() {
                 Voltar ao cardápio
               </Button>
             </section>
+          ) : pendingPayment &&
+            mpActive &&
+            mpConfig &&
+            (effectivePayMethod === "Cartão de Crédito" ||
+              effectivePayMethod === "Cartão de Débito") ? (
+            <section className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-base font-bold">
+                  Pagamento com cartão
+                </h2>
+              </div>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Preencha os dados do cartão para pagar{" "}
+                <span className="font-semibold text-foreground">
+                  {formatBRL(finalTotal)}
+                </span>{" "}
+                com segurança.
+              </p>
+              <MercadoPagoCheckout
+                orderId={pendingPayment.orderId}
+                total={finalTotal}
+                method="card"
+                config={mpConfig}
+                payerEmail={user?.email ?? undefined}
+                onPaid={() => {
+                  clearCheckoutSnapshot();
+                  queryClient.invalidateQueries({ queryKey: ["orders"] });
+                  navigate({ to: "/orders", replace: true });
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 h-12 w-full rounded-2xl"
+                onClick={() => {
+                  clearCheckoutSnapshot();
+                  navigate({ to: "/", replace: true });
+                }}
+              >
+                Voltar ao cardápio
+              </Button>
+            </section>
           ) : pendingPayment ? (
             <section className="mb-5 rounded-2xl border border-success/30 bg-success/5 p-4">
               <div className="mb-1 flex items-center gap-2">
