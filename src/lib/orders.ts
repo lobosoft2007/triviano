@@ -91,6 +91,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
       ? input.numeroMesa
       : null) as unknown as number,
     p_cashback_used: input.cashbackUsed ?? 0,
+    // Tenant do ambiente atual (host). O backend usa isto para marcar o pedido
+    // com a empresa correta, isolando staging (Pizzaria Teste) de produção.
+    p_host: currentHost(),
   });
 
   if (error) throw error;
