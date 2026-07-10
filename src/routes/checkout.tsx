@@ -11,7 +11,7 @@ const QRCodeCanvas = lazy(() =>
 import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
-import { fetchProfile, placeOrder } from "@/lib/orders";
+import { fetchProfile, placeOrder, discardUnpaidDrafts } from "@/lib/orders";
 import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
