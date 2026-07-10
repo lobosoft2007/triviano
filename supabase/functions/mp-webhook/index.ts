@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
       : await fetch(endpoint, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
-    const j = discoveredPayment ?? (await r.json().catch(() => ({})));
+    const j = (discoveredPayment ?? (await r.json().catch(() => ({})))) as any;
     status = String(j?.status ?? j?.transactions?.payments?.[0]?.status ?? "");
     console.log("mp-webhook: status reconsultado", {
       order_id: order.id,
