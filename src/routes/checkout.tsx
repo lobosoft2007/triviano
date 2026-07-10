@@ -1,24 +1,17 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-// Lazy-loaded: qrcode.react ships its own canvas renderer and is only needed on
-// the PIX step, so it is split out of the initial checkout bundle.
-const QRCodeCanvas = lazy(() =>
-  import("qrcode.react").then((m) => ({ default: m.QRCodeCanvas })),
-);
-import { ArrowLeft, Loader2, MapPin, Copy, Check, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder, discardUnpaidDrafts } from "@/lib/orders";
 import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
-import { usePixPayment } from "@/hooks/usePixPayment";
 import { fetchMpPublicConfig } from "@/lib/mercadopago";
 import { MercadoPagoCheckout } from "@/components/checkout/MercadoPagoCheckout";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -427,16 +420,6 @@ function CheckoutPage() {
     ? Math.round((trocoParaNum - finalTotal) * 100) / 100
     : 0;
 
-  const {
-    payload: pixPayload,
-    copied,
-    copy: copyPixPayload,
-    merchantName: pixMerchantName,
-    merchantCity: pixMerchantCity,
-  } = usePixPayment(finalTotal);
-
-
-
   useEffect(() => {
     if (profile) {
       setAddress((a) => a || profile.address);
@@ -479,18 +462,6 @@ function CheckoutPage() {
   // seconds after mount), making the payment screen "flash" and dump the user
   // back home with no message. Instead we render a loading state until the
   // cart is restored and only then show a friendly empty state (see below).
-
-
-  async function copyPix() {
-    const ok = await copyPixPayload();
-    if (ok) {
-      toast.success("Código copiado com sucesso!");
-    } else {
-      toast.error("Não foi possível copiar. Tente novamente.");
-    }
-  }
-
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!effectiveCanCheckout) {
