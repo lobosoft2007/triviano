@@ -16,6 +16,8 @@ import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { usePixPayment } from "@/hooks/usePixPayment";
+import { fetchMpPublicConfig } from "@/lib/mercadopago";
+import { MercadoPagoCheckout } from "@/components/checkout/MercadoPagoCheckout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
