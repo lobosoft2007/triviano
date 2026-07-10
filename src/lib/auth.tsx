@@ -116,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (newSession) {
+        // Bind a fresh account to the tenant of the current host on login.
+        if (event === "SIGNED_IN") claimTenantForCurrentHost();
         validateSession(newSession);
         return;
       }
