@@ -4,3 +4,11 @@ project_id = "ykrgbwvrvocprjvpqxej"
 # Keep the one-time password (OTP) lifetime comfortably below the recommended
 # 1 hour threshold to limit the window in which an intercepted code can be reused.
 otp_expiry = 1800
+
+# Mercado Pago — o webhook é chamado pelo próprio Mercado Pago (sem JWT).
+# A criação de pagamento valida o usuário manualmente via Authorization header.
+[functions.mp-webhook]
+verify_jwt = false
+
+[functions.mp-create-payment]
+verify_jwt = false
