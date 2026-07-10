@@ -32,6 +32,11 @@ interface FormState {
   nome_recebedor: string;
   cidade_recebedor: string;
   ativo: boolean;
+  mp_access_token: string;
+  mp_public_key: string;
+  mp_webhook_secret: string;
+  mp_ativo: boolean;
+  mp_ambiente: string;
 }
 
 const EMPTY: FormState = {
@@ -43,6 +48,11 @@ const EMPTY: FormState = {
   nome_recebedor: "",
   cidade_recebedor: "",
   ativo: true,
+  mp_access_token: "",
+  mp_public_key: "",
+  mp_webhook_secret: "",
+  mp_ativo: false,
+  mp_ambiente: "test",
 };
 
 export function PaymentConfigTab() {
@@ -70,6 +80,11 @@ export function PaymentConfigTab() {
       nome_recebedor: c.nome_recebedor,
       cidade_recebedor: c.cidade_recebedor,
       ativo: c.ativo,
+      mp_access_token: c.mp_access_token,
+      mp_public_key: c.mp_public_key,
+      mp_webhook_secret: c.mp_webhook_secret,
+      mp_ativo: c.mp_ativo,
+      mp_ambiente: c.mp_ambiente || "test",
     });
     setOpen(true);
   };
@@ -263,6 +278,64 @@ export function PaymentConfigTab() {
                 />
               </div>
             </div>
+
+            {/* ---- Mercado Pago (Checkout Transparente) ---- */}
+            <div className="space-y-4 rounded-xl border border-border p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="cursor-pointer">Mercado Pago ativo</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Habilita PIX (QR dinâmico) e Cartão no checkout do app.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.mp_ativo}
+                  onCheckedChange={(v) => setForm({ ...form, mp_ativo: v })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mp-token">Access Token (secreto)</Label>
+                <Input
+                  id="mp-token"
+                  type="password"
+                  value={form.mp_access_token}
+                  onChange={(e) => setForm({ ...form, mp_access_token: e.target.value })}
+                  placeholder="APP_USR-... ou TEST-..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mp-pubkey">Public Key</Label>
+                <Input
+                  id="mp-pubkey"
+                  value={form.mp_public_key}
+                  onChange={(e) => setForm({ ...form, mp_public_key: e.target.value })}
+                  placeholder="APP_USR-... ou TEST-..."
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="mp-secret">Segredo do Webhook</Label>
+                  <Input
+                    id="mp-secret"
+                    type="password"
+                    value={form.mp_webhook_secret}
+                    onChange={(e) => setForm({ ...form, mp_webhook_secret: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Ambiente</Label>
+                  <select
+                    value={form.mp_ambiente}
+                    onChange={(e) => setForm({ ...form, mp_ambiente: e.target.value })}
+                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
+                  >
+                    <option value="test">Teste (sandbox)</option>
+                    <option value="prod">Produção</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5">
               <div>
                 <Label className="cursor-pointer">Configuração ativa</Label>

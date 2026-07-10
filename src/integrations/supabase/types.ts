@@ -347,6 +347,11 @@ export type Database = {
           empresa_id: string
           gateway_banco: string
           id: string
+          mp_access_token: string
+          mp_ambiente: string
+          mp_ativo: boolean
+          mp_public_key: string
+          mp_webhook_secret: string
           nome_recebedor: string
           updated_at: string
         }
@@ -365,6 +370,11 @@ export type Database = {
           empresa_id?: string
           gateway_banco?: string
           id?: string
+          mp_access_token?: string
+          mp_ambiente?: string
+          mp_ativo?: boolean
+          mp_public_key?: string
+          mp_webhook_secret?: string
           nome_recebedor?: string
           updated_at?: string
         }
@@ -383,6 +393,11 @@ export type Database = {
           empresa_id?: string
           gateway_banco?: string
           id?: string
+          mp_access_token?: string
+          mp_ambiente?: string
+          mp_ativo?: boolean
+          mp_public_key?: string
+          mp_webhook_secret?: string
           nome_recebedor?: string
           updated_at?: string
         }
@@ -1690,6 +1705,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          aguardando_pagamento: boolean
           cashback_usado: number
           created_at: string
           delivery_address: string
@@ -1700,9 +1716,13 @@ export type Database = {
           id: string
           impresso_conta: boolean
           impresso_cozinha: boolean
+          mp_order_id: string | null
+          mp_payment_id: string | null
+          mp_status: string | null
           notes: string
           numero_mesa: number | null
           observacoes_operador: string
+          pago_online: boolean
           phone: string
           senha: string | null
           senha_diaria: number | null
@@ -1713,6 +1733,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          aguardando_pagamento?: boolean
           cashback_usado?: number
           created_at?: string
           delivery_address?: string
@@ -1723,9 +1744,13 @@ export type Database = {
           id?: string
           impresso_conta?: boolean
           impresso_cozinha?: boolean
+          mp_order_id?: string | null
+          mp_payment_id?: string | null
+          mp_status?: string | null
           notes?: string
           numero_mesa?: number | null
           observacoes_operador?: string
+          pago_online?: boolean
           phone?: string
           senha?: string | null
           senha_diaria?: number | null
@@ -1736,6 +1761,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          aguardando_pagamento?: boolean
           cashback_usado?: number
           created_at?: string
           delivery_address?: string
@@ -1746,9 +1772,13 @@ export type Database = {
           id?: string
           impresso_conta?: boolean
           impresso_cozinha?: boolean
+          mp_order_id?: string | null
+          mp_payment_id?: string | null
+          mp_status?: string | null
           notes?: string
           numero_mesa?: number | null
           observacoes_operador?: string
+          pago_online?: boolean
           phone?: string
           senha?: string | null
           senha_diaria?: number | null
@@ -2694,6 +2724,15 @@ export type Database = {
           id: string
         }[]
       }
+      get_mp_public_config: {
+        Args: { p_host?: string }
+        Returns: {
+          ambiente: string
+          ativo: boolean
+          empresa_id: string
+          public_key: string
+        }[]
+      }
       get_my_permissions: {
         Args: never
         Returns: {
@@ -2828,6 +2867,15 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      mp_get_order_status: {
+        Args: { p_order_id: string }
+        Returns: {
+          aguardando_pagamento: boolean
+          mp_status: string
+          pago_online: boolean
+          status_pedido: string
+        }[]
       }
       normalize_host: { Args: { p_host: string }; Returns: string }
       notify_cashback: {
