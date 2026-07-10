@@ -726,6 +726,9 @@ export async function listConfigPagamentos(): Promise<ConfigPagamento[]> {
     mp_webhook_secret: (c as { mp_webhook_secret?: string }).mp_webhook_secret ?? "",
     mp_ativo: (c as { mp_ativo?: boolean }).mp_ativo ?? false,
     mp_ambiente: (c as { mp_ambiente?: string }).mp_ambiente ?? "test",
+    aceita_pix_online: (c as { aceita_pix_online?: boolean }).aceita_pix_online ?? true,
+    aceita_cartao_online: (c as { aceita_cartao_online?: boolean }).aceita_cartao_online ?? true,
+    aceita_na_entrega: (c as { aceita_na_entrega?: boolean }).aceita_na_entrega ?? true,
   }));
 }
 
