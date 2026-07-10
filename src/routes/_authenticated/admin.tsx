@@ -206,6 +206,7 @@ type AdminTab =
   | "combos"
   | "empresa"
   | "identidade"
+  | "pagamentos"
   | "clientes"
   | "conta"
   | "financeiro"
