@@ -80,6 +80,11 @@ export function PaymentConfigTab() {
       nome_recebedor: c.nome_recebedor,
       cidade_recebedor: c.cidade_recebedor,
       ativo: c.ativo,
+      mp_access_token: c.mp_access_token,
+      mp_public_key: c.mp_public_key,
+      mp_webhook_secret: c.mp_webhook_secret,
+      mp_ativo: c.mp_ativo,
+      mp_ambiente: c.mp_ambiente || "test",
     });
     setOpen(true);
   };
