@@ -594,6 +594,17 @@ function CheckoutPage() {
         .filter(Boolean)
         .join(" — ");
 
+      // TRAVA ATÔMICA / ANTI-FANTASMA: antes de gravar um novo pedido,
+      // descarta qualquer rascunho online do próprio cliente que ainda não foi
+      // pago. Assim, ir e voltar entre o carrinho e o checkout PIX nunca libera
+      // um pedido não pago para a cozinha nem acumula pedidos duplicados. Nunca
+      // afeta pedidos já pagos ou presenciais já enviados. Best-effort.
+      try {
+        await discardUnpaidDrafts();
+      } catch (cleanupErr) {
+        console.warn("Falha ao limpar rascunhos não pagos (ignorado):", cleanupErr);
+      }
+
       const orderId = await placeOrder({
         userId: user.id,
         items: effectiveItems,
