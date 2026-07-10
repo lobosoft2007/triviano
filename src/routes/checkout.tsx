@@ -605,7 +605,9 @@ function CheckoutPage() {
         tipoAtendimento: tipo,
         numeroMesa: mesaNumber,
         cashbackUsed: cashbackApplied,
+        pagamentoOnline: isOnlinePayment,
       });
+
       const paymentSnapshot: PendingPaymentSnapshot = {
         at: Date.now(),
         orderId,
