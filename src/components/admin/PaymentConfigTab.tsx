@@ -91,6 +91,9 @@ export function PaymentConfigTab() {
       mp_webhook_secret: c.mp_webhook_secret,
       mp_ativo: c.mp_ativo,
       mp_ambiente: c.mp_ambiente || "test",
+      aceita_pix_online: c.aceita_pix_online,
+      aceita_cartao_online: c.aceita_cartao_online,
+      aceita_na_entrega: c.aceita_na_entrega,
     });
     setOpen(true);
   };
