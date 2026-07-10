@@ -278,9 +278,64 @@ export function PaymentConfigTab() {
                 />
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5">
-              <div>
-                <Label className="cursor-pointer">Configuração ativa</Label>
+
+            {/* ---- Mercado Pago (Checkout Transparente) ---- */}
+            <div className="space-y-4 rounded-xl border border-border p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="cursor-pointer">Mercado Pago ativo</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Habilita PIX (QR dinâmico) e Cartão no checkout do app.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.mp_ativo}
+                  onCheckedChange={(v) => setForm({ ...form, mp_ativo: v })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mp-token">Access Token (secreto)</Label>
+                <Input
+                  id="mp-token"
+                  type="password"
+                  value={form.mp_access_token}
+                  onChange={(e) => setForm({ ...form, mp_access_token: e.target.value })}
+                  placeholder="APP_USR-... ou TEST-..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mp-pubkey">Public Key</Label>
+                <Input
+                  id="mp-pubkey"
+                  value={form.mp_public_key}
+                  onChange={(e) => setForm({ ...form, mp_public_key: e.target.value })}
+                  placeholder="APP_USR-... ou TEST-..."
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="mp-secret">Segredo do Webhook</Label>
+                  <Input
+                    id="mp-secret"
+                    type="password"
+                    value={form.mp_webhook_secret}
+                    onChange={(e) => setForm({ ...form, mp_webhook_secret: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Ambiente</Label>
+                  <select
+                    value={form.mp_ambiente}
+                    onChange={(e) => setForm({ ...form, mp_ambiente: e.target.value })}
+                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
+                  >
+                    <option value="test">Teste (sandbox)</option>
+                    <option value="prod">Produção</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
                 <p className="text-xs text-muted-foreground">
                   Ao ativar, as demais configurações são desativadas.
                 </p>
