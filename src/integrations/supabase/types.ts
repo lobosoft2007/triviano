@@ -2620,6 +2620,7 @@ export type Database = {
       }
       can_manage_empresa: { Args: { _empresa_id: string }; Returns: boolean }
       cancel_order: { Args: { p_order_id: string }; Returns: undefined }
+      claim_tenant_by_host: { Args: { p_host: string }; Returns: string }
       compute_product_cmv: { Args: { p_product_id: string }; Returns: number }
       conciliar_ajuste_nf: {
         Args: {
