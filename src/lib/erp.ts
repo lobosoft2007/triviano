@@ -734,6 +734,11 @@ export async function saveConfigPagamento(input: {
   nome_recebedor: string;
   cidade_recebedor: string;
   ativo: boolean;
+  mp_access_token?: string;
+  mp_public_key?: string;
+  mp_webhook_secret?: string;
+  mp_ativo?: boolean;
+  mp_ambiente?: string;
 }): Promise<void> {
   const payload = {
     gateway_banco: input.gateway_banco.trim(),
@@ -743,6 +748,11 @@ export async function saveConfigPagamento(input: {
     nome_recebedor: input.nome_recebedor.trim(),
     cidade_recebedor: input.cidade_recebedor.trim(),
     ativo: input.ativo,
+    mp_access_token: (input.mp_access_token ?? "").trim(),
+    mp_public_key: (input.mp_public_key ?? "").trim(),
+    mp_webhook_secret: (input.mp_webhook_secret ?? "").trim(),
+    mp_ativo: input.mp_ativo ?? false,
+    mp_ambiente: (input.mp_ambiente ?? "test").trim(),
   };
 
   let id = input.id ?? null;
