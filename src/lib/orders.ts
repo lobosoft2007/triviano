@@ -102,7 +102,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<string> {
     // Tenant do ambiente atual (host). O backend usa isto para marcar o pedido
     // com a empresa correta, isolando staging (Pizzaria Teste) de produção.
     p_host: currentHost(),
+    // Pagamento online (PIX/cartão MP): nasce oculto do Caixa/KDS até o
+    // webhook confirmar o pagamento (blindagem financeira da cozinha).
+    p_pagamento_online: input.pagamentoOnline ?? false,
   });
+
 
   if (error) throw error;
   return data as string;
