@@ -42,26 +42,34 @@ export function MercadoPagoCheckout({
   const [error, setError] = useState<string | null>(null);
   const brickRef = useRef<{ unmount: () => void } | null>(null);
   const mountedContainer = useRef(false);
+  const paidStatuses = useRef(new Set(["paid", "processed", "approved"]));
 
   // -------- Polling do status (PIX e cartão pendente) --------
   useEffect(() => {
     if (paid) return;
     if (method === "pix" && !pix) return;
     let alive = true;
-    const timer = setInterval(async () => {
+    let running = false;
+    const checkStatus = async () => {
+      if (running) return;
+      running = true;
       try {
         const st = await fetchMpOrderStatus(orderId);
         if (!alive) return;
-        if (st?.pago_online) {
+        const mpStatus = (st?.mp_status ?? "").toLowerCase();
+        if (st?.pago_online || paidStatuses.current.has(mpStatus)) {
           setPaid(true);
-          clearInterval(timer);
           toast.success("Pagamento confirmado!");
           onPaid();
         }
-      } catch {
-        /* silencioso; segue tentando */
+      } catch (err) {
+        console.warn("MP polling: falha ao consultar status do pedido", err);
+      } finally {
+        running = false;
       }
-    }, 4000);
+    };
+    void checkStatus();
+    const timer = setInterval(checkStatus, 3000);
     return () => {
       alive = false;
       clearInterval(timer);
