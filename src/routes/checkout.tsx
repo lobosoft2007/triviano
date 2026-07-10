@@ -1113,7 +1113,7 @@ function CheckoutPage() {
                 Forma de pagamento
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {PAY_METHODS.map((m) => (
+                {visibleMethods.map((m) => (
                   <button
                     key={m.value}
                     type="button"
