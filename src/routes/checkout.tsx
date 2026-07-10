@@ -312,6 +312,18 @@ function CheckoutPage() {
     return true;
   });
 
+  /**
+   * Whether the selected method is settled ONLINE (PIX/card via Mercado Pago).
+   * Only online payments are created hidden from the Caixa/KDS until the MP
+   * webhook confirms; cash and maquininha-on-delivery stay visible as before.
+   */
+  const isOnlinePayment =
+    mpActive &&
+    ((payMethod === "PIX" && allowPixOnline) ||
+      ((payMethod === "Cartão de Crédito" || payMethod === "Cartão de Débito") &&
+        allowCardOnline));
+
+
 
 
 
