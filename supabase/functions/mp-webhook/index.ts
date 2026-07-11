@@ -43,6 +43,25 @@ function timingSafeEqual(a: string, b: string): boolean {
   return out === 0;
 }
 
+type MpConfig = {
+  empresa_id?: string;
+  mp_access_token?: string | null;
+  mp_access_token_prod?: string | null;
+  mp_access_token_test?: string | null;
+  mp_webhook_secret?: string | null;
+};
+
+function candidateTokens(cfg?: MpConfig | null): string[] {
+  const tokens = [
+    cfg?.mp_access_token_prod,
+    cfg?.mp_access_token_test,
+    cfg?.mp_access_token,
+  ]
+    .map((t) => t?.trim() ?? "")
+    .filter(Boolean);
+  return [...new Set(tokens)];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -104,7 +123,7 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   let discoveredCfg:
-    | { empresa_id: string; mp_access_token?: string | null; mp_webhook_secret?: string | null }
+    | (MpConfig & { empresa_id: string })
     | null = null;
   let discoveredPayment: Record<string, unknown> | null = null;
 
@@ -116,44 +135,44 @@ Deno.serve(async (req) => {
   if (!order && isPaymentTopic) {
     const { data: cfgs } = await admin
       .from("config_pagamentos")
-      .select("empresa_id, mp_access_token, mp_webhook_secret")
-      .eq("ativo", true)
-      .not("mp_access_token", "is", null);
+      .select("empresa_id, mp_access_token, mp_access_token_prod, mp_access_token_test, mp_webhook_secret")
+      .eq("ativo", true);
 
     for (const cfgItem of cfgs ?? []) {
-      const token = cfgItem.mp_access_token?.trim();
-      if (!token) continue;
-      try {
-        const r = await fetch(`${MP_API}/v1/payments/${resourceId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!r.ok) continue;
-        const payment = await r.json().catch(() => ({}));
-        const externalReference = String(payment?.external_reference ?? "");
-        if (!externalReference) continue;
-        const { data: byExternalReference } = await admin
-          .from("orders")
-          .select("id, empresa_id, mp_order_id, mp_payment_id, pago_online")
-          .eq("id", externalReference)
-          .eq("empresa_id", cfgItem.empresa_id)
-          .maybeSingle();
-        if (byExternalReference) {
-          order = byExternalReference;
-          discoveredCfg = cfgItem;
-          discoveredPayment = payment;
-          console.log("mp-webhook: pedido localizado por external_reference", {
-            order_id: order.id,
-            resourceId,
-            empresa_id: order.empresa_id,
+      for (const token of candidateTokens(cfgItem)) {
+        try {
+          const r = await fetch(`${MP_API}/v1/payments/${resourceId}`, {
+            headers: { Authorization: `Bearer ${token}` },
           });
-          break;
+          if (!r.ok) continue;
+          const payment = await r.json().catch(() => ({}));
+          const externalReference = String(payment?.external_reference ?? "");
+          if (!externalReference) continue;
+          const { data: byExternalReference } = await admin
+            .from("orders")
+            .select("id, empresa_id, mp_order_id, mp_payment_id, pago_online")
+            .eq("id", externalReference)
+            .eq("empresa_id", cfgItem.empresa_id)
+            .maybeSingle();
+          if (byExternalReference) {
+            order = byExternalReference;
+            discoveredCfg = cfgItem;
+            discoveredPayment = payment;
+            console.log("mp-webhook: pedido localizado por external_reference", {
+              order_id: order.id,
+              resourceId,
+              empresa_id: order.empresa_id,
+            });
+            break;
+          }
+        } catch (e) {
+          console.warn("mp-webhook: fallback external_reference falhou para tenant", {
+            empresa_id: cfgItem.empresa_id,
+            error: String(e),
+          });
         }
-      } catch (e) {
-        console.warn("mp-webhook: fallback external_reference falhou para tenant", {
-          empresa_id: cfgItem.empresa_id,
-          error: String(e),
-        });
       }
+      if (order) break;
     }
   }
 
@@ -175,21 +194,22 @@ Deno.serve(async (req) => {
     ? { data: discoveredCfg }
     : await admin
         .from("config_pagamentos")
-        .select("mp_access_token, mp_webhook_secret")
+        .select("mp_access_token, mp_access_token_prod, mp_access_token_test, mp_webhook_secret")
         .eq("empresa_id", order.empresa_id)
         .eq("ativo", true)
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-  const accessToken = cfg?.mp_access_token?.trim();
+  const tokens = candidateTokens(cfg);
+  const accessToken = tokens[0];
   const webhookSecret = cfg?.mp_webhook_secret?.trim();
   console.log("mp-webhook: credenciais da empresa", {
     empresa_id: order.empresa_id,
     hasAccessToken: !!accessToken,
     hasWebhookSecret: !!webhookSecret,
   });
-  if (!accessToken) {
+  if (tokens.length === 0) {
     console.error("mp-webhook: empresa sem access token configurado", {
       empresa_id: order.empresa_id,
     });
@@ -256,19 +276,27 @@ Deno.serve(async (req) => {
   let externalReference = "";
   let apiPaymentId = "";
   try {
-    const r = discoveredPayment
-      ? ({ status: 200 } as Response)
-      : await fetch(endpoint, {
-          headers: { Authorization: `Bearer ${accessToken}` },
+    let httpStatus = 200;
+    let j = discoveredPayment as any;
+    if (!j) {
+      for (const token of tokens) {
+        const r = await fetch(endpoint, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-    const j = (discoveredPayment ?? (await r.json().catch(() => ({})))) as any;
+        httpStatus = r.status;
+        if (!r.ok) continue;
+        j = await r.json().catch(() => ({}));
+        break;
+      }
+    }
+    j = j ?? {};
     status = String(j?.status ?? j?.transactions?.payments?.[0]?.status ?? "");
     externalReference = String(j?.external_reference ?? "");
     apiPaymentId = String(j?.id ?? j?.transactions?.payments?.[0]?.id ?? "");
     console.log("mp-webhook: status reconsultado", {
       order_id: order.id,
       endpoint,
-      httpStatus: r.status,
+      httpStatus,
       mpStatus: status,
       signatureValid,
     });
