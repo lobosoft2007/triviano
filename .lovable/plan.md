@@ -1,47 +1,26 @@
-## Objetivo
+# Corrigir notificação "Pedido enviado" (só após pagamento confirmado)
 
-Levar a engenharia de layout que validamos no **Atendimento Balcão** (tela cheia, altura travada, sem scroll duplo, rolagem isolada nas áreas centrais) para **todos os módulos** — Caixa, Painel Admin e PWA Mobile do cliente — de forma consistente e sem regressões.
+## Diagnóstico (causa raiz confirmada)
+O trigger `trg_notify_customer_order_sent` roda **AFTER INSERT** em toda linha da tabela `orders` e insere a notificação **"Pedido enviado"** (função `notify_customer_order_sent`).
 
-## Estratégia: primitivos reutilizáveis (em vez de editar 40 arquivos à mão)
+Pedidos online (PIX / cartão via Mercado Pago) são criados **antes** do pagamento, com `aguardando_pagamento = true` e `status = 'rascunho_pagamento'`. Como o trigger dispara no INSERT sem checar esse estado, a notificação é gravada assim que o cliente abre a tela de pagamento — por isso ela aparece mesmo quando ele volta ao cardápio sem pagar.
 
-Para evitar inconsistência e quebras, crio 3 componentes de layout e aplico nas telas, em vez de espalhar classes `h-screen overflow-hidden` soltas.
+## Correção (uma migration, só banco — não toca no motor de pagamento)
 
-```text
-AppShell (trava a página)
-├── ShellHeader   → congelado no topo (shrink-0)
-├── ShellBody     → h-full min-h-0 overflow-y-auto  (única área que rola)
-└── ShellFooter   → congelado no rodapé (shrink-0)  [opcional]
-```
+1. **Ajustar a função do trigger de INSERT** (`notify_customer_order_sent`): adicionar, no topo, `IF NEW.aguardando_pagamento THEN RETURN NEW; END IF;`. Assim, pedidos que já entram direto na fila (Dinheiro / cartão na entrega) continuam notificando na criação — igual a hoje. Pedidos online aguardando pagamento **não** notificam no INSERT.
 
-- `src/components/layout/AppShell.tsx` — contêiner raiz: `flex h-[100dvh] flex-col overflow-hidden` (usa `100dvh` para respeitar barras do mobile).
-- Header e Footer: `shrink-0`; Body: `flex-1 min-h-0 overflow-y-auto`.
-- Regra de ouro anti-scroll-duplo: **só o Body rola**; header/filtros e rodapé/ações ficam cravados.
+2. **Criar um novo trigger de UPDATE** em `public.orders` que dispara a mesma notificação "Pedido enviado" **somente** quando `aguardando_pagamento` muda de `true → false` — exatamente o momento em que o webhook do Mercado Pago confirma o pagamento e libera o pedido para a cozinha.
 
-## 1. Módulos gerenciais (Caixa + Admin) — full width & height
+## Resultado
+- **Dinheiro / cartão na entrega** → notifica na criação (comportamento atual preservado).
+- **PIX/cartão pago** → notifica só após o pagamento confirmado pelo webhook.
+- **PIX/cartão abandonado** (voltou ao cardápio sem pagar) → **nunca** notifica.
 
-- Remover limitadores de largura (`max-w-6xl`, `max-w-7xl`, `mx-auto`, `container`) dos contêineres de página do Caixa e Admin, forçando `w-full`.
-- Envolver `caixa.tsx` e `admin.tsx` no `AppShell`: barra de abas/topo como `ShellHeader` congelado; conteúdo da aba ativa no `ShellBody` rolável.
-- CRUDs e views do Admin (Insumos, Produtos, Entrada de Estoque, Fornecedores, Subprodutos, Categorias, Setores, Combos, Tesouraria, Clientes, Sugestão de Compras, Configs): remover `max-w-*`, deixar tabela/grade em `ShellBody` com `overflow-y-auto`; barras de busca/filtro e botões de ação (Salvar/Confirmar) fixos.
-- Cozinha/KDS e demais views do Caixa: mesmo padrão.
-- Diálogos (`PaymentDialog`, `OrderEditDialog`, etc.): manter `max-w-*` — modais **não** devem virar tela cheia; ficam de fora.
-
-## 2. PWA Mobile do cliente (comportamento nativo)
-
-- `home-netflix.tsx` (vitrine) e `checkout.tsx`/`perfil.tsx`: trocar `min-h-screen` + scroll de página por `AppShell` (`100dvh`, `overflow-hidden`).
-- Header do cliente e barra/CTA inferior do carrinho travados na moldura; **só a vitrine/lista e o carrinho rolam** internamente.
-- Eliminar o "elástico" de site (overscroll): aplicar `overscroll-behavior: none` no shell mobile.
-- Manter `env(safe-area-inset-*)` para notch/gestos.
-
-## 3. Telas fora do escopo (mantidas como estão)
-
-Login/reset (`auth.tsx`, `reset-password.tsx`, `update-password.tsx`), 404/erro e `index.tsx` continuam com layout centralizado atual — não são módulos operacionais de tela cheia.
+## Não será alterado
+- Nada no webhook (`mp-webhook`), no `MercadoPagoCheckout`, no `create_order`, no fluxo de checkout, nos rascunhos/`discard_unpaid_drafts` ou no versionamento.
 
 ## Detalhes técnicos
-
-- Usar `h-[100dvh]` (não `100vh`) para não estourar atrás das barras do navegador mobile.
-- Todo contêiner flex que contém área rolável recebe `min-h-0` (senão o `overflow-y-auto` não funciona dentro de flex).
-- Verificação: após aplicar, rodar typecheck e validar via Playwright (screenshots) as telas-chave — Caixa, uma CRUD do Admin e a vitrine mobile — confirmando ausência de scroll global e rodapés cravados, antes do deploy.
-
-## Entrega
-
-Refatoração aplicada, typecheck limpo, validação visual das telas principais e, ao final, deploy geral.
+- `CREATE OR REPLACE FUNCTION public.notify_customer_order_sent()` com o guard `aguardando_pagamento`.
+- Nova função `public.notify_customer_order_paid_sent()` (mesma inserção em `notificacoes_cliente`) + trigger:
+  `CREATE TRIGGER trg_notify_customer_order_paid_sent AFTER UPDATE OF aguardando_pagamento ON public.orders FOR EACH ROW WHEN (OLD.aguardando_pagamento = true AND NEW.aguardando_pagamento = false) EXECUTE FUNCTION public.notify_customer_order_paid_sent();`
+- Migration idempotente (`CREATE OR REPLACE` + `DROP TRIGGER IF EXISTS`). Sem mudança de schema de tabela.
