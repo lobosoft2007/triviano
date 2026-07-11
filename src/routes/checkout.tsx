@@ -831,7 +831,7 @@ function CheckoutPage() {
                 </h2>
               </div>
               <p className="text-xs text-muted-foreground">
-                Pedido registrado. Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
+                Pagamento em andamento. Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
                 <span className="font-semibold text-foreground">
                   {formatBRL(finalTotal)}
                 </span>{" "}
@@ -1003,8 +1003,8 @@ function CheckoutPage() {
             </section>
           ) : (
             <section className="mb-5 rounded-2xl border border-primary/20 bg-card p-4 text-sm text-muted-foreground">
-              Escolha a forma de pagamento e confirme o pedido abaixo para
-              registrá-lo na cozinha.
+              Escolha a forma de pagamento e confirme abaixo. PIX e cartão online
+              só entram na cozinha depois da confirmação do pagamento.
             </section>
           )}
 
