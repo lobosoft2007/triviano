@@ -1205,12 +1205,12 @@ function CheckoutPage() {
 
               {/* Botão de Voltar ao Cardápio (34% da largura) */}
               <Link
-              to="/"
-              replace
-              className="h-13 flex-[1] rounded-2xl bg-black text-white hover:bg-[#F97316] hover:text-white transition-all duration-300 flex items-center justify-center text-sm font-semibold border-none no-underline"
-            >
-              Voltar
-            </Link>
+                to="/"
+                replace
+                className="h-13 flex-[1] rounded-2xl bg-black text-white hover:bg-[#F97316] hover:text-white transition-all duration-300 flex items-center justify-center text-sm font-semibold border-none no-underline"
+                >
+                  Voltar
+              </Link>
             </div>
            
           </form>
