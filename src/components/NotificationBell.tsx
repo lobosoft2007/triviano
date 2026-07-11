@@ -8,10 +8,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/lib/auth";
 import { useClientNotifications } from "@/hooks/useNotifications";
-import {
-  markAllNotificationsRead,
-  markNotificationRead,
-} from "@/lib/notifications";
+import { markNotificationRead } from "@/lib/notifications";
 import { useQueryClient } from "@tanstack/react-query";
 
 function timeAgo(iso: string): string {
@@ -30,16 +27,23 @@ function timeAgo(iso: string): string {
 export function NotificationBell() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { notifications, unreadCount, isLoading } = useClientNotifications();
+  const { notifications, unreadCount, isLoading, markAllRead } =
+    useClientNotifications();
   const [open, setOpen] = useState(false);
 
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ["my-notifications", user?.id] });
 
   async function handleMarkAll() {
-    if (!user?.id) return;
-    await markAllNotificationsRead(user.id);
-    refresh();
+    await markAllRead();
+  }
+
+  // Higiene visual: ao abrir o sino, zera o contador marcando as exibidas como lidas.
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (next && unreadCount > 0) {
+      void markAllRead();
+    }
   }
 
   async function handleClick(id: string, lida: boolean) {
@@ -49,7 +53,7 @@ export function NotificationBell() {
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
           aria-label="Notificações"
