@@ -33,6 +33,8 @@ function json(body: unknown, status = 200) {
 interface CreatePaymentBody {
   order_id: string;
   method: "pix" | "card";
+  // Ambiente detectado no frontend a partir do host real do navegador.
+  env?: "prod" | "test";
   // Card-only (Checkout Transparente / Card Payment Brick):
   token?: string;
   installments?: number;
@@ -42,6 +44,18 @@ interface CreatePaymentBody {
     email?: string;
     identification?: { type?: string; number?: string };
   };
+}
+
+/** Deriva o ambiente (prod/test) a partir de um host, como fallback. */
+function envFromHost(host: string): "prod" | "test" {
+  const h = (host ?? "").toLowerCase();
+  if (!h) return "test";
+  if (h === "localhost" || h.startsWith("127.")) return "test";
+  if (h.includes("id-preview--")) return "test";
+  if (h.endsWith(".lovable.app") || h.endsWith(".lovable.dev")) return "test";
+  if (h.endsWith(".lovableproject.com") || h.endsWith(".local")) return "test";
+  if (h.endsWith(".com.br") || h.endsWith(".com")) return "prod";
+  return "test";
 }
 
 Deno.serve(async (req) => {
