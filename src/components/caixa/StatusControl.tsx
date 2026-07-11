@@ -39,7 +39,7 @@ const STATUS_STYLE: Record<
     dot: "bg-emerald-400",
     select: "border-emerald-400/60 bg-emerald-400/10 text-emerald-300",
   },
-  "Encerrado e pago": {
+  Finalizado: {
     dot: "bg-emerald-500",
     select: "border-emerald-500/70 bg-emerald-500/15 text-emerald-200",
   },
