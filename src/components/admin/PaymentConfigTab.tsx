@@ -34,6 +34,10 @@ interface FormState {
   ativo: boolean;
   mp_access_token: string;
   mp_public_key: string;
+  mp_public_key_prod: string;
+  mp_access_token_prod: string;
+  mp_public_key_test: string;
+  mp_access_token_test: string;
   mp_webhook_secret: string;
   mp_ativo: boolean;
   mp_ambiente: string;
@@ -53,6 +57,10 @@ const EMPTY: FormState = {
   ativo: true,
   mp_access_token: "",
   mp_public_key: "",
+  mp_public_key_prod: "",
+  mp_access_token_prod: "",
+  mp_public_key_test: "",
+  mp_access_token_test: "",
   mp_webhook_secret: "",
   mp_ativo: false,
   mp_ambiente: "test",
