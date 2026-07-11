@@ -443,6 +443,9 @@ function AuthPage() {
                   {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}
                 </Button>
               </form>
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                Desenvolvido por Triviano — versão 1.26.07
+              </p>
             </TabsContent>
 
             <TabsContent value="signup">
