@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, Pencil, Trash2, CreditCard, CheckCircle2 } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, CreditCard, CheckCircle2, Rocket, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
+import { currentEnv } from "@/lib/empresa";
 import {
   listConfigPagamentos,
   saveConfigPagamento,
