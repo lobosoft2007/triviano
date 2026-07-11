@@ -1188,20 +1188,35 @@ function CheckoutPage() {
             </div>
 
 
-            <Button
-              type="submit"
-              size="lg"
-              className="mt-2 h-13 rounded-2xl py-3.5 text-base"
-              disabled={
-                submitting || !effectiveCanCheckout || (payMethod === "PIX" && mpConfigLoading)
-              }
-            >
-              {submitting ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                `Confirmar pedido • ${formatBRL(finalTotal)}`
-              )}
-            </Button>
+            <div className="flex w-full gap-3 mt-2">
+              {/* Botão de Confirmar (66% da largura) */}
+              <Button
+                type="submit"
+                size="lg"
+                className="h-13 flex-[2] rounded-2xl py-3.5 text-base"
+                disabled={submitting || !effectiveCanCheckout || mpConfigLoading}
+              >
+                {mpConfigLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Carregando...
+                  </>
+                ) : submitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  `Confirmar • ${formatBRL(finalTotal)}`
+                )}
+              </Button>
+
+              {/* Botão de Voltar ao Cardápio (34% da largura) */}
+              <Link
+                to="/"
+                replace
+                className="h-13 flex-[1] rounded-2xl bg-black text-white hover:bg-[#F97316] hover:text-white transition-all duration-300 flex items-center justify-center text-sm font-semibold border-none no-underline"
+              >
+                Voltar
+              </Link>
+            </div>
           </form>
           )}
           </main>
