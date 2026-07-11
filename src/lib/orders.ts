@@ -198,3 +198,107 @@ export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
     })),
   })) as OrderRow[];
 }
+
+/**
+ * Status de pedido que podem ser repetidos ("Repetir pedido"). Rascunhos e
+ * pagamentos abandonados NUNCA são repetíveis — e a própria RPC `repeat_order`
+ * revalida isso no backend. Esta lista só controla a exibição do botão.
+ */
+export const REORDERABLE_STATUSES = new Set<string>([
+  "pending",
+  "preparing",
+  "delivering",
+  "delivered",
+  "cancelled",
+  "canceled",
+]);
+
+export function isReorderable(status: string): boolean {
+  return REORDERABLE_STATUSES.has(status);
+}
+
+interface RepeatOrderItemRaw {
+  product_id: string;
+  product_name: string;
+  display_name: string;
+  category_slug: string;
+  combo_role: string;
+  size: string;
+  second_flavor: string;
+  addons: { name: string; price: number; quantity?: number }[];
+  remocoes: string[];
+  unit_price: number;
+  image_url: string;
+  quantity: number;
+}
+
+interface RepeatOrderResponse {
+  eligible: boolean;
+  total_items: number;
+  available_items: number;
+  skipped_items: number;
+  items: RepeatOrderItemRaw[];
+}
+
+export interface RepeatOrderResult {
+  eligible: boolean;
+  totalItems: number;
+  availableItems: number;
+  skippedItems: number;
+  /** Linhas prontas para irem ao carrinho (imagens já resolvidas). */
+  lines: { line: NewCartItem; quantity: number }[];
+}
+
+/**
+ * Repete um pedido anterior: a RPC `repeat_order` (backend) valida quais itens
+ * ainda existem no cardápio e recalcula os preços ATUAIS reutilizando a mesma
+ * lógica do `create_order`. Aqui apenas resolvemos as imagens e montamos as
+ * linhas do carrinho — NÃO cria pedido nem vai ao checkout.
+ */
+export async function repeatOrder(orderId: string): Promise<RepeatOrderResult> {
+  const { data, error } = await supabase.rpc("repeat_order", {
+    p_order_id: orderId,
+    p_host: currentHost(),
+  });
+  if (error) throw error;
+
+  const resp = (data ?? {}) as unknown as RepeatOrderResponse;
+  const rawItems = Array.isArray(resp.items) ? resp.items : [];
+
+  // Resolve os caminhos de imagem do Storage em URLs assinadas (mesmo padrão
+  // do cardápio), para o carrinho exibir a foto corretamente.
+  const urlMap = await resolveImageUrls(rawItems.map((i) => i.image_url));
+
+  const lines = rawItems.map((i) => {
+    const comboRole = (["burger", "side", "beverage"].includes(i.combo_role)
+      ? i.combo_role
+      : "") as CartComboRole;
+    const addons: CartAddon[] = (i.addons ?? []).map((a) => ({
+      name: a.name,
+      price: Number(a.price ?? 0),
+      quantity: Math.max(1, Math.floor(Number(a.quantity ?? 1))),
+    }));
+    const line: NewCartItem = {
+      productId: i.product_id,
+      productName: i.product_name,
+      categorySlug: i.category_slug ?? "",
+      comboRole,
+      name: i.display_name || i.product_name,
+      size: i.size ?? "",
+      addons,
+      secondFlavor: i.second_flavor ?? "",
+      remocoes: Array.isArray(i.remocoes) ? i.remocoes : [],
+      unitPrice: Number(i.unit_price ?? 0),
+      image_url: urlMap[i.image_url] ?? i.image_url ?? "",
+    };
+    return { line, quantity: Math.max(1, Math.floor(Number(i.quantity ?? 1))) };
+  });
+
+  return {
+    eligible: !!resp.eligible,
+    totalItems: Number(resp.total_items ?? 0),
+    availableItems: Number(resp.available_items ?? 0),
+    skippedItems: Number(resp.skipped_items ?? 0),
+    lines,
+  };
+}
