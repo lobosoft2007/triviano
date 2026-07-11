@@ -215,15 +215,54 @@ export async function notifyOrderCanceled(
   showLocalNotification(titulo, mensagem);
 }
 
-/** Client: list own notifications, newest first. */
-export async function fetchMyNotifications(): Promise<NotificacaoCliente[]> {
-  const { data, error } = await supabase
+/** Janela de exibição das notificações na interface (auto-arquivamento). */
+export const NOTIFICATION_VISIBLE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Client: list own notifications, newest first.
+ *
+ * Higiene visual SOTA:
+ *  - Filtro por tenant: quando `empresaId` é informado, retorna apenas
+ *    notificações de pedidos da empresa do host atual (join `orders!inner`),
+ *    evitando misturar avisos de tenants diferentes (Clube 23 x Pizzaria Teste).
+ *  - Auto-arquivamento: só exibe notificações das últimas 24h. As mais antigas
+ *    permanecem no banco (log), apenas ocultas da interface.
+ */
+export async function fetchMyNotifications(
+  empresaId?: string,
+): Promise<NotificacaoCliente[]> {
+  const cutoff = new Date(
+    Date.now() - NOTIFICATION_VISIBLE_WINDOW_MS,
+  ).toISOString();
+
+  let query = supabase
     .from("notificacoes_cliente")
-    .select("id, id_pedido, id_usuario, titulo, mensagem, lida, created_at")
+    .select(
+      empresaId
+        ? "id, id_pedido, id_usuario, titulo, mensagem, lida, created_at, orders!inner(empresa_id)"
+        : "id, id_pedido, id_usuario, titulo, mensagem, lida, created_at",
+    )
+    .gte("created_at", cutoff)
     .order("created_at", { ascending: false })
     .limit(50);
+
+  if (empresaId) {
+    query = query.eq("orders.empresa_id", empresaId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []) as NotificacaoCliente[];
+
+  // Descarta o campo `orders` do join, mantendo apenas o shape da notificação.
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    id_pedido: (row.id_pedido as string | null) ?? null,
+    id_usuario: row.id_usuario as string,
+    titulo: row.titulo as string,
+    mensagem: row.mensagem as string,
+    lida: row.lida as boolean,
+    created_at: row.created_at as string,
+  }));
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
@@ -242,6 +281,35 @@ export async function markAllNotificationsRead(
     .update({ lida: true })
     .eq("id_usuario", userId)
     .eq("lida", false);
+  if (error) throw error;
+}
+
+/** Marca como lidas as notificações específicas por id (ex.: ao abrir a lista). */
+export async function markNotificationsRead(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase
+    .from("notificacoes_cliente")
+    .update({ lida: true })
+    .in("id", ids)
+    .eq("lida", false);
+  if (error) throw error;
+}
+
+/**
+ * Ação de leitura automática: ao visualizar pedidos em "Meus Pedidos", marca
+ * como lidas as notificações vinculadas a esses pedidos do usuário logado.
+ */
+export async function markOrderNotificationsRead(
+  userId: string,
+  orderIds: string[],
+): Promise<void> {
+  if (!userId || orderIds.length === 0) return;
+  const { error } = await supabase
+    .from("notificacoes_cliente")
+    .update({ lida: true })
+    .eq("id_usuario", userId)
+    .eq("lida", false)
+    .in("id_pedido", orderIds);
   if (error) throw error;
 }
 
