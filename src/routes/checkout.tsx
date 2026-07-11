@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2, MapPin, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
-import { fetchProfile, placeOrder, discardUnpaidDrafts } from "@/lib/orders";
+import { fetchProfile, placeOrder } from "@/lib/orders";
 import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
@@ -173,6 +173,7 @@ function clearCheckoutSnapshot() {
     sessionStorage.removeItem(CHECKOUT_AUTH_LATCH_KEY);
     sessionStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
     sessionStorage.removeItem(CHECKOUT_PENDING_PAYMENT_KEY);
+    localStorage.removeItem(CHECKOUT_PENDING_PAYMENT_KEY);
   } catch {
     /* ignore storage errors */
   }
@@ -181,7 +182,9 @@ function clearCheckoutSnapshot() {
 function readPendingPaymentSnapshot(): PendingPaymentSnapshot | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(CHECKOUT_PENDING_PAYMENT_KEY);
+    const raw =
+      sessionStorage.getItem(CHECKOUT_PENDING_PAYMENT_KEY) ||
+      localStorage.getItem(CHECKOUT_PENDING_PAYMENT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PendingPaymentSnapshot;
     if (!parsed?.at || Date.now() - parsed.at > CHECKOUT_AUTH_LATCH_TTL) return null;
@@ -196,7 +199,9 @@ function readPendingPaymentSnapshot(): PendingPaymentSnapshot | null {
 
 function writePendingPaymentSnapshot(snapshot: PendingPaymentSnapshot) {
   try {
-    sessionStorage.setItem(CHECKOUT_PENDING_PAYMENT_KEY, JSON.stringify(snapshot));
+    const value = JSON.stringify(snapshot);
+    sessionStorage.setItem(CHECKOUT_PENDING_PAYMENT_KEY, value);
+    localStorage.setItem(CHECKOUT_PENDING_PAYMENT_KEY, value);
   } catch {
     /* ignore storage errors */
   }
@@ -570,17 +575,6 @@ function CheckoutPage() {
         .filter(Boolean)
         .join(" — ");
 
-      // TRAVA ATÔMICA / ANTI-FANTASMA: antes de gravar um novo pedido,
-      // descarta qualquer rascunho online do próprio cliente que ainda não foi
-      // pago. Assim, ir e voltar entre o carrinho e o checkout PIX nunca libera
-      // um pedido não pago para a cozinha nem acumula pedidos duplicados. Nunca
-      // afeta pedidos já pagos ou presenciais já enviados. Best-effort.
-      try {
-        await discardUnpaidDrafts();
-      } catch (cleanupErr) {
-        console.warn("Falha ao limpar rascunhos não pagos (ignorado):", cleanupErr);
-      }
-
       const orderId = await placeOrder({
         userId: user.id,
         items: effectiveItems,
@@ -609,14 +603,18 @@ function CheckoutPage() {
       };
       writePendingPaymentSnapshot(paymentSnapshot);
       setPendingPayment(paymentSnapshot);
-      clear();
+      if (!isOnlinePayment) {
+        clear();
+      }
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success(
         payMethod === "PIX"
-          ? "Pedido registrado! Agora finalize o PIX."
+          ? "PIX gerado. Seu carrinho será limpo após a confirmação do pagamento."
           : payMethod === "Conta Corrente"
             ? "Pedido registrado e lançado na sua conta corrente!"
-            : "Pedido registrado! Confira as instruções de pagamento.",
+            : isOnlinePayment
+              ? "Pagamento iniciado. Seu carrinho será limpo após a confirmação."
+              : "Pedido registrado! Confira as instruções de pagamento.",
       );
       setSubmitting(false);
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -827,7 +825,7 @@ function CheckoutPage() {
                 </h2>
               </div>
               <p className="text-xs text-muted-foreground">
-                Pedido registrado. Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
+                Pagamento em andamento. Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
                 <span className="font-semibold text-foreground">
                   {formatBRL(finalTotal)}
                 </span>{" "}
@@ -848,6 +846,7 @@ function CheckoutPage() {
                     config={mpConfig}
                     payerEmail={user?.email ?? undefined}
                     onPaid={() => {
+                      clear();
                       clearCheckoutSnapshot();
                       queryClient.invalidateQueries({ queryKey: ["orders"] });
                       navigate({ to: "/orders", replace: true });
@@ -898,6 +897,7 @@ function CheckoutPage() {
                 config={mpConfig}
                 payerEmail={user?.email ?? undefined}
                 onPaid={() => {
+                  clear();
                   clearCheckoutSnapshot();
                   queryClient.invalidateQueries({ queryKey: ["orders"] });
                   navigate({ to: "/orders", replace: true });
@@ -997,8 +997,8 @@ function CheckoutPage() {
             </section>
           ) : (
             <section className="mb-5 rounded-2xl border border-primary/20 bg-card p-4 text-sm text-muted-foreground">
-              Escolha a forma de pagamento e confirme o pedido abaixo para
-              registrá-lo na cozinha.
+              Escolha a forma de pagamento e confirme abaixo. PIX e cartão online
+              só entram na cozinha depois da confirmação do pagamento.
             </section>
           )}
 

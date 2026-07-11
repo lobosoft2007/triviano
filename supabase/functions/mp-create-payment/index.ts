@@ -220,6 +220,8 @@ Deno.serve(async (req) => {
       pago_online: isPaid,
       // Enquanto não confirmado, o pedido fica oculto do Caixa/KDS.
       aguardando_pagamento: !isPaid,
+      status: isPaid ? "pending" : "rascunho_pagamento",
+      status_pedido: "Recebido",
       tipo_pagamento: body.method === "pix" ? "pix" : "cartao_credito_online",
     })
     .eq("id", order.id);
