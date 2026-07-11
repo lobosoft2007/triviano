@@ -752,6 +752,10 @@ export async function saveConfigPagamento(input: {
   ativo: boolean;
   mp_access_token?: string;
   mp_public_key?: string;
+  mp_public_key_prod?: string;
+  mp_access_token_prod?: string;
+  mp_public_key_test?: string;
+  mp_access_token_test?: string;
   mp_webhook_secret?: string;
   mp_ativo?: boolean;
   mp_ambiente?: string;
@@ -759,6 +763,16 @@ export async function saveConfigPagamento(input: {
   aceita_cartao_online?: boolean;
   aceita_na_entrega?: boolean;
 }): Promise<void> {
+  const ambiente = (input.mp_ambiente ?? "test").trim();
+  const pubProd = (input.mp_public_key_prod ?? "").trim();
+  const tokProd = (input.mp_access_token_prod ?? "").trim();
+  const pubTest = (input.mp_public_key_test ?? "").trim();
+  const tokTest = (input.mp_access_token_test ?? "").trim();
+  // Chaves "efetivas" resolvidas pelo ambiente selecionado — usadas pelo
+  // checkout (get_mp_public_config) e pelas Edge Functions sem alterações.
+  const effectivePublic = ambiente === "prod" ? pubProd : pubTest;
+  const effectiveToken = ambiente === "prod" ? tokProd : tokTest;
+
   const payload = {
     gateway_banco: input.gateway_banco.trim(),
     client_id: input.client_id.trim(),
@@ -767,11 +781,15 @@ export async function saveConfigPagamento(input: {
     nome_recebedor: input.nome_recebedor.trim(),
     cidade_recebedor: input.cidade_recebedor.trim(),
     ativo: input.ativo,
-    mp_access_token: (input.mp_access_token ?? "").trim(),
-    mp_public_key: (input.mp_public_key ?? "").trim(),
+    mp_public_key_prod: pubProd,
+    mp_access_token_prod: tokProd,
+    mp_public_key_test: pubTest,
+    mp_access_token_test: tokTest,
+    mp_access_token: effectiveToken,
+    mp_public_key: effectivePublic,
     mp_webhook_secret: (input.mp_webhook_secret ?? "").trim(),
     mp_ativo: input.mp_ativo ?? false,
-    mp_ambiente: (input.mp_ambiente ?? "test").trim(),
+    mp_ambiente: ambiente,
     aceita_pix_online: input.aceita_pix_online ?? true,
     aceita_cartao_online: input.aceita_cartao_online ?? true,
     aceita_na_entrega: input.aceita_na_entrega ?? true,
