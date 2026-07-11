@@ -609,14 +609,18 @@ function CheckoutPage() {
       };
       writePendingPaymentSnapshot(paymentSnapshot);
       setPendingPayment(paymentSnapshot);
-      clear();
+      if (!isOnlinePayment) {
+        clear();
+      }
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success(
         payMethod === "PIX"
-          ? "Pedido registrado! Agora finalize o PIX."
+          ? "PIX gerado. Seu carrinho será limpo após a confirmação do pagamento."
           : payMethod === "Conta Corrente"
             ? "Pedido registrado e lançado na sua conta corrente!"
-            : "Pedido registrado! Confira as instruções de pagamento.",
+            : isOnlinePayment
+              ? "Pagamento iniciado. Seu carrinho será limpo após a confirmação."
+              : "Pedido registrado! Confira as instruções de pagamento.",
       );
       setSubmitting(false);
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -848,6 +852,7 @@ function CheckoutPage() {
                     config={mpConfig}
                     payerEmail={user?.email ?? undefined}
                     onPaid={() => {
+                      clear();
                       clearCheckoutSnapshot();
                       queryClient.invalidateQueries({ queryKey: ["orders"] });
                       navigate({ to: "/orders", replace: true });
@@ -898,6 +903,7 @@ function CheckoutPage() {
                 config={mpConfig}
                 payerEmail={user?.email ?? undefined}
                 onPaid={() => {
+                  clear();
                   clearCheckoutSnapshot();
                   queryClient.invalidateQueries({ queryKey: ["orders"] });
                   navigate({ to: "/orders", replace: true });
