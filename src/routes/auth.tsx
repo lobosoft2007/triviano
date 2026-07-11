@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { APP_VERSION_LABEL } from "@/lib/version";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -444,7 +445,7 @@ function AuthPage() {
                 </Button>
               </form>
               <p className="mt-4 text-center text-xs text-muted-foreground">
-                Desenvolvido por Triviano — versão 1.26.07
+                Desenvolvido por Triviano — {APP_VERSION_LABEL}
               </p>
             </TabsContent>
 
