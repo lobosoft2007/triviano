@@ -351,9 +351,13 @@ export type Database = {
           gateway_banco: string
           id: string
           mp_access_token: string
+          mp_access_token_prod: string
+          mp_access_token_test: string
           mp_ambiente: string
           mp_ativo: boolean
           mp_public_key: string
+          mp_public_key_prod: string
+          mp_public_key_test: string
           mp_webhook_secret: string
           nome_recebedor: string
           updated_at: string
@@ -377,9 +381,13 @@ export type Database = {
           gateway_banco?: string
           id?: string
           mp_access_token?: string
+          mp_access_token_prod?: string
+          mp_access_token_test?: string
           mp_ambiente?: string
           mp_ativo?: boolean
           mp_public_key?: string
+          mp_public_key_prod?: string
+          mp_public_key_test?: string
           mp_webhook_secret?: string
           nome_recebedor?: string
           updated_at?: string
@@ -403,9 +411,13 @@ export type Database = {
           gateway_banco?: string
           id?: string
           mp_access_token?: string
+          mp_access_token_prod?: string
+          mp_access_token_test?: string
           mp_ambiente?: string
           mp_ativo?: boolean
           mp_public_key?: string
+          mp_public_key_prod?: string
+          mp_public_key_test?: string
           mp_webhook_secret?: string
           nome_recebedor?: string
           updated_at?: string
