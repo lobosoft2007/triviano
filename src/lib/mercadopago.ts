@@ -11,7 +11,7 @@
 // resolvidos a partir da empresa dona do host/pedido — nunca globais.
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
-import { currentHost } from "@/lib/empresa";
+import { currentEnv, currentHost } from "@/lib/empresa";
 
 export interface MpPublicConfig {
   empresa_id: string;
