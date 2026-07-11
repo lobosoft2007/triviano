@@ -84,6 +84,9 @@ export async function createMpPayment(
         payment_method_id: input.paymentMethodId,
         issuer_id: input.issuerId,
         payer: input.payer,
+        // Ambiente detectado pelo host real do navegador. A Edge Function usa
+        // este valor para escolher o Access Token (produção x teste).
+        env: currentEnv(),
       },
     },
   );
