@@ -27,6 +27,10 @@ export interface MpPublicConfig {
 export async function fetchMpPublicConfig(): Promise<MpPublicConfig | null> {
   const { data, error } = await supabase.rpc("get_mp_public_config", {
     p_host: currentHost(),
+    // Ambiente detectado pelo host REAL do navegador (staging → test,
+    // domínio próprio → prod). O host acima é sintético para staging, por
+    // isso a detecção de ambiente vem separada.
+    p_ambiente: currentEnv(),
   });
   if (error) throw error;
   const row = (data ?? [])[0];
