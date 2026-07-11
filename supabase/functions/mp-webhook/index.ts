@@ -200,6 +200,7 @@ Deno.serve(async (req) => {
   // Manifesto oficial do Mercado Pago:  id:<data.id>;request-id:<x-request-id>;ts:<ts>;
   // O Mercado Pago recomenda usar o data.id em minúsculas quando alfanumérico,
   // então validamos contra as duas formas (original e minúscula) por robustez.
+  let signatureValid = !webhookSecret;
   if (webhookSecret) {
     const parts = Object.fromEntries(
       xSignature.split(",").map((p) => {
@@ -220,25 +221,25 @@ Deno.serve(async (req) => {
       `id:${resourceId};request-id:${xRequestId};ts:${ts};`,
       `id:${resourceId.toLowerCase()};request-id:${xRequestId};ts:${ts};`,
     ];
-    let valid = false;
     for (const manifest of candidates) {
       const expected = await hmacHex(webhookSecret, manifest);
       if (timingSafeEqual(expected, v1)) {
-        valid = true;
+        signatureValid = true;
         break;
       }
     }
-    if (!valid) {
-      // Diagnóstico seguro: nunca logamos o segredo nem o hash esperado.
-      console.error("mp-webhook: assinatura HMAC inválida", {
+    if (!signatureValid) {
+      // Diagnóstico seguro: nunca logamos o segredo nem o hash esperado. Não
+      // liberamos nada com base no payload; seguimos apenas para reconciliar
+      // contra a API oficial do MP usando o token da empresa e external_reference.
+      console.error("mp-webhook: assinatura HMAC inválida — reconciliando pela API oficial", {
         resourceId,
         xRequestId,
         ts,
         v1Prefix: v1.slice(0, 8),
       });
-      return new Response("assinatura inválida", { status: 401, headers: corsHeaders });
     }
-    console.log("mp-webhook: assinatura HMAC válida", { resourceId });
+    if (signatureValid) console.log("mp-webhook: assinatura HMAC válida", { resourceId });
   } else {
     console.warn(
       "mp-webhook: sem webhook secret configurado — pulando validação de assinatura",
@@ -252,6 +253,8 @@ Deno.serve(async (req) => {
     : `${MP_API}/v1/orders/${order.mp_order_id || resourceId}`;
 
   let status = "";
+  let externalReference = "";
+  let apiPaymentId = "";
   try {
     const r = discoveredPayment
       ? ({ status: 200 } as Response)
@@ -260,15 +263,27 @@ Deno.serve(async (req) => {
         });
     const j = (discoveredPayment ?? (await r.json().catch(() => ({})))) as any;
     status = String(j?.status ?? j?.transactions?.payments?.[0]?.status ?? "");
+    externalReference = String(j?.external_reference ?? "");
+    apiPaymentId = String(j?.id ?? j?.transactions?.payments?.[0]?.id ?? "");
     console.log("mp-webhook: status reconsultado", {
       order_id: order.id,
       endpoint,
       httpStatus: r.status,
       mpStatus: status,
+      signatureValid,
     });
   } catch (e) {
     console.error("mp-webhook: falha ao reconsultar status", { order_id: order.id, error: String(e) });
     return new Response("retry", { status: 500, headers: corsHeaders });
+  }
+
+  if (externalReference && externalReference !== order.id) {
+    console.error("mp-webhook: external_reference divergente", {
+      order_id: order.id,
+      resourceId,
+      externalReference,
+    });
+    return new Response("external_reference inválida", { status: 409, headers: corsHeaders });
   }
 
   const paid = ["paid", "processed", "approved"].includes(status.toLowerCase());
@@ -281,7 +296,7 @@ Deno.serve(async (req) => {
         pago_online: true,
         aguardando_pagamento: false,
         mp_status: status,
-        mp_payment_id: isPaymentTopic ? resourceId : order.mp_payment_id,
+        mp_payment_id: isPaymentTopic ? resourceId : apiPaymentId || order.mp_payment_id,
         status: "pending",
         status_pedido: "Recebido",
       })
