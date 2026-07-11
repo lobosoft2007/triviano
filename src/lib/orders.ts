@@ -153,6 +153,7 @@ export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
     .select(
       "id, status, total, discount, delivery_address, created_at, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes)",
     )
+    .neq("status", "rascunho_pagamento")
     .order("created_at", { ascending: false });
   // Isolamento por ambiente: mostra apenas os pedidos do tenant do host atual.
   // Em produção resolve para o restaurante real; no staging (Pizzaria Teste)
