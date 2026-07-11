@@ -132,6 +132,8 @@ export async function discardUnpaidDrafts(): Promise<number> {
 export interface OrderRow {
   id: string;
   status: string;
+  /** Status da esteira (Recebido/Finalizado/Cancelado/...). Gate do "Repetir pedido". */
+  status_pedido: string;
   total: number;
   discount: number;
   delivery_address: string;
@@ -160,7 +162,7 @@ export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
   let query = supabase
     .from("orders")
     .select(
-      "id, status, total, discount, delivery_address, created_at, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes)",
+      "id, status, status_pedido, total, discount, delivery_address, created_at, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes)",
     )
     .eq("user_id", userId)
     // Rascunhos de pagamento e pagamentos abandonados são totalmente
@@ -176,6 +178,7 @@ export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
   return (data ?? []).map((o) => ({
     id: o.id,
     status: o.status,
+    status_pedido: (o as { status_pedido?: string }).status_pedido ?? "",
     total: Number(o.total),
     discount: Number((o as { discount?: number }).discount ?? 0),
     delivery_address: o.delivery_address,
