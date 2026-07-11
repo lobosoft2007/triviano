@@ -235,34 +235,37 @@ export async function fetchMyNotifications(
     Date.now() - NOTIFICATION_VISIBLE_WINDOW_MS,
   ).toISOString();
 
-  let query = supabase
-    .from("notificacoes_cliente")
-    .select(
-      empresaId
-        ? "id, id_pedido, id_usuario, titulo, mensagem, lida, created_at, orders!inner(empresa_id)"
-        : "id, id_pedido, id_usuario, titulo, mensagem, lida, created_at",
-    )
+  const baseSelect =
+    "id, id_pedido, id_usuario, titulo, mensagem, lida, created_at";
+
+  let query = empresaId
+    ? supabase
+        .from("notificacoes_cliente")
+        .select(`${baseSelect}, orders!inner(empresa_id)`)
+        .eq("orders.empresa_id", empresaId)
+    : supabase.from("notificacoes_cliente").select(baseSelect);
+
+  query = query
     .gte("created_at", cutoff)
     .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (empresaId) {
-    query = query.eq("orders.empresa_id", empresaId);
-  }
+    .limit(50) as typeof query;
 
   const { data, error } = await query;
   if (error) throw error;
 
   // Descarta o campo `orders` do join, mantendo apenas o shape da notificação.
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    id: row.id as string,
-    id_pedido: (row.id_pedido as string | null) ?? null,
-    id_usuario: row.id_usuario as string,
-    titulo: row.titulo as string,
-    mensagem: row.mensagem as string,
-    lida: row.lida as boolean,
-    created_at: row.created_at as string,
-  }));
+  return ((data ?? []) as unknown[]).map((raw) => {
+    const row = raw as Record<string, unknown>;
+    return {
+      id: row.id as string,
+      id_pedido: (row.id_pedido as string | null) ?? null,
+      id_usuario: row.id_usuario as string,
+      titulo: row.titulo as string,
+      mensagem: row.mensagem as string,
+      lida: row.lida as boolean,
+      created_at: row.created_at as string,
+    };
+  });
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
