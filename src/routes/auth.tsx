@@ -259,7 +259,7 @@ function AuthPage() {
 
   async function handleVerifyOtp(code: string) {
     setSubmitting(true);
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       email: pendingEmail,
       token: code,
       type: "email",
@@ -269,7 +269,17 @@ function AuthPage() {
       toast.error("Código inválido ou expirado. Verifique e tente novamente.");
       return;
     }
-    toast.success("E-mail confirmado! Bem-vindo ao Clube 23.");
+    const user = data?.user;
+    const displayName =
+      typeof user?.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()
+        ? user.user_metadata.full_name.trim()
+        : null;
+    const welcome = displayName
+      ? `Bem-vindo, ${displayName}!`
+      : user?.email
+        ? `Bem-vindo, ${user.email}!`
+        : "Bem-vindo de volta!";
+    toast.success(`E-mail confirmado! ${welcome}`);
     navigateAfterConfirmedAuth();
   }
 
