@@ -695,6 +695,11 @@ export interface ConfigPagamento {
   /** Credenciais do Mercado Pago (Checkout Transparente) por empresa. */
   mp_access_token: string;
   mp_public_key: string;
+  /** Conjuntos separados de chaves: Produção x Teste. */
+  mp_public_key_prod: string;
+  mp_access_token_prod: string;
+  mp_public_key_test: string;
+  mp_access_token_test: string;
   mp_webhook_secret: string;
   mp_ativo: boolean;
   mp_ambiente: string;
