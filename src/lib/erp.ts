@@ -695,6 +695,11 @@ export interface ConfigPagamento {
   /** Credenciais do Mercado Pago (Checkout Transparente) por empresa. */
   mp_access_token: string;
   mp_public_key: string;
+  /** Conjuntos separados de chaves: Produção x Teste. */
+  mp_public_key_prod: string;
+  mp_access_token_prod: string;
+  mp_public_key_test: string;
+  mp_access_token_test: string;
   mp_webhook_secret: string;
   mp_ativo: boolean;
   mp_ambiente: string;
@@ -708,7 +713,7 @@ export async function listConfigPagamentos(): Promise<ConfigPagamento[]> {
   const { data, error } = await supabase
     .from("config_pagamentos")
     .select(
-      "id, gateway_banco, client_id, client_secret, chave_pix_padrao, nome_recebedor, cidade_recebedor, ativo, mp_access_token, mp_public_key, mp_webhook_secret, mp_ativo, mp_ambiente, aceita_pix_online, aceita_cartao_online, aceita_na_entrega",
+      "id, gateway_banco, client_id, client_secret, chave_pix_padrao, nome_recebedor, cidade_recebedor, ativo, mp_access_token, mp_public_key, mp_public_key_prod, mp_access_token_prod, mp_public_key_test, mp_access_token_test, mp_webhook_secret, mp_ativo, mp_ambiente, aceita_pix_online, aceita_cartao_online, aceita_na_entrega",
     )
     .order("created_at");
   if (error) throw error;
@@ -723,6 +728,10 @@ export async function listConfigPagamentos(): Promise<ConfigPagamento[]> {
     ativo: c.ativo ?? false,
     mp_access_token: (c as { mp_access_token?: string }).mp_access_token ?? "",
     mp_public_key: (c as { mp_public_key?: string }).mp_public_key ?? "",
+    mp_public_key_prod: (c as { mp_public_key_prod?: string }).mp_public_key_prod ?? "",
+    mp_access_token_prod: (c as { mp_access_token_prod?: string }).mp_access_token_prod ?? "",
+    mp_public_key_test: (c as { mp_public_key_test?: string }).mp_public_key_test ?? "",
+    mp_access_token_test: (c as { mp_access_token_test?: string }).mp_access_token_test ?? "",
     mp_webhook_secret: (c as { mp_webhook_secret?: string }).mp_webhook_secret ?? "",
     mp_ativo: (c as { mp_ativo?: boolean }).mp_ativo ?? false,
     mp_ambiente: (c as { mp_ambiente?: string }).mp_ambiente ?? "test",
@@ -743,6 +752,10 @@ export async function saveConfigPagamento(input: {
   ativo: boolean;
   mp_access_token?: string;
   mp_public_key?: string;
+  mp_public_key_prod?: string;
+  mp_access_token_prod?: string;
+  mp_public_key_test?: string;
+  mp_access_token_test?: string;
   mp_webhook_secret?: string;
   mp_ativo?: boolean;
   mp_ambiente?: string;
@@ -750,6 +763,16 @@ export async function saveConfigPagamento(input: {
   aceita_cartao_online?: boolean;
   aceita_na_entrega?: boolean;
 }): Promise<void> {
+  const pubProd = (input.mp_public_key_prod ?? "").trim();
+  const tokProd = (input.mp_access_token_prod ?? "").trim();
+  const pubTest = (input.mp_public_key_test ?? "").trim();
+  const tokTest = (input.mp_access_token_test ?? "").trim();
+  // A seleção do ambiente agora é AUTOMÁTICA (pelo host onde o app roda), então
+  // não há mais seletor manual. Guardamos as duas credenciais e mantemos as
+  // colunas "efetivas" legadas como fallback (preferindo produção quando houver).
+  const effectivePublic = pubProd || pubTest;
+  const effectiveToken = tokProd || tokTest;
+
   const payload = {
     gateway_banco: input.gateway_banco.trim(),
     client_id: input.client_id.trim(),
@@ -758,15 +781,20 @@ export async function saveConfigPagamento(input: {
     nome_recebedor: input.nome_recebedor.trim(),
     cidade_recebedor: input.cidade_recebedor.trim(),
     ativo: input.ativo,
-    mp_access_token: (input.mp_access_token ?? "").trim(),
-    mp_public_key: (input.mp_public_key ?? "").trim(),
+    mp_public_key_prod: pubProd,
+    mp_access_token_prod: tokProd,
+    mp_public_key_test: pubTest,
+    mp_access_token_test: tokTest,
+    mp_access_token: effectiveToken,
+    mp_public_key: effectivePublic,
     mp_webhook_secret: (input.mp_webhook_secret ?? "").trim(),
     mp_ativo: input.mp_ativo ?? false,
-    mp_ambiente: (input.mp_ambiente ?? "test").trim(),
+    mp_ambiente: "auto",
     aceita_pix_online: input.aceita_pix_online ?? true,
     aceita_cartao_online: input.aceita_cartao_online ?? true,
     aceita_na_entrega: input.aceita_na_entrega ?? true,
   };
+
 
   let id = input.id ?? null;
   if (id) {

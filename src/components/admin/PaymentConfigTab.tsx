@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, Pencil, Trash2, CreditCard, CheckCircle2 } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, CreditCard, CheckCircle2, Rocket, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
+import { currentEnv } from "@/lib/empresa";
 import {
   listConfigPagamentos,
   saveConfigPagamento,
@@ -34,6 +35,10 @@ interface FormState {
   ativo: boolean;
   mp_access_token: string;
   mp_public_key: string;
+  mp_public_key_prod: string;
+  mp_access_token_prod: string;
+  mp_public_key_test: string;
+  mp_access_token_test: string;
   mp_webhook_secret: string;
   mp_ativo: boolean;
   mp_ambiente: string;
@@ -53,6 +58,10 @@ const EMPTY: FormState = {
   ativo: true,
   mp_access_token: "",
   mp_public_key: "",
+  mp_public_key_prod: "",
+  mp_access_token_prod: "",
+  mp_public_key_test: "",
+  mp_access_token_test: "",
   mp_webhook_secret: "",
   mp_ativo: false,
   mp_ambiente: "test",
@@ -88,6 +97,10 @@ export function PaymentConfigTab() {
       ativo: c.ativo,
       mp_access_token: c.mp_access_token,
       mp_public_key: c.mp_public_key,
+      mp_public_key_prod: c.mp_public_key_prod,
+      mp_access_token_prod: c.mp_access_token_prod,
+      mp_public_key_test: c.mp_public_key_test,
+      mp_access_token_test: c.mp_access_token_test,
       mp_webhook_secret: c.mp_webhook_secret,
       mp_ativo: c.mp_ativo,
       mp_ambiente: c.mp_ambiente || "test",
@@ -302,46 +315,136 @@ export function PaymentConfigTab() {
                   onCheckedChange={(v) => setForm({ ...form, mp_ativo: v })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="mp-token">Access Token (secreto)</Label>
-                <Input
-                  id="mp-token"
-                  type="password"
-                  value={form.mp_access_token}
-                  onChange={(e) => setForm({ ...form, mp_access_token: e.target.value })}
-                  placeholder="APP_USR-... ou TEST-..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="mp-pubkey">Public Key</Label>
-                <Input
-                  id="mp-pubkey"
-                  value={form.mp_public_key}
-                  onChange={(e) => setForm({ ...form, mp_public_key: e.target.value })}
-                  placeholder="APP_USR-... ou TEST-..."
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* Ambiente detectado AUTOMATICAMENTE (sem seletor manual) */}
+              {(() => {
+                const detected = currentEnv();
+                const isProd = detected === "prod";
+                return (
+                  <div
+                    className={`flex items-center gap-3 rounded-lg border p-3 ${
+                      isProd
+                        ? "border-emerald-500/60 bg-emerald-50/60 dark:bg-emerald-900/10"
+                        : "border-amber-500/60 bg-amber-50/60 dark:bg-amber-900/10"
+                    }`}
+                  >
+                    {isProd ? (
+                      <Rocket className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <FlaskConical className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Ambiente atual:{" "}
+                        {isProd ? "Produção (dinheiro real)" : "Teste / Sandbox"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Detectado automaticamente pelo endereço onde o app está
+                        rodando. Domínios próprios (.com.br) usam as chaves de
+                        produção; o Preview (.lovable.app) usa as de teste. Sem
+                        seleção manual.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Credenciais de Dinheiro Real (Produção) */}
+              <div
+                className={`space-y-3 rounded-lg border p-3 ${
+                  currentEnv() === "prod"
+                    ? "border-emerald-500/60 bg-emerald-50/60 dark:bg-emerald-900/10"
+                    : "border-border"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Rocket className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-sm font-semibold">
+                    Credenciais de Dinheiro Real (Produção)
+                  </span>
+                  {currentEnv() === "prod" && (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      Em uso agora
+                    </span>
+                  )}
+                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="mp-secret">Segredo do Webhook</Label>
+                  <Label htmlFor="mp-pubkey-prod">Public Key (Produção)</Label>
                   <Input
-                    id="mp-secret"
-                    type="password"
-                    value={form.mp_webhook_secret}
-                    onChange={(e) => setForm({ ...form, mp_webhook_secret: e.target.value })}
+                    id="mp-pubkey-prod"
+                    value={form.mp_public_key_prod}
+                    onChange={(e) =>
+                      setForm({ ...form, mp_public_key_prod: e.target.value })
+                    }
+                    placeholder="APP_USR-..."
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Ambiente</Label>
-                  <select
-                    value={form.mp_ambiente}
-                    onChange={(e) => setForm({ ...form, mp_ambiente: e.target.value })}
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
-                  >
-                    <option value="test">Teste (sandbox)</option>
-                    <option value="prod">Produção</option>
-                  </select>
+                  <Label htmlFor="mp-token-prod">Access Token (Produção)</Label>
+                  <Input
+                    id="mp-token-prod"
+                    type="password"
+                    value={form.mp_access_token_prod}
+                    onChange={(e) =>
+                      setForm({ ...form, mp_access_token_prod: e.target.value })
+                    }
+                    placeholder="APP_USR-..."
+                  />
                 </div>
+              </div>
+
+              {/* Credenciais de Teste (Sandbox) */}
+              <div
+                className={`space-y-3 rounded-lg border p-3 ${
+                  currentEnv() === "test"
+                    ? "border-amber-500/60 bg-amber-50/60 dark:bg-amber-900/10"
+                    : "border-border"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <FlaskConical className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <span className="text-sm font-semibold">
+                    Credenciais de Teste (Sandbox)
+                  </span>
+                  {currentEnv() === "test" && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                      Em uso agora
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mp-pubkey-test">Public Key (Teste)</Label>
+                  <Input
+                    id="mp-pubkey-test"
+                    value={form.mp_public_key_test}
+                    onChange={(e) =>
+                      setForm({ ...form, mp_public_key_test: e.target.value })
+                    }
+                    placeholder="TEST-..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mp-token-test">Access Token (Teste)</Label>
+                  <Input
+                    id="mp-token-test"
+                    type="password"
+                    value={form.mp_access_token_test}
+                    onChange={(e) =>
+                      setForm({ ...form, mp_access_token_test: e.target.value })
+                    }
+                    placeholder="TEST-..."
+                  />
+                </div>
+              </div>
+
+
+              <div className="space-y-2">
+                <Label htmlFor="mp-secret">Segredo do Webhook</Label>
+                <Input
+                  id="mp-secret"
+                  type="password"
+                  value={form.mp_webhook_secret}
+                  onChange={(e) => setForm({ ...form, mp_webhook_secret: e.target.value })}
+                />
               </div>
             </div>
 

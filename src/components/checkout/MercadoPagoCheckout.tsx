@@ -42,6 +42,7 @@ export function MercadoPagoCheckout({
   const [error, setError] = useState<string | null>(null);
   const brickRef = useRef<{ unmount: () => void } | null>(null);
   const mountedContainer = useRef(false);
+  const paidHandled = useRef(false);
   const paidStatuses = useRef(new Set(["paid", "processed", "approved"]));
 
   // -------- Polling do status (PIX e cartão pendente) --------
@@ -58,6 +59,8 @@ export function MercadoPagoCheckout({
         if (!alive) return;
         const mpStatus = (st?.mp_status ?? "").toLowerCase();
         if (st?.pago_online || paidStatuses.current.has(mpStatus)) {
+          if (paidHandled.current) return;
+          paidHandled.current = true;
           setPaid(true);
           toast.success("Pagamento confirmado!");
           onPaid();
@@ -69,7 +72,7 @@ export function MercadoPagoCheckout({
       }
     };
     void checkStatus();
-    const timer = setInterval(checkStatus, 3000);
+    const timer = setInterval(checkStatus, 1200);
     return () => {
       alive = false;
       clearInterval(timer);
@@ -84,6 +87,8 @@ export function MercadoPagoCheckout({
       const res = await createMpPayment({ orderId, method: "pix", payer: { email: payerEmail } });
       setPix(res);
       if (res.paid) {
+        if (paidHandled.current) return;
+        paidHandled.current = true;
         setPaid(true);
         onPaid();
       }
@@ -136,6 +141,8 @@ export function MercadoPagoCheckout({
                   payer: formData.payer ?? { email: payerEmail },
                 });
                 if (res.paid) {
+                  if (paidHandled.current) return;
+                  paidHandled.current = true;
                   setPaid(true);
                   onPaid();
                 } else {

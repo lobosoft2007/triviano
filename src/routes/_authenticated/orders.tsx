@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { ArrowLeft, Loader2, ClipboardList, CheckCircle2 } from "lucide-react";
 import { fetchOrders } from "@/lib/orders";
 import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
+import { useAuth } from "@/lib/auth";
+import { markOrderNotificationsRead } from "@/lib/notifications";
 
 export const Route = createFileRoute("/_authenticated/orders")({
   component: OrdersPage,
@@ -20,6 +23,8 @@ const statusLabels: Record<string, string> = {
 };
 
 function OrdersPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: empresa } = useQuery(empresaQueryOptions);
   const empresaId = empresa?.id;
   const { data, isLoading } = useQuery({
@@ -27,6 +32,19 @@ function OrdersPage() {
     queryFn: () => fetchOrders(empresaId),
     enabled: !!empresaId,
   });
+
+  // Ação de leitura automática: ao visualizar os pedidos, marca como lidas as
+  // notificações vinculadas a eles (atualização de status já foi vista).
+  useEffect(() => {
+    if (!user?.id || !data || data.length === 0) return;
+    const orderIds = data.map((o) => o.id);
+    void markOrderNotificationsRead(user.id, orderIds).then(() => {
+      queryClient.invalidateQueries({
+        queryKey: ["my-notifications", user.id],
+      });
+    });
+  }, [user?.id, data, queryClient]);
+
 
   return (
     <AppShell>

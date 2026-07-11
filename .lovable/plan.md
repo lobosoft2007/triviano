@@ -1,26 +1,42 @@
-# Corrigir notificação "Pedido enviado" (só após pagamento confirmado)
+## Contexto
 
-## Diagnóstico (causa raiz confirmada)
-O trigger `trg_notify_customer_order_sent` roda **AFTER INSERT** em toda linha da tabela `orders` e insere a notificação **"Pedido enviado"** (função `notify_customer_order_sent`).
+Auditoria das áreas críticas (PIX, Caixa, Financeiro, "Meus Pedidos") concluída. Três das quatro áreas estão íntegras. O bug de confirmação falsa de PIX já foi corrigido. Resta um fio solto: a função de arquivamento de abandono nunca é acionada.
 
-Pedidos online (PIX / cartão via Mercado Pago) são criados **antes** do pagamento, com `aguardando_pagamento = true` e `status = 'rascunho_pagamento'`. Como o trigger dispara no INSERT sem checar esse estado, a notificação é gravada assim que o cliente abre a tela de pagamento — por isso ela aparece mesmo quando ele volta ao cardápio sem pagar.
+## Situação atual (confirmada na auditoria)
 
-## Correção (uma migration, só banco — não toca no motor de pagamento)
+- ✅ PIX: confirmação falsa corrigida (depende só de `pago_online` / status aprovado).
+- ✅ Webhook / Trigger / Edge Functions: intactos e seguros.
+- ✅ Caixa / Cozinha: pedidos não pagos invisíveis; financeiro não é afetado.
+- ✅ "Meus Pedidos": isolado por `user_id`, exclui rascunho/abandonado.
+- ⚠️ `discard_unpaid_drafts` existe (RPC + wrapper `discardUnpaidDrafts`) mas **não é chamada** por nenhum código nem cron.
 
-1. **Ajustar a função do trigger de INSERT** (`notify_customer_order_sent`): adicionar, no topo, `IF NEW.aguardando_pagamento THEN RETURN NEW; END IF;`. Assim, pedidos que já entram direto na fila (Dinheiro / cartão na entrega) continuam notificando na criação — igual a hoje. Pedidos online aguardando pagamento **não** notificam no INSERT.
+## Objetivo
 
-2. **Criar um novo trigger de UPDATE** em `public.orders` que dispara a mesma notificação "Pedido enviado" **somente** quando `aguardando_pagamento` muda de `true → false` — exatamente o momento em que o webhook do Mercado Pago confirma o pagamento e libera o pedido para a cozinha.
+Fechar a pendência de arquivamento de abandono, para que a regra de BI (taxa de desistência) funcione e os rascunhos-fantasma sejam limpos — SEM tocar no motor de pagamento (PIX/Webhook/Trigger).
 
-## Resultado
-- **Dinheiro / cartão na entrega** → notifica na criação (comportamento atual preservado).
-- **PIX/cartão pago** → notifica só após o pagamento confirmado pelo webhook.
-- **PIX/cartão abandonado** (voltou ao cardápio sem pagar) → **nunca** notifica.
+## Alteração proposta
 
-## Não será alterado
-- Nada no webhook (`mp-webhook`), no `MercadoPagoCheckout`, no `create_order`, no fluxo de checkout, nos rascunhos/`discard_unpaid_drafts` ou no versionamento.
+**Arquivo:** `src/routes/checkout.tsx`
 
-## Detalhes técnicos
-- `CREATE OR REPLACE FUNCTION public.notify_customer_order_sent()` com o guard `aguardando_pagamento`.
-- Nova função `public.notify_customer_order_paid_sent()` (mesma inserção em `notificacoes_cliente`) + trigger:
-  `CREATE TRIGGER trg_notify_customer_order_paid_sent AFTER UPDATE OF aguardando_pagamento ON public.orders FOR EACH ROW WHEN (OLD.aguardando_pagamento = true AND NEW.aguardando_pagamento = false) EXECUTE FUNCTION public.notify_customer_order_paid_sent();`
-- Migration idempotente (`CREATE OR REPLACE` + `DROP TRIGGER IF EXISTS`). Sem mudança de schema de tabela.
+Acionar `discardUnpaidDrafts()` (best-effort) no momento em que o cliente inicia um novo checkout — antes de `placeOrder`, dentro de `handleSubmit`, logo após validar a sessão do usuário. Assim, qualquer rascunho anterior não pago do próprio cliente é marcado como `pagamento_abandonado` antes de criar o novo pedido.
+
+Detalhes:
+- Importar `discardUnpaidDrafts` de `@/lib/orders`.
+- Chamar dentro de `try/catch` sem bloquear o checkout se falhar (padrão best-effort já usado para `fetchEsgotadoIds`).
+- Não altera nenhuma lógica de pagamento, cashback, fiado ou visibilidade — apenas arquiva rascunhos abandonados do próprio usuário.
+
+## O que NÃO será alterado (garantias)
+
+- `supabase/functions/mp-create-payment` e `mp-webhook` — intactos.
+- RPCs `create_order`, `finalize_order_paid`, `discard_unpaid_drafts` e triggers — intactos.
+- Filtros de visibilidade do Caixa e de "Meus Pedidos" — intactos.
+- Lógica de PIX/QR Code — intacta.
+
+## Validação
+
+- Typecheck com `tsgo`.
+- Deploy no Preview e teste do fluxo: iniciar checkout PIX, abandonar (voltar), iniciar outro — o rascunho anterior deve sair como `pagamento_abandonado` e não aparecer em "Meus Pedidos" nem no Caixa.
+
+## Observação
+
+Se você preferir que o arquivamento rode de forma agendada (cron diário) em vez de no início de cada checkout, me avise — é uma alternativa, mas exigiria configurar um job no backend. A opção acima (no checkout) é a mais simples e imediata.

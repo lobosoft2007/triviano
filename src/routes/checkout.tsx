@@ -173,6 +173,7 @@ function clearCheckoutSnapshot() {
     sessionStorage.removeItem(CHECKOUT_AUTH_LATCH_KEY);
     sessionStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
     sessionStorage.removeItem(CHECKOUT_PENDING_PAYMENT_KEY);
+    localStorage.removeItem(CHECKOUT_PENDING_PAYMENT_KEY);
   } catch {
     /* ignore storage errors */
   }
@@ -181,7 +182,9 @@ function clearCheckoutSnapshot() {
 function readPendingPaymentSnapshot(): PendingPaymentSnapshot | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(CHECKOUT_PENDING_PAYMENT_KEY);
+    const raw =
+      sessionStorage.getItem(CHECKOUT_PENDING_PAYMENT_KEY) ||
+      localStorage.getItem(CHECKOUT_PENDING_PAYMENT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PendingPaymentSnapshot;
     if (!parsed?.at || Date.now() - parsed.at > CHECKOUT_AUTH_LATCH_TTL) return null;
@@ -196,7 +199,9 @@ function readPendingPaymentSnapshot(): PendingPaymentSnapshot | null {
 
 function writePendingPaymentSnapshot(snapshot: PendingPaymentSnapshot) {
   try {
-    sessionStorage.setItem(CHECKOUT_PENDING_PAYMENT_KEY, JSON.stringify(snapshot));
+    const value = JSON.stringify(snapshot);
+    sessionStorage.setItem(CHECKOUT_PENDING_PAYMENT_KEY, value);
+    localStorage.setItem(CHECKOUT_PENDING_PAYMENT_KEY, value);
   } catch {
     /* ignore storage errors */
   }
@@ -306,11 +311,10 @@ function CheckoutPage() {
    * webhook confirms; cash and maquininha-on-delivery stay visible as before.
    */
   const isOnlinePayment =
-    payMethod === "PIX"
-    ? true
-    : (payMethod === "Cartão de Crédito" || payMethod === "Cartão de Débito")
-      ? mpActive && allowCardOnline
-      : false;
+    payMethod === "PIX" ||
+    (mpActive &&
+      (payMethod === "Cartão de Crédito" || payMethod === "Cartão de Débito") &&
+      allowCardOnline);
 
 
 
@@ -465,11 +469,6 @@ function CheckoutPage() {
   // cart is restored and only then show a friendly empty state (see below).
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Adicionado por Marcello Ribeiro
-    if (payMethod === "PIX" && mpConfigLoading) {
-      toast.error("Aguarde o carregamento das configurações de pagamento.");
-      return;
-    }
     if (!effectiveCanCheckout) {
       toast.error("Revise as regras do pedido antes de finalizar.");
       return;
@@ -558,6 +557,15 @@ function CheckoutPage() {
     } catch {
       /* availability is best-effort; never block checkout on its failure */
     }
+    // Higiene de rascunhos: antes de registrar um novo pedido, arquiva
+    // qualquer rascunho de pagamento anterior do próprio cliente que ficou
+    // sem pagar (marca como 'pagamento_abandonado' para o BI de desistência).
+    // Best-effort: nunca bloqueia o checkout se falhar.
+    try {
+      await discardUnpaidDrafts();
+    } catch {
+      /* arquivamento de abandono é best-effort; não bloqueia o checkout */
+    }
     try {
       // Registra a forma de pagamento escolhida nas observações para que a
       // cozinha e o operador do caixa saibam como o cliente vai pagar.
@@ -575,17 +583,6 @@ function CheckoutPage() {
       ]
         .filter(Boolean)
         .join(" — ");
-
-      // TRAVA ATÔMICA / ANTI-FANTASMA: antes de gravar um novo pedido,
-      // descarta qualquer rascunho online do próprio cliente que ainda não foi
-      // pago. Assim, ir e voltar entre o carrinho e o checkout PIX nunca libera
-      // um pedido não pago para a cozinha nem acumula pedidos duplicados. Nunca
-      // afeta pedidos já pagos ou presenciais já enviados. Best-effort.
-      try {
-        await discardUnpaidDrafts();
-      } catch (cleanupErr) {
-        console.warn("Falha ao limpar rascunhos não pagos (ignorado):", cleanupErr);
-      }
 
       const orderId = await placeOrder({
         userId: user.id,
@@ -615,14 +612,18 @@ function CheckoutPage() {
       };
       writePendingPaymentSnapshot(paymentSnapshot);
       setPendingPayment(paymentSnapshot);
-      clear();
+      if (!isOnlinePayment) {
+        clear();
+      }
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success(
         payMethod === "PIX"
-          ? "Pedido registrado! Agora finalize o PIX."
+          ? "PIX gerado. Seu carrinho será limpo após a confirmação do pagamento."
           : payMethod === "Conta Corrente"
             ? "Pedido registrado e lançado na sua conta corrente!"
-            : "Pedido registrado! Confira as instruções de pagamento.",
+            : isOnlinePayment
+              ? "Pagamento iniciado. Seu carrinho será limpo após a confirmação."
+              : "Pedido registrado! Confira as instruções de pagamento.",
       );
       setSubmitting(false);
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -833,7 +834,7 @@ function CheckoutPage() {
                 </h2>
               </div>
               <p className="text-xs text-muted-foreground">
-                Pedido registrado. Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
+                Pagamento em andamento. Escaneie o QR Code ou use o código Copia e Cola. O valor de{" "}
                 <span className="font-semibold text-foreground">
                   {formatBRL(finalTotal)}
                 </span>{" "}
@@ -854,6 +855,7 @@ function CheckoutPage() {
                     config={mpConfig}
                     payerEmail={user?.email ?? undefined}
                     onPaid={() => {
+                      clear();
                       clearCheckoutSnapshot();
                       queryClient.invalidateQueries({ queryKey: ["orders"] });
                       navigate({ to: "/orders", replace: true });
@@ -904,6 +906,7 @@ function CheckoutPage() {
                 config={mpConfig}
                 payerEmail={user?.email ?? undefined}
                 onPaid={() => {
+                  clear();
                   clearCheckoutSnapshot();
                   queryClient.invalidateQueries({ queryKey: ["orders"] });
                   navigate({ to: "/orders", replace: true });
@@ -1003,8 +1006,8 @@ function CheckoutPage() {
             </section>
           ) : (
             <section className="mb-5 rounded-2xl border border-primary/20 bg-card p-4 text-sm text-muted-foreground">
-              Escolha a forma de pagamento e confirme o pedido abaixo para
-              registrá-lo na cozinha.
+              Escolha a forma de pagamento e confirme abaixo. PIX e cartão online
+              só entram na cozinha depois da confirmação do pagamento.
             </section>
           )}
 
@@ -1183,36 +1186,22 @@ function CheckoutPage() {
                 </div>
               )}
             </div>
-            <div className="flex w-full gap-3 mt-2">
-              {/* Botão de Confirmar (66% da largura) */}
-              <Button
-                type="submit"
-                size="lg"
-                className="h-13 flex-[2] rounded-2xl py-3.5 text-base"
-                disabled={submitting || !effectiveCanCheckout || mpConfigLoading}
-              >
-                {mpConfigLoading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    Carregando...
-                  </>
-                ) : submitting ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  `Confirmar • ${formatBRL(finalTotal)}`
-                )}
-              </Button>
 
-              {/* Botão de Voltar ao Cardápio (34% da largura) */}
-              <Link
-                to="/"
-                replace
-                className="h-13 flex-[1] rounded-2xl bg-black text-white hover:bg-[#F97316] hover:text-white transition-all duration-300 flex items-center justify-center text-sm font-semibold border-none no-underline"
-                >
-                  Voltar
-              </Link>
-            </div>
-           
+
+            <Button
+              type="submit"
+              size="lg"
+              className="mt-2 h-13 rounded-2xl py-3.5 text-base"
+              disabled={
+                submitting || !effectiveCanCheckout || (payMethod === "PIX" && mpConfigLoading)
+              }
+            >
+              {submitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                `Confirmar pedido • ${formatBRL(finalTotal)}`
+              )}
+            </Button>
           </form>
           )}
           </main>

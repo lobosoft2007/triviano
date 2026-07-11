@@ -11,7 +11,7 @@
 // resolvidos a partir da empresa dona do host/pedido — nunca globais.
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
-import { currentHost } from "@/lib/empresa";
+import { currentEnv, currentHost } from "@/lib/empresa";
 
 export interface MpPublicConfig {
   empresa_id: string;
@@ -27,6 +27,10 @@ export interface MpPublicConfig {
 export async function fetchMpPublicConfig(): Promise<MpPublicConfig | null> {
   const { data, error } = await supabase.rpc("get_mp_public_config", {
     p_host: currentHost(),
+    // Ambiente detectado pelo host REAL do navegador (staging → test,
+    // domínio próprio → prod). O host acima é sintético para staging, por
+    // isso a detecção de ambiente vem separada.
+    p_ambiente: currentEnv(),
   });
   if (error) throw error;
   const row = (data ?? [])[0];
@@ -80,6 +84,9 @@ export async function createMpPayment(
         payment_method_id: input.paymentMethodId,
         issuer_id: input.issuerId,
         payer: input.payer,
+        // Ambiente detectado pelo host real do navegador. A Edge Function usa
+        // este valor para escolher o Access Token (produção x teste).
+        env: currentEnv(),
       },
     },
   );
