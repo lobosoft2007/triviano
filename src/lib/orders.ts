@@ -203,21 +203,17 @@ export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
 }
 
 /**
- * Status de pedido que podem ser repetidos ("Repetir pedido"). Rascunhos e
- * pagamentos abandonados NUNCA são repetíveis — e a própria RPC `repeat_order`
- * revalida isso no backend. Esta lista só controla a exibição do botão.
+ * Status (esteira) de pedido que podem ser repetidos ("Repetir pedido"):
+ * apenas "Finalizado" ou "Cancelado". A própria RPC `repeat_order` revalida
+ * isso no backend; esta lista só controla a exibição do botão.
  */
 export const REORDERABLE_STATUSES = new Set<string>([
-  "pending",
-  "preparing",
-  "delivering",
-  "delivered",
-  "cancelled",
-  "canceled",
+  "Finalizado",
+  "Cancelado",
 ]);
 
-export function isReorderable(status: string): boolean {
-  return REORDERABLE_STATUSES.has(status);
+export function isReorderable(statusPedido: string): boolean {
+  return REORDERABLE_STATUSES.has(statusPedido);
 }
 
 interface RepeatOrderItemRaw {
