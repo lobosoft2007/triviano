@@ -203,6 +203,21 @@ function OrdersPage() {
                     </span>
                   </div>
                 </div>
+
+                {isReorderable(order.status) && (
+                  <button
+                    onClick={() => handleReorder(order.id)}
+                    disabled={reorderingId === order.id}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary/10 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-60"
+                  >
+                    {reorderingId === order.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4" />
+                    )}
+                    Repetir pedido
+                  </button>
+                )}
               </article>
             ))}
           </div>
