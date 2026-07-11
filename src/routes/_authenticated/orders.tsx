@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { ArrowLeft, Loader2, ClipboardList, CheckCircle2 } from "lucide-react";
 import { fetchOrders } from "@/lib/orders";
 import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
+import { useAuth } from "@/lib/auth";
+import { markOrderNotificationsRead } from "@/lib/notifications";
 
 export const Route = createFileRoute("/_authenticated/orders")({
   component: OrdersPage,
