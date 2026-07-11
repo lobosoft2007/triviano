@@ -230,6 +230,9 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
       "id, user_id, status, status_pedido, total, discount, desconto_manual, delivery_address, phone, notes, observacoes_operador, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
     )
     .not("status_pedido", "in", '("Encerrado e pago",Cancelado)')
+    // Rascunhos e pagamentos abandonados nunca chegam ao Caixa/KDS — ficam
+    // guardados apenas para relatórios de desistência.
+    .not("status", "in", "(rascunho_pagamento,pagamento_abandonado)")
     // BLINDAGEM FINANCEIRA DA COZINHA (KDS/Caixa):
     // um pedido só aparece aqui quando NÃO está aguardando pagamento online.
     // Pedidos PIX/cartão via Mercado Pago nascem com aguardando_pagamento=true
