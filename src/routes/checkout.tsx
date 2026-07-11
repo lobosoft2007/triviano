@@ -306,10 +306,11 @@ function CheckoutPage() {
    * webhook confirms; cash and maquininha-on-delivery stay visible as before.
    */
   const isOnlinePayment =
-    payMethod === "PIX" ||
-    (mpActive &&
-      (payMethod === "Cartão de Crédito" || payMethod === "Cartão de Débito") &&
-      allowCardOnline);
+    payMethod === "PIX"
+    ? true
+    : (payMethod === "Cartão de Crédito" || payMethod === "Cartão de Débito")
+      ? mpActive && allowCardOnline
+      : false;
 
 
 
@@ -464,6 +465,11 @@ function CheckoutPage() {
   // cart is restored and only then show a friendly empty state (see below).
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Adicionado por Marcello Ribeiro
+    if (payMethod === "PIX" && mpConfigLoading) {
+      toast.error("Aguarde o carregamento das configurações de pagamento.");
+      return;
+    }
     if (!effectiveCanCheckout) {
       toast.error("Revise as regras do pedido antes de finalizar.");
       return;
@@ -1177,22 +1183,37 @@ function CheckoutPage() {
                 </div>
               )}
             </div>
+            <div className="flex w-full gap-3 mt-2">
+              {/* Botão de Confirmar (66% da largura) */}
+              <Button
+                type="submit"
+                size="lg"
+                className="h-13 flex-[2] rounded-2xl py-3.5 text-base"
+                disabled={submitting || !effectiveCanCheckout || mpConfigLoading}
+              >
+                {mpConfigLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Carregando...
+                  </>
+                ) : submitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  `Confirmar • ${formatBRL(finalTotal)}`
+                )}
+              </Button>
 
-
-            <Button
-              type="submit"
-              size="lg"
-              className="mt-2 h-13 rounded-2xl py-3.5 text-base"
-              disabled={
-                submitting || !effectiveCanCheckout || (payMethod === "PIX" && mpConfigLoading)
-              }
-            >
-              {submitting ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                `Confirmar pedido • ${formatBRL(finalTotal)}`
-              )}
-            </Button>
+              {/* Botão de Voltar ao Cardápio (34% da largura) */}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => navigate({ to: "/", replace: true })}
+                className="h-13 flex-[1] rounded-2xl bg-black text-white hover:bg-[#F97316] hover:text-white transition-all duration-300 border-none px-2 text-sm sm:text-base"
+              >
+                Voltar
+              </Button>
+            </div>
+           
           </form>
           )}
           </main>
