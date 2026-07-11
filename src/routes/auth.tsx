@@ -151,7 +151,7 @@ function AuthPage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword(parsed.data);
+    const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
     setSubmitting(false);
     if (error) {
       if (clearCorruptedAuthStorageForCheckout(error)) return;
@@ -165,7 +165,14 @@ function AuthPage() {
       toast.error("Não foi possível entrar. Verifique e-mail e senha.");
       return;
     }
-    toast.success("Bem-vindo de volta!");
+    const user = data?.user;
+    const displayName =
+      typeof user?.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()
+        ? user.user_metadata.full_name.trim()
+        : null;
+    toast.success(
+      displayName ? `Bem-vindo, ${displayName}!` : user?.email ? `Bem-vindo, ${user.email}!` : "Bem-vindo de volta!"
+    );
     navigateAfterConfirmedAuth();
   }
 
