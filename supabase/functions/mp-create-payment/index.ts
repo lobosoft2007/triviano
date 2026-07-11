@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
         // múltiplas Orders no MP e sobrescrever mp_payment_id no pedido local;
         // se o cliente pagasse uma cobrança antiga, o webhook não encontrava
         // mais a linha e o polling ficava preso no QR.
-        "X-Idempotency-Key": `${order.id}-${body.method}`,
+        "X-Idempotency-Key": `${order.id}-${body.method}-${env}`,
       },
       body: JSON.stringify(mpBody),
     });
