@@ -1,10 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { ArrowLeft, Loader2, ClipboardList, CheckCircle2 } from "lucide-react";
-import { fetchOrders } from "@/lib/orders";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Loader2,
+  ClipboardList,
+  CheckCircle2,
+  RotateCcw,
+} from "lucide-react";
+import { fetchOrders, repeatOrder, isReorderable } from "@/lib/orders";
 import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
+import { useCart } from "@/lib/cart";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 import { useAuth } from "@/lib/auth";
