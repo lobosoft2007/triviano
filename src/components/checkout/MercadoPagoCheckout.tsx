@@ -58,7 +58,7 @@ export function MercadoPagoCheckout({
         const st = await fetchMpOrderStatus(orderId);
         if (!alive) return;
         const mpStatus = (st?.mp_status ?? "").toLowerCase();
-        if (st?.pago_online || paidStatuses.current.has(mpStatus) || st?.status_pedido === "Recebido") {
+        if (st?.pago_online || paidStatuses.current.has(mpStatus)) {
           if (paidHandled.current) return;
           paidHandled.current = true;
           setPaid(true);
