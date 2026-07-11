@@ -2959,6 +2959,10 @@ export type Database = {
         }
         Returns: number
       }
+      repeat_order: {
+        Args: { p_host?: string; p_order_id: string }
+        Returns: Json
+      }
       resolve_empresa_id_by_host: { Args: { p_host: string }; Returns: string }
       reverse_order_stock: { Args: { p_order_id: string }; Returns: undefined }
       set_cliente_bloqueado: {
