@@ -173,6 +173,7 @@ function clearCheckoutSnapshot() {
     sessionStorage.removeItem(CHECKOUT_AUTH_LATCH_KEY);
     sessionStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
     sessionStorage.removeItem(CHECKOUT_PENDING_PAYMENT_KEY);
+    localStorage.removeItem(CHECKOUT_PENDING_PAYMENT_KEY);
   } catch {
     /* ignore storage errors */
   }
@@ -181,7 +182,9 @@ function clearCheckoutSnapshot() {
 function readPendingPaymentSnapshot(): PendingPaymentSnapshot | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(CHECKOUT_PENDING_PAYMENT_KEY);
+    const raw =
+      sessionStorage.getItem(CHECKOUT_PENDING_PAYMENT_KEY) ||
+      localStorage.getItem(CHECKOUT_PENDING_PAYMENT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PendingPaymentSnapshot;
     if (!parsed?.at || Date.now() - parsed.at > CHECKOUT_AUTH_LATCH_TTL) return null;
@@ -196,7 +199,9 @@ function readPendingPaymentSnapshot(): PendingPaymentSnapshot | null {
 
 function writePendingPaymentSnapshot(snapshot: PendingPaymentSnapshot) {
   try {
-    sessionStorage.setItem(CHECKOUT_PENDING_PAYMENT_KEY, JSON.stringify(snapshot));
+    const value = JSON.stringify(snapshot);
+    sessionStorage.setItem(CHECKOUT_PENDING_PAYMENT_KEY, value);
+    localStorage.setItem(CHECKOUT_PENDING_PAYMENT_KEY, value);
   } catch {
     /* ignore storage errors */
   }
