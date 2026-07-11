@@ -2973,6 +2973,10 @@ export type Database = {
         Args: { _name: string }
         Returns: boolean
       }
+      storage_path_is_empresa_prefixed: {
+        Args: { _name: string }
+        Returns: boolean
+      }
       subproduto_unit_cost: { Args: { p_sub_id: string }; Returns: number }
       user_empresa_id: { Args: { _user_id: string }; Returns: string }
     }
