@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { CartItem } from "@/lib/cart";
+import type { CartItem, NewCartItem, CartAddon, CartComboRole } from "@/lib/cart";
 import type { Json } from "@/integrations/supabase/types";
 import { currentHost } from "@/lib/empresa";
+import { resolveImageUrls } from "@/lib/storage";
 
 export interface Profile {
   id: string;
