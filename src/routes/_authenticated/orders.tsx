@@ -1,10 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { ArrowLeft, Loader2, ClipboardList, CheckCircle2 } from "lucide-react";
-import { fetchOrders } from "@/lib/orders";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Loader2,
+  ClipboardList,
+  CheckCircle2,
+  RotateCcw,
+} from "lucide-react";
+import { fetchOrders, repeatOrder, isReorderable } from "@/lib/orders";
 import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
+import { useCart } from "@/lib/cart";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 import { useAuth } from "@/lib/auth";
@@ -25,6 +33,9 @@ const statusLabels: Record<string, string> = {
 function OrdersPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { addLine } = useCart();
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
   const { data: empresa } = useQuery(empresaQueryOptions);
   const empresaId = empresa?.id;
   const { data, isLoading } = useQuery({
@@ -32,6 +43,36 @@ function OrdersPage() {
     queryFn: () => fetchOrders(empresaId),
     enabled: !!empresaId,
   });
+
+  async function handleReorder(orderId: string) {
+    if (reorderingId) return;
+    setReorderingId(orderId);
+    try {
+      const result = await repeatOrder(orderId);
+      if (!result.eligible || result.lines.length === 0) {
+        toast.error("Nenhum item deste pedido está disponível no momento.");
+        return;
+      }
+      for (const { line, quantity } of result.lines) {
+        addLine(line, quantity);
+      }
+      if (result.skippedItems > 0) {
+        toast.warning(
+          `${result.skippedItems} ${
+            result.skippedItems === 1 ? "item foi ignorado" : "itens foram ignorados"
+          } por estarem fora do cardápio.`,
+        );
+      } else {
+        toast.success("Itens adicionados ao carrinho!");
+      }
+      void navigate({ to: "/" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Não foi possível repetir o pedido: ${message}`);
+    } finally {
+      setReorderingId(null);
+    }
+  }
 
   // Ação de leitura automática: ao visualizar os pedidos, marca como lidas as
   // notificações vinculadas a eles (atualização de status já foi vista).
@@ -162,6 +203,21 @@ function OrdersPage() {
                     </span>
                   </div>
                 </div>
+
+                {isReorderable(order.status) && (
+                  <button
+                    onClick={() => handleReorder(order.id)}
+                    disabled={reorderingId === order.id}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary/10 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-60"
+                  >
+                    {reorderingId === order.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4" />
+                    )}
+                    Repetir pedido
+                  </button>
+                )}
               </article>
             ))}
           </div>

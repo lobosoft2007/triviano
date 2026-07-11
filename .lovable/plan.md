@@ -1,42 +1,73 @@
-## Contexto
+# Repetir Pedido — Plano corrigido (Backend RPC + Frontend)
 
-Auditoria das áreas críticas (PIX, Caixa, Financeiro, "Meus Pedidos") concluída. Três das quatro áreas estão íntegras. O bug de confirmação falsa de PIX já foi corrigido. Resta um fio solto: a função de arquivamento de abandono nunca é acionada.
+## Arquitetura escolhida
+- **Backend = função SQL RPC `SECURITY DEFINER`** (não Edge Function). Motivo: a lógica de preço já vive no `create_order` (SQL). Uma RPC reaproveita a **mesma** fórmula (tamanho, meia-a-meia, açaí/adicionais grátis, adicionais pagos), evitando divergência entre o preço mostrado no carrinho e o cobrado no checkout. Edge Function neste projeto é só para webhooks externos.
+- **Frontend** chama a RPC, recebe os itens já validados e reprecificados, preenche o carrinho e **para no cardápio** (não vai ao checkout).
 
-## Situação atual (confirmada na auditoria)
+## PARTE 1 — Migração SQL: `public.repeat_order(p_order_id uuid, p_host text)`
 
-- ✅ PIX: confirmação falsa corrigida (depende só de `pago_online` / status aprovado).
-- ✅ Webhook / Trigger / Edge Functions: intactos e seguros.
-- ✅ Caixa / Cozinha: pedidos não pagos invisíveis; financeiro não é afetado.
-- ✅ "Meus Pedidos": isolado por `user_id`, exclui rascunho/abandonado.
-- ⚠️ `discard_unpaid_drafts` existe (RPC + wrapper `discardUnpaidDrafts`) mas **não é chamada** por nenhum código nem cron.
+Retorna `jsonb` com a forma:
+```json
+{
+  "eligible": true,
+  "total_items": 5,
+  "available_items": 4,
+  "skipped_items": 1,
+  "items": [
+    {
+      "product_id": "...", "product_name": "...", "display_name": "...",
+      "category_slug": "pizzas", "combo_role": "",
+      "size": "Grande", "second_flavor": "",
+      "addons": [{ "name": "Borda", "price": 8.0, "quantity": 1 }],
+      "remocoes": ["Cebola"],
+      "unit_price": 59.9,
+      "image_url": "empresa/uuid/arq.jpg",
+      "quantity": 2
+    }
+  ]
+}
+```
 
-## Objetivo
+Lógica (SECURITY DEFINER, `search_path = public`):
+1. **Auth/propriedade**: `v_user := auth.uid()`; exige que o pedido seja do próprio usuário (`orders.user_id = v_user`) ou admin. Senão exceção.
+2. **Elegibilidade**: rejeita rascunho/não pago — bloqueia quando `status IN ('rascunho_pagamento','pagamento_abandonado')` OU (`aguardando_pagamento = true` AND `pago_online = false`). Isso já cobre a regra: entregues/recebidos/cancelados ✅, rascunho ❌. Se inelegível → retorna `{"eligible": false}`.
+3. **Reconciliação por item** (loop em `order_items` do pedido):
+   - Busca o produto atual: `products p JOIN categories c` onde `p.id = oi.product_id AND p.available = true AND p.empresa_id = <empresa do pedido>`. Se **não achar** → conta como `skipped` e pula.
+   - **Recalcula `unit_price` reusando a fórmula do `create_order`**:
+     - `base` = `produtos_price_options.preco` do `size`; se nulo, `products.price`.
+     - Meia-a-meia: se `allows_half` e `second_flavor` existe e o 2º sabor **ainda existe** no cardápio → `base = round((base + base2)/2, 2)`; se o 2º sabor sumiu → degrada para sabor único.
+     - Açaí (`free_addon_limit > 0` + free_addons): recalcula excedente de grátis + adicionais premium.
+     - Adicionais pagos: soma `produtos_addons.preco` **atual** por nome; adicional que não existe mais é descartado.
+   - Monta o `display_name` (½ A / ½ B, ou "Nome (Tamanho)", ou "Nome") igual ao `create_order`.
+   - Reprecifica cada addon retornado com o preço atual (para o carrinho exibir certo).
+   - Acrescenta ao array `items` com `category_slug`, `combo_role`, `image_url` (caminho bruto), `remocoes`, `quantity`.
+4. Retorna o `jsonb` com contagens (`total_items`, `available_items`, `skipped_items`).
 
-Fechar a pendência de arquivamento de abandono, para que a regra de BI (taxa de desistência) funcione e os rascunhos-fantasma sejam limpos — SEM tocar no motor de pagamento (PIX/Webhook/Trigger).
+GRANT: `GRANT EXECUTE ON FUNCTION public.repeat_order(uuid, text) TO authenticated;`
 
-## Alteração proposta
+## PARTE 2 — Frontend
 
-**Arquivo:** `src/routes/checkout.tsx`
+### `src/lib/orders.ts` (editar)
+- Adicionar `REORDERABLE_STATUSES` (lista de status elegíveis para exibir o botão) e um helper `isReorderable(status)`.
+- Adicionar `repeatOrder(orderId): Promise<RepeatOrderResult>` que chama `supabase.rpc("repeat_order", { p_order_id, p_host: currentHost() })` e tipa o retorno (`eligible`, contagens, `items`).
 
-Acionar `discardUnpaidDrafts()` (best-effort) no momento em que o cliente inicia um novo checkout — antes de `placeOrder`, dentro de `handleSubmit`, logo após validar a sessão do usuário. Assim, qualquer rascunho anterior não pago do próprio cliente é marcado como `pagamento_abandonado` antes de criar o novo pedido.
+### `src/routes/_authenticated/orders.tsx` (editar)
+- Importar `useCart`, `useNavigate`, `resolveImageUrls`, `toast`, ícone `RotateCcw`.
+- Botão **"Repetir pedido"** no rodapé de cada `<article>`, visível só quando `isReorderable(order.status)`.
+- Handler `handleReorder(order)`:
+  1. Chama `repeatOrder(order.id)` (com estado de loading no botão).
+  2. `eligible === false` ou `items.length === 0` → `toast.error("Nenhum item deste pedido está disponível no momento.")`.
+  3. Resolve as imagens dos itens (`resolveImageUrls`) e mapeia cada um para `NewCartItem` (mesma forma que o `ProductCustomizer` produz), chamando `addLine(item, quantity)`.
+  4. Se `skipped_items > 0` → `toast.warning("N item(ns) fora do cardápio foram ignorados.")`; senão `toast.success("Itens adicionados ao carrinho!")`.
+  5. `navigate({ to: "/" })` — **para aqui**. Cliente vê o carrinho montado e assume o fluxo (edita/adiciona/remove/confirma).
+- Comportamento do carrinho: **acrescenta** aos itens atuais (linhas idênticas são mescladas por `makeLineId`). Não vai ao checkout.
 
-Detalhes:
-- Importar `discardUnpaidDrafts` de `@/lib/orders`.
-- Chamar dentro de `try/catch` sem bloquear o checkout se falhar (padrão best-effort já usado para `fetchEsgotadoIds`).
-- Não altera nenhuma lógica de pagamento, cashback, fiado ou visibilidade — apenas arquiva rascunhos abandonados do próprio usuário.
+## Fora de escopo (base 1.0.1 intacta)
+- Nada muda em `create_order`, checkout, webhooks, combos ou RLS existente.
+- Nenhuma Edge Function nova.
 
-## O que NÃO será alterado (garantias)
-
-- `supabase/functions/mp-create-payment` e `mp-webhook` — intactos.
-- RPCs `create_order`, `finalize_order_paid`, `discard_unpaid_drafts` e triggers — intactos.
-- Filtros de visibilidade do Caixa e de "Meus Pedidos" — intactos.
-- Lógica de PIX/QR Code — intacta.
-
-## Validação
-
-- Typecheck com `tsgo`.
-- Deploy no Preview e teste do fluxo: iniciar checkout PIX, abandonar (voltar), iniciar outro — o rascunho anterior deve sair como `pagamento_abandonado` e não aparecer em "Meus Pedidos" nem no Caixa.
-
-## Observação
-
-Se você preferir que o arquivamento rode de forma agendada (cron diário) em vez de no início de cada checkout, me avise — é uma alternativa, mas exigiria configurar um job no backend. A opção acima (no checkout) é a mais simples e imediata.
+## Teste no Preview
+1. Logar como cliente em "Meus pedidos".
+2. "Repetir pedido" em um pedido entregue → carrinho preenchido com preços atuais, volta ao cardápio.
+3. Confirmar que rascunhos/não pagos não mostram o botão.
+4. (Opcional) Desativar/indisponibilizar um produto no admin e repetir um pedido que o continha → item pulado com aviso; se todos indisponíveis → aviso de impossibilidade.
