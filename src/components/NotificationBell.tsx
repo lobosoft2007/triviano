@@ -8,10 +8,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/lib/auth";
 import { useClientNotifications } from "@/hooks/useNotifications";
-import {
-  markAllNotificationsRead,
-  markNotificationRead,
-} from "@/lib/notifications";
+import { markNotificationRead } from "@/lib/notifications";
 import { useQueryClient } from "@tanstack/react-query";
 
 function timeAgo(iso: string): string {
