@@ -13,7 +13,7 @@ export interface NotificacaoCliente {
 
 /**
  * Automatic message for each production-conveyor status. Some statuses share
- * the same final message ("Entregue" and "Encerrado e pago").
+ * the same final message ("Entregue" and "Finalizado").
  */
 export const STATUS_NOTIFICATION_MESSAGES: Record<
   StatusPedido,
@@ -42,7 +42,7 @@ export const STATUS_NOTIFICATION_MESSAGES: Record<
     mensagem:
       "Pedido finalizado. Muito obrigado pela preferência! Bom apetite!",
   },
-  "Encerrado e pago": {
+  Finalizado: {
     titulo: "Pedido finalizado",
     mensagem:
       "Pedido finalizado. Muito obrigado pela preferência! Bom apetite!",
@@ -355,7 +355,7 @@ export function statusWhatsAppMessage(
     case "Em entrega":
       return `Olá ${cliente}! Seu pedido nº ${orderNo}${of} acabou de sair para entrega com o nosso motoboy! 🛵`;
     case "Entregue":
-    case "Encerrado e pago":
+    case "Finalizado":
       return `Olá ${cliente}! Seu pedido nº ${orderNo}${of} foi finalizado. Muito obrigado pela preferência e bom apetite! 🙏`;
     case "Cancelado":
       return `Olá ${cliente}! Sobre o seu pedido nº ${orderNo}${of}, precisamos falar com você. Pode nos responder por aqui? 🙏`;

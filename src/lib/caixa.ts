@@ -10,16 +10,16 @@ export const ESTEIRA_STATUSES = [
   "Aguardando entregador",
   "Em entrega",
   "Entregue",
-  "Encerrado e pago",
+  "Finalizado",
 ] as const;
 export type StatusPedido = (typeof ESTEIRA_STATUSES)[number] | "Cancelado";
 
 /**
  * Terminal statuses that drop an order off the active operational board.
  * "Entregue" stays on the board so the operator can still finalize payment
- * ("Encerrado e pago"); only a closed/paid or cancelled order leaves the board.
+ * ("Finalizado"); only a closed/paid or cancelled order leaves the board.
  */
-export const TERMINAL_STATUSES: StatusPedido[] = ["Encerrado e pago", "Cancelado"];
+export const TERMINAL_STATUSES: StatusPedido[] = ["Finalizado", "Cancelado"];
 
 /** A dynamic, relational payment method (table `meios_pagamento`). */
 export interface MeioPagamento {
@@ -229,7 +229,7 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
     .select(
       "id, user_id, status, status_pedido, total, discount, desconto_manual, delivery_address, phone, notes, observacoes_operador, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
     )
-    .not("status_pedido", "in", '("Encerrado e pago",Cancelado)')
+    .not("status_pedido", "in", '("Finalizado",Cancelado)')
     // Rascunhos e pagamentos abandonados nunca chegam ao Caixa/KDS — ficam
     // guardados apenas para relatórios de desistência.
     .not("status", "in", "(rascunho_pagamento,pagamento_abandonado)")

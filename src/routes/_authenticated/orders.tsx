@@ -204,7 +204,7 @@ function OrdersPage() {
                   </div>
                 </div>
 
-                {isReorderable(order.status) && (
+                {isReorderable(order.status_pedido) && (
                   <button
                     onClick={() => handleReorder(order.id)}
                     disabled={reorderingId === order.id}
