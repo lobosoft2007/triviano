@@ -148,12 +148,23 @@ export interface OrderRow {
 }
 
 export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
+  // Isolamento de histórico: mesmo um admin logado no PWA só vê os pedidos
+  // feitos pelo seu próprio user_id nesta tela de "Meus pedidos". A policy
+  // "Admins can view all orders" liberaria todos os pedidos da empresa, então
+  // filtramos explicitamente pelo usuário atual aqui.
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return [];
+
   let query = supabase
     .from("orders")
     .select(
       "id, status, total, discount, delivery_address, created_at, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes)",
     )
-    .neq("status", "rascunho_pagamento")
+    .eq("user_id", userId)
+    // Rascunhos de pagamento e pagamentos abandonados são totalmente
+    // invisíveis para o cliente — só existem para relatórios de desistência.
+    .not("status", "in", "(rascunho_pagamento,pagamento_abandonado)")
     .order("created_at", { ascending: false });
   // Isolamento por ambiente: mostra apenas os pedidos do tenant do host atual.
   // Em produção resolve para o restaurante real; no staging (Pizzaria Teste)
