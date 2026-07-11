@@ -351,9 +351,13 @@ export type Database = {
           gateway_banco: string
           id: string
           mp_access_token: string
+          mp_access_token_prod: string
+          mp_access_token_test: string
           mp_ambiente: string
           mp_ativo: boolean
           mp_public_key: string
+          mp_public_key_prod: string
+          mp_public_key_test: string
           mp_webhook_secret: string
           nome_recebedor: string
           updated_at: string
@@ -377,9 +381,13 @@ export type Database = {
           gateway_banco?: string
           id?: string
           mp_access_token?: string
+          mp_access_token_prod?: string
+          mp_access_token_test?: string
           mp_ambiente?: string
           mp_ativo?: boolean
           mp_public_key?: string
+          mp_public_key_prod?: string
+          mp_public_key_test?: string
           mp_webhook_secret?: string
           nome_recebedor?: string
           updated_at?: string
@@ -403,9 +411,13 @@ export type Database = {
           gateway_banco?: string
           id?: string
           mp_access_token?: string
+          mp_access_token_prod?: string
+          mp_access_token_test?: string
           mp_ambiente?: string
           mp_ativo?: boolean
           mp_public_key?: string
+          mp_public_key_prod?: string
+          mp_public_key_test?: string
           mp_webhook_secret?: string
           nome_recebedor?: string
           updated_at?: string
@@ -2739,7 +2751,7 @@ export type Database = {
         }[]
       }
       get_mp_public_config: {
-        Args: { p_host?: string }
+        Args: { p_ambiente?: string; p_host?: string }
         Returns: {
           aceita_cartao_online: boolean
           aceita_na_entrega: boolean
@@ -2885,6 +2897,7 @@ export type Database = {
         }
         Returns: number
       }
+      mp_env_for_host: { Args: { p_host: string }; Returns: string }
       mp_get_order_status: {
         Args: { p_order_id: string }
         Returns: {
@@ -2955,6 +2968,14 @@ export type Database = {
       set_fiado_config: {
         Args: { p_autorizado: boolean; p_limite: number; p_user_id: string }
         Returns: undefined
+      }
+      storage_path_empresa_allowed: {
+        Args: { _name: string }
+        Returns: boolean
+      }
+      storage_path_is_empresa_prefixed: {
+        Args: { _name: string }
+        Returns: boolean
       }
       subproduto_unit_cost: { Args: { p_sub_id: string }; Returns: number }
       user_empresa_id: { Args: { _user_id: string }; Returns: string }
