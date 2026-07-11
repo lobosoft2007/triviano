@@ -33,6 +33,9 @@ const statusLabels: Record<string, string> = {
 function OrdersPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { addLine } = useCart();
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
   const { data: empresa } = useQuery(empresaQueryOptions);
   const empresaId = empresa?.id;
   const { data, isLoading } = useQuery({
@@ -40,6 +43,36 @@ function OrdersPage() {
     queryFn: () => fetchOrders(empresaId),
     enabled: !!empresaId,
   });
+
+  async function handleReorder(orderId: string) {
+    if (reorderingId) return;
+    setReorderingId(orderId);
+    try {
+      const result = await repeatOrder(orderId);
+      if (!result.eligible || result.lines.length === 0) {
+        toast.error("Nenhum item deste pedido está disponível no momento.");
+        return;
+      }
+      for (const { line, quantity } of result.lines) {
+        addLine(line, quantity);
+      }
+      if (result.skippedItems > 0) {
+        toast.warning(
+          `${result.skippedItems} ${
+            result.skippedItems === 1 ? "item foi ignorado" : "itens foram ignorados"
+          } por estarem fora do cardápio.`,
+        );
+      } else {
+        toast.success("Itens adicionados ao carrinho!");
+      }
+      void navigate({ to: "/" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Não foi possível repetir o pedido: ${message}`);
+    } finally {
+      setReorderingId(null);
+    }
+  }
 
   // Ação de leitura automática: ao visualizar os pedidos, marca como lidas as
   // notificações vinculadas a eles (atualização de status já foi vista).
