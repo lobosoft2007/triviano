@@ -2968,6 +2968,10 @@ export type Database = {
         Args: { p_autorizado: boolean; p_limite: number; p_user_id: string }
         Returns: undefined
       }
+      storage_path_empresa_allowed: {
+        Args: { _name: string }
+        Returns: boolean
+      }
       subproduto_unit_cost: { Args: { p_sub_id: string }; Returns: number }
       user_empresa_id: { Args: { _user_id: string }; Returns: string }
     }
