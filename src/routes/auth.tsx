@@ -151,7 +151,7 @@ function AuthPage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword(parsed.data);
+    const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
     setSubmitting(false);
     if (error) {
       if (clearCorruptedAuthStorageForCheckout(error)) return;
@@ -165,7 +165,14 @@ function AuthPage() {
       toast.error("Não foi possível entrar. Verifique e-mail e senha.");
       return;
     }
-    toast.success("Bem-vindo de volta!");
+    const user = data?.user;
+    const displayName =
+      typeof user?.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()
+        ? user.user_metadata.full_name.trim()
+        : null;
+    toast.success(
+      displayName ? `Bem-vindo, ${displayName}!` : user?.email ? `Bem-vindo, ${user.email}!` : "Bem-vindo de volta!"
+    );
     navigateAfterConfirmedAuth();
   }
 
@@ -252,7 +259,7 @@ function AuthPage() {
 
   async function handleVerifyOtp(code: string) {
     setSubmitting(true);
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       email: pendingEmail,
       token: code,
       type: "email",
@@ -262,7 +269,17 @@ function AuthPage() {
       toast.error("Código inválido ou expirado. Verifique e tente novamente.");
       return;
     }
-    toast.success("E-mail confirmado! Bem-vindo ao Clube 23.");
+    const user = data?.user;
+    const displayName =
+      typeof user?.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()
+        ? user.user_metadata.full_name.trim()
+        : null;
+    const welcome = displayName
+      ? `Bem-vindo, ${displayName}!`
+      : user?.email
+        ? `Bem-vindo, ${user.email}!`
+        : "Bem-vindo de volta!";
+    toast.success(`E-mail confirmado! ${welcome}`);
     navigateAfterConfirmedAuth();
   }
 
@@ -426,6 +443,9 @@ function AuthPage() {
                   {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}
                 </Button>
               </form>
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                Desenvolvido por Triviano — versão 1.26.07
+              </p>
             </TabsContent>
 
             <TabsContent value="signup">
