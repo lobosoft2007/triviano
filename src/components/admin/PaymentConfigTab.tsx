@@ -315,45 +315,112 @@ export function PaymentConfigTab() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mp-token">Access Token (secreto)</Label>
-                <Input
-                  id="mp-token"
-                  type="password"
-                  value={form.mp_access_token}
-                  onChange={(e) => setForm({ ...form, mp_access_token: e.target.value })}
-                  placeholder="APP_USR-... ou TEST-..."
-                />
+                <Label>Ambiente em uso</Label>
+                <select
+                  value={form.mp_ambiente}
+                  onChange={(e) => setForm({ ...form, mp_ambiente: e.target.value })}
+                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
+                >
+                  <option value="test">Teste (sandbox)</option>
+                  <option value="prod">Produção</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  O checkout usa automaticamente as chaves do ambiente
+                  selecionado. Deixe as duas configurações salvas e alterne aqui
+                  com um clique.
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="mp-pubkey">Public Key</Label>
-                <Input
-                  id="mp-pubkey"
-                  value={form.mp_public_key}
-                  onChange={(e) => setForm({ ...form, mp_public_key: e.target.value })}
-                  placeholder="APP_USR-... ou TEST-..."
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+              {/* Chaves de PRODUÇÃO */}
+              <div
+                className={`space-y-3 rounded-lg border p-3 ${
+                  form.mp_ambiente === "prod"
+                    ? "border-emerald-500/60 bg-emerald-50/60 dark:bg-emerald-900/10"
+                    : "border-border"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">Produção</span>
+                  {form.mp_ambiente === "prod" && (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      Em uso
+                    </span>
+                  )}
+                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="mp-secret">Segredo do Webhook</Label>
+                  <Label htmlFor="mp-pubkey-prod">Public Key (Produção)</Label>
                   <Input
-                    id="mp-secret"
-                    type="password"
-                    value={form.mp_webhook_secret}
-                    onChange={(e) => setForm({ ...form, mp_webhook_secret: e.target.value })}
+                    id="mp-pubkey-prod"
+                    value={form.mp_public_key_prod}
+                    onChange={(e) =>
+                      setForm({ ...form, mp_public_key_prod: e.target.value })
+                    }
+                    placeholder="APP_USR-..."
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Ambiente</Label>
-                  <select
-                    value={form.mp_ambiente}
-                    onChange={(e) => setForm({ ...form, mp_ambiente: e.target.value })}
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
-                  >
-                    <option value="test">Teste (sandbox)</option>
-                    <option value="prod">Produção</option>
-                  </select>
+                  <Label htmlFor="mp-token-prod">Access Token (Produção)</Label>
+                  <Input
+                    id="mp-token-prod"
+                    type="password"
+                    value={form.mp_access_token_prod}
+                    onChange={(e) =>
+                      setForm({ ...form, mp_access_token_prod: e.target.value })
+                    }
+                    placeholder="APP_USR-..."
+                  />
                 </div>
+              </div>
+
+              {/* Chaves de TESTE */}
+              <div
+                className={`space-y-3 rounded-lg border p-3 ${
+                  form.mp_ambiente === "test"
+                    ? "border-emerald-500/60 bg-emerald-50/60 dark:bg-emerald-900/10"
+                    : "border-border"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">Teste / Sandbox</span>
+                  {form.mp_ambiente === "test" && (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      Em uso
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mp-pubkey-test">Public Key (Teste)</Label>
+                  <Input
+                    id="mp-pubkey-test"
+                    value={form.mp_public_key_test}
+                    onChange={(e) =>
+                      setForm({ ...form, mp_public_key_test: e.target.value })
+                    }
+                    placeholder="TEST-..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mp-token-test">Access Token (Teste)</Label>
+                  <Input
+                    id="mp-token-test"
+                    type="password"
+                    value={form.mp_access_token_test}
+                    onChange={(e) =>
+                      setForm({ ...form, mp_access_token_test: e.target.value })
+                    }
+                    placeholder="TEST-..."
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mp-secret">Segredo do Webhook</Label>
+                <Input
+                  id="mp-secret"
+                  type="password"
+                  value={form.mp_webhook_secret}
+                  onChange={(e) => setForm({ ...form, mp_webhook_secret: e.target.value })}
+                />
               </div>
             </div>
 
