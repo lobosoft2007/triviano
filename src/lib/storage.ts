@@ -70,7 +70,8 @@ export async function resolveImageUrls(
 /** Upload a local image file to the menu bucket and return its storage path. */
 export async function uploadMenuImage(file: File): Promise<string> {
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `menu/${crypto.randomUUID()}.${ext}`;
+  const empresaId = await currentEmpresaId();
+  const path = `${empresaId}/menu/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage
     .from(MENU_IMAGE_BUCKET)
     .upload(path, file, {
@@ -85,7 +86,8 @@ export async function uploadMenuImage(file: File): Promise<string> {
 /** Upload a company logo to the (private) menu bucket and return its storage path. */
 export async function uploadEmpresaLogo(file: File): Promise<string> {
   const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-  const path = `logos/${crypto.randomUUID()}.${ext}`;
+  const empresaId = await currentEmpresaId();
+  const path = `${empresaId}/logos/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage
     .from(MENU_IMAGE_BUCKET)
     .upload(path, file, {
