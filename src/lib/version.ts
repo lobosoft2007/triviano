@@ -19,7 +19,29 @@
 // ============================================================================
 
 export const APP_VERSION = "1.0.1";
-export const LAST_PATCH_DATE = "2024-07-11";
+export const LAST_PATCH_DATE = "2026-07-11";
+export const VERSION_STATUS = "ESTÁVEL";
 
 /** Rótulo pronto para exibição, ex.: "v1.0.1". */
 export const APP_VERSION_LABEL = `v${APP_VERSION}`;
+
+/** Registro de release estável — ponto de retorno seguro. */
+export const STABLE_RELEASE = {
+  version: APP_VERSION,
+  status: VERSION_STATUS,
+  date: LAST_PATCH_DATE,
+  safeRollback: true,
+  validated: [
+    "PIX (pago)",
+    "Dinheiro",
+    "Carrinho persistente",
+    "Rascunhos",
+    "Webhook",
+    "Trigger de bloqueio",
+    "Versionamento",
+  ],
+  knownIssues: [
+    "Rascunhos órfãos desaparecem quando novo pedido é criado",
+    "Isolamento de tenants (admin vê pedidos do cliente)",
+  ],
+} as const;
