@@ -48,6 +48,22 @@ export function currentHost(): string {
   return host;
 }
 
+/**
+ * Ambiente de pagamento detectado AUTOMATICAMENTE a partir do host REAL do
+ * navegador (nunca do host sintético de tenant). Regra:
+ *  - Staging/Preview/local (localhost, *.lovable.app, id-preview--…) → "test"
+ *  - Domínios próprios de produção (*.com.br / *.com) → "prod"
+ *
+ * Assim o operador cadastra as duas credenciais uma única vez e o software
+ * escolhe sozinho qual usar dependendo de onde está rodando. Não confundir com
+ * currentHost(), que mascara os hosts de staging como tenant sandbox.
+ */
+export function currentEnv(): "prod" | "test" {
+  if (typeof window === "undefined") return "test";
+  return isStagingHost(window.location.hostname) ? "test" : "prod";
+}
+
+
 export interface Empresa {
   id: string;
   nome_fantasia: string;

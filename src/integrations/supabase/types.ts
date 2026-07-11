@@ -2751,7 +2751,7 @@ export type Database = {
         }[]
       }
       get_mp_public_config: {
-        Args: { p_host?: string }
+        Args: { p_ambiente?: string; p_host?: string }
         Returns: {
           aceita_cartao_online: boolean
           aceita_na_entrega: boolean
@@ -2897,6 +2897,7 @@ export type Database = {
         }
         Returns: number
       }
+      mp_env_for_host: { Args: { p_host: string }; Returns: string }
       mp_get_order_status: {
         Args: { p_order_id: string }
         Returns: {

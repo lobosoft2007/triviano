@@ -33,6 +33,8 @@ function json(body: unknown, status = 200) {
 interface CreatePaymentBody {
   order_id: string;
   method: "pix" | "card";
+  // Ambiente detectado no frontend a partir do host real do navegador.
+  env?: "prod" | "test";
   // Card-only (Checkout Transparente / Card Payment Brick):
   token?: string;
   installments?: number;
@@ -42,6 +44,18 @@ interface CreatePaymentBody {
     email?: string;
     identification?: { type?: string; number?: string };
   };
+}
+
+/** Deriva o ambiente (prod/test) a partir de um host, como fallback. */
+function envFromHost(host: string): "prod" | "test" {
+  const h = (host ?? "").toLowerCase();
+  if (!h) return "test";
+  if (h === "localhost" || h.startsWith("127.")) return "test";
+  if (h.includes("id-preview--")) return "test";
+  if (h.endsWith(".lovable.app") || h.endsWith(".lovable.dev")) return "test";
+  if (h.endsWith(".lovableproject.com") || h.endsWith(".local")) return "test";
+  if (h.endsWith(".com.br") || h.endsWith(".com")) return "prod";
+  return "test";
 }
 
 Deno.serve(async (req) => {
@@ -88,17 +102,39 @@ Deno.serve(async (req) => {
   // 3) Credenciais do MERCADO PAGO da EMPRESA dona do pedido (multi-tenant).
   const { data: cfg } = await admin
     .from("config_pagamentos")
-    .select("mp_access_token, mp_ativo")
+    .select(
+      "mp_access_token, mp_access_token_prod, mp_access_token_test, mp_ativo",
+    )
     .eq("empresa_id", order.empresa_id)
     .eq("ativo", true)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const accessToken = cfg?.mp_access_token?.trim();
+  // Ambiente detectado automaticamente: preferimos o enviado pelo frontend
+  // (host real do navegador) e caímos para a origem/referer como fallback.
+  const originHost = (() => {
+    try {
+      const u = req.headers.get("origin") || req.headers.get("referer") || "";
+      return u ? new URL(u).hostname : "";
+    } catch {
+      return "";
+    }
+  })();
+  const env: "prod" | "test" =
+    body.env === "prod" || body.env === "test" ? body.env : envFromHost(originHost);
+
+  // Escolha automática do token conforme o ambiente. Mantemos fallback para o
+  // token "efetivo" legado, garantindo continuidade se as chaves separadas
+  // ainda não estiverem preenchidas.
+  const envToken =
+    env === "prod" ? cfg?.mp_access_token_prod : cfg?.mp_access_token_test;
+  const accessToken = (envToken?.trim() || cfg?.mp_access_token?.trim()) ?? "";
   if (!cfg?.mp_ativo || !accessToken) {
     return json({ error: "Mercado Pago não configurado para esta empresa." }, 400);
   }
+  console.log(`mp-create-payment: ambiente=${env} host=${originHost}`);
+
 
   const amount = Number(order.total).toFixed(2);
   const payerEmail = body.payer?.email?.trim() || user.email || "comprador@example.com";
@@ -141,7 +177,7 @@ Deno.serve(async (req) => {
         // múltiplas Orders no MP e sobrescrever mp_payment_id no pedido local;
         // se o cliente pagasse uma cobrança antiga, o webhook não encontrava
         // mais a linha e o polling ficava preso no QR.
-        "X-Idempotency-Key": `${order.id}-${body.method}`,
+        "X-Idempotency-Key": `${order.id}-${body.method}-${env}`,
       },
       body: JSON.stringify(mpBody),
     });

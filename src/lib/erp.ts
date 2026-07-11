@@ -763,15 +763,15 @@ export async function saveConfigPagamento(input: {
   aceita_cartao_online?: boolean;
   aceita_na_entrega?: boolean;
 }): Promise<void> {
-  const ambiente = (input.mp_ambiente ?? "test").trim();
   const pubProd = (input.mp_public_key_prod ?? "").trim();
   const tokProd = (input.mp_access_token_prod ?? "").trim();
   const pubTest = (input.mp_public_key_test ?? "").trim();
   const tokTest = (input.mp_access_token_test ?? "").trim();
-  // Chaves "efetivas" resolvidas pelo ambiente selecionado — usadas pelo
-  // checkout (get_mp_public_config) e pelas Edge Functions sem alterações.
-  const effectivePublic = ambiente === "prod" ? pubProd : pubTest;
-  const effectiveToken = ambiente === "prod" ? tokProd : tokTest;
+  // A seleção do ambiente agora é AUTOMÁTICA (pelo host onde o app roda), então
+  // não há mais seletor manual. Guardamos as duas credenciais e mantemos as
+  // colunas "efetivas" legadas como fallback (preferindo produção quando houver).
+  const effectivePublic = pubProd || pubTest;
+  const effectiveToken = tokProd || tokTest;
 
   const payload = {
     gateway_banco: input.gateway_banco.trim(),
@@ -789,11 +789,12 @@ export async function saveConfigPagamento(input: {
     mp_public_key: effectivePublic,
     mp_webhook_secret: (input.mp_webhook_secret ?? "").trim(),
     mp_ativo: input.mp_ativo ?? false,
-    mp_ambiente: ambiente,
+    mp_ambiente: "auto",
     aceita_pix_online: input.aceita_pix_online ?? true,
     aceita_cartao_online: input.aceita_cartao_online ?? true,
     aceita_na_entrega: input.aceita_na_entrega ?? true,
   };
+
 
   let id = input.id ?? null;
   if (id) {
