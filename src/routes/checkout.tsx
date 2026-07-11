@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2, MapPin, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
-import { fetchProfile, placeOrder } from "@/lib/orders";
+import { fetchProfile, placeOrder, discardUnpaidDrafts } from "@/lib/orders";
 import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
@@ -556,6 +556,15 @@ function CheckoutPage() {
       }
     } catch {
       /* availability is best-effort; never block checkout on its failure */
+    }
+    // Higiene de rascunhos: antes de registrar um novo pedido, arquiva
+    // qualquer rascunho de pagamento anterior do próprio cliente que ficou
+    // sem pagar (marca como 'pagamento_abandonado' para o BI de desistência).
+    // Best-effort: nunca bloqueia o checkout se falhar.
+    try {
+      await discardUnpaidDrafts();
+    } catch {
+      /* arquivamento de abandono é best-effort; não bloqueia o checkout */
     }
     try {
       // Registra a forma de pagamento escolhida nas observações para que a
