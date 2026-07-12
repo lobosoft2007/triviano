@@ -35,6 +35,25 @@ export function isExternalUrl(value: string): boolean {
 }
 
 /**
+ * Performance safety net: ask Supabase for a WebP variant capped at `width`px.
+ * Public Storage URLs are routed through the image render (transformation)
+ * endpoint so they are physically resized; private/signed URLs just receive the
+ * hint params. Non-Supabase URLs (Unsplash, app assets) are returned untouched.
+ * If the transformed request ever fails, ProductImage falls back to the plain
+ * URL, so no real photo is ever lost.
+ */
+export function withImageTransform(url: string, width = 500): string {
+  if (!url || !url.includes("/storage/v1/") || url.includes("/render/image/")) {
+    return url;
+  }
+  const out = url.includes("/object/public/")
+    ? url.replace("/object/public/", "/render/image/public/")
+    : url;
+  const sep = out.includes("?") ? "&" : "?";
+  return `${out}${sep}width=${width}&format=webp`;
+}
+
+/**
  * Resolve stored image references into displayable URLs.
  * - External URLs (http/https or "/asset" paths) are returned as-is.
  * - Storage object paths are turned into signed URLs (bucket is private).
