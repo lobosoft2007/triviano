@@ -55,10 +55,21 @@ export function PaymentDialog({
     enabled: open,
   });
 
+  // Configuração pública do Mercado Pago do tenant (só chave pública).
+  const { data: mpConfig } = useQuery({
+    queryKey: ["mp-public-config"],
+    queryFn: fetchMpPublicConfig,
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  });
+  const mpPixActive = !!mpConfig?.ativo && !!mpConfig?.aceita_pix_online;
+
   const [meioId, setMeioId] = useState("");
   const [valor, setValor] = useState("");
   const [busy, setBusy] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  // Cobrança PIX online (QR dinâmico do Mercado Pago) para o total do pedido.
+  const [onlinePix, setOnlinePix] = useState(false);
 
   // Default the selector to the first active method once they load.
   useEffect(() => {
@@ -73,6 +84,14 @@ export function PaymentDialog({
   const restanteCents = totalCents - totalPagoCents;
   const restante = restanteCents / 100;
   const matches = restanteCents === 0;
+  // PIX online cobra sempre o TOTAL do pedido (a Order do MP não é parcial),
+  // então só é oferecido quando ainda não há pagamento parcial lançado.
+  const canOnlinePix = mpPixActive && totalPagoCents === 0 && totalCents > 0;
+  const pixMeio = useMemo(
+    () => (meios ?? []).find((m) => m.nome.trim().toLowerCase() === "pix"),
+    [meios],
+  );
+
 
   async function handleAdd() {
     const v = Number(valor.replace(",", "."));
