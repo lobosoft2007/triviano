@@ -32,6 +32,9 @@ import { Button } from "@/components/ui/button";
 const heroImg = "/images/hero.jpg";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (s: Record<string, unknown>): { denied?: string } => ({
+    denied: typeof s.denied === "string" ? s.denied : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Clube 23 — Delivery de fast food" },
