@@ -180,6 +180,17 @@ export function BalcaoView() {
       const senha = await fetchOrderSenha(orderId);
       const snapshot = lines;
 
+      // Track the last counter attendance for the operator's quick reference.
+      if (senha) {
+        setLastOrder({
+          senha: String(senha),
+          time: new Date().toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        });
+      }
+
       // 1) Always print the customer pickup-password coupon.
       if (senha) {
         await printAndRun(
