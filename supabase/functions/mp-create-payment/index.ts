@@ -35,6 +35,11 @@ interface CreatePaymentBody {
   method: "pix" | "card";
   // Ambiente detectado no frontend a partir do host real do navegador.
   env?: "prod" | "test";
+  // Contexto de origem da cobrança:
+  //  - "app"    : cliente pagando pelo app (fluxo padrão, gating de visibilidade).
+  //  - "balcao" : PDV/Balcão — pedido nasce oculto (rascunho) até a confirmação.
+  //  - "mesa"   : Mesa/Delivery já ativo no Caixa — NÃO alterar visibilidade.
+  context?: "app" | "balcao" | "mesa";
   // Card-only (Checkout Transparente / Card Payment Brick):
   token?: string;
   installments?: number;
