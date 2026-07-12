@@ -670,35 +670,12 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
 
       {/* Hidden thermal print surface */}
       <div className="thermal-receipt">{printNode}</div>
-    </AppShell>
+        </AppShell>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 
-function TabButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-        active
-          ? "bg-primary text-primary-foreground"
-          : "bg-secondary text-secondary-foreground"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /* Delivery column                                                     */
