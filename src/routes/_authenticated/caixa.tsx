@@ -46,6 +46,12 @@ import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { PartialReportDialog } from "@/components/caixa/PartialReportDialog";
 import { BalcaoView } from "@/components/caixa/BalcaoView";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { CaixaSidebar } from "@/components/caixa/CaixaSidebar";
 
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
