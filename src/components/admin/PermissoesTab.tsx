@@ -6,18 +6,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   fetchNiveis,
   createNivel,
   renameNivel,
   deleteNivel,
   setFlag,
+  applyMatrizPreset,
   type NivelComMatriz,
 } from "@/lib/niveis";
 import { PERMISSION_LABELS, type PermissionFlag } from "@/lib/permissions";
+import { CARGO_PRESETS, CUSTOM_PRESET_ID } from "@/lib/cargos";
 
 export function PermissoesTab() {
   const qc = useQueryClient();
   const [novoNome, setNovoNome] = useState("");
+  const [preset, setPreset] = useState<string>(CUSTOM_PRESET_ID);
   const [saving, setSaving] = useState(false);
 
   const { data: niveis, isLoading } = useQuery({
@@ -30,14 +40,26 @@ export function PermissoesTab() {
     qc.invalidateQueries({ queryKey: ["my-permissions"] });
   };
 
+  const handlePresetChange = (id: string) => {
+    setPreset(id);
+    const p = CARGO_PRESETS.find((c) => c.id === id);
+    // Preenche o nome sugerido quando o campo está vazio ou casava com outro preset.
+    if (p && (!novoNome.trim() || CARGO_PRESETS.some((c) => c.nome === novoNome.trim()))) {
+      setNovoNome(p.nome);
+    }
+  };
+
   const handleCreate = async () => {
     const nome = novoNome.trim();
     if (!nome) return;
     setSaving(true);
     try {
-      await createNivel(nome);
+      const id = await createNivel(nome);
+      const chosen = CARGO_PRESETS.find((c) => c.id === preset);
+      if (chosen) await applyMatrizPreset(id, chosen.flags);
       setNovoNome("");
-      toast.success("Nível criado.");
+      setPreset(CUSTOM_PRESET_ID);
+      toast.success(chosen ? `Cargo "${chosen.nome}" criado.` : "Nível criado.");
       invalidate();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível criar o nível.");
@@ -100,19 +122,38 @@ export function PermissoesTab() {
           <h2 className="font-display text-base font-bold">Níveis de Acesso</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Crie até 10 níveis customizáveis (Garçom, Cozinheiro, Gerente…) e ligue/desligue cada
-          recurso do sistema. O administrador sempre tem acesso total.
+          Crie até 10 cargos customizáveis. Escolha um modelo pronto (Garçom, Cozinheiro,
+          Financeiro…) para já ligar as permissões típicas — depois ajuste o que quiser. O
+          administrador sempre tem acesso total.
         </p>
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <Select value={preset} onValueChange={handlePresetChange} disabled={atLimit}>
+            <SelectTrigger className="sm:w-52">
+              <SelectValue placeholder="Modelo de cargo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={CUSTOM_PRESET_ID}>Personalizado (vazio)</SelectItem>
+              {CARGO_PRESETS.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Input
-            placeholder="Nome do novo nível"
+            placeholder="Nome do novo cargo"
             value={novoNome}
             onChange={(e) => setNovoNome(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
             disabled={atLimit}
           />
           <Button onClick={handleCreate} disabled={saving || atLimit || !novoNome.trim()}>
-            <Plus className="mr-1 h-4 w-4" /> Adicionar
+            {saving ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="mr-1 h-4 w-4" />
+            )}
+            Adicionar
           </Button>
         </div>
         {atLimit && (

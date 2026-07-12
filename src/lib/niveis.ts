@@ -16,13 +16,16 @@ export interface NivelComMatriz extends Nivel {
 
 const FLAGS: PermissionFlag[] = [
   "acesso_kds_cozinha",
+  "acesso_bar",
   "acesso_atendimento_balcao",
   "acesso_mesas",
   "acesso_delivery",
+  "acesso_entregas",
   "acesso_entrada_estoque",
   "acesso_sangria_suprimento",
   "acesso_cadastro_produtos",
   "acesso_financeiro",
+  "acesso_rh",
 ];
 
 /** Loads every access level of the admin's company with its permission matrix. */
@@ -47,8 +50,26 @@ export async function fetchNiveis(): Promise<NivelComMatriz[]> {
   });
 }
 
-export async function createNivel(nome_nivel: string): Promise<void> {
-  const { error } = await supabase.from("niveis_acesso").insert({ nome_nivel });
+export async function createNivel(nome_nivel: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("niveis_acesso")
+    .insert({ nome_nivel })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+/** Applies a set of permission flags to a level's matrix in one update. */
+export async function applyMatrizPreset(
+  nivel_id: string,
+  flags: Partial<Record<PermissionFlag, boolean>>,
+): Promise<void> {
+  if (Object.keys(flags).length === 0) return;
+  const { error } = await supabase
+    .from("permissoes_matriz")
+    .update(flags)
+    .eq("nivel_id", nivel_id);
   if (error) throw error;
 }
 
