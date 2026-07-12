@@ -1,93 +1,65 @@
-# Fase 4 — Controle de Acesso Físico (com refino UX SOTA)
+## Cockpit Operacional v1.2.0 — Sidebar Segura do /caixa
 
-Blindagem de acesso ponta a ponta reusando a Matriz de Permissões já carregada. **Sem mexer em banco, RPC ou regra de negócio** — só navegação e guarda no front-end.
+Transforma a barra superior de abas do painel operacional (`/caixa`) em uma **Sidebar lateral com accordions**, sem afrouxar nenhuma verificação de permissão. Toda a lógica de segurança atual (`usePermissions` + flags da `permissoes_matriz` + `is_admin`) é reaproveitada — cada item/submenu é **envolvido em condicional**, então o que o usuário não pode acessar **não é renderizado** (não fica apenas desabilitado).
 
-## Diagnóstico (o que já existe)
+### 1. Mapeamento de Permissões (o pedido central — revise antes de eu executar)
 
-- **Carregamento de chaves (Passo 1): PRONTO.** `usePermissions()` chama `get_my_permissions` (resolve `profiles.nivel_id → permissoes_matriz`) e devolve todas as flags. `is_admin` fura a matriz.
-- **Higiene de menus (Passo 2): PARCIAL.** `/admin` já filtra abas por `TABS.filter(tabAllowed)`; `/caixa` já condiciona cada `TabButton`. Falta padronizar e cobrir 100% dos itens.
-- **Lacunas:** `route.tsx` só checa login; não há URL por módulo (deep-link não interceptável); não há `toast.error` de acesso negado; não há landing inteligente por nível.
+Regra global: `is_admin` (Master) sempre vê tudo. Um grupo (accordion) só aparece se **pelo menos um** dos seus filhos for permitido.
 
-## Arquitetura de guarda (2 camadas)
+| Grupo / Item | Ação/Aba | Flag exigida (além de `is_admin`) |
+|---|---|---|
+| **OPERACIONAL** | *(grupo)* | qualquer filho abaixo |
+| ↳ Mesas | tab `mesas` | `acesso_mesas` |
+| ↳ Delivery | tab `delivery` | `acesso_delivery` |
+| ↳ Balcão | tab `balcao` | `acesso_atendimento_balcao` |
+| **CLIENTES** | *(grupo)* | qualquer filho abaixo |
+| ↳ Conta Corrente | tab `fiado` | `acesso_financeiro` |
+| ↳ Cadastro de Clientes | tab `clientes` | `master` (só Master) |
+| **FISCAL** | tab `fiscal` (acesso direto) | `master` |
+| **CAIXA** | *(grupo)* | qualquer filho abaixo |
+| ↳ Consultar Caixa (Parcial) | abre `PartialReportDialog` | `acesso_financeiro` |
+| ↳ Suprimento | `handleMov("Suprimento")` | `acesso_sangria_suprimento` |
+| ↳ Sangria | `handleMov("Sangria")` | `acesso_sangria_suprimento` |
+| ↳ Recebimento | `handleMov("Recebimento Pedido")` | `acesso_financeiro` |
+| ↳ Fechar Caixa | abre `CloseCaixaDialog` | `master` |
+| **ESTOQUE** | *(grupo)* | qualquer filho abaixo |
+| ↳ Ajuste Rápido | abre dialog `AjusteRapidoView` | `acesso_entrada_estoque` |
+| **CONFIGURAÇÕES** | *(grupo — Master)* | `master` |
+| ↳ Impressão (setores) | tab `config` | `master` |
+| ↳ Pagamento | tab `pagamento` | `master` |
 
-```text
-  /caixa  /admin  /superadmin        <- URLs reais  => Camada 1 (route.tsx)
-     |       |                        (bloqueio de porta por superfície)
-     +---- ?tab=financeiro -----+     <- deep-link   => Camada 2 (página)
-             abas internas            (bloqueio de módulo + toast)
-```
+> **Decisões que precisam do seu aval** (não estavam na sua lista, então propus um lar lógico): as abas Master-only **Impressão** e **Pagamento** foram agrupadas em **CONFIGURAÇÕES**; **Fechar Caixa** entrou no grupo **CAIXA**; e o **Cadastro de Clientes** (Master) ficou junto de Conta Corrente no grupo **CLIENTES**. Se preferir outro arranjo (ex.: remover algum, renomear, mover Fechar Caixa para o rodapé), ajusto na revisão.
 
-## Passo 1 — Higiene Visual (Sidebar/Menus) — refino UX
+### 2. Arquitetura da Sidebar
 
-- Confirmar que **todos** os itens de menu do `/admin` e `/caixa` só renderizam quando a flag correspondente for `true` (via `usePermissions`). Nenhum botão de módulo proibido deve aparecer, nem mesmo desabilitado.
-- Auditoria por item:
-  - `/admin`: já usa `TABS.filter(tabAllowed)` + mapa `TAB_FLAG`. Revisar cada linha do `TAB_FLAG` e o botão "Painel Master" (só `super_admin`).
-  - `/caixa`: revisar cada `TabButton` e cada ação (Sangria/Suprimento/Recebimento/Estoque) para garantir gate por flag (`canSangria`, `canFinanceiro`, `canEstoque`, `isMaster`, etc.).
-- Centralizar a lógica no `permissions.ts` para evitar divergência entre as duas telas.
+- Novo componente `src/components/caixa/CaixaSidebar.tsx` usando as primitivas shadcn já instaladas (`Sidebar`, `SidebarContent`, `SidebarGroup`, `SidebarMenu`, `Collapsible`/`accordion` para os submenus, `collapsible="icon"` para recolher).
+- Recebe `perms`, o `tab` ativo, e callbacks: `onSelectTab(tab)`, `onSuprimento`, `onSangria`, `onRecebimento`, `onParcial`, `onAjuste`, `onFecharCaixa`, `onLock`.
+- Cada `SidebarGroup`/item é renderizado atrás de um helper de guarda (reutiliza `caixaTabAllowed` + checagens diretas de flag), garantindo **não-renderização** para quem não tem acesso.
+- **Topo:** `BrandLogo` (logo + nome do restaurante da empresa ativa).
+- **Rodapé (`SidebarFooter`):** logo **Triviano** (`public/logo-triviano.svg`) + item **Suporte** + botão **Bloquear Caixa** (`onLock`).
 
-## Passo 2 — Default Landing inteligente — refino UX
+### 3. Novo layout do `/caixa`
 
-- Criar helper `firstAllowedRoute(perms)` em `src/lib/permissions.ts` que devolve a rota inicial ideal do usuário conforme suas flags. Ordem de prioridade (staff):
-  - `super_admin` → `/superadmin`
-  - `is_admin` → `/caixa` (ou `/admin`)
-  - `acesso_kds_cozinha` / `acesso_bar` → `/caixa?tab=...` (Cozinheiro cai no KDS, Barman no Bar)
-  - `acesso_atendimento_balcao`/`acesso_mesas`/`acesso_delivery` → `/caixa`
-  - `acesso_financeiro`/`acesso_entrada_estoque`/etc. → `/admin?tab=<primeira permitida>`
-  - cliente comum (sem flags de staff) → `/` (PWA cliente)
-- Aplicar esse helper:
-  - Após login e no redirect pós-`post_login_redirect`, se o destino padrão não for permitido, cair no `firstAllowedRoute`.
-  - Dentro de `/admin` e `/caixa`, a aba inicial já respeita permissão; alinhar com o helper para consistência (Cozinheiro entra direto na aba KDS).
+- `OperationalPanel` passa a envolver tudo em `SidebarProvider` com layout em linha: `<CaixaSidebar/>` à esquerda + área principal (`AppShell`/`ShellHeader`/`ShellBody`) à direita, preservando o padrão `100dvh`/scroll único do AppShell.
+- `ShellHeader` fica enxuto: `SidebarTrigger` (recolher/expandir), título do módulo, **Saldo atual** e botão de som. A antiga barra de abas e a barra de ações de caixa saem do header (migram para a Sidebar).
+- `ShellBody` continua renderizando o conteúdo da aba ativa (delivery/mesas/balcão/fiado/clientes/config/pagamento/fiscal) exatamente como hoje. Dialogs (Parcial, Ajuste, Fechar) permanecem, agora disparados pela Sidebar.
 
-## Passo 3 — Blindagem de Rotas
+### 4. Landing inteligente (já existente, revalidado)
 
-### `src/routes/_authenticated/route.tsx` (Camada 1 — porta)
-- No `beforeLoad`, além do check de sessão, buscar `get_my_permissions` **apenas** para caminhos sensíveis:
-  - `/superadmin` → exige `super_admin`; senão `redirect` para `firstAllowedRoute`.
-  - `/admin` → exige ao menos uma aba permitida; senão `redirect` para `firstAllowedRoute` com `search: { denied: "admin" }`.
-  - `/caixa` → exige `canEnterCaixa`; senão `redirect` com `search: { denied: "caixa" }`.
-- Admin da empresa e super_admin passam direto. O toast é disparado no destino (Passo 4).
+`firstAllowedTab`/`caixaTabAllowed` já escolhem a primeira aba permitida e respeitam `?tab=` + `?denied=`. Mantido; a Sidebar apenas reflete o `tab` atual como item ativo. (O redirect de rota inteligente `firstAllowedRoute` no login continua intacto — Cozinheiro/KDS etc. já cai no seu módulo.)
 
-### `src/lib/permissions.ts` (helpers compartilhados)
-- `ACCESS_DENIED_MSG = "Acesso negado: sua função não permite esta operação."`
-- `CAIXA_TAB_FLAG` (espelho do `TAB_FLAG` do admin) para abas do caixa.
-- `firstAllowedRoute(perms)` (Passo 2).
+### 5. Grade de pedidos responsiva (item 4 do pedido)
 
-## Passo 3 (páginas) — Camada 2 (módulo/deep-link)
+- `DeliveryColumn`: troca a lista de coluna única (`space-y-3`) por **grade fluida** — `grid gap-3 sm:grid-cols-2 xl:grid-cols-3` — para os cards ficarem lado a lado conforme a largura ganha com a saída do menu superior.
+- `MesasColumn`: mesma abordagem para os blocos de mesa (`grid gap-4 xl:grid-cols-2`), mantendo o agrupamento por mesa.
+- **Preservado 100%:** clique no card abre a modal de detalhes (`CompactOrderRow` → `Dialog`/`OrderCard`) e o `StatusControl` (trocas de status) e o disparo de impressão continuam funcionando (nenhuma mudança de lógica de negócio).
 
-### `src/routes/_authenticated/admin.tsx`
-- `validateSearch` p/ aceitar `?tab=<AdminTab>` e `?denied=`.
-- Inicializar aba pelo `?tab=` quando permitido (senão `firstAllowedRoute`/1ª aba).
-- Substituir o auto-jump silencioso por: aba pedida não permitida → `toast.error(ACCESS_DENIED_MSG)` uma vez + cair na 1ª aba liberada.
+### Arquivos afetados
 
-### `src/routes/_authenticated/caixa.tsx`
-- `validateSearch` p/ `?tab=` das abas do caixa + `?denied=`.
-- `useEffect` de enforcement (hoje só existe no admin) com `CAIXA_TAB_FLAG`: aba proibida via URL → `toast.error(ACCESS_DENIED_MSG)` + voltar à 1ª permitida.
+- **Novo:** `src/components/caixa/CaixaSidebar.tsx`
+- **Editado:** `src/routes/_authenticated/caixa.tsx` — `OperationalPanel` reestruturado (SidebarProvider + header enxuto), `DeliveryColumn`/`MesasColumn` em grade, remoção da antiga barra de abas/ações e do `TabButton` (substituídos pela Sidebar).
+- Sem migrações de banco, sem mudança de RLS, sem mudança de lógica de permissões no back-end.
 
-## Passo 4 — Feedback visual (toast)
+### Fora de escopo
 
-- Mensagem única `ACCESS_DENIED_MSG`.
-- Disparada em: (a) `useEffect` que lê `search.denied` no destino do redirect (limpa o param depois); (b) tentativa de aba proibida via `?tab=`.
-
-## Arquivos a alterar
-
-1. `src/routes/_authenticated/route.tsx` — guarda de porta + redirect p/ `firstAllowedRoute` com `denied`.
-2. `src/lib/permissions.ts` — `ACCESS_DENIED_MSG`, `CAIXA_TAB_FLAG`, `firstAllowedRoute`.
-3. `src/routes/_authenticated/admin.tsx` — `?tab=`/`?denied=` + toast + higiene de menu confirmada.
-4. `src/routes/_authenticated/caixa.tsx` — `?tab=`/`?denied=` + `useEffect` enforcement + toast + higiene de menu/ações.
-5. `src/routes/index.tsx` — landing: se o cliente/staff cair aqui sem ser destino ideal, redirecionar via `firstAllowedRoute`; ler `search.denied` p/ toast.
-6. (se necessário) `src/routes/auth.tsx` — aplicar `firstAllowedRoute` no redirect pós-login.
-
-## Fora de escopo (estabilidade)
-
-- Sem migração/RPC/`user_roles`/`permissoes_matriz`.
-- Sem tocar em regra de negócio (pagamentos, pedidos, estoque).
-- Superadmin (Triviano) e Admin da empresa mantêm acesso total à sua esfera.
-
-## Verificação
-
-- Simular 3 níveis (Cozinheiro, Financeiro, Garçom) no preview:
-  - Menus mostram só o permitido (nada de botão proibido).
-  - Login de Cozinheiro cai direto no KDS; Financeiro em `/admin` na aba Financeiro.
-  - `/admin?tab=financeiro` sem `acesso_financeiro` → 1ª aba + toast.
-  - `/caixa`/`/admin`/`/superadmin` sem permissão → redirect p/ `firstAllowedRoute` + toast.
-  - Admin/super_admin passam direto.
+Nenhuma alteração no `/admin`, no fluxo de login, nas RPCs de permissão ou em pagamentos. Apenas UI/estrutura do painel `/caixa`.
