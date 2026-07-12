@@ -18,7 +18,7 @@
 //     o Patch volta automaticamente para 1.
 // ============================================================================
 
-export const APP_VERSION = "1.1.1";
+export const APP_VERSION = "1.1.2";
 export const LAST_PATCH_DATE = "2026-07-12";
 export const VERSION_STATUS = "ESTÁVEL";
 
@@ -32,6 +32,8 @@ export const STABLE_RELEASE = {
   date: LAST_PATCH_DATE,
   safeRollback: true,
   validated: [
+    "Isolamento Multi-Tenant de Admin",
+    "Guards de Rota (Acesso Negado via URL)",
     "Módulo de Governança (Matriz de Permissões)",
     "Motor de Pagamento Mercado Pago (PIX dinâmico + baixa automática)",
     "Checkout App / Balcão / Mesas",
@@ -45,6 +47,5 @@ export const STABLE_RELEASE = {
   ],
   knownIssues: [
     "Rascunhos órfãos desaparecem quando novo pedido é criado",
-    "Isolamento de tenants (admin vê pedidos do cliente)",
   ],
 } as const;
