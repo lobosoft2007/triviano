@@ -219,15 +219,56 @@ export function PaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent hideClose className="max-h-[90vh] max-w-md overflow-y-auto">
         <ModalActionBar
-          title={`Dividir pagamento · #${order.id.slice(0, 6).toUpperCase()}`}
-          onBack={() => onOpenChange(false)}
+          title={
+            onlinePix
+              ? `PIX · #${order.id.slice(0, 6).toUpperCase()}`
+              : `Dividir pagamento · #${order.id.slice(0, 6).toUpperCase()}`
+          }
+          onBack={() => (onlinePix ? setOnlinePix(false) : onOpenChange(false))}
           onSave={handleFinalize}
           saving={finalizing}
           saveDisabled={!matches}
           saveLabel="Finalizar"
+          hideSave={onlinePix}
         />
 
+        {onlinePix && mpConfig ? (
+          <div className="space-y-3">
+            <div className="rounded-xl bg-secondary p-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Total a receber
+              </p>
+              <p className="font-display text-2xl font-black tabular-nums">
+                {formatBRL(order.total)}
+              </p>
+            </div>
+            <PdvPixCharge
+              orderId={order.id}
+              total={order.total}
+              config={mpConfig}
+              context="mesa"
+              onConfirmed={handleOnlinePixConfirmed}
+            />
+            <Button
+              variant="ghost"
+              onClick={() => setOnlinePix(false)}
+              disabled={finalizing}
+              className="h-11 w-full rounded-xl font-semibold text-muted-foreground"
+            >
+              Voltar
+            </Button>
+          </div>
+        ) : (
         <div className="space-y-4">
+          {canOnlinePix && (
+            <Button
+              type="button"
+              onClick={() => setOnlinePix(true)}
+              className="h-12 w-full rounded-xl text-base font-bold"
+            >
+              <QrCode className="mr-2 h-5 w-5" /> Cobrar PIX online (total)
+            </Button>
+          )}
           {/* Add line */}
           <div className="space-y-2 rounded-xl border border-border p-3">
             <Label>Adicionar pagamento</Label>
