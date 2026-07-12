@@ -968,6 +968,135 @@ function BalcaoPaymentDialog({
     setAmountStr("");
   }
 
+  /** Builds the item payload and creates the order; returns id + server total. */
+  async function buildBalcaoOrder(): Promise<{
+    orderId: string;
+    serverTotal: number;
+  }> {
+    const itemsPayload = lines.map((l) => ({
+      productId: l.productId,
+      productName: l.productName,
+      categorySlug: l.categorySlug,
+      comboRole: l.comboRole,
+      name: l.name,
+      size: l.size,
+      addons: l.addons,
+      secondFlavor: l.secondFlavor,
+      remocoes: l.remocoes,
+      unitPrice: l.unitPrice,
+      image_url: l.image_url,
+      lineId: l.lineId,
+      quantity: l.quantity,
+    }));
+
+    const orderId = await placeOrder({
+      userId,
+      items: itemsPayload,
+      deliveryAddress: "",
+      phone: "",
+      notes: "Venda Balcão (PDV)",
+      tipoAtendimento: "Presencial",
+      numeroMesa: null,
+    });
+    const serverTotal = await fetchOrderTotal(orderId);
+    return { orderId, serverTotal };
+  }
+
+  /**
+   * Records every payment against the order (reconciling any rounding drift so
+   * the sum matches the authoritative server total exactly), finalizes the sale
+   * and routes the pickup password / production coupons.
+   */
+  async function settleBalcaoOrder(
+    orderId: string,
+    serverTotal: number,
+    rawPayments: PdvPayment[],
+  ): Promise<void> {
+    const applied = rawPayments.map((p) => ({ ...p }));
+    const appliedSum = round2(applied.reduce((s, p) => s + p.valor, 0));
+    const drift = round2(serverTotal - appliedSum);
+    if (Math.abs(drift) >= 0.01 && applied.length > 0) {
+      const last = applied[applied.length - 1];
+      last.valor = round2(last.valor + drift);
+      if (!last.isCash) last.recebido = last.valor;
+    }
+
+    for (const p of applied) {
+      await addPagamento({ orderId, meioId: p.meioId, valor: p.valor });
+    }
+    await finalizeOrderPaid(orderId);
+
+    await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+    await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
+    await queryClient.invalidateQueries({ queryKey: ["balcao-data"] });
+
+    // Print the customer pickup password + route production to KDS/printers
+    // according to the per-sector monitor switches. Never blocks the sale.
+    try {
+      await afterFinalize(orderId);
+    } catch (e) {
+      console.error("[balcao] afterFinalize (senha/impressão)", e);
+    }
+  }
+
+  /** Starts the dynamic Mercado Pago PIX flow: creates the order, then the QR. */
+  async function startOnlinePix() {
+    if (preparingPix || busy) return;
+    if (!userId) {
+      toast.error("Operador não autenticado.");
+      return;
+    }
+    setPreparingPix(true);
+    try {
+      const { orderId, serverTotal } = await buildBalcaoOrder();
+      setOnlinePix({ orderId, serverTotal });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao gerar o PIX.";
+      toast.error(msg, { duration: 7000 });
+    } finally {
+      setPreparingPix(false);
+    }
+  }
+
+  /** Called by <PdvPixCharge> once the webhook confirms the online PIX. */
+  async function onOnlinePixConfirmed() {
+    if (busy || !onlinePix) return;
+    const pixMeio = meiosPdv.find((m) => isPixMethod(m.nome));
+    if (!pixMeio) {
+      toast.error("Meio de pagamento PIX não configurado.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await settleBalcaoOrder(onlinePix.orderId, onlinePix.serverTotal, [
+        {
+          meioId: pixMeio.id,
+          meioNome: pixMeio.nome,
+          valor: onlinePix.serverTotal,
+          recebido: onlinePix.serverTotal,
+          isCash: false,
+        },
+      ]);
+      toast.success(`Venda finalizada · ${formatBRL(onlinePix.serverTotal)}`);
+      setOnlinePix(null);
+      onPaid();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao finalizar.";
+      if (msg.includes("ESTOQUE_INSUFICIENTE")) {
+        const insumo =
+          msg.split("ESTOQUE_INSUFICIENTE:")[1]?.trim() || "um insumo";
+        toast.error(
+          `Estoque insuficiente: "${insumo}" acabou de esgotar. Reponha o estoque para vender.`,
+          { duration: 8000 },
+        );
+      } else {
+        toast.error(msg, { duration: 7000 });
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function finalize() {
     if (busy || !userId) {
       if (!userId) toast.error("Operador não autenticado.");
@@ -979,60 +1108,8 @@ function BalcaoPaymentDialog({
     }
     setBusy(true);
     try {
-      const itemsPayload = lines.map((l) => ({
-        productId: l.productId,
-        productName: l.productName,
-        categorySlug: l.categorySlug,
-        comboRole: l.comboRole,
-        name: l.name,
-        size: l.size,
-        addons: l.addons,
-        secondFlavor: l.secondFlavor,
-        remocoes: l.remocoes,
-        unitPrice: l.unitPrice,
-        image_url: l.image_url,
-        lineId: l.lineId,
-        quantity: l.quantity,
-      }));
-
-      const orderId = await placeOrder({
-        userId,
-        items: itemsPayload,
-        deliveryAddress: "",
-        phone: "",
-        notes: "Venda Balcão (PDV)",
-        tipoAtendimento: "Presencial",
-        numeroMesa: null,
-      });
-
-      // Authoritative, server-computed total. Reconcile any rounding drift so
-      // the sum of recorded payments matches the order exactly.
-      const serverTotal = await fetchOrderTotal(orderId);
-      const applied = payments.map((p) => ({ ...p }));
-      const appliedSum = round2(applied.reduce((s, p) => s + p.valor, 0));
-      const drift = round2(serverTotal - appliedSum);
-      if (Math.abs(drift) >= 0.01 && applied.length > 0) {
-        const last = applied[applied.length - 1];
-        last.valor = round2(last.valor + drift);
-        if (!last.isCash) last.recebido = last.valor;
-      }
-
-      for (const p of applied) {
-        await addPagamento({ orderId, meioId: p.meioId, valor: p.valor });
-      }
-      await finalizeOrderPaid(orderId);
-
-      await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
-      await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
-      await queryClient.invalidateQueries({ queryKey: ["balcao-data"] });
-
-      // Print the customer pickup password + route production to KDS/printers
-      // according to the per-sector monitor switches. Never blocks the sale.
-      try {
-        await afterFinalize(orderId);
-      } catch (e) {
-        console.error("[balcao] afterFinalize (senha/impressão)", e);
-      }
+      const { orderId, serverTotal } = await buildBalcaoOrder();
+      await settleBalcaoOrder(orderId, serverTotal, payments);
 
       const trocoMsg = trocoTotal > 0 ? ` · Troco ${formatBRL(trocoTotal)}` : "";
       toast.success(`Venda finalizada · ${formatBRL(serverTotal)}${trocoMsg}`);
