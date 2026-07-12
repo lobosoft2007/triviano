@@ -533,185 +533,58 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
 
 
   return (
-    <AppShell>
-      {/* Header */}
-      <ShellHeader className="border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleLock}
-              aria-label="Bloquear Caixa / Desconectar"
-              title="Bloquear Caixa / Desconectar"
-              className="flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
-            >
-              <Lock className="h-4 w-4" />
-              <span className="hidden sm:inline">Bloquear Caixa</span>
-            </button>
-            <div>
-              <p className="text-xs text-muted-foreground">Painel operacional</p>
-              <h1 className="font-display text-xl font-bold leading-tight">
-                CAIXA
-              </h1>
+    <SidebarProvider className="h-[100dvh] min-h-0 overflow-hidden">
+      <CaixaSidebar
+        perms={perms}
+        activeTab={tab}
+        deliveryCount={deliveryOrders.length}
+        mesaCount={mesaOrders.length}
+        onSelectTab={setTab}
+        onSuprimento={() => handleMov("Suprimento")}
+        onSangria={() => handleMov("Sangria")}
+        onRecebimento={() => handleMov("Recebimento Pedido")}
+        onParcial={() => setPartialOpen(true)}
+        onAjuste={() => setAjusteOpen(true)}
+        onFecharCaixa={() => setCloseOpen(true)}
+        onLock={handleLock}
+      />
+      <SidebarInset className="min-h-0 overflow-hidden">
+        <AppShell className="h-full">
+          {/* Slim header */}
+          <ShellHeader className="border-b border-border bg-background/95 backdrop-blur-md">
+            <div className="flex w-full items-center gap-3 px-4 py-3">
+              <SidebarTrigger className="shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">
+                  Painel operacional
+                </p>
+                <h1 className="truncate font-display text-xl font-bold leading-tight">
+                  {CAIXA_TAB_TITLES[tab] ?? "CAIXA"}
+                </h1>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="rounded-2xl bg-primary/10 px-4 py-2 text-right">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Saldo atual
+                  </p>
+                  <p className="font-display text-lg font-bold tabular-nums text-primary">
+                    {formatBRL(saldo)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSoundOn((s) => !s)}
+                  aria-label="Alternar som"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary"
+                >
+                  {soundOn ? (
+                    <Volume2 className="h-5 w-5" />
+                  ) : (
+                    <VolumeX className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="rounded-2xl bg-primary/10 px-4 py-2 text-right">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Saldo atual
-              </p>
-              <p className="font-display text-lg font-bold tabular-nums text-primary">
-                {formatBRL(saldo)}
-              </p>
-            </div>
-            <button
-              onClick={() => setSoundOn((s) => !s)}
-              aria-label="Alternar som"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary"
-            >
-              {soundOn ? (
-                <Volume2 className="h-5 w-5" />
-              ) : (
-                <VolumeX className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Cash actions */}
-        <div className="flex w-full flex-wrap items-center gap-2 px-4 pb-3 lg:px-8">
-          {canSangria && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full"
-              onClick={() => handleMov("Suprimento")}
-            >
-              <TrendingUp className="mr-1.5 h-4 w-4 text-success" /> Suprimento
-            </Button>
-          )}
-          {canSangria && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full"
-              onClick={() => handleMov("Sangria")}
-            >
-              <TrendingDown className="mr-1.5 h-4 w-4 text-destructive" /> Sangria
-            </Button>
-          )}
-          {canFinanceiro && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full"
-              onClick={() => setPartialOpen(true)}
-            >
-              <FileBarChart className="mr-1.5 h-4 w-4 text-primary" /> Consultar
-              Caixa do Momento (Parcial)
-            </Button>
-          )}
-          {canFinanceiro && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full"
-              onClick={() => handleMov("Recebimento Pedido")}
-            >
-              <Wallet className="mr-1.5 h-4 w-4 text-primary" /> Recebimento
-            </Button>
-          )}
-          {canEstoque && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full"
-              onClick={() => setAjusteOpen(true)}
-            >
-              <PackagePlus className="mr-1.5 h-4 w-4 text-primary" /> Ajuste Rápido
-            </Button>
-          )}
-
-          {isMaster && (
-            <Button
-              size="sm"
-              variant="destructive"
-              className="ml-auto rounded-full"
-              onClick={() => setCloseOpen(true)}
-            >
-              <DoorClosed className="mr-1.5 h-4 w-4" /> Fechar caixa
-            </Button>
-          )}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex w-full flex-wrap gap-2 px-4 pb-3 lg:px-8">
-          {canDelivery && (
-            <TabButton
-              active={tab === "delivery"}
-              onClick={() => setTab("delivery")}
-              icon={<Bike className="h-4 w-4" />}
-              label={`Delivery (${deliveryOrders.length})`}
-            />
-          )}
-          {canMesas && (
-            <TabButton
-              active={tab === "mesas"}
-              onClick={() => setTab("mesas")}
-              icon={<UtensilsCrossed className="h-4 w-4" />}
-              label={`Mesas ativas (${mesaOrders.length})`}
-            />
-          )}
-          {canBalcao && (
-            <TabButton
-              active={tab === "balcao"}
-              onClick={() => setTab("balcao")}
-              icon={<ScanBarcode className="h-4 w-4" />}
-              label="Atendimento Balcão"
-            />
-          )}
-          {isMaster && (
-            <TabButton
-              active={tab === "config"}
-              onClick={() => setTab("config")}
-              icon={<Settings className="h-4 w-4" />}
-              label="Impressão"
-            />
-          )}
-          {isMaster && (
-            <TabButton
-              active={tab === "pagamento"}
-              onClick={() => setTab("pagamento")}
-              icon={<CreditCard className="h-4 w-4" />}
-              label="Pagamento"
-            />
-          )}
-          {isMaster && (
-            <TabButton
-              active={tab === "fiscal"}
-              onClick={() => setTab("fiscal")}
-              icon={<ReceiptText className="h-4 w-4" />}
-              label="Fiscal"
-            />
-          )}
-          {canFinanceiro && (
-            <TabButton
-              active={tab === "fiado"}
-              onClick={() => setTab("fiado")}
-              icon={<Users className="h-4 w-4" />}
-              label="Conta Corrente"
-            />
-          )}
-          {isMaster && (
-            <TabButton
-              active={tab === "clientes"}
-              onClick={() => setTab("clientes")}
-              icon={<Users className="h-4 w-4" />}
-              label="Clientes"
-            />
-          )}
-        </div>
-      </ShellHeader>
+          </ShellHeader>
 
 
       <ShellBody
