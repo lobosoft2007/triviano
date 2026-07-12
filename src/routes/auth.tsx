@@ -133,13 +133,30 @@ function AuthPage() {
     }
   };
 
-  const navigateAfterConfirmedAuth = () => {
-    const to = resolveLanding();
+  const navigateAfterConfirmedAuth = async () => {
+    let to: LandingPath = resolveLanding();
     clearSavedLanding();
+    // Default landing inteligente: um funcionário sem destino salvo é levado
+    // ao primeiro módulo que sua matriz de permissões libera (ex.: Cozinheiro
+    // vai direto para o Caixa em vez de cair no cardápio do cliente).
+    if (to === "/") {
+      try {
+        const { data } = await supabase.rpc("get_my_permissions");
+        const perms = (Array.isArray(data) ? data[0] : data) as
+          | MyPermissions
+          | undefined;
+        if (perms && (perms.is_admin || perms.is_funcionario)) {
+          to = firstAllowedRoute(perms);
+        }
+      } catch {
+        /* fallback silencioso para a home do cliente */
+      }
+    }
     if (to !== window.location.pathname) {
       navigate({ to, replace: true });
     }
   };
+
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
