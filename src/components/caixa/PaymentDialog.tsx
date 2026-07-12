@@ -174,6 +174,47 @@ export function PaymentDialog({
     }
   }
 
+  /**
+   * Called by <PdvPixCharge> once the webhook confirms the online PIX. Records
+   * the PIX payment for the full order total and finalizes the settlement,
+   * reusing the same server RPC as the manual flow.
+   */
+  async function handleOnlinePixConfirmed() {
+    if (finalizing) return;
+    if (!pixMeio) {
+      toast.error("Meio de pagamento PIX não configurado.");
+      return;
+    }
+    setFinalizing(true);
+    try {
+      await addPagamento({
+        orderId: order.id,
+        meioId: pixMeio.id,
+        valor: order.total,
+      });
+      await finalizeOrderPaid(order.id);
+      await queryClient.invalidateQueries({ queryKey: ["pagamentos", order.id] });
+      await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
+      toast.success(`Pedido #${order.id.slice(0, 6).toUpperCase()} pago via PIX.`);
+      setOnlinePix(false);
+      onOpenChange(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao finalizar.";
+      if (msg.includes("ESTOQUE_INSUFICIENTE")) {
+        const insumo = msg.split("ESTOQUE_INSUFICIENTE:")[1]?.trim() || "um insumo";
+        toast.error(
+          `Estoque insuficiente: "${insumo}" acabou de esgotar na cozinha. Reponha o estoque para prosseguir.`,
+          { duration: 8000 },
+        );
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setFinalizing(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent hideClose className="max-h-[90vh] max-w-md overflow-y-auto">
