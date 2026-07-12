@@ -6,14 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   fetchNiveis,
   createNivel,
   renameNivel,
   deleteNivel,
   setFlag,
+  applyMatrizPreset,
   type NivelComMatriz,
 } from "@/lib/niveis";
 import { PERMISSION_LABELS, type PermissionFlag } from "@/lib/permissions";
+import { CARGO_PRESETS, CUSTOM_PRESET_ID } from "@/lib/cargos";
 
 export function PermissoesTab() {
   const qc = useQueryClient();
