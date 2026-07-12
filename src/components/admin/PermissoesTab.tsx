@@ -122,19 +122,38 @@ export function PermissoesTab() {
           <h2 className="font-display text-base font-bold">Níveis de Acesso</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Crie até 10 níveis customizáveis (Garçom, Cozinheiro, Gerente…) e ligue/desligue cada
-          recurso do sistema. O administrador sempre tem acesso total.
+          Crie até 10 cargos customizáveis. Escolha um modelo pronto (Garçom, Cozinheiro,
+          Financeiro…) para já ligar as permissões típicas — depois ajuste o que quiser. O
+          administrador sempre tem acesso total.
         </p>
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <Select value={preset} onValueChange={handlePresetChange} disabled={atLimit}>
+            <SelectTrigger className="sm:w-52">
+              <SelectValue placeholder="Modelo de cargo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={CUSTOM_PRESET_ID}>Personalizado (vazio)</SelectItem>
+              {CARGO_PRESETS.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Input
-            placeholder="Nome do novo nível"
+            placeholder="Nome do novo cargo"
             value={novoNome}
             onChange={(e) => setNovoNome(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
             disabled={atLimit}
           />
           <Button onClick={handleCreate} disabled={saving || atLimit || !novoNome.trim()}>
-            <Plus className="mr-1 h-4 w-4" /> Adicionar
+            {saving ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="mr-1 h-4 w-4" />
+            )}
+            Adicionar
           </Button>
         </div>
         {atLimit && (
