@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, Plus, Trash2, CheckCircle2, AlertCircle, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchMeiosPagamento,
@@ -12,6 +12,8 @@ import {
 } from "@/lib/caixa";
 import { insertNotification } from "@/lib/notifications";
 import { empresaQueryOptions } from "@/lib/empresa";
+import { fetchMpPublicConfig } from "@/lib/mercadopago";
+import { PdvPixCharge } from "@/components/checkout/PdvPixCharge";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,10 +55,21 @@ export function PaymentDialog({
     enabled: open,
   });
 
+  // Configuração pública do Mercado Pago do tenant (só chave pública).
+  const { data: mpConfig } = useQuery({
+    queryKey: ["mp-public-config"],
+    queryFn: fetchMpPublicConfig,
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  });
+  const mpPixActive = !!mpConfig?.ativo && !!mpConfig?.aceita_pix_online;
+
   const [meioId, setMeioId] = useState("");
   const [valor, setValor] = useState("");
   const [busy, setBusy] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  // Cobrança PIX online (QR dinâmico do Mercado Pago) para o total do pedido.
+  const [onlinePix, setOnlinePix] = useState(false);
 
   // Default the selector to the first active method once they load.
   useEffect(() => {
@@ -71,6 +84,14 @@ export function PaymentDialog({
   const restanteCents = totalCents - totalPagoCents;
   const restante = restanteCents / 100;
   const matches = restanteCents === 0;
+  // PIX online cobra sempre o TOTAL do pedido (a Order do MP não é parcial),
+  // então só é oferecido quando ainda não há pagamento parcial lançado.
+  const canOnlinePix = mpPixActive && totalPagoCents === 0 && totalCents > 0;
+  const pixMeio = useMemo(
+    () => (meios ?? []).find((m) => m.nome.trim().toLowerCase() === "pix"),
+    [meios],
+  );
+
 
   async function handleAdd() {
     const v = Number(valor.replace(",", "."));
@@ -153,19 +174,101 @@ export function PaymentDialog({
     }
   }
 
+  /**
+   * Called by <PdvPixCharge> once the webhook confirms the online PIX. Records
+   * the PIX payment for the full order total and finalizes the settlement,
+   * reusing the same server RPC as the manual flow.
+   */
+  async function handleOnlinePixConfirmed() {
+    if (finalizing) return;
+    if (!pixMeio) {
+      toast.error("Meio de pagamento PIX não configurado.");
+      return;
+    }
+    setFinalizing(true);
+    try {
+      await addPagamento({
+        orderId: order.id,
+        meioId: pixMeio.id,
+        valor: order.total,
+      });
+      await finalizeOrderPaid(order.id);
+      await queryClient.invalidateQueries({ queryKey: ["pagamentos", order.id] });
+      await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
+      toast.success(`Pedido #${order.id.slice(0, 6).toUpperCase()} pago via PIX.`);
+      setOnlinePix(false);
+      onOpenChange(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao finalizar.";
+      if (msg.includes("ESTOQUE_INSUFICIENTE")) {
+        const insumo = msg.split("ESTOQUE_INSUFICIENTE:")[1]?.trim() || "um insumo";
+        toast.error(
+          `Estoque insuficiente: "${insumo}" acabou de esgotar na cozinha. Reponha o estoque para prosseguir.`,
+          { duration: 8000 },
+        );
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setFinalizing(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent hideClose className="max-h-[90vh] max-w-md overflow-y-auto">
         <ModalActionBar
-          title={`Dividir pagamento · #${order.id.slice(0, 6).toUpperCase()}`}
-          onBack={() => onOpenChange(false)}
+          title={
+            onlinePix
+              ? `PIX · #${order.id.slice(0, 6).toUpperCase()}`
+              : `Dividir pagamento · #${order.id.slice(0, 6).toUpperCase()}`
+          }
+          onBack={() => (onlinePix ? setOnlinePix(false) : onOpenChange(false))}
           onSave={handleFinalize}
           saving={finalizing}
           saveDisabled={!matches}
           saveLabel="Finalizar"
+          hideSave={onlinePix}
         />
 
+        {onlinePix && mpConfig ? (
+          <div className="space-y-3">
+            <div className="rounded-xl bg-secondary p-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Total a receber
+              </p>
+              <p className="font-display text-2xl font-black tabular-nums">
+                {formatBRL(order.total)}
+              </p>
+            </div>
+            <PdvPixCharge
+              orderId={order.id}
+              total={order.total}
+              config={mpConfig}
+              context="mesa"
+              onConfirmed={handleOnlinePixConfirmed}
+            />
+            <Button
+              variant="ghost"
+              onClick={() => setOnlinePix(false)}
+              disabled={finalizing}
+              className="h-11 w-full rounded-xl font-semibold text-muted-foreground"
+            >
+              Voltar
+            </Button>
+          </div>
+        ) : (
         <div className="space-y-4">
+          {canOnlinePix && (
+            <Button
+              type="button"
+              onClick={() => setOnlinePix(true)}
+              className="h-12 w-full rounded-xl text-base font-bold"
+            >
+              <QrCode className="mr-2 h-5 w-5" /> Cobrar PIX online (total)
+            </Button>
+          )}
           {/* Add line */}
           <div className="space-y-2 rounded-xl border border-border p-3">
             <Label>Adicionar pagamento</Label>
@@ -270,6 +373,7 @@ export function PaymentDialog({
             </p>
           )}
         </div>
+        )}
 
       </DialogContent>
     </Dialog>

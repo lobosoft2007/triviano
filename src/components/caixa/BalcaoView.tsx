@@ -47,6 +47,8 @@ import {
   fetchMeiosPagamento,
   type MeioPagamento,
 } from "@/lib/caixa";
+import { fetchMpPublicConfig } from "@/lib/mercadopago";
+import { PdvPixCharge } from "@/components/checkout/PdvPixCharge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -822,12 +824,30 @@ function BalcaoPaymentDialog({
   const [selected, setSelected] = useState<MeioPagamento | null>(null);
   const [amountStr, setAmountStr] = useState("");
   const amountRef = useRef<HTMLInputElement>(null);
+  // Fluxo PIX online (Mercado Pago): quando ativo, o pedido é criado antes,
+  // o QR dinâmico é exibido e a baixa acontece quando o webhook confirmar.
+  const [onlinePix, setOnlinePix] = useState<{
+    orderId: string;
+    serverTotal: number;
+  } | null>(null);
+  const [preparingPix, setPreparingPix] = useState(false);
 
   const { data: meios } = useQuery({
     queryKey: ["meios-pagamento"],
     queryFn: () => fetchMeiosPagamento(true),
     enabled: open,
   });
+
+  // Configuração pública do Mercado Pago do tenant (só chave pública). Quando
+  // ativa + PIX online habilitado, o balcão oferece o QR dinâmico com baixa
+  // automática em vez do PIX estático.
+  const { data: mpConfig } = useQuery({
+    queryKey: ["mp-public-config"],
+    queryFn: fetchMpPublicConfig,
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  });
+  const mpPixActive = !!mpConfig?.ativo && !!mpConfig?.aceita_pix_online;
 
   // Only real money methods at the counter (no Fiado/Cashback for walk-ins).
   const meiosPdv = useMemo(
@@ -878,6 +898,21 @@ function BalcaoPaymentDialog({
     if (!isPixMethod(m.nome)) {
       requestAnimationFrame(() => amountRef.current?.focus());
     }
+  }
+
+  /**
+   * Entry point for a payment-method tile. When the operator picks PIX and the
+   * Mercado Pago is active for this tenant AND nothing was paid yet (online PIX
+   * always charges the FULL cupom), start the dynamic QR flow with automatic
+   * settlement. Otherwise fall back to the classic manual entry (static PIX,
+   * cash + troco, card).
+   */
+  function onPickMethod(m: MeioPagamento) {
+    if (isPixMethod(m.nome) && mpPixActive && payments.length === 0) {
+      void startOnlinePix();
+      return;
+    }
+    pickMethod(m);
   }
 
   /** Confirms PIX receipt for the exact remaining balance and records it. */
@@ -933,6 +968,135 @@ function BalcaoPaymentDialog({
     setAmountStr("");
   }
 
+  /** Builds the item payload and creates the order; returns id + server total. */
+  async function buildBalcaoOrder(): Promise<{
+    orderId: string;
+    serverTotal: number;
+  }> {
+    const itemsPayload = lines.map((l) => ({
+      productId: l.productId,
+      productName: l.productName,
+      categorySlug: l.categorySlug,
+      comboRole: l.comboRole,
+      name: l.name,
+      size: l.size,
+      addons: l.addons,
+      secondFlavor: l.secondFlavor,
+      remocoes: l.remocoes,
+      unitPrice: l.unitPrice,
+      image_url: l.image_url,
+      lineId: l.lineId,
+      quantity: l.quantity,
+    }));
+
+    const orderId = await placeOrder({
+      userId,
+      items: itemsPayload,
+      deliveryAddress: "",
+      phone: "",
+      notes: "Venda Balcão (PDV)",
+      tipoAtendimento: "Presencial",
+      numeroMesa: null,
+    });
+    const serverTotal = await fetchOrderTotal(orderId);
+    return { orderId, serverTotal };
+  }
+
+  /**
+   * Records every payment against the order (reconciling any rounding drift so
+   * the sum matches the authoritative server total exactly), finalizes the sale
+   * and routes the pickup password / production coupons.
+   */
+  async function settleBalcaoOrder(
+    orderId: string,
+    serverTotal: number,
+    rawPayments: PdvPayment[],
+  ): Promise<void> {
+    const applied = rawPayments.map((p) => ({ ...p }));
+    const appliedSum = round2(applied.reduce((s, p) => s + p.valor, 0));
+    const drift = round2(serverTotal - appliedSum);
+    if (Math.abs(drift) >= 0.01 && applied.length > 0) {
+      const last = applied[applied.length - 1];
+      last.valor = round2(last.valor + drift);
+      if (!last.isCash) last.recebido = last.valor;
+    }
+
+    for (const p of applied) {
+      await addPagamento({ orderId, meioId: p.meioId, valor: p.valor });
+    }
+    await finalizeOrderPaid(orderId);
+
+    await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+    await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
+    await queryClient.invalidateQueries({ queryKey: ["balcao-data"] });
+
+    // Print the customer pickup password + route production to KDS/printers
+    // according to the per-sector monitor switches. Never blocks the sale.
+    try {
+      await afterFinalize(orderId);
+    } catch (e) {
+      console.error("[balcao] afterFinalize (senha/impressão)", e);
+    }
+  }
+
+  /** Starts the dynamic Mercado Pago PIX flow: creates the order, then the QR. */
+  async function startOnlinePix() {
+    if (preparingPix || busy) return;
+    if (!userId) {
+      toast.error("Operador não autenticado.");
+      return;
+    }
+    setPreparingPix(true);
+    try {
+      const { orderId, serverTotal } = await buildBalcaoOrder();
+      setOnlinePix({ orderId, serverTotal });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao gerar o PIX.";
+      toast.error(msg, { duration: 7000 });
+    } finally {
+      setPreparingPix(false);
+    }
+  }
+
+  /** Called by <PdvPixCharge> once the webhook confirms the online PIX. */
+  async function onOnlinePixConfirmed() {
+    if (busy || !onlinePix) return;
+    const pixMeio = meiosPdv.find((m) => isPixMethod(m.nome));
+    if (!pixMeio) {
+      toast.error("Meio de pagamento PIX não configurado.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await settleBalcaoOrder(onlinePix.orderId, onlinePix.serverTotal, [
+        {
+          meioId: pixMeio.id,
+          meioNome: pixMeio.nome,
+          valor: onlinePix.serverTotal,
+          recebido: onlinePix.serverTotal,
+          isCash: false,
+        },
+      ]);
+      toast.success(`Venda finalizada · ${formatBRL(onlinePix.serverTotal)}`);
+      setOnlinePix(null);
+      onPaid();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao finalizar.";
+      if (msg.includes("ESTOQUE_INSUFICIENTE")) {
+        const insumo =
+          msg.split("ESTOQUE_INSUFICIENTE:")[1]?.trim() || "um insumo";
+        toast.error(
+          `Estoque insuficiente: "${insumo}" acabou de esgotar. Reponha o estoque para vender.`,
+          { duration: 8000 },
+        );
+      } else {
+        toast.error(msg, { duration: 7000 });
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function finalize() {
     if (busy || !userId) {
       if (!userId) toast.error("Operador não autenticado.");
@@ -944,60 +1108,8 @@ function BalcaoPaymentDialog({
     }
     setBusy(true);
     try {
-      const itemsPayload = lines.map((l) => ({
-        productId: l.productId,
-        productName: l.productName,
-        categorySlug: l.categorySlug,
-        comboRole: l.comboRole,
-        name: l.name,
-        size: l.size,
-        addons: l.addons,
-        secondFlavor: l.secondFlavor,
-        remocoes: l.remocoes,
-        unitPrice: l.unitPrice,
-        image_url: l.image_url,
-        lineId: l.lineId,
-        quantity: l.quantity,
-      }));
-
-      const orderId = await placeOrder({
-        userId,
-        items: itemsPayload,
-        deliveryAddress: "",
-        phone: "",
-        notes: "Venda Balcão (PDV)",
-        tipoAtendimento: "Presencial",
-        numeroMesa: null,
-      });
-
-      // Authoritative, server-computed total. Reconcile any rounding drift so
-      // the sum of recorded payments matches the order exactly.
-      const serverTotal = await fetchOrderTotal(orderId);
-      const applied = payments.map((p) => ({ ...p }));
-      const appliedSum = round2(applied.reduce((s, p) => s + p.valor, 0));
-      const drift = round2(serverTotal - appliedSum);
-      if (Math.abs(drift) >= 0.01 && applied.length > 0) {
-        const last = applied[applied.length - 1];
-        last.valor = round2(last.valor + drift);
-        if (!last.isCash) last.recebido = last.valor;
-      }
-
-      for (const p of applied) {
-        await addPagamento({ orderId, meioId: p.meioId, valor: p.valor });
-      }
-      await finalizeOrderPaid(orderId);
-
-      await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
-      await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
-      await queryClient.invalidateQueries({ queryKey: ["balcao-data"] });
-
-      // Print the customer pickup password + route production to KDS/printers
-      // according to the per-sector monitor switches. Never blocks the sale.
-      try {
-        await afterFinalize(orderId);
-      } catch (e) {
-        console.error("[balcao] afterFinalize (senha/impressão)", e);
-      }
+      const { orderId, serverTotal } = await buildBalcaoOrder();
+      await settleBalcaoOrder(orderId, serverTotal, payments);
 
       const trocoMsg = trocoTotal > 0 ? ` · Troco ${formatBRL(trocoTotal)}` : "";
       toast.success(`Venda finalizada · ${formatBRL(serverTotal)}${trocoMsg}`);
@@ -1026,6 +1138,45 @@ function BalcaoPaymentDialog({
           <DialogTitle className="font-display">Receber pagamento</DialogTitle>
         </DialogHeader>
 
+        {onlinePix || preparingPix ? (
+          <div className="space-y-3">
+            {preparingPix || !onlinePix || !mpConfig ? (
+              <div className="flex flex-col items-center gap-2 py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Preparando cobrança PIX…
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-xl bg-secondary p-3 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Total a receber
+                  </p>
+                  <p className="font-display text-2xl font-black tabular-nums">
+                    {formatBRL(onlinePix.serverTotal)}
+                  </p>
+                </div>
+                <PdvPixCharge
+                  orderId={onlinePix.orderId}
+                  total={onlinePix.serverTotal}
+                  config={mpConfig}
+                  context="balcao"
+                  onConfirmed={onOnlinePixConfirmed}
+                />
+                <Button
+                  variant="ghost"
+                  onClick={() => setOnlinePix(null)}
+                  disabled={busy}
+                  className="h-12 w-full rounded-xl font-semibold text-muted-foreground"
+                >
+                  Cancelar cobrança
+                </Button>
+              </>
+            )}
+          </div>
+        ) : (
+          <>
         {/* Totals band */}
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-xl bg-secondary p-3 text-center">
@@ -1239,12 +1390,17 @@ function BalcaoPaymentDialog({
                   meiosPdv.map((m) => (
                     <Button
                       key={m.id}
-                      onClick={() => pickMethod(m)}
+                      onClick={() => onPickMethod(m)}
                       disabled={busy}
                       variant="secondary"
                       className="h-16 rounded-xl text-base font-bold"
                     >
                       {m.nome}
+                      {isPixMethod(m.nome) && mpPixActive && (
+                        <span className="ml-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary">
+                          QR
+                        </span>
+                      )}
                     </Button>
                   ))
                 )}
@@ -1279,6 +1435,8 @@ function BalcaoPaymentDialog({
             )}
           </Button>
         </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

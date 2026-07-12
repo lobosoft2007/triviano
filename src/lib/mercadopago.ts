@@ -49,6 +49,12 @@ export async function fetchMpPublicConfig(): Promise<MpPublicConfig | null> {
 export interface CreateMpPaymentInput {
   orderId: string;
   method: "pix" | "card";
+  /**
+   * Origem da cobrança. "app" (padrão) é o cliente pagando pelo app; "balcao"
+   * e "mesa" são cobranças feitas pelo operador no PDV/Caixa (o pedido de mesa
+   * já está visível, então não pode ser ocultado).
+   */
+  context?: "app" | "balcao" | "mesa";
   token?: string;
   installments?: number;
   paymentMethodId?: string;
@@ -79,6 +85,7 @@ export async function createMpPayment(
       body: {
         order_id: input.orderId,
         method: input.method,
+        context: input.context ?? "app",
         token: input.token,
         installments: input.installments,
         payment_method_id: input.paymentMethodId,

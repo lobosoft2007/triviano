@@ -35,6 +35,11 @@ interface CreatePaymentBody {
   method: "pix" | "card";
   // Ambiente detectado no frontend a partir do host real do navegador.
   env?: "prod" | "test";
+  // Contexto de origem da cobrança:
+  //  - "app"    : cliente pagando pelo app (fluxo padrão, gating de visibilidade).
+  //  - "balcao" : PDV/Balcão — pedido nasce oculto (rascunho) até a confirmação.
+  //  - "mesa"   : Mesa/Delivery já ativo no Caixa — NÃO alterar visibilidade.
+  context?: "app" | "balcao" | "mesa";
   // Card-only (Checkout Transparente / Card Payment Brick):
   token?: string;
   installments?: number;
@@ -96,8 +101,22 @@ Deno.serve(async (req) => {
     .eq("id", body.order_id)
     .maybeSingle();
   if (orderErr || !order) return json({ error: "Pedido não encontrado." }, 404);
-  if (order.user_id !== user.id) return json({ error: "Pedido de outro usuário." }, 403);
   if (order.pago_online) return json({ error: "Pedido já pago." }, 409);
+
+  // Autorização: o DONO do pedido sempre pode pagar. Além dele, um OPERADOR
+  // (papel admin) da EMPRESA dona do pedido pode gerar a cobrança — necessário
+  // no PDV/Caixa, onde o pedido de mesa pertence ao cliente, não ao operador.
+  // Reutiliza `can_manage_empresa` (super_admin OU admin da própria empresa),
+  // avaliado com o token do usuário logado (multi-tenant seguro).
+  let authorized = order.user_id === user.id;
+  if (!authorized && order.empresa_id) {
+    const { data: canManage } = await userClient.rpc("can_manage_empresa", {
+      _empresa_id: order.empresa_id,
+    });
+    authorized = !!canManage;
+  }
+  if (!authorized) return json({ error: "Pedido de outro usuário." }, 403);
+
 
   // 3) Credenciais do MERCADO PAGO da EMPRESA dona do pedido (multi-tenant).
   const { data: cfg } = await admin
@@ -211,20 +230,42 @@ Deno.serve(async (req) => {
   const isPaid = ["paid", "processed", "approved"].includes(mpStatus.toLowerCase());
 
   // 6) Persistir referências e gating de visibilidade.
-  await admin
-    .from("orders")
-    .update({
-      mp_order_id: mpOrderId,
-      mp_payment_id: mpPaymentId,
-      mp_status: mpStatus,
-      pago_online: isPaid,
-      // Enquanto não confirmado, o pedido fica oculto do Caixa/KDS.
-      aguardando_pagamento: !isPaid,
-      status: isPaid ? "pending" : "rascunho_pagamento",
-      status_pedido: "Recebido",
-      tipo_pagamento: body.method === "pix" ? "pix" : "cartao_credito_online",
-    })
-    .eq("id", order.id);
+  //
+  // Para o pedido de MESA (já ativo e visível no Caixa), NUNCA alteramos a
+  // visibilidade/estado operacional: apenas gravamos as referências do MP e o
+  // tipo de pagamento. Assim uma mesa em atendimento não some do painel se o
+  // cliente demorar ou desistir do QR. A baixa é feita pelo operador no
+  // navegador quando o webhook confirmar (pago_online=true).
+  //
+  // Para App e Balcão, o pedido fica oculto (rascunho) até a confirmação — o
+  // gating financeiro impede que um pedido não pago chegue ao KDS/Caixa.
+  const context = body.context ?? "app";
+  const tipoPagamento =
+    body.method === "pix" ? "pix" : "cartao_credito_online";
+
+  const updatePayload: Record<string, unknown> =
+    context === "mesa"
+      ? {
+          mp_order_id: mpOrderId,
+          mp_payment_id: mpPaymentId,
+          mp_status: mpStatus,
+          pago_online: isPaid,
+          tipo_pagamento: tipoPagamento,
+        }
+      : {
+          mp_order_id: mpOrderId,
+          mp_payment_id: mpPaymentId,
+          mp_status: mpStatus,
+          pago_online: isPaid,
+          // Enquanto não confirmado, o pedido fica oculto do Caixa/KDS.
+          aguardando_pagamento: !isPaid,
+          status: isPaid ? "pending" : "rascunho_pagamento",
+          status_pedido: "Recebido",
+          tipo_pagamento: tipoPagamento,
+        };
+
+  await admin.from("orders").update(updatePayload).eq("id", order.id);
+
 
   return json({
     status: mpStatus,
