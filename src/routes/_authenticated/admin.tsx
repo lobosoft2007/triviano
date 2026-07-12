@@ -93,6 +93,12 @@ import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { tab?: AdminTab; denied?: string } => ({
+    tab: typeof s.tab === "string" ? (s.tab as AdminTab) : undefined,
+    denied: typeof s.denied === "string" ? s.denied : undefined,
+  }),
   component: AdminPage,
 });
 
