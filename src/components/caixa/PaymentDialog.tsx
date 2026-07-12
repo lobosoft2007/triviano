@@ -373,6 +373,7 @@ export function PaymentDialog({
             </p>
           )}
         </div>
+        )}
 
       </DialogContent>
     </Dialog>
