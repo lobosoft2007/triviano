@@ -299,7 +299,7 @@ function AuthPage() {
         ? `Bem-vindo, ${user.email}!`
         : "Bem-vindo de volta!";
     toast.success(`E-mail confirmado! ${welcome}`);
-    navigateAfterConfirmedAuth();
+    void navigateAfterConfirmedAuth();
   }
 
   async function handleResend() {
