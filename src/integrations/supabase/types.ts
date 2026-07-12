@@ -1871,12 +1871,15 @@ export type Database = {
       permissoes_matriz: {
         Row: {
           acesso_atendimento_balcao: boolean
+          acesso_bar: boolean
           acesso_cadastro_produtos: boolean
           acesso_delivery: boolean
           acesso_entrada_estoque: boolean
+          acesso_entregas: boolean
           acesso_financeiro: boolean
           acesso_kds_cozinha: boolean
           acesso_mesas: boolean
+          acesso_rh: boolean
           acesso_sangria_suprimento: boolean
           created_at: string
           empresa_id: string
@@ -1886,12 +1889,15 @@ export type Database = {
         }
         Insert: {
           acesso_atendimento_balcao?: boolean
+          acesso_bar?: boolean
           acesso_cadastro_produtos?: boolean
           acesso_delivery?: boolean
           acesso_entrada_estoque?: boolean
+          acesso_entregas?: boolean
           acesso_financeiro?: boolean
           acesso_kds_cozinha?: boolean
           acesso_mesas?: boolean
+          acesso_rh?: boolean
           acesso_sangria_suprimento?: boolean
           created_at?: string
           empresa_id: string
@@ -1901,12 +1907,15 @@ export type Database = {
         }
         Update: {
           acesso_atendimento_balcao?: boolean
+          acesso_bar?: boolean
           acesso_cadastro_produtos?: boolean
           acesso_delivery?: boolean
           acesso_entrada_estoque?: boolean
+          acesso_entregas?: boolean
           acesso_financeiro?: boolean
           acesso_kds_cozinha?: boolean
           acesso_mesas?: boolean
+          acesso_rh?: boolean
           acesso_sangria_suprimento?: boolean
           created_at?: string
           empresa_id?: string
@@ -2766,12 +2775,15 @@ export type Database = {
         Args: never
         Returns: {
           acesso_atendimento_balcao: boolean
+          acesso_bar: boolean
           acesso_cadastro_produtos: boolean
           acesso_delivery: boolean
           acesso_entrada_estoque: boolean
+          acesso_entregas: boolean
           acesso_financeiro: boolean
           acesso_kds_cozinha: boolean
           acesso_mesas: boolean
+          acesso_rh: boolean
           acesso_sangria_suprimento: boolean
           is_admin: boolean
           is_funcionario: boolean
