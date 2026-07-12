@@ -379,8 +379,19 @@ export function BalcaoView() {
     <div className="grid h-full min-h-0 w-full max-w-none grid-cols-1 gap-4 overflow-hidden lg:grid-cols-12 lg:gap-0">
       {/* ---------------- LEFT (col-span-7): only this block scrolls ---------------- */}
       <div className="flex h-full min-w-0 flex-col overflow-y-auto pb-4 pr-2 lg:col-span-7 lg:pr-4">
-
-
+        {/* Título do módulo + histórico do último atendimento */}
+        <div className="mb-2 shrink-0">
+          <h2 className="font-display text-lg font-bold leading-tight">
+            Atendimento Balcão
+          </h2>
+          {lastOrder && (
+            <p className="text-[11px] text-muted-foreground">
+              Última senha:{" "}
+              <span className="font-semibold">{lastOrder.senha}</span> às{" "}
+              {lastOrder.time}
+            </p>
+          )}
+        </div>
 
         {/* Sticky header: search + category carousel stay visible while grid scrolls */}
         <div className="sticky top-0 z-10 flex flex-col gap-3 bg-background pb-3">
