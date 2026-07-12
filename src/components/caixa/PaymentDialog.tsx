@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, Plus, Trash2, CheckCircle2, AlertCircle, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchMeiosPagamento,
@@ -12,6 +12,8 @@ import {
 } from "@/lib/caixa";
 import { insertNotification } from "@/lib/notifications";
 import { empresaQueryOptions } from "@/lib/empresa";
+import { fetchMpPublicConfig } from "@/lib/mercadopago";
+import { PdvPixCharge } from "@/components/checkout/PdvPixCharge";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
