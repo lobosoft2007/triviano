@@ -16,13 +16,16 @@ export interface NivelComMatriz extends Nivel {
 
 const FLAGS: PermissionFlag[] = [
   "acesso_kds_cozinha",
+  "acesso_bar",
   "acesso_atendimento_balcao",
   "acesso_mesas",
   "acesso_delivery",
+  "acesso_entregas",
   "acesso_entrada_estoque",
   "acesso_sangria_suprimento",
   "acesso_cadastro_produtos",
   "acesso_financeiro",
+  "acesso_rh",
 ];
 
 /** Loads every access level of the admin's company with its permission matrix. */
