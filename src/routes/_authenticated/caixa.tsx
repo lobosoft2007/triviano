@@ -708,7 +708,7 @@ function DeliveryColumn({
     return <EmptyState label="Nenhum pedido de delivery em aberto." />;
   }
   return (
-    <div className="w-full space-y-3">
+    <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {orders.map((o) => (
         <CompactOrderRow
           key={o.id}
