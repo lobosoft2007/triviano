@@ -824,12 +824,30 @@ function BalcaoPaymentDialog({
   const [selected, setSelected] = useState<MeioPagamento | null>(null);
   const [amountStr, setAmountStr] = useState("");
   const amountRef = useRef<HTMLInputElement>(null);
+  // Fluxo PIX online (Mercado Pago): quando ativo, o pedido é criado antes,
+  // o QR dinâmico é exibido e a baixa acontece quando o webhook confirmar.
+  const [onlinePix, setOnlinePix] = useState<{
+    orderId: string;
+    serverTotal: number;
+  } | null>(null);
+  const [preparingPix, setPreparingPix] = useState(false);
 
   const { data: meios } = useQuery({
     queryKey: ["meios-pagamento"],
     queryFn: () => fetchMeiosPagamento(true),
     enabled: open,
   });
+
+  // Configuração pública do Mercado Pago do tenant (só chave pública). Quando
+  // ativa + PIX online habilitado, o balcão oferece o QR dinâmico com baixa
+  // automática em vez do PIX estático.
+  const { data: mpConfig } = useQuery({
+    queryKey: ["mp-public-config"],
+    queryFn: fetchMpPublicConfig,
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  });
+  const mpPixActive = !!mpConfig?.ativo && !!mpConfig?.aceita_pix_online;
 
   // Only real money methods at the counter (no Fiado/Cashback for walk-ins).
   const meiosPdv = useMemo(
