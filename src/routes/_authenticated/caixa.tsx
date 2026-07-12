@@ -89,6 +89,12 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/caixa")({
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { tab?: CaixaTab; denied?: string } => ({
+    tab: typeof s.tab === "string" ? (s.tab as CaixaTab) : undefined,
+    denied: typeof s.denied === "string" ? s.denied : undefined,
+  }),
   component: CaixaPage,
 });
 
