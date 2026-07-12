@@ -1,73 +1,65 @@
-# Repetir Pedido — Plano corrigido (Backend RPC + Frontend)
+# PIX dinâmico do Mercado Pago no Balcão e nas Mesas
 
-## Arquitetura escolhida
-- **Backend = função SQL RPC `SECURITY DEFINER`** (não Edge Function). Motivo: a lógica de preço já vive no `create_order` (SQL). Uma RPC reaproveita a **mesma** fórmula (tamanho, meia-a-meia, açaí/adicionais grátis, adicionais pagos), evitando divergência entre o preço mostrado no carrinho e o cobrado no checkout. Edge Function neste projeto é só para webhooks externos.
-- **Frontend** chama a RPC, recebe os itens já validados e reprecificados, preenche o carrinho e **para no cardápio** (não vai ao checkout).
+## Objetivo
+Hoje o PIX online (QR dinâmico + baixa automática pelo webhook) só existe no **app do cliente** (`checkout.tsx`). No **Balcão** o PIX é estático/offline (operador confirma na mão) e nas **Mesas/Delivery** (diálogo do Caixa) não há PIX online nenhum — tudo é registro manual.
 
-## PARTE 1 — Migração SQL: `public.repeat_order(p_order_id uuid, p_host text)`
+Vamos padronizar: quando o Mercado Pago estiver ativo para a empresa, o operador gera um **QR PIX dinâmico**, o cliente escaneia, e o **webhook do MP** confirma o pagamento. Na confirmação, o pedido é baixado automaticamente (estoque, cashback, recebíveis, senha, impressão) reaproveitando exatamente o motor de finalização atual.
 
-Retorna `jsonb` com a forma:
-```json
-{
-  "eligible": true,
-  "total_items": 5,
-  "available_items": 4,
-  "skipped_items": 1,
-  "items": [
-    {
-      "product_id": "...", "product_name": "...", "display_name": "...",
-      "category_slug": "pizzas", "combo_role": "",
-      "size": "Grande", "second_flavor": "",
-      "addons": [{ "name": "Borda", "price": 8.0, "quantity": 1 }],
-      "remocoes": ["Cebola"],
-      "unit_price": 59.9,
-      "image_url": "empresa/uuid/arq.jpg",
-      "quantity": 2
-    }
-  ]
-}
-```
+## Princípio de arquitetura (reaproveitar o que já funciona)
+- O **webhook `mp-webhook` não muda** — ele já marca `pago_online = true` na confirmação.
+- A **baixa financeira continua no navegador do operador**, igual ao Balcão/Mesas de hoje: registrar o pagamento em `pagamentos_pedido` (meio "PIX") + chamar `finalize_order_paid` + imprimir senha/rotas. A diferença é que, em vez de o operador clicar "confirmar PIX manualmente", o botão de finalizar só dispara **depois** que o polling detecta `pago_online = true`.
+- Restrição real do MP: a Order do MP cobra o **valor total** do pedido. Portanto o **PIX online paga o pedido inteiro** — não entra em pagamento dividido parcial (dividir com dinheiro/cartão continua no fluxo manual atual).
 
-Lógica (SECURITY DEFINER, `search_path = public`):
-1. **Auth/propriedade**: `v_user := auth.uid()`; exige que o pedido seja do próprio usuário (`orders.user_id = v_user`) ou admin. Senão exceção.
-2. **Elegibilidade**: rejeita rascunho/não pago — bloqueia quando `status IN ('rascunho_pagamento','pagamento_abandonado')` OU (`aguardando_pagamento = true` AND `pago_online = false`). Isso já cobre a regra: entregues/recebidos/cancelados ✅, rascunho ❌. Se inelegível → retorna `{"eligible": false}`.
-3. **Reconciliação por item** (loop em `order_items` do pedido):
-   - Busca o produto atual: `products p JOIN categories c` onde `p.id = oi.product_id AND p.available = true AND p.empresa_id = <empresa do pedido>`. Se **não achar** → conta como `skipped` e pula.
-   - **Recalcula `unit_price` reusando a fórmula do `create_order`**:
-     - `base` = `produtos_price_options.preco` do `size`; se nulo, `products.price`.
-     - Meia-a-meia: se `allows_half` e `second_flavor` existe e o 2º sabor **ainda existe** no cardápio → `base = round((base + base2)/2, 2)`; se o 2º sabor sumiu → degrada para sabor único.
-     - Açaí (`free_addon_limit > 0` + free_addons): recalcula excedente de grátis + adicionais premium.
-     - Adicionais pagos: soma `produtos_addons.preco` **atual** por nome; adicional que não existe mais é descartado.
-   - Monta o `display_name` (½ A / ½ B, ou "Nome (Tamanho)", ou "Nome") igual ao `create_order`.
-   - Reprecifica cada addon retornado com o preço atual (para o carrinho exibir certo).
-   - Acrescenta ao array `items` com `category_slug`, `combo_role`, `image_url` (caminho bruto), `remocoes`, `quantity`.
-4. Retorna o `jsonb` com contagens (`total_items`, `available_items`, `skipped_items`).
+## Mudança de Backend (1 Edge Function)
+`supabase/functions/mp-create-payment/index.ts`:
+1. **Autorização por operador:** hoje bloqueia com `order.user_id !== user.id` (403). Passar a permitir também **funcionário da empresa dona do pedido** (papel `admin`/operador da `order.empresa_id`), reusando a mesma checagem do `mp_get_order_status` (`has_role(user,'admin')` + confirmação de que o operador pertence à `empresa_id` do pedido). Necessário porque em pedidos de Mesa o `order.user_id` é o cliente, não o operador.
+2. **Novo parâmetro `context`** (`'balcao' | 'mesa'`) para controlar a visibilidade:
+   - **Balcão** (`'balcao'`): mantém o comportamento atual (`aguardando_pagamento = true`, `status = 'rascunho_pagamento'`). Assim um QR abandonado vira só um rascunho e nunca chega ao KDS/Caixa.
+   - **Mesa** (`'mesa'`): o pedido **já está ativo e visível** no Caixa; NÃO alterar `status`/`status_pedido`/`aguardando_pagamento`. Apenas gravar `mp_order_id`, `mp_payment_id`, `mp_status` e `tipo_pagamento = 'pix'`. Evita que uma mesa em atendimento suma do painel se o cliente demorar/desistir.
+3. Escopo só **PIX** (cartão no balcão/mesa continua na maquininha física; não faz parte deste pedido).
 
-GRANT: `GRANT EXECUTE ON FUNCTION public.repeat_order(uuid, text) TO authenticated;`
+Nenhuma migração de schema é necessária: o meio "PIX" já existe em `meios_pagamento`, e `mp_get_order_status` já libera o operador `admin`.
 
-## PARTE 2 — Frontend
+## Mudança de Frontend
 
-### `src/lib/orders.ts` (editar)
-- Adicionar `REORDERABLE_STATUSES` (lista de status elegíveis para exibir o botão) e um helper `isReorderable(status)`.
-- Adicionar `repeatOrder(orderId): Promise<RepeatOrderResult>` que chama `supabase.rpc("repeat_order", { p_order_id, p_host: currentHost() })` e tipa o retorno (`eligible`, contagens, `items`).
+### 1) Componente compartilhado de QR (novo)
+`src/components/checkout/PdvPixCharge.tsx` — versão enxuta (só PIX) do `MercadoPagoCheckout`:
+- Recebe `orderId`, `amount`, `config` (MpPublicConfig), `context`.
+- Chama `createMpPayment({ method: 'pix', context })`, exibe QR + Copia e Cola.
+- Faz polling de `fetchMpOrderStatus`; ao virar `pago_online`, chama `onConfirmed()`.
+- Reaproveita `createMpPayment`/`fetchMpOrderStatus` de `src/lib/mercadopago.ts`.
 
-### `src/routes/_authenticated/orders.tsx` (editar)
-- Importar `useCart`, `useNavigate`, `resolveImageUrls`, `toast`, ícone `RotateCcw`.
-- Botão **"Repetir pedido"** no rodapé de cada `<article>`, visível só quando `isReorderable(order.status)`.
-- Handler `handleReorder(order)`:
-  1. Chama `repeatOrder(order.id)` (com estado de loading no botão).
-  2. `eligible === false` ou `items.length === 0` → `toast.error("Nenhum item deste pedido está disponível no momento.")`.
-  3. Resolve as imagens dos itens (`resolveImageUrls`) e mapeia cada um para `NewCartItem` (mesma forma que o `ProductCustomizer` produz), chamando `addLine(item, quantity)`.
-  4. Se `skipped_items > 0` → `toast.warning("N item(ns) fora do cardápio foram ignorados.")`; senão `toast.success("Itens adicionados ao carrinho!")`.
-  5. `navigate({ to: "/" })` — **para aqui**. Cliente vê o carrinho montado e assume o fluxo (edita/adiciona/remove/confirma).
-- Comportamento do carrinho: **acrescenta** aos itens atuais (linhas idênticas são mescladas por `makeLineId`). Não vai ao checkout.
+`src/lib/mercadopago.ts`: adicionar `context` opcional em `CreateMpPaymentInput`/`createMpPayment` (repassado no body para a Edge Function).
 
-## Fora de escopo (base 1.0.1 intacta)
-- Nada muda em `create_order`, checkout, webhooks, combos ou RLS existente.
-- Nenhuma Edge Function nova.
+### 2) Balcão — `src/components/caixa/BalcaoView.tsx` (`BalcaoPaymentDialog`)
+- Carregar `fetchMpPublicConfig()`; se o MP estiver ativo e `aceita_pix_online`, o método PIX passa a oferecer **"PIX (Mercado Pago)"** com QR dinâmico, em vez do `usePixPayment` estático.
+- Refatorar o fluxo: para o caminho PIX-online, **criar o pedido antes** (`placeOrder`) para obter `order_id` + total do servidor, e então renderizar `<PdvPixCharge context="balcao">`.
+- Em `onConfirmed`: registrar `addPagamento({ meioId: PIX, valor: totalServidor })` + `finalize_order_paid` + `afterFinalize` (senha/impressão/KDS) — a mesma sequência do `finalize()` atual.
+- Fallback: sem MP ativo, mantém o PIX estático + "Recebimento PIX confirmado" de hoje. Dinheiro/cartão/troco não mudam.
 
-## Teste no Preview
-1. Logar como cliente em "Meus pedidos".
-2. "Repetir pedido" em um pedido entregue → carrinho preenchido com preços atuais, volta ao cardápio.
-3. Confirmar que rascunhos/não pagos não mostram o botão.
-4. (Opcional) Desativar/indisponibilizar um produto no admin e repetir um pedido que o continha → item pulado com aviso; se todos indisponíveis → aviso de impossibilidade.
+### 3) Mesas/Delivery — `src/components/caixa/PaymentDialog.tsx`
+- Carregar `fetchMpPublicConfig()`; se MP ativo + `aceita_pix_online`, exibir botão **"Cobrar PIX online (total)"**.
+- Ao clicar: `createMpPayment({ method:'pix', context:'mesa' })` para o **total do pedido**, abre `<PdvPixCharge context="mesa">` com o QR.
+- Em `onConfirmed`: registrar o pagamento PIX pelo total + `finalize_order_paid` (mesmo `handleFinalize` atual) e fechar.
+- O split manual (dinheiro + cartão na maquininha) continua igual; o PIX online só aparece quando ainda não há pagamento parcial lançado (cobra sempre o total).
+
+### 4) Gating de exibição
+Reutilizar `fetchMpPublicConfig()` (`ativo`, `aceita_pix_online`) nos dois diálogos para decidir se o botão de PIX online aparece.
+
+## Fora de escopo
+- Cartão online no PDV (maquininha física permanece).
+- PIX online em pagamento **dividido/parcial** (a Order do MP é sempre o total).
+- Webhook `mp-webhook`, `finalize_order_paid`, regras de combo, RLS de `orders` — inalterados.
+- Base 1.0.1 preservada.
+
+## Como testar no Preview
+1. **Balcão:** adicionar itens → Finalizar → escolher PIX (Mercado Pago) → conferir QR dinâmico → pagar (ambiente de teste MP) → ver baixa automática, senha impressa e pedido some do cupom.
+2. **Mesa:** abrir pedido de mesa no Caixa → Pagamento → "Cobrar PIX online (total)" → QR → pagar → pedido finalizado (Finalizado) e sai do painel.
+3. **Abandono:** gerar QR e não pagar → Balcão vira rascunho (não aparece no KDS); Mesa continua ativa e visível.
+4. **Sem MP ativo:** confirmar que o Balcão volta ao PIX estático e a Mesa ao registro manual (nada quebra).
+
+## Detalhes técnicos
+- Autorização na Edge Function: `admin.rpc('has_role', { _user_id: user.id, _role: 'admin' })` + checagem de `empresa_id` do operador vs `order.empresa_id` (multi-tenant), mantendo o dono do pedido como caso já aceito.
+- Meio "PIX": `id = 039bf14f-129f-48bc-8c1a-6833719e10e3` (buscado dinamicamente por nome, não hardcoded).
+- Reconciliação de centavos no Balcão: manter o ajuste de `drift` contra `fetchOrderTotal` já existente antes de `addPagamento`.
+- Idempotência do MP: chave `X-Idempotency-Key = order.id-pix-env` já existente cobre reaberturas de QR.
