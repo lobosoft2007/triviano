@@ -1435,6 +1435,8 @@ function BalcaoPaymentDialog({
             )}
           </Button>
         </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
