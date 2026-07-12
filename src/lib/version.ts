@@ -18,8 +18,8 @@
 //     o Patch volta automaticamente para 1.
 // ============================================================================
 
-export const APP_VERSION = "1.0.1";
-export const LAST_PATCH_DATE = "2026-07-11";
+export const APP_VERSION = "1.1.1";
+export const LAST_PATCH_DATE = "2026-07-12";
 export const VERSION_STATUS = "ESTÁVEL";
 
 /** Rótulo pronto para exibição, ex.: "v1.0.1". */
