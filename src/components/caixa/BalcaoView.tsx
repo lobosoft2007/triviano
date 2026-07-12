@@ -1138,6 +1138,45 @@ function BalcaoPaymentDialog({
           <DialogTitle className="font-display">Receber pagamento</DialogTitle>
         </DialogHeader>
 
+        {onlinePix || preparingPix ? (
+          <div className="space-y-3">
+            {preparingPix || !onlinePix || !mpConfig ? (
+              <div className="flex flex-col items-center gap-2 py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Preparando cobrança PIX…
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-xl bg-secondary p-3 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Total a receber
+                  </p>
+                  <p className="font-display text-2xl font-black tabular-nums">
+                    {formatBRL(onlinePix.serverTotal)}
+                  </p>
+                </div>
+                <PdvPixCharge
+                  orderId={onlinePix.orderId}
+                  total={onlinePix.serverTotal}
+                  config={mpConfig}
+                  context="balcao"
+                  onConfirmed={onOnlinePixConfirmed}
+                />
+                <Button
+                  variant="ghost"
+                  onClick={() => setOnlinePix(null)}
+                  disabled={busy}
+                  className="h-12 w-full rounded-xl font-semibold text-muted-foreground"
+                >
+                  Cancelar cobrança
+                </Button>
+              </>
+            )}
+          </div>
+        ) : (
+          <>
         {/* Totals band */}
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-xl bg-secondary p-3 text-center">
