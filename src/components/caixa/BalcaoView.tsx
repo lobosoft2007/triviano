@@ -408,6 +408,7 @@ export function BalcaoView() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={onSearchKeyDown}
+                onFocus={() => setActiveCat(ALL)}
                 placeholder="Escaneie ou digite e pressione Enter…"
                 className="h-14 rounded-xl pl-11 text-lg font-medium"
                 aria-label="Buscar produto por nome ou código de barras"
