@@ -25,24 +25,30 @@ const DENY_ALL: MyPermissions = {
   is_admin: false,
   is_funcionario: false,
   acesso_kds_cozinha: false,
+  acesso_bar: false,
   acesso_atendimento_balcao: false,
   acesso_mesas: false,
   acesso_delivery: false,
+  acesso_entregas: false,
   acesso_entrada_estoque: false,
   acesso_sangria_suprimento: false,
   acesso_cadastro_produtos: false,
   acesso_financeiro: false,
+  acesso_rh: false,
 };
 
 export const PERMISSION_LABELS: { key: PermissionFlag; label: string }[] = [
   { key: "acesso_kds_cozinha", label: "Cozinha (KDS)" },
+  { key: "acesso_bar", label: "Bar" },
   { key: "acesso_atendimento_balcao", label: "Atendimento Balcão" },
   { key: "acesso_mesas", label: "Mesas" },
   { key: "acesso_delivery", label: "Delivery" },
+  { key: "acesso_entregas", label: "Entregas (Entregador)" },
   { key: "acesso_entrada_estoque", label: "Entrada de Estoque" },
   { key: "acesso_sangria_suprimento", label: "Sangria / Suprimento" },
   { key: "acesso_cadastro_produtos", label: "Cadastro de Produtos" },
   { key: "acesso_financeiro", label: "Financeiro" },
+  { key: "acesso_rh", label: "RH / Gestão de Equipe" },
 ];
 
 /** Effective permissions for the logged-in user. Admins bypass the matrix. */
