@@ -85,6 +85,7 @@ export async function createMpPayment(
       body: {
         order_id: input.orderId,
         method: input.method,
+        context: input.context ?? "app",
         token: input.token,
         installments: input.installments,
         payment_method_id: input.paymentMethodId,
