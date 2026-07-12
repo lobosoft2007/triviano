@@ -50,6 +50,7 @@ export function ProductImage({
 
   const [idx, setIdx] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Reset whenever the source set changes.
   useEffect(() => {
@@ -57,12 +58,21 @@ export function ProductImage({
     setLoaded(false);
   }, [chain]);
 
+  // Cached images can finish before React attaches onLoad — detect that so the
+  // skeleton doesn't stay up forever.
+  useEffect(() => {
+    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, [idx]);
+
   return (
     <span className={cn("relative block overflow-hidden", className)}>
       {!loaded && (
         <Skeleton className="absolute inset-0 h-full w-full rounded-none" />
       )}
       <img
+        ref={imgRef}
         src={chain[idx]}
         alt={alt}
         loading={loading}
