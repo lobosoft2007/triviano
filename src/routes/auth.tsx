@@ -192,7 +192,7 @@ function AuthPage() {
     toast.success(
       displayName ? `Bem-vindo, ${displayName}!` : user?.email ? `Bem-vindo, ${user.email}!` : "Bem-vindo de volta!"
     );
-    navigateAfterConfirmedAuth();
+    void navigateAfterConfirmedAuth();
   }
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
