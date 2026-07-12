@@ -867,7 +867,7 @@ function MesasColumn({
   }
 
   return (
-    <div className="w-full space-y-4">
+    <div className="grid w-full grid-cols-1 gap-4 xl:grid-cols-2">
       {grouped.map(([mesa, group]) => {
         const total = group.reduce((s, o) => s + o.total, 0);
         return (
