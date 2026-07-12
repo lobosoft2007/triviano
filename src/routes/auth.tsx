@@ -5,6 +5,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { firstAllowedRoute, type MyPermissions } from "@/lib/permissions";
 import { empresaQueryOptions, DEFAULT_EMPRESA_ID } from "@/lib/empresa";
 import { AddressFields, emptyAddress, type AddressState } from "@/components/AddressFields";
 import { geocodeAddress } from "@/lib/cep";
