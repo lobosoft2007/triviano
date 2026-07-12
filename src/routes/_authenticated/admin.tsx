@@ -433,17 +433,28 @@ function AdminPage() {
     enabled: isAdmin === true,
   });
 
-  const [tab, setTab] = useState<AdminTab>("cardapio");
+  const search = Route.useSearch();
+  const [tab, setTab] = useState<AdminTab>(search.tab ?? "cardapio");
+  const deniedShown = useRef(false);
 
-  // If the current tab is not permitted for this staff level, jump to the first allowed one.
+  // Feedback for a blocked surface redirect (Camada 1) or a forbidden
+  // deep-link tab (Camada 2). Fires the access-denied toast once.
   useEffect(() => {
     if (!perms) return;
+    const requestedForbidden = search.tab && !tabAllowed(search.tab);
+    if ((search.denied || requestedForbidden) && !deniedShown.current) {
+      deniedShown.current = true;
+      toast.error(ACCESS_DENIED_MSG);
+    }
+    // If the active tab is not permitted for this staff level, jump to the
+    // first allowed one (silently — default fallbacks are not "denied").
     if (!tabAllowed(tab)) {
       const first = TABS.find((t) => tabAllowed(t.key));
       if (first) setTab(first.key);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [perms, tab]);
+  }, [perms, tab, search.tab, search.denied]);
+
 
   const { data: setores } = useQuery({
     queryKey: ["erp-setores"],
