@@ -900,6 +900,21 @@ function BalcaoPaymentDialog({
     }
   }
 
+  /**
+   * Entry point for a payment-method tile. When the operator picks PIX and the
+   * Mercado Pago is active for this tenant AND nothing was paid yet (online PIX
+   * always charges the FULL cupom), start the dynamic QR flow with automatic
+   * settlement. Otherwise fall back to the classic manual entry (static PIX,
+   * cash + troco, card).
+   */
+  function onPickMethod(m: MeioPagamento) {
+    if (isPixMethod(m.nome) && mpPixActive && payments.length === 0) {
+      void startOnlinePix();
+      return;
+    }
+    pickMethod(m);
+  }
+
   /** Confirms PIX receipt for the exact remaining balance and records it. */
   function confirmPix() {
     if (!selected) return;
