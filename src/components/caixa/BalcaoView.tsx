@@ -114,6 +114,10 @@ export function BalcaoView() {
   const [activeCat, setActiveCat] = useState<string>(ALL);
   const [lines, setLines] = useState<BalcaoLine[]>([]);
   const [payOpen, setPayOpen] = useState(false);
+  const [lastOrder, setLastOrder] = useState<{
+    senha: string;
+    time: string;
+  } | null>(null);
   const [printNode, setPrintNode] = useState<ReactNode>(null);
   const [custom, setCustom] = useState<{
     product: Product;
@@ -175,6 +179,17 @@ export function BalcaoView() {
     async (orderId: string) => {
       const senha = await fetchOrderSenha(orderId);
       const snapshot = lines;
+
+      // Track the last counter attendance for the operator's quick reference.
+      if (senha) {
+        setLastOrder({
+          senha: String(senha),
+          time: new Date().toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        });
+      }
 
       // 1) Always print the customer pickup-password coupon.
       if (senha) {
@@ -364,8 +379,19 @@ export function BalcaoView() {
     <div className="grid h-full min-h-0 w-full max-w-none grid-cols-1 gap-4 overflow-hidden lg:grid-cols-12 lg:gap-0">
       {/* ---------------- LEFT (col-span-7): only this block scrolls ---------------- */}
       <div className="flex h-full min-w-0 flex-col overflow-y-auto pb-4 pr-2 lg:col-span-7 lg:pr-4">
-
-
+        {/* Título do módulo + histórico do último atendimento */}
+        <div className="mb-2 shrink-0">
+          <h2 className="font-display text-lg font-bold leading-tight">
+            Atendimento Balcão
+          </h2>
+          {lastOrder && (
+            <p className="text-[11px] text-muted-foreground">
+              Última senha:{" "}
+              <span className="font-semibold">{lastOrder.senha}</span> às{" "}
+              {lastOrder.time}
+            </p>
+          )}
+        </div>
 
         {/* Sticky header: search + category carousel stay visible while grid scrolls */}
         <div className="sticky top-0 z-10 flex flex-col gap-3 bg-background pb-3">
@@ -382,6 +408,7 @@ export function BalcaoView() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={onSearchKeyDown}
+                onFocus={() => setActiveCat(ALL)}
                 placeholder="Escaneie ou digite e pressione Enter…"
                 className="h-14 rounded-xl pl-11 text-lg font-medium"
                 aria-label="Buscar produto por nome ou código de barras"

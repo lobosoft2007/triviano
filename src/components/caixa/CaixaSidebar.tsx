@@ -10,7 +10,7 @@ import {
   TrendingUp,
   TrendingDown,
   HandCoins,
-  DoorClosed,
+  Power,
   PackagePlus,
   Settings,
   CreditCard,
@@ -252,7 +252,7 @@ export function CaixaSidebar({
       {
         key: "fechar",
         label: "Fechar Caixa",
-        icon: <DoorClosed className={`${iconCls} text-destructive`} />,
+        icon: <Power className={`${iconCls} text-destructive`} />,
         show: isMaster,
         onClick: onFecharCaixa,
       },
