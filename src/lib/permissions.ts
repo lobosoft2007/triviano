@@ -5,13 +5,16 @@ import { useAuth } from "@/lib/auth";
 /** All permission flags governed by the dynamic access matrix. */
 export type PermissionFlag =
   | "acesso_kds_cozinha"
+  | "acesso_bar"
   | "acesso_atendimento_balcao"
   | "acesso_mesas"
   | "acesso_delivery"
+  | "acesso_entregas"
   | "acesso_entrada_estoque"
   | "acesso_sangria_suprimento"
   | "acesso_cadastro_produtos"
-  | "acesso_financeiro";
+  | "acesso_financeiro"
+  | "acesso_rh";
 
 export interface MyPermissions extends Record<PermissionFlag, boolean> {
   is_admin: boolean;
