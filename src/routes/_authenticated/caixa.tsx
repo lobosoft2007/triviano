@@ -307,14 +307,8 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
   const navigate = useNavigate();
   const { signOut } = useAuth();
 
-  // Dynamic per-resource access derived from the level's permission matrix.
-  const canDelivery = perms.is_admin || perms.acesso_delivery;
-  const canMesas = perms.is_admin || perms.acesso_mesas;
-  const canBalcao = perms.is_admin || perms.acesso_atendimento_balcao;
-  const canFinanceiro = perms.is_admin || perms.acesso_financeiro;
-  const canSangria = perms.is_admin || perms.acesso_sangria_suprimento;
-  const canEstoque = perms.is_admin || perms.acesso_entrada_estoque;
-  const isMaster = perms.is_admin;
+
+
 
   const handleLock = useCallback(async () => {
     await queryClient.cancelQueries();
