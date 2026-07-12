@@ -1390,12 +1390,17 @@ function BalcaoPaymentDialog({
                   meiosPdv.map((m) => (
                     <Button
                       key={m.id}
-                      onClick={() => pickMethod(m)}
+                      onClick={() => onPickMethod(m)}
                       disabled={busy}
                       variant="secondary"
                       className="h-16 rounded-xl text-base font-bold"
                     >
                       {m.nome}
+                      {isPixMethod(m.nome) && mpPixActive && (
+                        <span className="ml-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary">
+                          QR
+                        </span>
+                      )}
                     </Button>
                   ))
                 )}
