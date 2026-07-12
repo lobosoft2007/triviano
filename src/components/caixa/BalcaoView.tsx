@@ -114,6 +114,10 @@ export function BalcaoView() {
   const [activeCat, setActiveCat] = useState<string>(ALL);
   const [lines, setLines] = useState<BalcaoLine[]>([]);
   const [payOpen, setPayOpen] = useState(false);
+  const [lastOrder, setLastOrder] = useState<{
+    senha: string;
+    time: string;
+  } | null>(null);
   const [printNode, setPrintNode] = useState<ReactNode>(null);
   const [custom, setCustom] = useState<{
     product: Product;
