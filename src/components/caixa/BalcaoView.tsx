@@ -47,6 +47,8 @@ import {
   fetchMeiosPagamento,
   type MeioPagamento,
 } from "@/lib/caixa";
+import { fetchMpPublicConfig } from "@/lib/mercadopago";
+import { PdvPixCharge } from "@/components/checkout/PdvPixCharge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
