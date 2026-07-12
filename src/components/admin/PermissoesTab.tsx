@@ -27,6 +27,7 @@ import { CARGO_PRESETS, CUSTOM_PRESET_ID } from "@/lib/cargos";
 export function PermissoesTab() {
   const qc = useQueryClient();
   const [novoNome, setNovoNome] = useState("");
+  const [preset, setPreset] = useState<string>(CUSTOM_PRESET_ID);
   const [saving, setSaving] = useState(false);
 
   const { data: niveis, isLoading } = useQuery({
@@ -39,14 +40,26 @@ export function PermissoesTab() {
     qc.invalidateQueries({ queryKey: ["my-permissions"] });
   };
 
+  const handlePresetChange = (id: string) => {
+    setPreset(id);
+    const p = CARGO_PRESETS.find((c) => c.id === id);
+    // Preenche o nome sugerido quando o campo está vazio ou casava com outro preset.
+    if (p && (!novoNome.trim() || CARGO_PRESETS.some((c) => c.nome === novoNome.trim()))) {
+      setNovoNome(p.nome);
+    }
+  };
+
   const handleCreate = async () => {
     const nome = novoNome.trim();
     if (!nome) return;
     setSaving(true);
     try {
-      await createNivel(nome);
+      const id = await createNivel(nome);
+      const chosen = CARGO_PRESETS.find((c) => c.id === preset);
+      if (chosen) await applyMatrizPreset(id, chosen.flags);
       setNovoNome("");
-      toast.success("Nível criado.");
+      setPreset(CUSTOM_PRESET_ID);
+      toast.success(chosen ? `Cargo "${chosen.nome}" criado.` : "Nível criado.");
       invalidate();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível criar o nível.");
