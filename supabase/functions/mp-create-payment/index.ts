@@ -101,8 +101,22 @@ Deno.serve(async (req) => {
     .eq("id", body.order_id)
     .maybeSingle();
   if (orderErr || !order) return json({ error: "Pedido não encontrado." }, 404);
-  if (order.user_id !== user.id) return json({ error: "Pedido de outro usuário." }, 403);
   if (order.pago_online) return json({ error: "Pedido já pago." }, 409);
+
+  // Autorização: o DONO do pedido sempre pode pagar. Além dele, um OPERADOR
+  // (papel admin) da EMPRESA dona do pedido pode gerar a cobrança — necessário
+  // no PDV/Caixa, onde o pedido de mesa pertence ao cliente, não ao operador.
+  // Reutiliza `can_manage_empresa` (super_admin OU admin da própria empresa),
+  // avaliado com o token do usuário logado (multi-tenant seguro).
+  let authorized = order.user_id === user.id;
+  if (!authorized && order.empresa_id) {
+    const { data: canManage } = await userClient.rpc("can_manage_empresa", {
+      _empresa_id: order.empresa_id,
+    });
+    authorized = !!canManage;
+  }
+  if (!authorized) return json({ error: "Pedido de outro usuário." }, 403);
+
 
   // 3) Credenciais do MERCADO PAGO da EMPRESA dona do pedido (multi-tenant).
   const { data: cfg } = await admin
