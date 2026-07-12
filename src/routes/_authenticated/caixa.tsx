@@ -117,6 +117,18 @@ const PIX_NAME = "Marcello Ribeiro Lobo Assumpção";
 // Nome da empresa para os cupons impressos — sincronizado da empresa ativa.
 let RESTAURANT = "";
 
+// Título exibido no header enxuto conforme a aba/módulo ativo na Sidebar.
+const CAIXA_TAB_TITLES: Record<CaixaTab, string> = {
+  delivery: "Delivery",
+  mesas: "Mesas",
+  balcao: "Atendimento Balcão",
+  fiado: "Conta Corrente",
+  clientes: "Clientes",
+  config: "Impressão",
+  pagamento: "Pagamento",
+  fiscal: "Fiscal",
+};
+
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
