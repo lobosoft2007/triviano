@@ -84,3 +84,74 @@ export function canEnterCaixa(p: MyPermissions | undefined): boolean {
 export function isStaff(p: MyPermissions | undefined): boolean {
   return !!p && (p.is_admin || p.is_funcionario);
 }
+
+/** True when the user may reach the Retaguarda (/admin) area at all. */
+export function canEnterAdmin(p: MyPermissions | undefined): boolean {
+  if (!p) return false;
+  return (
+    p.is_admin ||
+    p.acesso_cadastro_produtos ||
+    p.acesso_financeiro ||
+    p.acesso_entrada_estoque
+  );
+}
+
+/** Standard message shown whenever a user hits a forbidden surface/module. */
+export const ACCESS_DENIED_MSG =
+  "Acesso negado: sua função não permite esta operação.";
+
+/** Tabs of the Caixa panel and the matrix flag (or "master") each one requires. */
+export type CaixaTab =
+  | "delivery"
+  | "mesas"
+  | "balcao"
+  | "config"
+  | "pagamento"
+  | "fiscal"
+  | "fiado"
+  | "clientes";
+
+export const CAIXA_TAB_FLAG: Record<CaixaTab, PermissionFlag | "master"> = {
+  delivery: "acesso_delivery",
+  mesas: "acesso_mesas",
+  balcao: "acesso_atendimento_balcao",
+  config: "master",
+  pagamento: "master",
+  fiscal: "master",
+  fiado: "acesso_financeiro",
+  clientes: "master",
+};
+
+/** Display order used to pick the first Caixa tab a user is allowed to open. */
+export const CAIXA_TAB_ORDER: CaixaTab[] = [
+  "delivery",
+  "mesas",
+  "balcao",
+  "fiado",
+  "config",
+  "pagamento",
+  "fiscal",
+  "clientes",
+];
+
+/** True when the given Caixa tab is allowed for the user's permission set. */
+export function caixaTabAllowed(p: MyPermissions | undefined, key: CaixaTab): boolean {
+  if (!p) return false;
+  if (p.is_admin) return true;
+  const flag = CAIXA_TAB_FLAG[key];
+  return flag !== "master" && Boolean(p[flag]);
+}
+
+/**
+ * Smart default landing: the best surface a user can actually reach, so a
+ * staff member without access to the default page is routed to their first
+ * permitted module instead of a dead end. Super admin is handled separately
+ * in the route guard (it depends on the user_roles table, not the matrix).
+ */
+export function firstAllowedRoute(
+  p: MyPermissions | undefined,
+): "/" | "/caixa" | "/admin" {
+  if (canEnterCaixa(p)) return "/caixa";
+  if (canEnterAdmin(p)) return "/admin";
+  return "/";
+}

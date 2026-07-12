@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { ACCESS_DENIED_MSG } from "@/lib/permissions";
 import { useScope } from "@/hooks/useScope";
 import {
   ShoppingBag,
@@ -32,6 +34,9 @@ import { Button } from "@/components/ui/button";
 const heroImg = "/images/hero.jpg";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (s: Record<string, unknown>): { denied?: string } => ({
+    denied: typeof s.denied === "string" ? s.denied : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Clube 23 — Delivery de fast food" },
@@ -82,11 +87,26 @@ function HomePage() {
   // Escopo de subdomínio: PDV e Gerência não usam o cardápio como landing.
   const navigate = useNavigate();
   const { scope, hydrated } = useScope();
+  const search = Route.useSearch();
+  const deniedShown = useRef(false);
+
+  // Feedback quando o usuário foi redirecionado por falta de permissão (Camada 1).
+  useEffect(() => {
+    if (search.denied && !deniedShown.current) {
+      deniedShown.current = true;
+      toast.error(ACCESS_DENIED_MSG);
+    }
+  }, [search.denied]);
+
   useEffect(() => {
     if (!hydrated) return;
+    // Não brigar com o guard de porta: se caímos aqui por acesso negado,
+    // permanecemos na home do cliente em vez de reencaminhar por escopo.
+    if (search.denied) return;
     if (scope === "pdv") navigate({ to: "/caixa", replace: true });
     else if (scope === "gerencia") navigate({ to: "/admin", replace: true });
-  }, [hydrated, scope, navigate]);
+  }, [hydrated, scope, navigate, search.denied]);
+
 
   // No universo de vendas (delivery) o cliente fica fixo na sacola/cardápio:
   // atalhos de fuga para retaguarda/caixa só aparecem fora do delivery.

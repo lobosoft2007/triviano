@@ -1,86 +1,93 @@
-# Gestão de Equipe e Controle de Acesso — Etapa 1 (Diagnóstico + Plano)
+# Fase 4 — Controle de Acesso Físico (com refino UX SOTA)
 
-## Parte A — Diagnóstico: como os cargos funcionam hoje
+Blindagem de acesso ponta a ponta reusando a Matriz de Permissões já carregada. **Sem mexer em banco, RPC ou regra de negócio** — só navegação e guarda no front-end.
 
-O sistema **não usa cargos fixos** hoje. Ele tem duas camadas separadas:
+## Diagnóstico (o que já existe)
 
-### 1. Papéis técnicos (tabela `user_roles`)
-São apenas 3, definidos no enum `app_role`:
-- `super_admin` — dono da plataforma (Triviano)
-- `admin` — operador da empresa (todo funcionário recebe este papel ao ser criado)
-- `user` — cliente final do delivery
+- **Carregamento de chaves (Passo 1): PRONTO.** `usePermissions()` chama `get_my_permissions` (resolve `profiles.nivel_id → permissoes_matriz`) e devolve todas as flags. `is_admin` fura a matriz.
+- **Higiene de menus (Passo 2): PARCIAL.** `/admin` já filtra abas por `TABS.filter(tabAllowed)`; `/caixa` já condiciona cada `TabButton`. Falta padronizar e cobrir 100% dos itens.
+- **Lacunas:** `route.tsx` só checa login; não há URL por módulo (deep-link não interceptável); não há `toast.error` de acesso negado; não há landing inteligente por nível.
 
-Ou seja: **todo funcionário é `admin` tecnicamente**. Isso não é o "cargo" dele.
-
-### 2. Níveis de acesso (o "cargo" real, tabela `niveis_acesso`)
-Cada empresa cria seus próprios níveis livremente. Hoje a empresa exemplo tem:
-- **Gerente**
-- **Operador de caixa**
-
-Cada nível tem uma **matriz de permissões** (tabela `permissoes_matriz`) com **8 chaves liga/desliga**:
+## Arquitetura de guarda (2 camadas)
 
 ```text
-acesso_kds_cozinha          acesso_entrada_estoque
-acesso_atendimento_balcao   acesso_sangria_suprimento
-acesso_mesas                acesso_cadastro_produtos
-acesso_delivery             acesso_financeiro
+  /caixa  /admin  /superadmin        <- URLs reais  => Camada 1 (route.tsx)
+     |       |                        (bloqueio de porta por superfície)
+     +---- ?tab=financeiro -----+     <- deep-link   => Camada 2 (página)
+             abas internas            (bloqueio de módulo + toast)
 ```
 
-- `profiles.nivel_id` → aponta o funcionário para o nível/cargo dele.
-- **Admin Master** = `admin` com `profiles.nivel_id IS NULL` → vê tudo (bypassa a matriz).
+## Passo 1 — Higiene Visual (Sidebar/Menus) — refino UX
 
-### 3. Onde o front-end decide o que cada um vê
-- `src/lib/permissions.ts` → hook `usePermissions()` chama a função `get_my_permissions()` no banco e devolve as 8 flags + `is_admin`.
-- `src/routes/_authenticated/caixa.tsx` (linhas ~279-285) → decide abas do Caixa: `canDelivery`, `canMesas`, `canBalcao`, `canFinanceiro`, `canSangria`, `canEstoque`.
-- `src/routes/_authenticated/admin.tsx` (linhas ~248-261) → mapeia cada aba da Retaguarda para uma flag.
-- `src/components/admin/FuncionariosTab.tsx` + `PermissoesTab.tsx` → o Master cria níveis, liga/desliga flags e vincula funcionários.
+- Confirmar que **todos** os itens de menu do `/admin` e `/caixa` só renderizam quando a flag correspondente for `true` (via `usePermissions`). Nenhum botão de módulo proibido deve aparecer, nem mesmo desabilitado.
+- Auditoria por item:
+  - `/admin`: já usa `TABS.filter(tabAllowed)` + mapa `TAB_FLAG`. Revisar cada linha do `TAB_FLAG` e o botão "Painel Master" (só `super_admin`).
+  - `/caixa`: revisar cada `TabButton` e cada ação (Sangria/Suprimento/Recebimento/Estoque) para garantir gate por flag (`canSangria`, `canFinanceiro`, `canEstoque`, `isMaster`, etc.).
+- Centralizar a lógica no `permissions.ts` para evitar divergência entre as duas telas.
 
-**Conclusão:** os cargos que você quer (Cozinheiro, Garçom etc.) já podem existir como *nomes de nível*, mas hoje precisam ser criados manualmente e configurados chave por chave. Faltam também 2 áreas que **nenhuma flag cobre**: **RH/Gestão de Equipe** e **Entregador/rota de entrega**.
+## Passo 2 — Default Landing inteligente — refino UX
 
----
+- Criar helper `firstAllowedRoute(perms)` em `src/lib/permissions.ts` que devolve a rota inicial ideal do usuário conforme suas flags. Ordem de prioridade (staff):
+  - `super_admin` → `/superadmin`
+  - `is_admin` → `/caixa` (ou `/admin`)
+  - `acesso_kds_cozinha` / `acesso_bar` → `/caixa?tab=...` (Cozinheiro cai no KDS, Barman no Bar)
+  - `acesso_atendimento_balcao`/`acesso_mesas`/`acesso_delivery` → `/caixa`
+  - `acesso_financeiro`/`acesso_entrada_estoque`/etc. → `/admin?tab=<primeira permitida>`
+  - cliente comum (sem flags de staff) → `/` (PWA cliente)
+- Aplicar esse helper:
+  - Após login e no redirect pós-`post_login_redirect`, se o destino padrão não for permitido, cair no `firstAllowedRoute`.
+  - Dentro de `/admin` e `/caixa`, a aba inicial já respeita permissão; alinhar com o helper para consistência (Cozinheiro entra direto na aba KDS).
 
-## Parte B — Plano de expansão (faseado, sem quebrar nada)
+## Passo 3 — Blindagem de Rotas
 
-Objetivo: transformar os 7 cargos (**Admin, Financeiro, RH, Cozinheiro, Garçom, Barman, Entregador**) em **modelos prontos (presets)** que já vêm com a matriz configurada, mantendo a flexibilidade atual.
+### `src/routes/_authenticated/route.tsx` (Camada 1 — porta)
+- No `beforeLoad`, além do check de sessão, buscar `get_my_permissions` **apenas** para caminhos sensíveis:
+  - `/superadmin` → exige `super_admin`; senão `redirect` para `firstAllowedRoute`.
+  - `/admin` → exige ao menos uma aba permitida; senão `redirect` para `firstAllowedRoute` com `search: { denied: "admin" }`.
+  - `/caixa` → exige `canEnterCaixa`; senão `redirect` com `search: { denied: "caixa" }`.
+- Admin da empresa e super_admin passam direto. O toast é disparado no destino (Passo 4).
 
-### Fase 1 — (esta etapa) Só diagnóstico e aprovação
-Nenhuma alteração. Você aprova o desenho abaixo antes de qualquer código.
+### `src/lib/permissions.ts` (helpers compartilhados)
+- `ACCESS_DENIED_MSG = "Acesso negado: sua função não permite esta operação."`
+- `CAIXA_TAB_FLAG` (espelho do `TAB_FLAG` do admin) para abas do caixa.
+- `firstAllowedRoute(perms)` (Passo 2).
 
-### Fase 2 — Ampliar a matriz de permissões (banco)
-Adicionar 2 flags novas à `permissoes_matriz` + `get_my_permissions()` (default `false`, sem impacto nos níveis atuais):
-- `acesso_rh` — Gestão de Equipe (funcionários, cargos, permissões)
-- `acesso_entregas` — painel do Entregador (pedidos prontos / em rota)
+## Passo 3 (páginas) — Camada 2 (módulo/deep-link)
 
-### Fase 3 — Presets de cargo (banco + UI de criação)
-Ao criar um nível, oferecer um **modelo de cargo** que já preenche a matriz:
+### `src/routes/_authenticated/admin.tsx`
+- `validateSearch` p/ aceitar `?tab=<AdminTab>` e `?denied=`.
+- Inicializar aba pelo `?tab=` quando permitido (senão `firstAllowedRoute`/1ª aba).
+- Substituir o auto-jump silencioso por: aba pedida não permitida → `toast.error(ACCESS_DENIED_MSG)` uma vez + cair na 1ª aba liberada.
 
-```text
-Cargo         | Permissões ligadas por padrão
---------------|-----------------------------------------------------------
-Admin         | tudo (equivale ao Master, porém como nível)
-Financeiro    | acesso_financeiro, acesso_sangria_suprimento
-RH            | acesso_rh
-Cozinheiro    | acesso_kds_cozinha
-Garçom        | acesso_mesas, acesso_atendimento_balcao
-Barman        | acesso_kds_cozinha (bar) — a definir se separa cozinha x bar
-Entregador    | acesso_entregas, acesso_delivery (somente leitura da rota)
-```
+### `src/routes/_authenticated/caixa.tsx`
+- `validateSearch` p/ `?tab=` das abas do caixa + `?denied=`.
+- `useEffect` de enforcement (hoje só existe no admin) com `CAIXA_TAB_FLAG`: aba proibida via URL → `toast.error(ACCESS_DENIED_MSG)` + voltar à 1ª permitida.
 
-O Master continua podendo ajustar qualquer chave depois — o preset é só o ponto de partida.
+## Passo 4 — Feedback visual (toast)
 
-### Fase 4 — Refletir os cargos no front-end
-- Caixa/Retaguarda: passar a respeitar `acesso_rh` e `acesso_entregas`.
-- (Opcional, etapa futura) Criar telas dedicadas: painel do Entregador e painel de RH.
+- Mensagem única `ACCESS_DENIED_MSG`.
+- Disparada em: (a) `useEffect` que lê `search.denied` no destino do redirect (limpa o param depois); (b) tentativa de aba proibida via `?tab=`.
 
----
+## Arquivos a alterar
 
-## Decisões que preciso de você antes da Fase 2
+1. `src/routes/_authenticated/route.tsx` — guarda de porta + redirect p/ `firstAllowedRoute` com `denied`.
+2. `src/lib/permissions.ts` — `ACCESS_DENIED_MSG`, `CAIXA_TAB_FLAG`, `firstAllowedRoute`.
+3. `src/routes/_authenticated/admin.tsx` — `?tab=`/`?denied=` + toast + higiene de menu confirmada.
+4. `src/routes/_authenticated/caixa.tsx` — `?tab=`/`?denied=` + `useEffect` enforcement + toast + higiene de menu/ações.
+5. `src/routes/index.tsx` — landing: se o cliente/staff cair aqui sem ser destino ideal, redirecionar via `firstAllowedRoute`; ler `search.denied` p/ toast.
+6. (se necessário) `src/routes/auth.tsx` — aplicar `firstAllowedRoute` no redirect pós-login.
 
-1. **"Admin" como cargo** — você quer um cargo "Admin" (nível que vê tudo) além do Admin Master já existente, ou o Master já resolve isso?
-2. **Barman vs Cozinheiro** — hoje há uma única flag de cozinha (`acesso_kds_cozinha`). Já existem switches de monitor cozinha/bar/pizzaria em `empresas`. Quer separar Barman em uma permissão própria (`acesso_bar`) ou manter junto com a cozinha?
-3. **Escopo desta rodada** — devo parar na **Fase 2 + 3** (matriz nova + presets prontos na criação de cargos) e deixar telas dedicadas de RH/Entregador para depois? Recomendo sim, pela estabilidade.
+## Fora de escopo (estabilidade)
 
-## Detalhes técnicos (referência)
-- Migração: `ALTER TABLE permissoes_matriz ADD COLUMN acesso_rh boolean NOT NULL DEFAULT false, ADD COLUMN acesso_entregas boolean NOT NULL DEFAULT false;` + atualizar `get_my_permissions()`, `seed_permissoes_matriz()`, `PermissionFlag` em `src/lib/permissions.ts`, `FLAGS`/`PERMISSION_LABELS` e a UI de `PermissoesTab.tsx`.
-- Presets: um mapa `CARGO_PRESETS` no front + parâmetro opcional na criação do nível para aplicar a matriz inicial.
-- Nada muda em `user_roles`/`app_role` — a arquitetura de papéis técnicos permanece intacta.
+- Sem migração/RPC/`user_roles`/`permissoes_matriz`.
+- Sem tocar em regra de negócio (pagamentos, pedidos, estoque).
+- Superadmin (Triviano) e Admin da empresa mantêm acesso total à sua esfera.
+
+## Verificação
+
+- Simular 3 níveis (Cozinheiro, Financeiro, Garçom) no preview:
+  - Menus mostram só o permitido (nada de botão proibido).
+  - Login de Cozinheiro cai direto no KDS; Financeiro em `/admin` na aba Financeiro.
+  - `/admin?tab=financeiro` sem `acesso_financeiro` → 1ª aba + toast.
+  - `/caixa`/`/admin`/`/superadmin` sem permissão → redirect p/ `firstAllowedRoute` + toast.
+  - Admin/super_admin passam direto.

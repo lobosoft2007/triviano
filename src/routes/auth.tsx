@@ -5,6 +5,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { firstAllowedRoute, type MyPermissions } from "@/lib/permissions";
 import { empresaQueryOptions, DEFAULT_EMPRESA_ID } from "@/lib/empresa";
 import { AddressFields, emptyAddress, type AddressState } from "@/components/AddressFields";
 import { geocodeAddress } from "@/lib/cep";
@@ -132,13 +133,30 @@ function AuthPage() {
     }
   };
 
-  const navigateAfterConfirmedAuth = () => {
-    const to = resolveLanding();
+  const navigateAfterConfirmedAuth = async () => {
+    let to: LandingPath = resolveLanding();
     clearSavedLanding();
+    // Default landing inteligente: um funcionário sem destino salvo é levado
+    // ao primeiro módulo que sua matriz de permissões libera (ex.: Cozinheiro
+    // vai direto para o Caixa em vez de cair no cardápio do cliente).
+    if (to === "/") {
+      try {
+        const { data } = await supabase.rpc("get_my_permissions");
+        const perms = (Array.isArray(data) ? data[0] : data) as
+          | MyPermissions
+          | undefined;
+        if (perms && (perms.is_admin || perms.is_funcionario)) {
+          to = firstAllowedRoute(perms);
+        }
+      } catch {
+        /* fallback silencioso para a home do cliente */
+      }
+    }
     if (to !== window.location.pathname) {
       navigate({ to, replace: true });
     }
   };
+
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -174,7 +192,7 @@ function AuthPage() {
     toast.success(
       displayName ? `Bem-vindo, ${displayName}!` : user?.email ? `Bem-vindo, ${user.email}!` : "Bem-vindo de volta!"
     );
-    navigateAfterConfirmedAuth();
+    void navigateAfterConfirmedAuth();
   }
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
@@ -281,7 +299,7 @@ function AuthPage() {
         ? `Bem-vindo, ${user.email}!`
         : "Bem-vindo de volta!";
     toast.success(`E-mail confirmado! ${welcome}`);
-    navigateAfterConfirmedAuth();
+    void navigateAfterConfirmedAuth();
   }
 
   async function handleResend() {

@@ -75,7 +75,7 @@ import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
 import { PermissoesTab } from "@/components/admin/PermissoesTab";
 import { FuncionariosTab } from "@/components/admin/FuncionariosTab";
-import { usePermissions, type PermissionFlag } from "@/lib/permissions";
+import { usePermissions, ACCESS_DENIED_MSG, type PermissionFlag } from "@/lib/permissions";
 import { CombosCrud } from "@/components/admin/CombosCrud";
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
@@ -93,6 +93,12 @@ import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { tab?: AdminTab; denied?: string } => ({
+    tab: typeof s.tab === "string" ? (s.tab as AdminTab) : undefined,
+    denied: typeof s.denied === "string" ? s.denied : undefined,
+  }),
   component: AdminPage,
 });
 
@@ -427,17 +433,28 @@ function AdminPage() {
     enabled: isAdmin === true,
   });
 
-  const [tab, setTab] = useState<AdminTab>("cardapio");
+  const search = Route.useSearch();
+  const [tab, setTab] = useState<AdminTab>(search.tab ?? "cardapio");
+  const deniedShown = useRef(false);
 
-  // If the current tab is not permitted for this staff level, jump to the first allowed one.
+  // Feedback for a blocked surface redirect (Camada 1) or a forbidden
+  // deep-link tab (Camada 2). Fires the access-denied toast once.
   useEffect(() => {
     if (!perms) return;
+    const requestedForbidden = search.tab && !tabAllowed(search.tab);
+    if ((search.denied || requestedForbidden) && !deniedShown.current) {
+      deniedShown.current = true;
+      toast.error(ACCESS_DENIED_MSG);
+    }
+    // If the active tab is not permitted for this staff level, jump to the
+    // first allowed one (silently — default fallbacks are not "denied").
     if (!tabAllowed(tab)) {
       const first = TABS.find((t) => tabAllowed(t.key));
       if (first) setTab(first.key);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [perms, tab]);
+  }, [perms, tab, search.tab, search.denied]);
+
 
   const { data: setores } = useQuery({
     queryKey: ["erp-setores"],

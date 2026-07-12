@@ -50,7 +50,15 @@ import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 import { notifyStatusChange } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { usePermissions, canEnterCaixa, type MyPermissions } from "@/lib/permissions";
+import {
+  usePermissions,
+  canEnterCaixa,
+  caixaTabAllowed,
+  CAIXA_TAB_ORDER,
+  ACCESS_DENIED_MSG,
+  type CaixaTab,
+  type MyPermissions,
+} from "@/lib/permissions";
 import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
@@ -89,6 +97,12 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/caixa")({
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { tab?: CaixaTab; denied?: string } => ({
+    tab: typeof s.tab === "string" ? (s.tab as CaixaTab) : undefined,
+    denied: typeof s.denied === "string" ? s.denied : undefined,
+  }),
   component: CaixaPage,
 });
 
@@ -296,15 +310,31 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     navigate({ to: "/auth", replace: true });
   }, [queryClient, signOut, navigate]);
 
-  const initialTab: "delivery" | "mesas" | "balcao" = canDelivery
-    ? "delivery"
-    : canMesas
-      ? "mesas"
-      : "balcao";
+  const search = Route.useSearch();
 
-  const [tab, setTab] = useState<
-    "delivery" | "mesas" | "balcao" | "config" | "pagamento" | "fiscal" | "fiado" | "clientes"
-  >(initialTab);
+  // First tab this user is allowed to open, honoring an explicit ?tab= deep-link.
+  const firstAllowedTab: CaixaTab =
+    CAIXA_TAB_ORDER.find((k) => caixaTabAllowed(perms, k)) ?? "balcao";
+  const requestedTab =
+    search.tab && caixaTabAllowed(perms, search.tab) ? search.tab : null;
+
+  const [tab, setTab] = useState<CaixaTab>(requestedTab ?? firstAllowedTab);
+  const deniedShown = useRef(false);
+
+  // Camada 2 — enforcement de módulo: um deep-link para uma aba proibida (ou
+  // um redirect de porta com ?denied=) dispara o toast e cai na 1ª aba liberada.
+  useEffect(() => {
+    const requestedForbidden = search.tab && !caixaTabAllowed(perms, search.tab);
+    if ((search.denied || requestedForbidden) && !deniedShown.current) {
+      deniedShown.current = true;
+      toast.error(ACCESS_DENIED_MSG);
+    }
+    if (!caixaTabAllowed(perms, tab)) {
+      setTab(firstAllowedTab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, search.tab, search.denied]);
+
   const [partialOpen, setPartialOpen] = useState(false);
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
