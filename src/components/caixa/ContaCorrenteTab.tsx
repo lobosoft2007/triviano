@@ -10,6 +10,7 @@ import {
   Search,
   Save,
   Gift,
+  Coins,
 } from "lucide-react";
 import {
   fetchFiadoClients,
@@ -19,14 +20,16 @@ import {
   type FiadoClient,
   type ExtratoFiadoRow,
 } from "@/lib/fiado";
-import { abaterFiadoComCashback } from "@/lib/cashback";
+import { abaterFiadoComCashback, adminCreditCashback } from "@/lib/cashback";
 import { fetchMeiosPagamento } from "@/lib/caixa";
 import { empresaQueryOptions } from "@/lib/empresa";
+import { usePermissions, isManager } from "@/lib/permissions";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
