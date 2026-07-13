@@ -4,6 +4,8 @@ import type { PermissionFlag } from "@/lib/permissions";
 export interface Nivel {
   id: string;
   nome_nivel: string;
+  /** Admin Local: this level is a full manager of the company. */
+  is_admin_local: boolean;
 }
 
 export interface Matriz extends Record<PermissionFlag, boolean> {
