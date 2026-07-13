@@ -1549,6 +1549,7 @@ export type Database = {
           created_at: string
           empresa_id: string
           id: string
+          is_admin_local: boolean
           nome_nivel: string
           updated_at: string
         }
@@ -1556,6 +1557,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string
           id?: string
+          is_admin_local?: boolean
           nome_nivel: string
           updated_at?: string
         }
@@ -1563,6 +1565,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string
           id?: string
+          is_admin_local?: boolean
           nome_nivel?: string
           updated_at?: string
         }
@@ -2791,6 +2794,7 @@ export type Database = {
           acesso_sangria_suprimento: boolean
           is_admin: boolean
           is_funcionario: boolean
+          is_manager: boolean
         }[]
       }
       get_painel_retirada: {
@@ -2902,6 +2906,7 @@ export type Database = {
         Returns: boolean
       }
       is_empresa_ativa: { Args: { _empresa_id: string }; Returns: boolean }
+      is_local_admin: { Args: never; Returns: boolean }
       is_master_admin: { Args: never; Returns: boolean }
       is_produto_publico: { Args: { _produto_id: string }; Returns: boolean }
       move_to_dlq: {
