@@ -751,6 +751,7 @@ export type Database = {
         Row: {
           cliente_id: string
           created_at: string
+          descricao: string | null
           empresa_id: string
           id: string
           pedido_id: string | null
@@ -761,6 +762,7 @@ export type Database = {
         Insert: {
           cliente_id: string
           created_at?: string
+          descricao?: string | null
           empresa_id?: string
           id?: string
           pedido_id?: string | null
@@ -771,6 +773,7 @@ export type Database = {
         Update: {
           cliente_id?: string
           created_at?: string
+          descricao?: string | null
           empresa_id?: string
           id?: string
           pedido_id?: string | null
@@ -1462,6 +1465,7 @@ export type Database = {
           exige_maquineta: boolean
           id: string
           nome: string
+          percentual_cashback: number
           updated_at: string
         }
         Insert: {
@@ -1471,6 +1475,7 @@ export type Database = {
           exige_maquineta?: boolean
           id?: string
           nome: string
+          percentual_cashback?: number
           updated_at?: string
         }
         Update: {
@@ -1480,6 +1485,7 @@ export type Database = {
           exige_maquineta?: boolean
           id?: string
           nome?: string
+          percentual_cashback?: number
           updated_at?: string
         }
         Relationships: [
@@ -2555,6 +2561,10 @@ export type Database = {
           saldo_devedor: number
         }[]
       }
+      admin_credit_cashback: {
+        Args: { p_cliente_id: string; p_motivo: string; p_valor: number }
+        Returns: number
+      }
       admin_get_empresa_config: {
         Args: never
         Returns: {
@@ -3013,6 +3023,7 @@ export type Database = {
         | "credito_ganho"
         | "debito_uso"
         | "debito_abatimento_fiado"
+        | "ajuste_admin"
       cashback_tipo: "Credito" | "Debito"
       fiado_tipo: "Debito_Compra" | "Credito_Pagamento"
       tipo_conta_financeira: "Físico" | "Banco" | "Recebível_Futuro"
@@ -3152,6 +3163,7 @@ export const Constants = {
         "credito_ganho",
         "debito_uso",
         "debito_abatimento_fiado",
+        "ajuste_admin",
       ],
       cashback_tipo: ["Credito", "Debito"],
       fiado_tipo: ["Debito_Compra", "Credito_Pagamento"],

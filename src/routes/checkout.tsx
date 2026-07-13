@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, MapPin, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, QrCode, Banknote, CreditCard, Wallet, Coins } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder, discardUnpaidDrafts } from "@/lib/orders";
@@ -11,6 +11,7 @@ import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { fetchMpPublicConfig } from "@/lib/mercadopago";
+import { fetchMeiosPagamento } from "@/lib/caixa";
 import { MercadoPagoCheckout } from "@/components/checkout/MercadoPagoCheckout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -290,6 +291,14 @@ function CheckoutPage() {
     staleTime: 5 * 60 * 1000,
   });
   const mpActive = !!mpConfig?.ativo;
+
+  // Percentual de cashback por meio de pagamento (v1.4.0). Alimenta a frase de
+  // incentivo dinâmica exibida ao escolher a forma de pagamento no checkout.
+  const { data: meiosCashback } = useQuery({
+    queryKey: ["meios-cashback-checkout"],
+    queryFn: () => fetchMeiosPagamento(true),
+    staleTime: 5 * 60 * 1000,
+  });
   // Panoramas de flexibilidade. PIX só pode aparecer quando o MP do tenant já
   // foi carregado e está ativo; o PIX estático não tem webhook e não pode mais
   // registrar pedido que depende de confirmação bancária.
@@ -414,6 +423,21 @@ function CheckoutPage() {
   // usamos o método já registrado no pedido).
   const effectivePayMethod = pendingPayment?.payMethod ?? payMethod;
   const effectiveTroco = pendingPayment?.trocoPara ?? trocoPara;
+
+  // Cashback dinâmico (v1.4.0): percentual do meio escolhido × total do pedido.
+  // "Conta Corrente" (Fiado) nunca gera cashback. Respeita o interruptor geral
+  // da empresa (cashback_ativo).
+  const cashbackAtivo = empresa?.cashback_ativo ?? true;
+  const pctCashbackSelecionado =
+    effectivePayMethod === "Conta Corrente"
+      ? 0
+      : (meiosCashback?.find((m) => m.nome === effectivePayMethod)
+          ?.percentual_cashback ?? 0);
+  const cashbackAGanhar =
+    cashbackAtivo && pctCashbackSelecionado > 0
+      ? Math.round(finalTotal * pctCashbackSelecionado) / 100
+      : 0;
+
 
   // Troco: só faz sentido para pagamento em dinheiro.
   const trocoParaNum = Number(String(effectiveTroco).replace(",", "."));
@@ -1124,6 +1148,19 @@ function CheckoutPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Incentivo de cashback dinâmico (v1.4.0) */}
+              {cashbackAGanhar > 0 && (
+                <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary">
+                  <Coins className="h-4 w-4 shrink-0" />
+                  <span>
+                    Pague com {effectivePayMethod} e ganhe{" "}
+                    {formatBRL(cashbackAGanhar)} de volta!
+                  </span>
+                </div>
+              )}
+
+
 
               {/* Conta corrente (fiado): só aparece para clientes autorizados */}
               {fiadoAutorizado && (

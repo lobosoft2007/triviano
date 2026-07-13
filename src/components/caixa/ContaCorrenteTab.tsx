@@ -10,6 +10,7 @@ import {
   Search,
   Save,
   Gift,
+  Coins,
 } from "lucide-react";
 import {
   fetchFiadoClients,
@@ -19,14 +20,16 @@ import {
   type FiadoClient,
   type ExtratoFiadoRow,
 } from "@/lib/fiado";
-import { abaterFiadoComCashback } from "@/lib/cashback";
+import { abaterFiadoComCashback, adminCreditCashback } from "@/lib/cashback";
 import { fetchMeiosPagamento } from "@/lib/caixa";
 import { empresaQueryOptions } from "@/lib/empresa";
+import { usePermissions, isManager } from "@/lib/permissions";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +53,9 @@ export type ContaCorrenteMode = "caixa" | "admin";
 export function ContaCorrenteTab({ mode = "caixa" }: { mode?: ContaCorrenteMode }) {
   const queryClient = useQueryClient();
   const { data: empresa } = useQuery(empresaQueryOptions);
+  const { data: perms } = usePermissions();
+  // Crédito manual de cashback: só para gestor/admin local (ou superior).
+  const canCredit = mode === "admin" && isManager(perms);
   const RESTAURANT = empresa?.nome_fantasia ?? "";
   const [search, setSearch] = useState("");
   const [payTarget, setPayTarget] = useState<FiadoClient | null>(null);
@@ -115,6 +121,7 @@ export function ContaCorrenteTab({ mode = "caixa" }: { mode?: ContaCorrenteMode 
               key={c.id}
               client={c}
               mode={mode}
+              canCredit={canCredit}
               onPay={() => setPayTarget(c)}
               onExtrato={() => handlePrintExtrato(c)}
             />
@@ -192,11 +199,13 @@ export function ContaCorrenteTab({ mode = "caixa" }: { mode?: ContaCorrenteMode 
 function ClientRow({
   client,
   mode,
+  canCredit,
   onPay,
   onExtrato,
 }: {
   client: FiadoClient;
   mode: ContaCorrenteMode;
+  canCredit: boolean;
   onPay: () => void;
   onExtrato: () => void;
 }) {
@@ -206,6 +215,7 @@ function ClientRow({
   const [limite, setLimite] = useState(String(client.limite_fiado));
   const [saving, setSaving] = useState(false);
   const [abating, setAbating] = useState(false);
+  const [creditOpen, setCreditOpen] = useState(false);
 
   const podeAbater =
     client.saldo_cashback > 0 && client.saldo_devedor_fiado > 0;
@@ -373,6 +383,16 @@ function ClientRow({
             c/ cashback
           </Button>
         )}
+        {canCredit && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full border-primary/40 text-primary hover:bg-primary/10"
+            onClick={() => setCreditOpen(true)}
+          >
+            <Coins className="mr-1.5 h-4 w-4" /> Adicionar Crédito Cashback
+          </Button>
+        )}
         <Button
           size="sm"
           variant="outline"
@@ -382,9 +402,114 @@ function ClientRow({
           <Printer className="mr-1.5 h-4 w-4" /> Extrato
         </Button>
       </div>
+
+      {canCredit && (
+        <CreditCashbackDialog
+          client={client}
+          open={creditOpen}
+          onOpenChange={setCreditOpen}
+          onCredited={() =>
+            queryClient.invalidateQueries({ queryKey: ["fiado-clients"] })
+          }
+        />
+      )}
     </div>
   );
 }
+
+function CreditCashbackDialog({
+  client,
+  open,
+  onOpenChange,
+  onCredited,
+}: {
+  client: FiadoClient;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onCredited: () => void;
+}) {
+  const [valor, setValor] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function confirm() {
+    const v = Number(valor.replace(",", "."));
+    if (!Number.isFinite(v) || v <= 0) {
+      toast.error("Informe um valor válido.");
+      return;
+    }
+    if (!motivo.trim()) {
+      toast.error("Informe o motivo do crédito.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await adminCreditCashback({
+        clienteId: client.id,
+        valor: v,
+        motivo: motivo.trim(),
+      });
+      toast.success(
+        `Crédito de ${formatBRL(v)} aplicado com sucesso ao cliente`,
+      );
+      onCredited();
+      setValor("");
+      setMotivo("");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao aplicar crédito.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent hideClose className="max-h-[90vh] max-w-sm overflow-y-auto">
+        <ModalActionBar
+          title={`Crédito de cashback · ${client.full_name || "Cliente"}`}
+          onBack={() => onOpenChange(false)}
+          onSave={confirm}
+          saving={busy}
+          saveDisabled={!valor.trim() || !motivo.trim()}
+          saveLabel="Aplicar crédito"
+        />
+        <div className="space-y-4">
+          <div className="rounded-xl bg-secondary p-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Saldo de cashback</span>
+              <span className="font-bold tabular-nums text-primary">
+                {formatBRL(client.saldo_cashback)}
+              </span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cb-valor">Valor (R$)</Label>
+            <Input
+              id="cb-valor"
+              inputMode="decimal"
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+              placeholder="Ex: 10,00"
+              className="h-11 rounded-xl"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cb-motivo">Motivo</Label>
+            <Textarea
+              id="cb-motivo"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex: Cortesia por atraso, Bonificação VIP"
+              rows={3}
+            />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 interface PayLine {
   meioId: string;
