@@ -154,7 +154,8 @@ export const CAIXA_TAB_ORDER: CaixaTab[] = [
 /** True when the given Caixa tab is allowed for the user's permission set. */
 export function caixaTabAllowed(p: MyPermissions | undefined, key: CaixaTab): boolean {
   if (!p) return false;
-  if (p.is_admin) return true;
+  // Master admin and Admin Local (manager) reach every tab, including "master".
+  if (p.is_admin || p.is_manager) return true;
   const flag = CAIXA_TAB_FLAG[key];
   return flag !== "master" && Boolean(p[flag]);
 }
