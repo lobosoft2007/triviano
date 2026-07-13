@@ -1149,6 +1149,19 @@ function CheckoutPage() {
                 ))}
               </div>
 
+              {/* Incentivo de cashback dinâmico (v1.4.0) */}
+              {cashbackAGanhar > 0 && (
+                <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary">
+                  <Coins className="h-4 w-4 shrink-0" />
+                  <span>
+                    Pague com {effectivePayMethod} e ganhe{" "}
+                    {formatBRL(cashbackAGanhar)} de volta!
+                  </span>
+                </div>
+              )}
+
+
+
               {/* Conta corrente (fiado): só aparece para clientes autorizados */}
               {fiadoAutorizado && (
                 <button
