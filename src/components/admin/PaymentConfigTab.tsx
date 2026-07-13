@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
+import { CashbackPorMeioSection } from "@/components/admin/CashbackPorMeioSection";
 
 const GATEWAYS = ["Efí", "Mercado Pago", "Inter", "Asaas", "Outro"];
 
