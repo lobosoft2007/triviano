@@ -53,6 +53,9 @@ export type ContaCorrenteMode = "caixa" | "admin";
 export function ContaCorrenteTab({ mode = "caixa" }: { mode?: ContaCorrenteMode }) {
   const queryClient = useQueryClient();
   const { data: empresa } = useQuery(empresaQueryOptions);
+  const { data: perms } = usePermissions();
+  // Crédito manual de cashback: só para gestor/admin local (ou superior).
+  const canCredit = mode === "admin" && isManager(perms);
   const RESTAURANT = empresa?.nome_fantasia ?? "";
   const [search, setSearch] = useState("");
   const [payTarget, setPayTarget] = useState<FiadoClient | null>(null);
