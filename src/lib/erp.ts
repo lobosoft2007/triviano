@@ -975,14 +975,18 @@ function slugify(s: string): string {
 }
 
 export async function listAdminCategories(): Promise<AdminCategory[]> {
+  // Multi-tenant: escopa a listagem à empresa do operador. A RLS já garante o
+  // isolamento no banco; este filtro é defesa em profundidade no cliente.
+  const empresaId = await currentEmpresaId();
   const [catRes, prodRes] = await Promise.all([
     supabase
       .from("categories")
       .select(
         "id, name, slug, sort_order, cor_fonte, tamanho_fonte, min_items, allows_half, combo_role",
       )
+      .eq("empresa_id", empresaId)
       .order("sort_order"),
-    supabase.from("products").select("category_id"),
+    supabase.from("products").select("category_id").eq("empresa_id", empresaId),
   ]);
   if (catRes.error) throw catRes.error;
   if (prodRes.error) throw prodRes.error;
