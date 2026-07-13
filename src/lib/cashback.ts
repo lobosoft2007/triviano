@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 export type CashbackMovTipo =
   | "credito_ganho"
   | "debito_uso"
-  | "debito_abatimento_fiado";
+  | "debito_abatimento_fiado"
+  | "ajuste_admin";
 
 export interface ExtratoCashbackRow {
   id: string;
@@ -24,6 +25,7 @@ const LABELS: Record<CashbackMovTipo, string> = {
   credito_ganho: "Cashback recebido",
   debito_uso: "Cashback utilizado",
   debito_abatimento_fiado: "Abatimento de fiado com cashback",
+  ajuste_admin: "Crédito manual",
 };
 
 export function cashbackLabel(tipo: CashbackMovTipo): string {
@@ -31,7 +33,22 @@ export function cashbackLabel(tipo: CashbackMovTipo): string {
 }
 
 export function isCashbackCredito(tipo: CashbackMovTipo): boolean {
-  return tipo === "credito_ganho";
+  return tipo === "credito_ganho" || tipo === "ajuste_admin";
+}
+
+/** Adds a manual cashback credit to a customer (admin/manager only). */
+export async function adminCreditCashback(input: {
+  clienteId: string;
+  valor: number;
+  motivo: string;
+}): Promise<number> {
+  const { data, error } = await supabase.rpc("admin_credit_cashback", {
+    p_cliente_id: input.clienteId,
+    p_valor: input.valor,
+    p_motivo: input.motivo,
+  });
+  if (error) throw error;
+  return Number(data ?? 0);
 }
 
 /** Full cashback statement for a customer, newest first. */
