@@ -424,6 +424,21 @@ function CheckoutPage() {
   const effectivePayMethod = pendingPayment?.payMethod ?? payMethod;
   const effectiveTroco = pendingPayment?.trocoPara ?? trocoPara;
 
+  // Cashback dinâmico (v1.4.0): percentual do meio escolhido × total do pedido.
+  // "Conta Corrente" (Fiado) nunca gera cashback. Respeita o interruptor geral
+  // da empresa (cashback_ativo).
+  const cashbackAtivo = empresa?.cashback_ativo ?? true;
+  const pctCashbackSelecionado =
+    effectivePayMethod === "Conta Corrente"
+      ? 0
+      : (meiosCashback?.find((m) => m.nome === effectivePayMethod)
+          ?.percentual_cashback ?? 0);
+  const cashbackAGanhar =
+    cashbackAtivo && pctCashbackSelecionado > 0
+      ? Math.round(finalTotal * pctCashbackSelecionado) / 100
+      : 0;
+
+
   // Troco: só faz sentido para pagamento em dinheiro.
   const trocoParaNum = Number(String(effectiveTroco).replace(",", "."));
   const trocoValido =
