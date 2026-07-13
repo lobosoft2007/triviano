@@ -148,7 +148,8 @@ export function CaixaSidebar({
   onLock,
 }: CaixaSidebarProps) {
   // Effective per-resource access derived from the permission matrix.
-  const isMaster = perms.is_admin;
+  // Master admin OR Admin Local (manager, e.g. "Proprietário") sees everything.
+  const isMaster = perms.is_admin || perms.is_manager;
   const canMesas = isMaster || perms.acesso_mesas;
   const canDelivery = isMaster || perms.acesso_delivery;
   const canBalcao = isMaster || perms.acesso_atendimento_balcao;

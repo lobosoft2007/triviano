@@ -4,6 +4,8 @@ import type { PermissionFlag } from "@/lib/permissions";
 export interface Nivel {
   id: string;
   nome_nivel: string;
+  /** Admin Local: this level is a full manager of the company. */
+  is_admin_local: boolean;
 }
 
 export interface Matriz extends Record<PermissionFlag, boolean> {
@@ -33,7 +35,7 @@ const FLAGS: PermissionFlag[] = [
 export async function fetchNiveis(): Promise<NivelComMatriz[]> {
   const { data: niveis, error } = await supabase
     .from("niveis_acesso")
-    .select("id, nome_nivel")
+    .select("id, nome_nivel, is_admin_local")
     .order("created_at", { ascending: true });
   if (error) throw error;
 
@@ -47,18 +49,35 @@ export async function fetchNiveis(): Promise<NivelComMatriz[]> {
     const raw = byNivel.get(n.id);
     const matriz = { nivel_id: n.id } as Matriz;
     for (const f of FLAGS) matriz[f] = Boolean(raw?.[f]);
-    return { id: n.id, nome_nivel: n.nome_nivel, matriz };
+    return {
+      id: n.id,
+      nome_nivel: n.nome_nivel,
+      is_admin_local: Boolean((n as { is_admin_local?: boolean }).is_admin_local),
+      matriz,
+    };
   });
 }
 
-export async function createNivel(nome_nivel: string): Promise<string> {
+export async function createNivel(
+  nome_nivel: string,
+  is_admin_local = false,
+): Promise<string> {
   const { data, error } = await supabase
     .from("niveis_acesso")
-    .insert({ nome_nivel })
+    .insert({ nome_nivel, is_admin_local })
     .select("id")
     .single();
   if (error) throw error;
   return data.id;
+}
+
+/** Toggles the "Admin Local" (full manager) mark of an access level. */
+export async function setAdminLocal(id: string, value: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("niveis_acesso")
+    .update({ is_admin_local: value })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 /** Applies a set of permission flags to a level's matrix in one update. */

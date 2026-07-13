@@ -4,13 +4,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 
-async function assertMaster(context: {
+async function assertManager(context: {
   supabase: SupabaseClient<Database>;
   userId: string;
 }) {
-  const { data, error } = await context.supabase.rpc("is_master_admin");
+  // Master admin OR Admin Local (manager). Both are scoped to their own empresa
+  // by the empresa_id filters below and can only grant the "admin" role.
+  const { data, error } = await context.supabase.rpc("is_local_admin");
   if (error) throw new Error("Não foi possível validar suas permissões.");
-  if (!data) throw new Error("Acesso restrito. Apenas o administrador da empresa.");
+  if (!data) throw new Error("Acesso restrito. Apenas administradores da empresa.");
 }
 
 /** Admin cria uma conta de funcionário e vincula a um nível de acesso. */
@@ -27,7 +29,7 @@ export const createFuncionario = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertMaster(context);
+    await assertManager(context);
 
     const { data: prof } = await context.supabase
       .from("profiles")
@@ -70,7 +72,7 @@ export const deleteFuncionario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ user_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    await assertMaster(context);
+    await assertManager(context);
 
     const { data: adminProf } = await context.supabase
       .from("profiles")

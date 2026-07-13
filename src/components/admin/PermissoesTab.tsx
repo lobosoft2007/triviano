@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, ShieldCheck } from "lucide-react";
+import { Loader2, Plus, Trash2, ShieldCheck, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -18,6 +18,7 @@ import {
   renameNivel,
   deleteNivel,
   setFlag,
+  setAdminLocal,
   applyMatrizPreset,
   type NivelComMatriz,
 } from "@/lib/niveis";
@@ -54,8 +55,8 @@ export function PermissoesTab() {
     if (!nome) return;
     setSaving(true);
     try {
-      const id = await createNivel(nome);
       const chosen = CARGO_PRESETS.find((c) => c.id === preset);
+      const id = await createNivel(nome, chosen?.is_admin_local ?? false);
       if (chosen) await applyMatrizPreset(id, chosen.flags);
       setNovoNome("");
       setPreset(CUSTOM_PRESET_ID);
@@ -100,6 +101,25 @@ export function PermissoesTab() {
       qc.invalidateQueries({ queryKey: ["my-permissions"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar permissão.");
+      invalidate();
+    }
+  };
+
+  const handleAdminLocal = async (nivel_id: string, value: boolean) => {
+    // Optimistic update.
+    qc.setQueryData<NivelComMatriz[]>(["niveis-acesso"], (prev) =>
+      (prev ?? []).map((n) => (n.id === nivel_id ? { ...n, is_admin_local: value } : n)),
+    );
+    try {
+      await setAdminLocal(nivel_id, value);
+      qc.invalidateQueries({ queryKey: ["my-permissions"] });
+      toast.success(
+        value
+          ? "Nível promovido a Admin Local (acesso total)."
+          : "Admin Local removido deste nível.",
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar Admin Local.");
       invalidate();
     }
   };
@@ -188,7 +208,23 @@ export function PermissoesTab() {
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-            <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+
+            <label className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2">
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <Crown className="h-4 w-4 text-primary" />
+                Admin Local (acesso total à empresa)
+              </span>
+              <Switch
+                checked={n.is_admin_local}
+                onCheckedChange={(v) => handleAdminLocal(n.id, v)}
+              />
+            </label>
+
+            <div
+              className={`mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4 ${
+                n.is_admin_local ? "pointer-events-none opacity-50" : ""
+              }`}
+            >
               {PERMISSION_LABELS.map(({ key, label }) => (
                 <label
                   key={key}
@@ -196,7 +232,8 @@ export function PermissoesTab() {
                 >
                   <span className="text-sm font-medium">{label}</span>
                   <Switch
-                    checked={n.matriz[key]}
+                    checked={n.is_admin_local || n.matriz[key]}
+                    disabled={n.is_admin_local}
                     onCheckedChange={(v) => handleToggle(n.id, key, v)}
                   />
                 </label>

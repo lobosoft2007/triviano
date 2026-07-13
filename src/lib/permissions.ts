@@ -19,11 +19,14 @@ export type PermissionFlag =
 
 export interface MyPermissions extends Record<PermissionFlag, boolean> {
   is_admin: boolean;
+  /** Admin Local: full manager of their own company (e.g. "Proprietário"). */
+  is_manager: boolean;
   is_funcionario: boolean;
 }
 
 const DENY_ALL: MyPermissions = {
   is_admin: false,
+  is_manager: false,
   is_funcionario: false,
   acesso_kds_cozinha: false,
   acesso_bar: false,
@@ -88,11 +91,22 @@ export function isStaff(p: MyPermissions | undefined): boolean {
   return !!p && (p.is_admin || p.is_funcionario);
 }
 
+/**
+ * True when the user is a full manager of their own company: the master admin
+ * (Triviano-flagged / nivel_id NULL) OR an "Admin Local" level (e.g.
+ * "Proprietário"). Managers unlock every master-gated module, still scoped to
+ * their own empresa_id by RLS.
+ */
+export function isManager(p: MyPermissions | undefined): boolean {
+  return !!p && (p.is_admin || p.is_manager);
+}
+
 /** True when the user may reach the Retaguarda (/admin) area at all. */
 export function canEnterAdmin(p: MyPermissions | undefined): boolean {
   if (!p) return false;
   return (
     p.is_admin ||
+    p.is_manager ||
     p.acesso_cadastro_produtos ||
     p.acesso_financeiro ||
     p.acesso_entrada_estoque
@@ -140,7 +154,8 @@ export const CAIXA_TAB_ORDER: CaixaTab[] = [
 /** True when the given Caixa tab is allowed for the user's permission set. */
 export function caixaTabAllowed(p: MyPermissions | undefined, key: CaixaTab): boolean {
   if (!p) return false;
-  if (p.is_admin) return true;
+  // Master admin and Admin Local (manager) reach every tab, including "master".
+  if (p.is_admin || p.is_manager) return true;
   const flag = CAIXA_TAB_FLAG[key];
   return flag !== "master" && Boolean(p[flag]);
 }
