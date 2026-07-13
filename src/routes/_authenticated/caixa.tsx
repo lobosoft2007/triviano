@@ -179,7 +179,12 @@ function CaixaPage() {
 
   if (userRole === "admin") {
     const adminPerms = perms ?? ({ is_admin: true, is_funcionario: false } as MyPermissions);
-    return caixa ? <OperationalPanel caixaId={caixa.id} perms={adminPerms} /> : <LockScreen userId={user!.id} />;
+    if (caixa) return <OperationalPanel caixaId={caixa.id} perms={adminPerms} />;
+    return canOpenCaixa(adminPerms) ? (
+      <LockScreen userId={user!.id} />
+    ) : (
+      <WaitingOpenScreen />
+    );
   }
 
   if (!allowed) {
@@ -194,10 +199,35 @@ function CaixaPage() {
     );
   }
 
-  return caixa ? (
-    <OperationalPanel caixaId={caixa.id} perms={perms!} />
-  ) : (
+  if (caixa) return <OperationalPanel caixaId={caixa.id} perms={perms!} />;
+  return canOpenCaixa(perms) ? (
     <LockScreen userId={user!.id} />
+  ) : (
+    <WaitingOpenScreen />
+  );
+}
+
+/** True when the user may open/close the cash register turn. */
+function canOpenCaixa(p: MyPermissions | undefined): boolean {
+  return !!p && (p.is_admin || p.acesso_abrir_fechar_caixa);
+}
+
+/* ------------------------------------------------------------------ */
+/* Waiting screen (caixa fechado, sem permissão para abrir)            */
+/* ------------------------------------------------------------------ */
+
+function WaitingOpenScreen() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-6 text-center">
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <Lock className="h-7 w-7" />
+      </span>
+      <h1 className="font-display text-xl font-bold">Caixa fechado</h1>
+      <p className="max-w-sm text-sm text-muted-foreground">
+        Aguardando a abertura do caixa por um responsável. Seu nível de acesso
+        não permite abrir o turno.
+      </p>
+    </div>
   );
 }
 

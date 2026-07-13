@@ -1,65 +1,49 @@
-## Cockpit Operacional v1.2.0 — Sidebar Segura do /caixa
+# Permissão dedicada: Abrir/Fechar Caixa (v1.2.x)
 
-Transforma a barra superior de abas do painel operacional (`/caixa`) em uma **Sidebar lateral com accordions**, sem afrouxar nenhuma verificação de permissão. Toda a lógica de segurança atual (`usePermissions` + flags da `permissoes_matriz` + `is_admin`) é reaproveitada — cada item/submenu é **envolvido em condicional**, então o que o usuário não pode acessar **não é renderizado** (não fica apenas desabilitado).
+## Objetivo
+Permitir que o operador **abra e feche o próprio caixa** sem receber o `acesso_financeiro` completo (que expõe Consultar Caixa/Relatório Parcial, Recebimento, Suprimento e Sangria). Para isso, criamos uma nova flag isolada na Matriz de Permissões: **Abrir/Fechar Caixa**.
 
-### 1. Mapeamento de Permissões (o pedido central — revise antes de eu executar)
+## Sua pergunta: risco de segurança e complexidade
 
-Regra global: `is_admin` (Master) sempre vê tudo. Um grupo (accordion) só aparece se **pelo menos um** dos seus filhos for permitido.
+**Risco: baixo / nenhum.** A barreira de segurança real é o RLS da tabela `fluxo_caixa`, que usa `can_manage_empresa` e já isola tudo **por empresa** (um operador nunca alcança o caixa de outra loja). A nova flag é apenas uma camada de *menor privilégio* no app — ela restringe, nunca amplia acesso. Nada do que você quer esconder (relatórios financeiros, recebimentos, sangria/suprimento) fica exposto, pois cada um continua com sua própria flag (`acesso_financeiro`, `acesso_sangria_suprimento`).
 
-| Grupo / Item | Ação/Aba | Flag exigida (além de `is_admin`) |
-|---|---|---|
-| **OPERACIONAL** | *(grupo)* | qualquer filho abaixo |
-| ↳ Mesas | tab `mesas` | `acesso_mesas` |
-| ↳ Delivery | tab `delivery` | `acesso_delivery` |
-| ↳ Balcão | tab `balcao` | `acesso_atendimento_balcao` |
-| **CLIENTES** | *(grupo)* | qualquer filho abaixo |
-| ↳ Conta Corrente | tab `fiado` | `acesso_financeiro` |
-| ↳ Cadastro de Clientes | tab `clientes` | `master` (só Master) |
-| **FISCAL** | tab `fiscal` (acesso direto) | `master` |
-| **CAIXA** | *(grupo)* | qualquer filho abaixo |
-| ↳ Consultar Caixa (Parcial) | abre `PartialReportDialog` | `acesso_financeiro` |
-| ↳ Suprimento | `handleMov("Suprimento")` | `acesso_sangria_suprimento` |
-| ↳ Sangria | `handleMov("Sangria")` | `acesso_sangria_suprimento` |
-| ↳ Recebimento | `handleMov("Recebimento Pedido")` | `acesso_financeiro` |
-| ↳ Fechar Caixa | abre `CloseCaixaDialog` | `master` |
-| **ESTOQUE** | *(grupo)* | qualquer filho abaixo |
-| ↳ Ajuste Rápido | abre dialog `AjusteRapidoView` | `acesso_entrada_estoque` |
-| **CONFIGURAÇÕES** | *(grupo — Master)* | `master` |
-| ↳ Impressão (setores) | tab `config` | `master` |
-| ↳ Pagamento | tab `pagamento` | `master` |
+**Complexidade: baixa.** Uma migração simples + ajustes pontuais no front-end. Sem refatoração de lógica de negócio.
 
-> **Decisões que precisam do seu aval** (não estavam na sua lista, então propus um lar lógico): as abas Master-only **Impressão** e **Pagamento** foram agrupadas em **CONFIGURAÇÕES**; **Fechar Caixa** entrou no grupo **CAIXA**; e o **Cadastro de Clientes** (Master) ficou junto de Conta Corrente no grupo **CLIENTES**. Se preferir outro arranjo (ex.: remover algum, renomear, mover Fechar Caixa para o rodapé), ajusto na revisão.
+## Mapeamento de permissões (o que cada perfil verá)
 
-### 2. Arquitetura da Sidebar
+| Item | Flag hoje | Flag depois |
+|------|-----------|-------------|
+| Abrir Caixa (tela de abertura) | qualquer acesso ao Caixa | **`acesso_abrir_fechar_caixa`** |
+| Fechar Caixa (sidebar) | `acesso_financeiro` | **`acesso_abrir_fechar_caixa`** |
+| Consultar Caixa / Relatório Parcial | `acesso_financeiro` | *(inalterado)* |
+| Recebimento | `acesso_financeiro` | *(inalterado)* |
+| Suprimento / Sangria | `acesso_sangria_suprimento` | *(inalterado)* |
 
-- Novo componente `src/components/caixa/CaixaSidebar.tsx` usando as primitivas shadcn já instaladas (`Sidebar`, `SidebarContent`, `SidebarGroup`, `SidebarMenu`, `Collapsible`/`accordion` para os submenus, `collapsible="icon"` para recolher).
-- Recebe `perms`, o `tab` ativo, e callbacks: `onSelectTab(tab)`, `onSuprimento`, `onSangria`, `onRecebimento`, `onParcial`, `onAjuste`, `onFecharCaixa`, `onLock`.
-- Cada `SidebarGroup`/item é renderizado atrás de um helper de guarda (reutiliza `caixaTabAllowed` + checagens diretas de flag), garantindo **não-renderização** para quem não tem acesso.
-- **Topo:** `BrandLogo` (logo + nome do restaurante da empresa ativa).
-- **Rodapé (`SidebarFooter`):** logo **Triviano** (`public/logo-triviano.svg`) + item **Suporte** + botão **Bloquear Caixa** (`onLock`).
+Resultado: você marca só **Abrir/Fechar Caixa** no nível do operador → ele abre e fecha o turno, mas o submenu Caixa mostra apenas "Fechar Caixa"; nada de financeiro.
 
-### 3. Novo layout do `/caixa`
+## Passos técnicos
 
-- `OperationalPanel` passa a envolver tudo em `SidebarProvider` com layout em linha: `<CaixaSidebar/>` à esquerda + área principal (`AppShell`/`ShellHeader`/`ShellBody`) à direita, preservando o padrão `100dvh`/scroll único do AppShell.
-- `ShellHeader` fica enxuto: `SidebarTrigger` (recolher/expandir), título do módulo, **Saldo atual** e botão de som. A antiga barra de abas e a barra de ações de caixa saem do header (migram para a Sidebar).
-- `ShellBody` continua renderizando o conteúdo da aba ativa (delivery/mesas/balcão/fiado/clientes/config/pagamento/fiscal) exatamente como hoje. Dialogs (Parcial, Ajuste, Fechar) permanecem, agora disparados pela Sidebar.
+### 1. Banco de dados (migração)
+- `ALTER TABLE public.permissoes_matriz ADD COLUMN acesso_abrir_fechar_caixa boolean NOT NULL DEFAULT false;`
+- Atualizar a função `get_my_permissions()` para retornar a nova coluna em todos os ramos:
+  - Master admin → `true`
+  - Sem nível / sem matriz → `false`
+  - Funcionário → valor de `m.acesso_abrir_fechar_caixa`
+- Compatibilidade: níveis existentes ficam com `false` por padrão (ninguém perde acesso indevidamente; o Master Admin continua com tudo).
 
-### 4. Landing inteligente (já existente, revalidado)
+### 2. Front-end — camada de permissões
+- `src/lib/permissions.ts`: adicionar `"acesso_abrir_fechar_caixa"` ao tipo `PermissionFlag`, ao objeto `DENY_ALL`, à interface `MyPermissions` e à lista `PERMISSION_LABELS` (rótulo: **"Abrir / Fechar Caixa"**).
+- `src/lib/niveis.ts`: incluir a flag no array `FLAGS` (para salvar/ler na tela de Permissões).
 
-`firstAllowedTab`/`caixaTabAllowed` já escolhem a primeira aba permitida e respeitam `?tab=` + `?denied=`. Mantido; a Sidebar apenas reflete o `tab` atual como item ativo. (O redirect de rota inteligente `firstAllowedRoute` no login continua intacto — Cozinheiro/KDS etc. já cai no seu módulo.)
+### 3. Front-end — Sidebar do Caixa
+- `src/components/caixa/CaixaSidebar.tsx`: criar `canAbrirFecharCaixa = isMaster || perms.acesso_abrir_fechar_caixa` e usar essa flag no item **Fechar Caixa** (hoje em `canFinanceiro`).
 
-### 5. Grade de pedidos responsiva (item 4 do pedido)
+### 4. Front-end — abertura de turno
+- `src/routes/_authenticated/caixa.tsx`: ao renderizar a `LockScreen` (caixa fechado), exigir a nova flag. Se o usuário pode entrar no Caixa mas **não** tem `acesso_abrir_fechar_caixa`, mostrar um aviso amigável ("Aguardando a abertura do caixa por um responsável") em vez da tela de abertura. Master Admin e quem tiver a flag abrem normalmente.
 
-- `DeliveryColumn`: troca a lista de coluna única (`space-y-3`) por **grade fluida** — `grid gap-3 sm:grid-cols-2 xl:grid-cols-3` — para os cards ficarem lado a lado conforme a largura ganha com a saída do menu superior.
-- `MesasColumn`: mesma abordagem para os blocos de mesa (`grid gap-4 xl:grid-cols-2`), mantendo o agrupamento por mesa.
-- **Preservado 100%:** clique no card abre a modal de detalhes (`CompactOrderRow` → `Dialog`/`OrderCard`) e o `StatusControl` (trocas de status) e o disparo de impressão continuam funcionando (nenhuma mudança de lógica de negócio).
+### 5. Tela de Permissões (Retaguarda)
+- `src/components/admin/PermissoesTab.tsx`: a nova flag aparece automaticamente por vir de `PERMISSION_LABELS`. Verificar apenas se o layout comporta mais um switch (nenhuma mudança de lógica esperada).
 
-### Arquivos afetados
-
-- **Novo:** `src/components/caixa/CaixaSidebar.tsx`
-- **Editado:** `src/routes/_authenticated/caixa.tsx` — `OperationalPanel` reestruturado (SidebarProvider + header enxuto), `DeliveryColumn`/`MesasColumn` em grade, remoção da antiga barra de abas/ações e do `TabButton` (substituídos pela Sidebar).
-- Sem migrações de banco, sem mudança de RLS, sem mudança de lógica de permissões no back-end.
-
-### Fora de escopo
-
-Nenhuma alteração no `/admin`, no fluxo de login, nas RPCs de permissão ou em pagamentos. Apenas UI/estrutura do painel `/caixa`.
+## Verificação
+- `tsgo` nos arquivos alterados.
+- Teste manual: criar/usar um nível só com "Abrir/Fechar Caixa" → confirmar que abre e fecha o turno e que **não** vê Consultar Caixa, Recebimento, Sangria/Suprimento nem o Admin.

@@ -14,7 +14,8 @@ export type PermissionFlag =
   | "acesso_sangria_suprimento"
   | "acesso_cadastro_produtos"
   | "acesso_financeiro"
-  | "acesso_rh";
+  | "acesso_rh"
+  | "acesso_abrir_fechar_caixa";
 
 export interface MyPermissions extends Record<PermissionFlag, boolean> {
   is_admin: boolean;
@@ -35,6 +36,7 @@ const DENY_ALL: MyPermissions = {
   acesso_cadastro_produtos: false,
   acesso_financeiro: false,
   acesso_rh: false,
+  acesso_abrir_fechar_caixa: false,
 };
 
 export const PERMISSION_LABELS: { key: PermissionFlag; label: string }[] = [
@@ -46,6 +48,7 @@ export const PERMISSION_LABELS: { key: PermissionFlag; label: string }[] = [
   { key: "acesso_entregas", label: "Entregas (Entregador)" },
   { key: "acesso_entrada_estoque", label: "Entrada de Estoque" },
   { key: "acesso_sangria_suprimento", label: "Sangria / Suprimento" },
+  { key: "acesso_abrir_fechar_caixa", label: "Abrir / Fechar Caixa" },
   { key: "acesso_cadastro_produtos", label: "Cadastro de Produtos" },
   { key: "acesso_financeiro", label: "Financeiro" },
   { key: "acesso_rh", label: "RH / Gestão de Equipe" },
