@@ -32,6 +32,7 @@ export const STABLE_RELEASE = {
   date: LAST_PATCH_DATE,
   safeRollback: true,
   validated: [
+    "Cashback Dinâmico por Meio de Pagamento (percentual por meio + crédito manual do admin)",
     "Painel Admin — Sidebar ERP (accordions filtrados por permissão)",
     "Isolamento Multi-Tenant de Admin",
     "Guards de Rota (Acesso Negado via URL)",
