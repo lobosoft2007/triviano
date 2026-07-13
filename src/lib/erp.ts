@@ -1031,10 +1031,12 @@ export async function saveCategory(input: {
       .eq("id", input.id);
     if (error) throw error;
   } else {
-    // Compute next sort_order (append to end).
+    const empresaId = await currentEmpresaId();
+    // Compute next sort_order (append to end) scoped to this company.
     const { data: last } = await supabase
       .from("categories")
       .select("sort_order")
+      .eq("empresa_id", empresaId)
       .order("sort_order", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -1046,6 +1048,8 @@ export async function saveCategory(input: {
       cor_fonte: input.cor_fonte,
       tamanho_fonte: input.tamanho_fonte,
       sort_order: nextOrder,
+      // Tenant stamp: RLS + trigger enforce this on the server too.
+      empresa_id: empresaId,
     });
     if (error) throw error;
   }
