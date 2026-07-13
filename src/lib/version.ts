@@ -18,8 +18,8 @@
 //     o Patch volta automaticamente para 1.
 // ============================================================================
 
-export const APP_VERSION = "1.1.2";
-export const LAST_PATCH_DATE = "2026-07-12";
+export const APP_VERSION = "1.3.0";
+export const LAST_PATCH_DATE = "2026-07-13";
 export const VERSION_STATUS = "ESTÁVEL";
 
 /** Rótulo pronto para exibição, ex.: "v1.0.1". */
@@ -32,6 +32,7 @@ export const STABLE_RELEASE = {
   date: LAST_PATCH_DATE,
   safeRollback: true,
   validated: [
+    "Painel Admin — Sidebar ERP (accordions filtrados por permissão)",
     "Isolamento Multi-Tenant de Admin",
     "Guards de Rota (Acesso Negado via URL)",
     "Módulo de Governança (Matriz de Permissões)",
