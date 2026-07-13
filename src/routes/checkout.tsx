@@ -291,6 +291,14 @@ function CheckoutPage() {
     staleTime: 5 * 60 * 1000,
   });
   const mpActive = !!mpConfig?.ativo;
+
+  // Percentual de cashback por meio de pagamento (v1.4.0). Alimenta a frase de
+  // incentivo dinâmica exibida ao escolher a forma de pagamento no checkout.
+  const { data: meiosCashback } = useQuery({
+    queryKey: ["meios-cashback-checkout"],
+    queryFn: () => fetchMeiosPagamento(true),
+    staleTime: 5 * 60 * 1000,
+  });
   // Panoramas de flexibilidade. PIX só pode aparecer quando o MP do tenant já
   // foi carregado e está ativo; o PIX estático não tem webhook e não pode mais
   // registrar pedido que depende de confirmação bancária.
