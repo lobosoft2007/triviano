@@ -18,11 +18,13 @@ import {
   renameNivel,
   deleteNivel,
   setFlag,
+  setAdminLocal,
   applyMatrizPreset,
   type NivelComMatriz,
 } from "@/lib/niveis";
 import { PERMISSION_LABELS, type PermissionFlag } from "@/lib/permissions";
 import { CARGO_PRESETS, CUSTOM_PRESET_ID } from "@/lib/cargos";
+import { Crown } from "lucide-react";
 
 export function PermissoesTab() {
   const qc = useQueryClient();
