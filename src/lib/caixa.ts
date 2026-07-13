@@ -27,6 +27,7 @@ export interface MeioPagamento {
   nome: string;
   ativo: boolean;
   exige_maquineta: boolean;
+  percentual_cashback: number;
 }
 
 /** Loads payment methods (active only by default), ordered by name. */
@@ -35,12 +36,30 @@ export async function fetchMeiosPagamento(
 ): Promise<MeioPagamento[]> {
   let q = supabase
     .from("meios_pagamento")
-    .select("id, nome, ativo, exige_maquineta")
+    .select("id, nome, ativo, exige_maquineta, percentual_cashback")
     .order("nome");
   if (activeOnly) q = q.eq("ativo", true);
   const { data, error } = await q;
   if (error) throw error;
-  return (data ?? []) as MeioPagamento[];
+  return (data ?? []).map((m) => ({
+    ...(m as MeioPagamento),
+    percentual_cashback: Number(
+      (m as { percentual_cashback?: number }).percentual_cashback ?? 0,
+    ),
+  }));
+}
+
+/** Updates the cashback percentage of a payment method (admin/manager only). */
+export async function updateMeioCashback(
+  id: string,
+  percentual: number,
+): Promise<void> {
+  const pct = Math.max(0, Math.min(100, Number(percentual) || 0));
+  const { error } = await supabase
+    .from("meios_pagamento")
+    .update({ percentual_cashback: pct })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export interface Caixa {
