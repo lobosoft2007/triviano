@@ -155,6 +155,7 @@ export function CaixaSidebar({
   const canFinanceiro = isMaster || perms.acesso_financeiro;
   const canSangria = isMaster || perms.acesso_sangria_suprimento;
   const canEstoque = isMaster || perms.acesso_entrada_estoque;
+  const canAbrirFecharCaixa = isMaster || perms.acesso_abrir_fechar_caixa;
 
   const iconCls = "h-4 w-4 shrink-0";
 
