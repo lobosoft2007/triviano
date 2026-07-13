@@ -11,6 +11,7 @@ import { fetchEsgotadoIds } from "@/lib/menu";
 import { empresaConfigQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { fetchMpPublicConfig } from "@/lib/mercadopago";
+import { fetchMeiosPagamento } from "@/lib/caixa";
 import { MercadoPagoCheckout } from "@/components/checkout/MercadoPagoCheckout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
