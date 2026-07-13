@@ -55,8 +55,8 @@ export function PermissoesTab() {
     if (!nome) return;
     setSaving(true);
     try {
-      const id = await createNivel(nome);
       const chosen = CARGO_PRESETS.find((c) => c.id === preset);
+      const id = await createNivel(nome, chosen?.is_admin_local ?? false);
       if (chosen) await applyMatrizPreset(id, chosen.flags);
       setNovoNome("");
       setPreset(CUSTOM_PRESET_ID);
