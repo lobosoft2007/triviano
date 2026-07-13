@@ -848,8 +848,29 @@ function CompactOrderRow({
 }
 
 /* ------------------------------------------------------------------ */
-/* Mesas column                                                        */
+/* Mesas column — visually sister to Delivery (scannable cards)         */
 /* ------------------------------------------------------------------ */
+
+type MesaFilter = "todas" | "ocupadas" | "aguardando";
+
+const MESA_FILTERS: { key: MesaFilter; label: string }[] = [
+  { key: "todas", label: "Todas" },
+  { key: "ocupadas", label: "Ocupadas" },
+  { key: "aguardando", label: "Aguardando conta" },
+];
+
+/** A single table with all its open orders, grouped for the board. */
+interface MesaGroup {
+  mesa: number;
+  orders: CaixaOrder[];
+  total: number;
+  /** earliest order creation → "aberta há" timer */
+  openedAt: string;
+  customer: string;
+  hasNew: boolean;
+  /** conta já impressa em qualquer pedido → aguardando pagamento */
+  awaitingBill: boolean;
+}
 
 function MesasColumn({
   orders,
@@ -862,7 +883,9 @@ function MesasColumn({
   onPrintBill: (mesa: number, group: CaixaOrder[]) => void;
   resolveSector: ResolveFn;
 }) {
-  const grouped = useMemo(() => {
+  const [filter, setFilter] = useState<MesaFilter>("todas");
+
+  const grouped = useMemo<MesaGroup[]>(() => {
     const map = new Map<number, CaixaOrder[]>();
     for (const o of orders) {
       const mesa = o.numero_mesa ?? 0;
@@ -870,80 +893,206 @@ function MesasColumn({
       arr.push(o);
       map.set(mesa, arr);
     }
-    return [...map.entries()].sort((a, b) => a[0] - b[0]);
+    return [...map.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([mesa, group]) => {
+        const sorted = [...group].sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        );
+        return {
+          mesa,
+          orders: sorted,
+          total: group.reduce((s, o) => s + o.total, 0),
+          openedAt: sorted[0]?.created_at ?? new Date().toISOString(),
+          customer: sorted[0]?.customer_name || "Cliente",
+          hasNew: group.some((o) => !o.impresso_cozinha),
+          awaitingBill: group.some((o) => o.impresso_conta),
+        };
+      });
   }, [orders]);
 
-  if (grouped.length === 0) {
-    return <EmptyState label="Nenhuma mesa com consumo no momento." />;
-  }
+  const visible = useMemo(() => {
+    if (filter === "aguardando") return grouped.filter((g) => g.awaitingBill);
+    if (filter === "ocupadas") return grouped.filter((g) => !g.awaitingBill);
+    return grouped;
+  }, [grouped, filter]);
 
   return (
-    <div className="grid w-full grid-cols-1 gap-4 xl:grid-cols-2">
-      {grouped.map(([mesa, group]) => {
-        const total = group.reduce((s, o) => s + o.total, 0);
-        return (
-          <div
-            key={mesa}
-            className="flex flex-col rounded-2xl border border-border bg-card p-4 shadow-card"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <span className="flex items-center gap-2 font-display text-lg font-bold">
-                <UtensilsCrossed className="h-5 w-5 text-primary" />
-                Mesa {mesa || "—"}
-              </span>
-              <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">
-                {group.length} pedido(s)
-              </span>
-            </div>
+    <div className="flex flex-col gap-4">
+      {/* Filter chips — mesmo estilo horizontal das categorias do Balcão */}
+      <div className="no-scrollbar overflow-x-auto">
+        <div className="flex flex-nowrap gap-2 pb-1">
+          {MESA_FILTERS.map((f) => {
+            const count =
+              f.key === "todas"
+                ? grouped.length
+                : f.key === "aguardando"
+                  ? grouped.filter((g) => g.awaitingBill).length
+                  : grouped.filter((g) => !g.awaitingBill).length;
+            const active = filter === f.key;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-foreground hover:bg-secondary"
+                }`}
+              >
+                {f.label}
+                <span
+                  className={`rounded-full px-1.5 text-xs tabular-nums ${
+                    active
+                      ? "bg-primary-foreground/20"
+                      : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-            <div className="space-y-3 border-t border-border pt-3">
-              {group.map((o) => (
-                <div key={o.id}>
-                  <OrderItems order={o} resolveSector={resolveSector} />
-                  {o.observacoes_operador && (
-                    <p className="mt-1 rounded-lg bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
-                      Operador: {o.observacoes_operador}
-                    </p>
-                  )}
-                  <div className="mt-2">
-                    <StatusControl orderId={o.id} userId={o.user_id} status={o.status_pedido} />
-                  </div>
-                  {!o.impresso_cozinha && (
-                    <Button
-                      size="sm"
-                      className="mt-2 w-full rounded-xl"
-                      onClick={() => onDispatch(o)}
-                    >
-                      <Printer className="mr-1.5 h-4 w-4" /> Disparar impressões
-                    </Button>
-                  )}
-                  {o.impresso_cozinha && (
-                    <p className="mt-1 text-[11px] font-semibold text-success">
-                      ✓ Preparo disparado
-                    </p>
-                  )}
-                  <OrderActions order={o} />
-                </div>
+      {visible.length === 0 ? (
+        <EmptyState label="Nenhuma mesa neste filtro." />
+      ) : (
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {visible.map((g) => (
+            <MesaCard
+              key={g.mesa}
+              group={g}
+              onDispatch={onDispatch}
+              onPrintBill={onPrintBill}
+              resolveSector={resolveSector}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MesaCard({
+  group,
+  onDispatch,
+  onPrintBill,
+  resolveSector,
+}: {
+  group: MesaGroup;
+  onDispatch: (o: CaixaOrder) => void;
+  onPrintBill: (mesa: number, group: CaixaOrder[]) => void;
+  resolveSector: ResolveFn;
+}) {
+  const [detailOpen, setDetailOpen] = useState(false);
+  const wait = useWaitTime(group.openedAt);
+  // Representative order (o mais recente) drives the quick status selector.
+  const lead = group.orders[group.orders.length - 1];
+
+  return (
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setDetailOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") setDetailOpen(true);
+        }}
+        className={`flex cursor-pointer flex-col rounded-2xl border bg-card p-3.5 shadow-card transition-colors hover:bg-secondary/50 ${
+          group.hasNew ? "border-primary ring-1 ring-primary/30" : "border-border"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-1.5 font-display text-base font-bold leading-tight">
+              <UtensilsCrossed className="h-4 w-4 shrink-0 text-primary" />
+              Mesa {group.mesa || "—"}
+            </p>
+            <p className="truncate text-sm font-medium text-muted-foreground">
+              {group.customer}
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <span className="font-display text-lg font-bold tabular-nums text-success">
+              {formatBRL(group.total)}
+            </span>
+            <p className="text-[11px] text-muted-foreground">consumido</p>
+          </div>
+        </div>
+
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <span>aberta há {wait}</span>
+          <span>·</span>
+          <span>{group.orders.length} pedido(s)</span>
+          {group.awaitingBill && (
+            <span className="ml-auto rounded-full bg-amber-400/15 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
+              Aguardando conta
+            </span>
+          )}
+        </div>
+
+        <div
+          className="mt-2.5 flex items-center gap-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="min-w-0 flex-1">
+            <StatusControl
+              orderId={lead.id}
+              userId={lead.user_id}
+              status={lead.status_pedido}
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 rounded-xl"
+            onClick={() => onPrintBill(group.mesa, group.orders)}
+          >
+            <Receipt className="mr-1.5 h-4 w-4" /> Imprimir
+          </Button>
+        </div>
+      </div>
+
+      {detailOpen && (
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto p-4">
+            <DialogHeader>
+              <DialogTitle className="font-display">
+                Mesa {group.mesa || "—"} · {group.customer} · aberta há {wait}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              {group.orders.map((o) => (
+                <OrderCard
+                  key={o.id}
+                  order={o}
+                  onDispatch={onDispatch}
+                  resolveSector={resolveSector}
+                />
               ))}
             </div>
 
-            <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-              <span className="text-sm font-semibold">Subtotal mesa</span>
-              <span className="font-display font-bold text-primary">
-                {formatBRL(total)}
+            <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+              <span className="text-sm font-semibold">Total da mesa</span>
+              <span className="font-display text-lg font-bold text-success">
+                {formatBRL(group.total)}
               </span>
             </div>
             <Button
               variant="outline"
-              className="mt-3 rounded-xl"
-              onClick={() => onPrintBill(mesa, group)}
+              className="mt-3 w-full rounded-xl"
+              onClick={() => onPrintBill(group.mesa, group.orders)}
             >
-              <Receipt className="mr-1.5 h-4 w-4" /> Imprimir conta / subtotal
+              <Receipt className="mr-1.5 h-4 w-4" /> Imprimir conta / conferência
             </Button>
-          </div>
-        );
-      })}
-    </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
 
