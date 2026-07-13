@@ -645,62 +645,42 @@ function AdminPage() {
 
   return (
     <TooltipProvider delayDuration={200}>
-    <AppShell>
-        <ShellHeader className="border-b border-border bg-background/90 px-4 py-3.5 backdrop-blur-md lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleLock}
-                aria-label="Bloquear / Desconectar"
-                title="Bloquear / Desconectar"
-                className="flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
-              >
-                <Lock className="h-4 w-4" />
-                <span className="hidden sm:inline">Bloquear</span>
-              </button>
-              <img
-                src="/logo-triviano.svg"
-                alt="Triviano"
-                className="h-6 w-auto object-contain sm:h-7"
-              />
-              <div>
+    <SidebarProvider className="h-[100dvh] min-h-0 overflow-hidden">
+      <AdminSidebar
+        activeTab={tab}
+        isSuperAdmin={!!isSuperAdmin}
+        tabAllowed={tabAllowed}
+        onSelectTab={setTab}
+        onLock={handleLock}
+      />
+      <SidebarInset className="min-h-0 overflow-hidden">
+        <AppShell className="h-full">
+          {/* Slim header */}
+          <ShellHeader className="border-b border-border bg-background/95 backdrop-blur-md">
+            <div className="flex w-full items-center gap-3 px-4 py-3">
+              <SidebarTrigger className="shrink-0" />
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Retaguarda</p>
-                <h1 className="font-display text-xl font-bold leading-tight">Gerenciador</h1>
+                <h1 className="truncate font-display text-xl font-bold leading-tight">
+                  {TABS.find((t) => t.key === tab)?.label ?? "Gerenciador"}
+                </h1>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                {isSuperAdmin && (
+                  <Button asChild size="sm" variant="secondary" className="gap-1.5">
+                    <Link to="/superadmin">
+                      <Crown className="h-4 w-4 text-primary" /> Painel Master
+                    </Link>
+                  </Button>
+                )}
+                {tab === "cardapio" && (
+                  <Button size="sm" onClick={openNew}>
+                    <Plus className="mr-1 h-4 w-4" /> Novo produto
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {isSuperAdmin && (
-                <Button asChild size="sm" variant="secondary" className="gap-1.5">
-                  <Link to="/superadmin">
-                    <Crown className="h-4 w-4 text-primary" /> Painel Master
-                  </Link>
-                </Button>
-              )}
-              {tab === "cardapio" && (
-                <Button size="sm" onClick={openNew}>
-                  <Plus className="mr-1 h-4 w-4" /> Novo produto
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-xl bg-secondary p-1">
-            {TABS.filter((t) => tabAllowed(t.key)).map((t) => {
-              const Icon = t.icon;
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                    tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" /> {t.label}
-                </button>
-              );
-            })}
-          </div>
-        </ShellHeader>
+          </ShellHeader>
 
         <ShellBody className="w-full px-4 py-5 lg:px-8">
           {tab === "financeiro" && <TesourariaView />}
