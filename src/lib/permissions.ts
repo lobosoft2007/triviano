@@ -19,11 +19,14 @@ export type PermissionFlag =
 
 export interface MyPermissions extends Record<PermissionFlag, boolean> {
   is_admin: boolean;
+  /** Admin Local: full manager of their own company (e.g. "Proprietário"). */
+  is_manager: boolean;
   is_funcionario: boolean;
 }
 
 const DENY_ALL: MyPermissions = {
   is_admin: false,
+  is_manager: false,
   is_funcionario: false,
   acesso_kds_cozinha: false,
   acesso_bar: false,
