@@ -9,10 +9,34 @@ export interface CargoPreset {
   id: string;
   nome: string;
   descricao: string;
+  /** When true, the level becomes an Admin Local (full manager of the company). */
+  is_admin_local?: boolean;
   flags: Partial<Record<PermissionFlag, boolean>>;
 }
 
+const ALL_FLAGS_TRUE: Partial<Record<PermissionFlag, boolean>> = {
+  acesso_kds_cozinha: true,
+  acesso_bar: true,
+  acesso_atendimento_balcao: true,
+  acesso_mesas: true,
+  acesso_delivery: true,
+  acesso_entregas: true,
+  acesso_entrada_estoque: true,
+  acesso_sangria_suprimento: true,
+  acesso_cadastro_produtos: true,
+  acesso_financeiro: true,
+  acesso_rh: true,
+  acesso_abrir_fechar_caixa: true,
+};
+
 export const CARGO_PRESETS: CargoPreset[] = [
+  {
+    id: "proprietario",
+    nome: "Proprietário",
+    descricao: "Admin Local — acesso total à empresa",
+    is_admin_local: true,
+    flags: ALL_FLAGS_TRUE,
+  },
   {
     id: "admin",
     nome: "Admin",
@@ -29,6 +53,7 @@ export const CARGO_PRESETS: CargoPreset[] = [
       acesso_cadastro_produtos: true,
       acesso_financeiro: true,
       acesso_rh: true,
+      acesso_abrir_fechar_caixa: true,
     },
   },
   {
