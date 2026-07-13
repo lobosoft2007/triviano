@@ -121,6 +121,7 @@ export function ContaCorrenteTab({ mode = "caixa" }: { mode?: ContaCorrenteMode 
               key={c.id}
               client={c}
               mode={mode}
+              canCredit={canCredit}
               onPay={() => setPayTarget(c)}
               onExtrato={() => handlePrintExtrato(c)}
             />
