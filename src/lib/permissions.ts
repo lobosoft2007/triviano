@@ -48,6 +48,7 @@ export const PERMISSION_LABELS: { key: PermissionFlag; label: string }[] = [
   { key: "acesso_entregas", label: "Entregas (Entregador)" },
   { key: "acesso_entrada_estoque", label: "Entrada de Estoque" },
   { key: "acesso_sangria_suprimento", label: "Sangria / Suprimento" },
+  { key: "acesso_abrir_fechar_caixa", label: "Abrir / Fechar Caixa" },
   { key: "acesso_cadastro_produtos", label: "Cadastro de Produtos" },
   { key: "acesso_financeiro", label: "Financeiro" },
   { key: "acesso_rh", label: "RH / Gestão de Equipe" },
