@@ -91,6 +91,12 @@ import { useIsSuperAdmin } from "@/lib/superadmin";
 import { ClientesView } from "@/components/admin/ClientesView";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   validateSearch: (
