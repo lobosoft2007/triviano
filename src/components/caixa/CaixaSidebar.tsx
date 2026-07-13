@@ -254,7 +254,7 @@ export function CaixaSidebar({
         key: "fechar",
         label: "Fechar Caixa",
         icon: <Power className={`${iconCls} text-destructive`} />,
-        show: canFinanceiro,
+        show: canAbrirFecharCaixa,
         onClick: onFecharCaixa,
       },
     ],
