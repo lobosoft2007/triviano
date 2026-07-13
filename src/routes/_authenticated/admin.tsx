@@ -1002,6 +1002,8 @@ function AdminPage() {
         </DialogContent>
       </Dialog>
     </AppShell>
+      </SidebarInset>
+    </SidebarProvider>
     </TooltipProvider>
   );
 }
