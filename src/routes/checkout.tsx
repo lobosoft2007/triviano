@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, MapPin, QrCode, Banknote, CreditCard, Wallet } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, QrCode, Banknote, CreditCard, Wallet, Coins } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder, discardUnpaidDrafts } from "@/lib/orders";
