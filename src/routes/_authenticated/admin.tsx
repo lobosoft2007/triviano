@@ -416,7 +416,8 @@ function AdminPage() {
   const userRole =
     (user as { role?: string } | null)?.role ??
     (user?.app_metadata as { role?: string } | undefined)?.role;
-  const isMaster = userRole === "admin" || perms?.is_admin === true;
+  const isMaster =
+    userRole === "admin" || perms?.is_admin === true || perms?.is_manager === true;
   const tabAllowed = (key: AdminTab): boolean => {
     if (userRole === "admin") return true;
     if (isMaster) return true;
