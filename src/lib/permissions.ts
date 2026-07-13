@@ -36,6 +36,7 @@ const DENY_ALL: MyPermissions = {
   acesso_cadastro_produtos: false,
   acesso_financeiro: false,
   acesso_rh: false,
+  acesso_abrir_fechar_caixa: false,
 };
 
 export const PERMISSION_LABELS: { key: PermissionFlag; label: string }[] = [
