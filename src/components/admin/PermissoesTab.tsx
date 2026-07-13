@@ -105,6 +105,25 @@ export function PermissoesTab() {
     }
   };
 
+  const handleAdminLocal = async (nivel_id: string, value: boolean) => {
+    // Optimistic update.
+    qc.setQueryData<NivelComMatriz[]>(["niveis-acesso"], (prev) =>
+      (prev ?? []).map((n) => (n.id === nivel_id ? { ...n, is_admin_local: value } : n)),
+    );
+    try {
+      await setAdminLocal(nivel_id, value);
+      qc.invalidateQueries({ queryKey: ["my-permissions"] });
+      toast.success(
+        value
+          ? "Nível promovido a Admin Local (acesso total)."
+          : "Admin Local removido deste nível.",
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar Admin Local.");
+      invalidate();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-20">
