@@ -26,6 +26,7 @@ const FLAGS: PermissionFlag[] = [
   "acesso_cadastro_produtos",
   "acesso_financeiro",
   "acesso_rh",
+  "acesso_abrir_fechar_caixa",
 ];
 
 /** Loads every access level of the admin's company with its permission matrix. */
