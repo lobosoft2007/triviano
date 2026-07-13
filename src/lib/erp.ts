@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProductCustoTotal } from "@/lib/cost";
+import { currentEmpresaId } from "@/lib/storage";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
