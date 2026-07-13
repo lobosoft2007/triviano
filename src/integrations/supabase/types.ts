@@ -1870,6 +1870,7 @@ export type Database = {
       }
       permissoes_matriz: {
         Row: {
+          acesso_abrir_fechar_caixa: boolean
           acesso_atendimento_balcao: boolean
           acesso_bar: boolean
           acesso_cadastro_produtos: boolean
@@ -1888,6 +1889,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acesso_abrir_fechar_caixa?: boolean
           acesso_atendimento_balcao?: boolean
           acesso_bar?: boolean
           acesso_cadastro_produtos?: boolean
@@ -1906,6 +1908,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acesso_abrir_fechar_caixa?: boolean
           acesso_atendimento_balcao?: boolean
           acesso_bar?: boolean
           acesso_cadastro_produtos?: boolean
@@ -2774,6 +2777,7 @@ export type Database = {
       get_my_permissions: {
         Args: never
         Returns: {
+          acesso_abrir_fechar_caixa: boolean
           acesso_atendimento_balcao: boolean
           acesso_bar: boolean
           acesso_cadastro_produtos: boolean
