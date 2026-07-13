@@ -14,7 +14,8 @@ export type PermissionFlag =
   | "acesso_sangria_suprimento"
   | "acesso_cadastro_produtos"
   | "acesso_financeiro"
-  | "acesso_rh";
+  | "acesso_rh"
+  | "acesso_abrir_fechar_caixa";
 
 export interface MyPermissions extends Record<PermissionFlag, boolean> {
   is_admin: boolean;
