@@ -91,11 +91,22 @@ export function isStaff(p: MyPermissions | undefined): boolean {
   return !!p && (p.is_admin || p.is_funcionario);
 }
 
+/**
+ * True when the user is a full manager of their own company: the master admin
+ * (Triviano-flagged / nivel_id NULL) OR an "Admin Local" level (e.g.
+ * "Proprietário"). Managers unlock every master-gated module, still scoped to
+ * their own empresa_id by RLS.
+ */
+export function isManager(p: MyPermissions | undefined): boolean {
+  return !!p && (p.is_admin || p.is_manager);
+}
+
 /** True when the user may reach the Retaguarda (/admin) area at all. */
 export function canEnterAdmin(p: MyPermissions | undefined): boolean {
   if (!p) return false;
   return (
     p.is_admin ||
+    p.is_manager ||
     p.acesso_cadastro_produtos ||
     p.acesso_financeiro ||
     p.acesso_entrada_estoque
