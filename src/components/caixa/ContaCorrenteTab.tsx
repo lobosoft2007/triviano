@@ -199,11 +199,13 @@ export function ContaCorrenteTab({ mode = "caixa" }: { mode?: ContaCorrenteMode 
 function ClientRow({
   client,
   mode,
+  canCredit,
   onPay,
   onExtrato,
 }: {
   client: FiadoClient;
   mode: ContaCorrenteMode;
+  canCredit: boolean;
   onPay: () => void;
   onExtrato: () => void;
 }) {
@@ -213,6 +215,7 @@ function ClientRow({
   const [limite, setLimite] = useState(String(client.limite_fiado));
   const [saving, setSaving] = useState(false);
   const [abating, setAbating] = useState(false);
+  const [creditOpen, setCreditOpen] = useState(false);
 
   const podeAbater =
     client.saldo_cashback > 0 && client.saldo_devedor_fiado > 0;
