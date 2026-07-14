@@ -367,6 +367,37 @@ Deno.serve(async (req) => {
   if (isComanda) {
     // ---- Liquidação UNIFICADA da comanda (Mesa) ----
     if (paid && !target.pago_online) {
+      // GUARDA DE VALOR: reconsulta o total_parcial atual e só liquida se o
+      // valor pago cobrir integralmente a mesa. Se o cliente adicionou item
+      // depois da geração do QR, o total subiu e o pagamento antigo virou
+      // parcial — nesse caso NÃO fechamos a comanda; deixamos o Caixa
+      // reconciliar (evita liberar mesa com saldo aberto).
+      const { data: comandaAtual } = await admin
+        .from("comanda_ativa")
+        .select("total_parcial")
+        .eq("id", target.id)
+        .maybeSingle();
+      const totalAtual = Number(comandaAtual?.total_parcial ?? 0);
+      const tolerancia = 0.01; // centavos de arredondamento
+      const cobreTotal = paidAmount + tolerancia >= totalAtual;
+      if (!cobreTotal) {
+        console.error("mp-webhook: pagamento MENOR que o total atual — comanda NÃO liquidada", {
+          comanda_id: target.id,
+          paidAmount,
+          totalAtual,
+        });
+        await admin
+          .from("comanda_ativa")
+          .update({
+            mp_status: `parcial:${status}`,
+            mp_payment_id: isPaymentTopic ? resourceId : apiPaymentId || target.mp_payment_id,
+          })
+          .eq("id", target.id);
+        return new Response("pagamento parcial — reconciliar no Caixa", {
+          status: 200,
+          headers: corsHeaders,
+        });
+      }
       // Grava a situação e libera TODOS os pedidos da mesa de uma vez
       // (_settle_comanda é idempotente e finaliza cada pedido vinculado).
       await admin
@@ -400,6 +431,7 @@ Deno.serve(async (req) => {
 
   // ---- Pedido isolado (Delivery/Balcão) ----
   if (paid && !target.pago_online) {
+
     // Pagamento confirmado: libera o pedido para o Caixa/KDS (dispara realtime).
     await admin
       .from("orders")
