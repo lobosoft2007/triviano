@@ -78,6 +78,7 @@ import { FuncionariosTab } from "@/components/admin/FuncionariosTab";
 import { usePermissions, ACCESS_DENIED_MSG, type PermissionFlag } from "@/lib/permissions";
 import { CombosCrud } from "@/components/admin/CombosCrud";
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
+import { MesasQrTab } from "@/components/admin/MesasQrTab";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { IdentidadeVisualTab } from "@/components/admin/IdentidadeVisualTab";
 import {
