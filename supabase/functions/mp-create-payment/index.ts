@@ -290,28 +290,43 @@ Deno.serve(async (req) => {
   const tipoPagamento =
     body.method === "pix" ? "pix" : "cartao_credito_online";
 
-  const updatePayload: Record<string, unknown> =
-    context === "mesa"
-      ? {
-          mp_order_id: mpOrderId,
-          mp_payment_id: mpPaymentId,
-          mp_status: mpStatus,
-          pago_online: isPaid,
-          tipo_pagamento: tipoPagamento,
-        }
-      : {
-          mp_order_id: mpOrderId,
-          mp_payment_id: mpPaymentId,
-          mp_status: mpStatus,
-          pago_online: isPaid,
-          // Enquanto não confirmado, o pedido fica oculto do Caixa/KDS.
-          aguardando_pagamento: !isPaid,
-          status: isPaid ? "pending" : "rascunho_pagamento",
-          status_pedido: "Recebido",
-          tipo_pagamento: tipoPagamento,
-        };
+  if (isComanda) {
+    // Comanda (Mesa): só gravamos as referências do MP. A baixa unificada de
+    // TODOS os pedidos vinculados acontece no webhook (_settle_comanda) quando
+    // o pagamento for confirmado. Nunca ocultamos pedidos já ativos no Caixa.
+    await admin
+      .from("comanda_ativa")
+      .update({
+        mp_order_id: mpOrderId,
+        mp_payment_id: mpPaymentId,
+        mp_status: mpStatus,
+        pago_online: isPaid,
+      })
+      .eq("id", entity.id);
+  } else {
+    const updatePayload: Record<string, unknown> =
+      context === "mesa"
+        ? {
+            mp_order_id: mpOrderId,
+            mp_payment_id: mpPaymentId,
+            mp_status: mpStatus,
+            pago_online: isPaid,
+            tipo_pagamento: tipoPagamento,
+          }
+        : {
+            mp_order_id: mpOrderId,
+            mp_payment_id: mpPaymentId,
+            mp_status: mpStatus,
+            pago_online: isPaid,
+            // Enquanto não confirmado, o pedido fica oculto do Caixa/KDS.
+            aguardando_pagamento: !isPaid,
+            status: isPaid ? "pending" : "rascunho_pagamento",
+            status_pedido: "Recebido",
+            tipo_pagamento: tipoPagamento,
+          };
 
-  await admin.from("orders").update(updatePayload).eq("id", order.id);
+    await admin.from("orders").update(updatePayload).eq("id", entity.id);
+  }
 
 
   return json({
