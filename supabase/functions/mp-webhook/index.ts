@@ -312,6 +312,7 @@ Deno.serve(async (req) => {
   let status = "";
   let externalReference = "";
   let apiPaymentId = "";
+  let paidAmount = 0;
   try {
     let httpStatus = 200;
     let j = discoveredPayment as any;
@@ -331,13 +332,14 @@ Deno.serve(async (req) => {
     externalReference = String(j?.external_reference ?? "");
     apiPaymentId = String(j?.id ?? j?.transactions?.payments?.[0]?.id ?? "");
     // Valor pago (para conferência contra o total atual do alvo).
-    var paidAmount = Number(
+    paidAmount = Number(
       j?.total_amount ??
       j?.transaction_amount ??
       j?.transactions?.payments?.[0]?.amount ??
       j?.transactions?.payments?.[0]?.transaction_amount ??
       0,
     );
+
     console.log("mp-webhook: status reconsultado", {
       target_id: target.id,
       endpoint,
