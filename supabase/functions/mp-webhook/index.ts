@@ -212,26 +212,27 @@ Deno.serve(async (req) => {
   const isComanda = !order && !!comanda;
   const target = order ?? comanda;
 
-  if (!order) {
-    // Pedido ainda não conhecido (corrida) — 200 para reentrega posterior.
-    console.warn("mp-webhook: pedido ainda não encontrado", { resourceId });
-    return new Response("order not found yet", { status: 200, headers: corsHeaders });
+  if (!target) {
+    // Recurso ainda não conhecido (corrida) — 200 para reentrega posterior.
+    console.warn("mp-webhook: pedido/comanda ainda não encontrado", { resourceId });
+    return new Response("target not found yet", { status: 200, headers: corsHeaders });
   }
-  console.log("mp-webhook: pedido localizado", {
-    order_id: order.id,
-    empresa_id: order.empresa_id,
-    mp_order_id: order.mp_order_id,
-    mp_payment_id: order.mp_payment_id,
-    pago_online: order.pago_online,
+  console.log("mp-webhook: alvo localizado", {
+    tipo: isComanda ? "comanda" : "pedido",
+    target_id: target.id,
+    empresa_id: target.empresa_id,
+    mp_order_id: target.mp_order_id,
+    mp_payment_id: target.mp_payment_id,
+    pago_online: target.pago_online,
   });
 
-  // Credenciais da empresa dona do pedido (lidas de config_pagamentos).
+  // Credenciais da empresa dona do alvo (lidas de config_pagamentos).
   const { data: cfg } = discoveredCfg
     ? { data: discoveredCfg }
     : await admin
         .from("config_pagamentos")
         .select("mp_access_token, mp_access_token_prod, mp_access_token_test, mp_webhook_secret")
-        .eq("empresa_id", order.empresa_id)
+        .eq("empresa_id", target.empresa_id)
         .eq("ativo", true)
         .order("updated_at", { ascending: false })
         .limit(1)
