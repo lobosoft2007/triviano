@@ -253,6 +253,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "fornecedores", label: "Fornecedores", icon: Truck },
   { key: "funcionarios", label: "Funcionários", icon: UserCog },
   { key: "permissoes", label: "Permissões", icon: ShieldCheck },
+  { key: "mesas", label: "Mesas (QR-Codes)", icon: Armchair },
 ];
 
 // Recurso da matriz de permissões exigido por cada aba ("master" = só o admin dono).
