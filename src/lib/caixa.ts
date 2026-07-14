@@ -296,6 +296,7 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
     created_at: o.created_at,
     tipo_atendimento: o.tipo_atendimento,
     numero_mesa: o.numero_mesa,
+    comanda_id: (o as { comanda_id?: string | null }).comanda_id ?? null,
     impresso_cozinha: o.impresso_cozinha,
     impresso_conta: o.impresso_conta,
     order_items: (o.order_items ?? []).map((it) => ({
