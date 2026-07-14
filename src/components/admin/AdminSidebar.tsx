@@ -26,6 +26,7 @@ import {
   LifeBuoy,
   Lock,
   Crown,
+  Armchair,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
