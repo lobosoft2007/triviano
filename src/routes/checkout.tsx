@@ -1195,6 +1195,7 @@ function CheckoutPage() {
             </div>
           </form>
           )}
+          <PoweredByBadge className="pt-6" />
           </main>
         </ShellBody>
     </AppShell>
