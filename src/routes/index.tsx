@@ -68,6 +68,7 @@ interface Selection {
 function HomePage() {
   const { data, isLoading, isError } = useQuery(menuQueryOptions);
   const { data: empresa } = useQuery(empresaQueryOptions);
+  const { session: mesa } = useMesaSession();
   const { totalItems, totalPrice } = useCart();
   const { user, signOut } = useAuth();
 
