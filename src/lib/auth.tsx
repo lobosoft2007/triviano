@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { currentHost } from "@/lib/empresa";
+import { resetStatusAtendimento } from "@/lib/atendimento";
+import { clearMesaSession } from "@/lib/mesa";
 
 /**
  * Tenant claim on login: bind the freshly signed-in account to the company that
@@ -151,6 +153,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setLoading(false);
     }
+    // Incineração de Contexto (v1.7.1): ao sair, o app volta SEMPRE ao modo
+    // padrão (Delivery) e qualquer resquício de sessão de mesa é destruído,
+    // para que a próxima conta que logar não herde o contexto MESA anterior.
+    resetStatusAtendimento();
+    clearMesaSession();
   };
 
   return (
