@@ -1703,14 +1703,28 @@ function BillReceipt({
         <span>{formatBRL(total)}</span>
       </div>
       <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "4px 0" }} />
-      <p style={{ textAlign: "center" }}>Pague com PIX</p>
+      <p style={{ textAlign: "center", fontWeight: 700 }}>
+        Pague com PIX — {formatBRL(total)}
+      </p>
       {qr && (
         <div style={{ textAlign: "center" }}>
           <img src={qr} alt="PIX" style={{ width: "40mm", height: "40mm" }} />
         </div>
       )}
-      <p style={{ textAlign: "center" }}>Chave: {PIX_KEY}</p>
-      <p style={{ textAlign: "center" }}>{PIX_NAME}</p>
+      <p style={{ textAlign: "center" }}>Chave: {pixKey}</p>
+      <p style={{ textAlign: "center" }}>{pixName}</p>
+      {brcode && (
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 8,
+            wordBreak: "break-all",
+            margin: "4px 0",
+          }}
+        >
+          {brcode}
+        </p>
+      )}
       <p style={{ textAlign: "center", marginTop: 6 }}>Obrigado pela visita!</p>
     </div>
   );
