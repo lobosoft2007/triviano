@@ -28,6 +28,7 @@ import {
 } from "@/lib/mesa";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
+import { PoweredByBadge } from "@/components/PoweredByBadge";
 
 export const Route = createFileRoute("/mesa")({
   head: () => ({
