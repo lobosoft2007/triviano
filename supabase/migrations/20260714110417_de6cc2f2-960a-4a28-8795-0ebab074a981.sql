@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.liberar_mesa(uuid);
