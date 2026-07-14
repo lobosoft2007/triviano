@@ -45,11 +45,29 @@ export const Route = createFileRoute("/minha-comanda")({
 
 function MinhaComandaPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [comanda, setComanda] = useState<ComandaAtiva | null>(null);
   const [pedidos, setPedidos] = useState<ComandaPedido[]>([]);
   const [closing, setClosing] = useState(false);
+  const [mpConfig, setMpConfig] = useState<MpPublicConfig | null>(null);
+  const [payPix, setPayPix] = useState(false);
   const comandaIdRef = useRef<string | null>(null);
+
+  // Configuração pública do Mercado Pago do tenant (só chave pública).
+  useEffect(() => {
+    let alive = true;
+    void fetchMpPublicConfig()
+      .then((cfg) => {
+        if (alive) setMpConfig(cfg);
+      })
+      .catch(() => {
+        /* PIX online indisponível — segue com pagamento no balcão */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const reload = useCallback(async (comandaId: string) => {
     try {
