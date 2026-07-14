@@ -276,6 +276,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   fornecedores: "master",
   funcionarios: "master",
   permissoes: "master",
+  mesas: "master",
 };
 
 
