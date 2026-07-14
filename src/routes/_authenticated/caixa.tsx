@@ -1102,11 +1102,13 @@ function MesaCard({
   onDispatch,
   onPrintBill,
   resolveSector,
+  aguardandoFechamento,
 }: {
   group: MesaGroup;
   onDispatch: (o: CaixaOrder) => void;
   onPrintBill: (mesa: number, group: CaixaOrder[]) => void;
   resolveSector: ResolveFn;
+  aguardandoFechamento: boolean;
 }) {
   const [detailOpen, setDetailOpen] = useState(false);
   const wait = useWaitTime(group.openedAt);
@@ -1123,9 +1125,18 @@ function MesaCard({
           if (e.key === "Enter" || e.key === " ") setDetailOpen(true);
         }}
         className={`flex cursor-pointer flex-col rounded-2xl border bg-card p-3.5 shadow-card transition-colors hover:bg-secondary/50 ${
-          group.hasNew ? "border-primary ring-1 ring-primary/30" : "border-border"
+          aguardandoFechamento
+            ? "animate-pulse border-warning bg-warning/10 ring-2 ring-warning"
+            : group.hasNew
+              ? "border-primary ring-1 ring-primary/30"
+              : "border-border"
         }`}
       >
+        {aguardandoFechamento && (
+          <span className="mb-2 flex w-fit items-center gap-1 rounded-full bg-warning px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-warning-foreground">
+            <Bell className="h-3 w-3" /> Pediu a conta
+          </span>
+        )}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1.5 font-display text-base font-bold leading-tight">
