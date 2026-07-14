@@ -138,8 +138,7 @@ function MesaPage() {
       if (numeroMesa != null) {
         const comanda = await fetchMinhaComandaAberta(numeroMesa);
         if (comanda) {
-          sessionStorage.setItem(MESA_COMANDA_KEY, comanda.id);
-          sessionStorage.setItem(MESA_NUMERO_KEY, String(numeroMesa));
+          setMesaSession(comanda.id, numeroMesa);
         }
       }
     } catch {
