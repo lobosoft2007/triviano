@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { currentHost } from "@/lib/empresa";
+import type { CartItem } from "@/lib/cart";
+import type { Json } from "@/integrations/supabase/types";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
