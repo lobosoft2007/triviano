@@ -1635,10 +1635,20 @@ function BillReceipt({
   mesa,
   orders,
   qr,
+  total,
+  pixKey,
+  pixName,
+  brcode,
 }: {
   mesa: number;
   orders: CaixaOrder[];
   qr: string;
+  /** Total AGREGADO da comanda (total_parcial) — fonte da verdade. */
+  total: number;
+  pixKey: string;
+  pixName: string;
+  /** PIX Copia e Cola (BR Code com valor) — backup de digitação. */
+  brcode: string;
 }) {
   const items = orders.flatMap((o) => o.order_items);
   const subtotal = orders.reduce(
@@ -1647,7 +1657,7 @@ function BillReceipt({
     0,
   );
   const discount = orders.reduce((s, o) => s + o.discount, 0);
-  const total = orders.reduce((s, o) => s + o.total, 0);
+
 
   return (
     <div>
