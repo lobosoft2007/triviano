@@ -511,6 +511,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
           { event: "*", schema: "public", table: "comanda_ativa" },
           () => {
             queryClient.invalidateQueries({ queryKey: ["mesa-fechamentos"] });
+            queryClient.invalidateQueries({ queryKey: ["mesas-vivas"] });
           },
         )
         .subscribe((status) => {
