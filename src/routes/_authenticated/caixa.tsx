@@ -1088,6 +1088,7 @@ function MesasColumn({
               onDispatch={onDispatch}
               onPrintBill={onPrintBill}
               resolveSector={resolveSector}
+              aguardandoFechamento={fechamentoMesas.has(g.mesa)}
             />
           ))}
         </div>
