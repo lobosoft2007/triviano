@@ -229,7 +229,8 @@ type AdminTab =
   | "setores"
   | "fornecedores"
   | "funcionarios"
-  | "permissoes";
+  | "permissoes"
+  | "mesas";
 
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
