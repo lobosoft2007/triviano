@@ -1060,7 +1060,7 @@ function VistoQueue({
   );
 }
 
-
+function MesasColumn({
   orders,
   onDispatch,
   onPrintBill,
