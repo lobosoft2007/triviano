@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
   // Reconsultar o status REAL na API do MP (fonte da verdade).
   const endpoint = isPaymentTopic
     ? `${MP_API}/v1/payments/${resourceId}`
-    : `${MP_API}/v1/orders/${order.mp_order_id || resourceId}`;
+    : `${MP_API}/v1/orders/${target.mp_order_id || resourceId}`;
 
   let status = "";
   let externalReference = "";
@@ -331,20 +331,21 @@ Deno.serve(async (req) => {
     externalReference = String(j?.external_reference ?? "");
     apiPaymentId = String(j?.id ?? j?.transactions?.payments?.[0]?.id ?? "");
     console.log("mp-webhook: status reconsultado", {
-      order_id: order.id,
+      target_id: target.id,
       endpoint,
       httpStatus,
       mpStatus: status,
       signatureValid,
     });
   } catch (e) {
-    console.error("mp-webhook: falha ao reconsultar status", { order_id: order.id, error: String(e) });
+    console.error("mp-webhook: falha ao reconsultar status", { target_id: target.id, error: String(e) });
     return new Response("retry", { status: 500, headers: corsHeaders });
   }
 
-  if (externalReference && externalReference !== order.id) {
+  // external_reference deve bater com o id do alvo (pedido OU comanda).
+  if (externalReference && externalReference !== target.id) {
     console.error("mp-webhook: external_reference divergente", {
-      order_id: order.id,
+      target_id: target.id,
       resourceId,
       externalReference,
     });
@@ -353,7 +354,42 @@ Deno.serve(async (req) => {
 
   const paid = ["paid", "processed", "approved"].includes(status.toLowerCase());
 
-  if (paid && !order.pago_online) {
+  if (isComanda) {
+    // ---- Liquidação UNIFICADA da comanda (Mesa) ----
+    if (paid && !target.pago_online) {
+      // Grava a situação e libera TODOS os pedidos da mesa de uma vez
+      // (_settle_comanda é idempotente e finaliza cada pedido vinculado).
+      await admin
+        .from("comanda_ativa")
+        .update({
+          mp_status: status,
+          mp_payment_id: isPaymentTopic ? resourceId : apiPaymentId || target.mp_payment_id,
+        })
+        .eq("id", target.id);
+      const { error: settleErr } = await admin.rpc("_settle_comanda", {
+        p_comanda_id: target.id,
+        p_meio_id: null,
+        p_online: true,
+      });
+      if (settleErr) {
+        console.error("mp-webhook: falha ao liquidar comanda", {
+          comanda_id: target.id,
+          error: settleErr.message,
+        });
+        return new Response("retry", { status: 500, headers: corsHeaders });
+      }
+      console.log("mp-webhook: COMANDA LIQUIDADA (paga)", { comanda_id: target.id, mpStatus: status });
+    } else if (!paid) {
+      await admin.from("comanda_ativa").update({ mp_status: status }).eq("id", target.id);
+      console.log("mp-webhook: comanda ainda não paga", { comanda_id: target.id, mpStatus: status });
+    } else {
+      console.log("mp-webhook: comanda já estava paga (idempotente)", { comanda_id: target.id });
+    }
+    return new Response("ok", { status: 200, headers: corsHeaders });
+  }
+
+  // ---- Pedido isolado (Delivery/Balcão) ----
+  if (paid && !target.pago_online) {
     // Pagamento confirmado: libera o pedido para o Caixa/KDS (dispara realtime).
     await admin
       .from("orders")
@@ -361,17 +397,17 @@ Deno.serve(async (req) => {
         pago_online: true,
         aguardando_pagamento: false,
         mp_status: status,
-        mp_payment_id: isPaymentTopic ? resourceId : apiPaymentId || order.mp_payment_id,
+        mp_payment_id: isPaymentTopic ? resourceId : apiPaymentId || target.mp_payment_id,
         status: "pending",
         status_pedido: "Recebido",
       })
-      .eq("id", order.id);
-    console.log("mp-webhook: PEDIDO LIBERADO (pago)", { order_id: order.id, mpStatus: status });
+      .eq("id", target.id);
+    console.log("mp-webhook: PEDIDO LIBERADO (pago)", { order_id: target.id, mpStatus: status });
   } else if (!paid) {
-    await admin.from("orders").update({ mp_status: status }).eq("id", order.id);
-    console.log("mp-webhook: pedido ainda não pago", { order_id: order.id, mpStatus: status });
+    await admin.from("orders").update({ mp_status: status }).eq("id", target.id);
+    console.log("mp-webhook: pedido ainda não pago", { order_id: target.id, mpStatus: status });
   } else {
-    console.log("mp-webhook: pedido já estava pago (idempotente)", { order_id: order.id });
+    console.log("mp-webhook: pedido já estava pago (idempotente)", { order_id: target.id });
   }
 
   return new Response("ok", { status: 200, headers: corsHeaders });
