@@ -579,7 +579,64 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     );
   }
 
-  async function handleMov(tipo: MovimentacaoTipo) {
+  /* -------- Fila de Visto: liberar / recusar mesa ------------------- */
+  async function handleLiberar(id: string, mesa: number) {
+    try {
+      await liberarMesa(id);
+      await queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] });
+      toast.success(`Mesa ${mesa} liberada. Bom atendimento! 🍽️`);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível liberar a mesa.",
+      );
+    }
+  }
+
+  async function handleRecusar(id: string, mesa: number) {
+    if (!window.confirm(`Recusar a solicitação da mesa ${mesa}?`)) return;
+    try {
+      await recusarSolicitacao(id);
+      await queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] });
+      toast.success(`Solicitação da mesa ${mesa} recusada.`);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível recusar.",
+      );
+    }
+  }
+
+  // Alerta sonoro quando entra uma nova solicitação de abertura de mesa.
+  const prevSolicRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!solicitacoes) return;
+    const ids = new Set(solicitacoes.map((s) => s.id));
+    const prev = prevSolicRef.current;
+    if (prev && solicitacoes.some((s) => !prev.has(s.id)) && soundOn) {
+      playBeep();
+    }
+    prevSolicRef.current = ids;
+  }, [solicitacoes, soundOn]);
+
+  // Quando uma mesa PEDE o fechamento, imprime a conferência automaticamente.
+  const prevFechRef = useRef<Set<number> | null>(null);
+  useEffect(() => {
+    if (!fechamentos) return;
+    const nums = new Set(fechamentos.map((f) => f.numero_mesa));
+    const prev = prevFechRef.current;
+    if (prev) {
+      for (const f of fechamentos) {
+        if (prev.has(f.numero_mesa)) continue;
+        if (soundOn) playBeep();
+        const group = mesaOrders.filter((o) => o.numero_mesa === f.numero_mesa);
+        if (group.length > 0) {
+          void printBill(f.numero_mesa, group);
+        }
+        toast.warning(`Mesa ${f.numero_mesa} pediu a conta! Conferência impressa.`);
+      }
+    }
+    prevFechRef.current = nums;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechamentos, soundOn]);
     const label =
       tipo === "Sangria"
         ? "Sangria (retirada)"
