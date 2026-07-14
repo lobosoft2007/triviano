@@ -637,6 +637,8 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     prevFechRef.current = nums;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fechamentos, soundOn]);
+
+  async function handleMov(tipo: MovimentacaoTipo) {
     const label =
       tipo === "Sangria"
         ? "Sangria (retirada)"
