@@ -103,6 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         applySession({ ...nextSession, user: data.user });
+        // Reidratação de Sessão de Mesa (v1.7.2): oportunista, silenciosa.
+        void rehydrateMesaSessionFromServer();
       });
     };
 
