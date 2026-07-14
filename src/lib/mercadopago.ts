@@ -46,6 +46,36 @@ export async function fetchMpPublicConfig(): Promise<MpPublicConfig | null> {
   };
 }
 
+/**
+ * Dados do PIX ESTÁTICO da empresa (chave, nome e cidade do recebedor),
+ * multi-tenant, para montar o BR Code impresso na conta da mesa.
+ *
+ * Lê via RPC `get_pix_static_config` (SECURITY DEFINER) porque o RLS de
+ * `config_pagamentos` é restrito a administradores — assim qualquer operador
+ * autenticado do Caixa consegue imprimir a conta com o QR valorizado, sem
+ * expor as credenciais sensíveis do gateway.
+ */
+export interface PixStaticConfig {
+  chave_pix: string;
+  nome_recebedor: string;
+  cidade_recebedor: string;
+}
+
+export async function fetchPixStaticConfig(): Promise<PixStaticConfig | null> {
+  const { data, error } = await supabase.rpc("get_pix_static_config", {
+    p_host: currentHost(),
+  });
+  if (error) throw error;
+  const row = (data ?? [])[0];
+  if (!row || !row.chave_pix) return null;
+  return {
+    chave_pix: row.chave_pix,
+    nome_recebedor: row.nome_recebedor ?? "",
+    cidade_recebedor: row.cidade_recebedor ?? "",
+  };
+}
+
+
 export interface CreateMpPaymentInput {
   orderId: string;
   method: "pix" | "card";
