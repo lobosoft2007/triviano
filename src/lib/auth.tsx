@@ -3,7 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { currentHost } from "@/lib/empresa";
 import { resetStatusAtendimento } from "@/lib/atendimento";
-import { clearMesaSession } from "@/lib/mesa";
+import { clearMesaSession, rehydrateMesaSessionFromServer } from "@/lib/mesa";
 
 /**
  * Tenant claim on login: bind the freshly signed-in account to the company that
@@ -103,6 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         applySession({ ...nextSession, user: data.user });
+        // Reidratação de Sessão de Mesa (v1.7.2): oportunista, silenciosa.
+        void rehydrateMesaSessionFromServer();
       });
     };
 

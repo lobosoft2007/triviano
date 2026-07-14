@@ -28,6 +28,7 @@ import {
 } from "@/lib/mesa";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
+import { PoweredByBadge } from "@/components/PoweredByBadge";
 
 export const Route = createFileRoute("/mesa")({
   head: () => ({
@@ -436,6 +437,7 @@ function Shell({
       <main className="mx-auto w-full max-w-md px-5 py-8">
         {empresaNome ? null : null}
         {children}
+        <PoweredByBadge className="pt-8" />
       </main>
     </div>
   );

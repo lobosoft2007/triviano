@@ -9,6 +9,7 @@ import { empresaQueryOptions } from "@/lib/empresa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PoweredByBadge } from "@/components/PoweredByBadge";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
@@ -145,6 +146,7 @@ function ResetPasswordPage() {
             </Button>
           </div>
         )}
+        <PoweredByBadge className="pt-4" />
       </div>
     </div>
   );

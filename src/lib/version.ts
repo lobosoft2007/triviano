@@ -18,7 +18,7 @@
 //     o Patch volta automaticamente para 1.
 // ============================================================================
 
-export const APP_VERSION = "1.7.1";
+export const APP_VERSION = "1.7.2";
 export const LAST_PATCH_DATE = "2026-07-14";
 export const VERSION_STATUS = "ESTÁVEL";
 
@@ -32,6 +32,10 @@ export const STABLE_RELEASE = {
   date: LAST_PATCH_DATE,
   safeRollback: true,
   validated: [
+    "Incineração da Comanda Zumbi: liberar_mesa cancela resíduos por MESA + índice único parcial impede comandas duplicadas vivas",
+    "Reidratação de Sessão de Mesa: modo mesa persiste em localStorage e é restaurado do servidor no login",
+    "Hardening do Realtime no Caixa: auto-reassinatura de canais + refetchOnWindowFocus na Fila de Visto e Fechamentos",
+    "Branding v1.7.2: rótulo 'Desenvolvido por Triviano — v1.7.2' nos formulários e diálogos-chave",
     "Logout Seguro (Incineração de Contexto): redireciona p/ /auth + queryClient.clear() + volta a DELIVERY e limpa sessão de mesa",
     "Doutrina de Hospitalidade: sem pagamento no app no modo Mesa (botão só chama fechar_comanda e alerta o Caixa)",
     "PIX impresso corrigido: BR Code EMV com VALOR agregado (total_parcial) + dados PIX multi-tenant via get_pix_static_config",

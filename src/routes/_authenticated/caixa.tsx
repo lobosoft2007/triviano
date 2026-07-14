@@ -415,12 +415,14 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
   const { data: solicitacoes } = useQuery({
     queryKey: ["mesa-solicitacoes"],
     queryFn: fetchSolicitacoesPendentes,
-    refetchInterval: 15000,
+    refetchInterval: 8000,
+    refetchOnWindowFocus: true,
   });
   const { data: fechamentos } = useQuery({
     queryKey: ["mesa-fechamentos"],
     queryFn: fetchComandasAguardandoFechamento,
-    refetchInterval: 15000,
+    refetchInterval: 8000,
+    refetchOnWindowFocus: true,
   });
 
   const fechamentoMesas = useMemo(
@@ -433,44 +435,88 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     [printers, catRouting],
   );
 
-  // Realtime: refresh orders + beep on new ones.
+  // Realtime: refresh orders + beep on new ones (com reassinatura se cair).
   useEffect(() => {
-    const channel = supabase
-      .channel("caixa-orders")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
-        },
-      )
-      .subscribe();
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const connect = () => {
+      if (cancelled) return;
+      channel = supabase
+        .channel("caixa-orders")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "orders" },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+          },
+        )
+        .subscribe((status) => {
+          if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            if (channel) supabase.removeChannel(channel);
+            channel = null;
+            if (!cancelled) {
+              retryTimer = setTimeout(connect, 2000);
+            }
+          }
+        });
+    };
+    connect();
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [queryClient]);
 
-  // Realtime: Fila de Visto e pedidos de fechamento de mesa.
+  // Realtime: Fila de Visto e pedidos de fechamento de mesa (auto-reassinatura).
   useEffect(() => {
-    const channel = supabase
-      .channel("caixa-mesas")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "solicitacoes_mesa" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "comanda_ativa" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["mesa-fechamentos"] });
-        },
-      )
-      .subscribe();
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const connect = () => {
+      if (cancelled) return;
+      channel = supabase
+        .channel("caixa-mesas")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "solicitacoes_mesa" },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] });
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "comanda_ativa" },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["mesa-fechamentos"] });
+          },
+        )
+        .subscribe((status) => {
+          if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            if (channel) supabase.removeChannel(channel);
+            channel = null;
+            if (!cancelled) {
+              retryTimer = setTimeout(connect, 2000);
+            }
+          }
+        });
+    };
+    connect();
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [queryClient]);
 

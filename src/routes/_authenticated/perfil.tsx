@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
+import { PoweredByBadge } from "@/components/PoweredByBadge";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   component: PerfilPage,
@@ -450,6 +451,7 @@ function PerfilPage() {
             </Button>
           </div>
         )}
+        <PoweredByBadge className="pt-6" />
         </main>
       </ShellBody>
     </AppShell>
