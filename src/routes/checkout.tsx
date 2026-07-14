@@ -493,22 +493,15 @@ function CheckoutPage() {
       toast.error("Revise as regras do pedido antes de finalizar.");
       return;
     }
-    let mesaNumber: number | null = null;
-    if (tipo === "Presencial") {
-      mesaNumber = parseInt(mesa, 10);
-      if (Number.isNaN(mesaNumber) || mesaNumber <= 0) {
-        toast.error("Informe o número da mesa para pedidos presenciais.");
-        return;
-      }
-    } else {
-      const parsedAddr = schema.shape.address.safeParse(address);
-      if (!parsedAddr.success) {
-        toast.error(parsedAddr.error.issues[0].message);
-        return;
-      }
+    // Delivery-only (v1.6.0): valida o endereço de entrega. Mesa nunca chega aqui.
+    const mesaNumber: number | null = null;
+    const parsedAddr = schema.shape.address.safeParse(address);
+    if (!parsedAddr.success) {
+      toast.error(parsedAddr.error.issues[0].message);
+      return;
     }
     const parsed = schema.safeParse({
-      address: tipo === "Presencial" ? "Mesa " + mesa : address,
+      address,
       phone,
       notes,
     });
