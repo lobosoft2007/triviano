@@ -232,6 +232,70 @@ export type Database = {
           },
         ]
       }
+      comanda_ativa: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          fechada_em: string | null
+          id: string
+          nome_cliente: string
+          numero_mesa: number
+          solicitacao_id: string | null
+          status: Database["public"]["Enums"]["comanda_status"]
+          total_parcial: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          fechada_em?: string | null
+          id?: string
+          nome_cliente?: string
+          numero_mesa: number
+          solicitacao_id?: string | null
+          status?: Database["public"]["Enums"]["comanda_status"]
+          total_parcial?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          fechada_em?: string | null
+          id?: string
+          nome_cliente?: string
+          numero_mesa?: number
+          solicitacao_id?: string | null
+          status?: Database["public"]["Enums"]["comanda_status"]
+          total_parcial?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comanda_ativa_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comanda_ativa_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comanda_ativa_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacoes_mesa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       composicao_subproduto: {
         Row: {
           created_at: string
@@ -627,9 +691,14 @@ export type Database = {
           created_at: string
           dominio_customizado: string | null
           estado: string
+          geofence_raio_m: number
           id: string
+          latitude: number | null
           logotipo_url: string
           logradouro: string
+          longitude: number | null
+          mesa_exige_geofence: boolean
+          mesa_qr_secret: string
           modo_fundo: string
           monitor_bar: boolean
           monitor_cozinha: boolean
@@ -653,9 +722,14 @@ export type Database = {
           created_at?: string
           dominio_customizado?: string | null
           estado?: string
+          geofence_raio_m?: number
           id?: string
+          latitude?: number | null
           logotipo_url?: string
           logradouro?: string
+          longitude?: number | null
+          mesa_exige_geofence?: boolean
+          mesa_qr_secret?: string
           modo_fundo?: string
           monitor_bar?: boolean
           monitor_cozinha?: boolean
@@ -679,9 +753,14 @@ export type Database = {
           created_at?: string
           dominio_customizado?: string | null
           estado?: string
+          geofence_raio_m?: number
           id?: string
+          latitude?: number | null
           logotipo_url?: string
           logradouro?: string
+          longitude?: number | null
+          mesa_exige_geofence?: boolean
+          mesa_qr_secret?: string
           modo_fundo?: string
           monitor_bar?: boolean
           monitor_cozinha?: boolean
@@ -1737,6 +1816,7 @@ export type Database = {
         Row: {
           aguardando_pagamento: boolean
           cashback_usado: number
+          comanda_id: string | null
           created_at: string
           delivery_address: string
           desconto_manual: number
@@ -1766,6 +1846,7 @@ export type Database = {
         Insert: {
           aguardando_pagamento?: boolean
           cashback_usado?: number
+          comanda_id?: string | null
           created_at?: string
           delivery_address?: string
           desconto_manual?: number
@@ -1795,6 +1876,7 @@ export type Database = {
         Update: {
           aguardando_pagamento?: boolean
           cashback_usado?: number
+          comanda_id?: string | null
           created_at?: string
           delivery_address?: string
           desconto_manual?: number
@@ -1822,6 +1904,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_comanda_id_fkey"
+            columns: ["comanda_id"]
+            isOneToOne: false
+            referencedRelation: "comanda_ativa"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_empresa_id_fkey"
             columns: ["empresa_id"]
@@ -2422,6 +2511,66 @@ export type Database = {
         }
         Relationships: []
       }
+      solicitacoes_mesa: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          host_origem: string | null
+          id: string
+          liberada_em: string | null
+          liberada_por: string | null
+          nome_cliente: string
+          numero_mesa: number
+          status: Database["public"]["Enums"]["solicitacao_mesa_status"]
+          telefone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          host_origem?: string | null
+          id?: string
+          liberada_em?: string | null
+          liberada_por?: string | null
+          nome_cliente?: string
+          numero_mesa: number
+          status?: Database["public"]["Enums"]["solicitacao_mesa_status"]
+          telefone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          host_origem?: string | null
+          id?: string
+          liberada_em?: string | null
+          liberada_por?: string | null
+          nome_cliente?: string
+          numero_mesa?: number
+          status?: Database["public"]["Enums"]["solicitacao_mesa_status"]
+          telefone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_mesa_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_mesa_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subprodutos: {
         Row: {
           created_at: string
@@ -2560,6 +2709,16 @@ export type Database = {
           saldo_cashback: number
           saldo_devedor: number
         }[]
+      }
+      abrir_solicitacao_mesa: {
+        Args: {
+          p_host: string
+          p_nome: string
+          p_numero_mesa: number
+          p_telefone: string
+          p_token: string
+        }
+        Returns: string
       }
       admin_credit_cashback: {
         Args: { p_cliente_id: string; p_motivo: string; p_valor: number }
@@ -2737,13 +2896,27 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      desistir_solicitacao_mesa: {
+        Args: { p_solicitacao_id: string }
+        Returns: undefined
+      }
       discard_unpaid_drafts: { Args: { p_host?: string }; Returns: number }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      enviar_pedido_mesa: {
+        Args: {
+          p_comanda_id: string
+          p_host: string
+          p_items: Json
+          p_notes?: string
+        }
+        Returns: string
+      }
       explode_order_stock: { Args: { p_order_id: string }; Returns: undefined }
+      fechar_comanda: { Args: { p_comanda_id: string }; Returns: undefined }
       finalize_order_paid: { Args: { p_order_id: string }; Returns: number }
       get_active_pix_config: {
         Args: never
@@ -2919,6 +3092,11 @@ export type Database = {
       is_local_admin: { Args: never; Returns: boolean }
       is_master_admin: { Args: never; Returns: boolean }
       is_produto_publico: { Args: { _produto_id: string }; Returns: boolean }
+      liberar_mesa: { Args: { p_solicitacao_id: string }; Returns: string }
+      mesa_token: {
+        Args: { p_empresa: string; p_numero: number }
+        Returns: string
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -2966,6 +3144,10 @@ export type Database = {
       }
       recompute_manipulado_preco_ideal: {
         Args: { p_ids: string[] }
+        Returns: undefined
+      }
+      recusar_solicitacao_mesa: {
+        Args: { p_solicitacao_id: string }
         Returns: undefined
       }
       redeem_cashback_for_order: {
@@ -3025,7 +3207,17 @@ export type Database = {
         | "debito_abatimento_fiado"
         | "ajuste_admin"
       cashback_tipo: "Credito" | "Debito"
+      comanda_status:
+        | "aberta"
+        | "aguardando_fechamento"
+        | "fechada"
+        | "cancelada"
       fiado_tipo: "Debito_Compra" | "Credito_Pagamento"
+      solicitacao_mesa_status:
+        | "aguardando"
+        | "liberada"
+        | "recusada"
+        | "expirada"
       tipo_conta_financeira: "Físico" | "Banco" | "Recebível_Futuro"
       tipo_lancamento_tesouraria: "Entrada" | "Saída"
       tipo_promocao_enum: "Combo" | "Pack"
@@ -3166,7 +3358,19 @@ export const Constants = {
         "ajuste_admin",
       ],
       cashback_tipo: ["Credito", "Debito"],
+      comanda_status: [
+        "aberta",
+        "aguardando_fechamento",
+        "fechada",
+        "cancelada",
+      ],
       fiado_tipo: ["Debito_Compra", "Credito_Pagamento"],
+      solicitacao_mesa_status: [
+        "aguardando",
+        "liberada",
+        "recusada",
+        "expirada",
+      ],
       tipo_conta_financeira: ["Físico", "Banco", "Recebível_Futuro"],
       tipo_lancamento_tesouraria: ["Entrada", "Saída"],
       tipo_promocao_enum: ["Combo", "Pack"],
