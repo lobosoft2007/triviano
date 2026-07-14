@@ -685,16 +685,50 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
   }
 
   /* -------- Fila de Visto: liberar / recusar mesa ------------------- */
+  const [conflitoMesa, setConflitoMesa] = useState<{
+    solicitacaoId: string;
+    numeroMesa: number;
+    ocupacao: ComandaFechamento;
+  } | null>(null);
+
+  const runLiberar = useCallback(
+    async (id: string, mesa: number, forcar: boolean) => {
+      try {
+        await liberarMesa(id, { forcar });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] }),
+          queryClient.invalidateQueries({ queryKey: ["mesas-vivas"] }),
+          queryClient.invalidateQueries({ queryKey: ["mesa-fechamentos"] }),
+          queryClient.invalidateQueries({ queryKey: ["caixa-orders"] }),
+        ]);
+        toast.success(
+          forcar
+            ? `Mesa ${mesa} zerada e reaberta. 🍽️`
+            : `Mesa ${mesa} liberada. Bom atendimento! 🍽️`,
+        );
+      } catch (err) {
+        if (isMesaOcupadaError(err)) {
+          const ocup =
+            mesasOcupadasMap.get(mesa) ?? {
+              numero_mesa: mesa,
+              total_parcial: 0,
+              nome_cliente: "cliente",
+            };
+          setConflitoMesa({ solicitacaoId: id, numeroMesa: mesa, ocupacao: ocup });
+          return;
+        }
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível liberar a mesa.",
+        );
+      }
+    },
+    [queryClient, mesasOcupadasMap],
+  );
+
   async function handleLiberar(id: string, mesa: number) {
-    try {
-      await liberarMesa(id);
-      await queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] });
-      toast.success(`Mesa ${mesa} liberada. Bom atendimento! 🍽️`);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Não foi possível liberar a mesa.",
-      );
-    }
+    await runLiberar(id, mesa, false);
   }
 
   async function handleRecusar(id: string, mesa: number) {
