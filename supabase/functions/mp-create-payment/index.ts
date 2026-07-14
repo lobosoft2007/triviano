@@ -31,15 +31,21 @@ function json(body: unknown, status = 200) {
 }
 
 interface CreatePaymentBody {
-  order_id: string;
+  // Cobrança por PEDIDO (Delivery/Balcão) — informe order_id.
+  order_id?: string;
+  // Cobrança por COMANDA (Mesa, liquidação unificada v1.7.0) — informe
+  // comanda_id. O valor cobrado é o total_parcial (soma de todos os pedidos
+  // da mesa) e a Order do MP referencia a COMANDA, não um pedido isolado.
+  comanda_id?: string;
   method: "pix" | "card";
   // Ambiente detectado no frontend a partir do host real do navegador.
   env?: "prod" | "test";
   // Contexto de origem da cobrança:
-  //  - "app"    : cliente pagando pelo app (fluxo padrão, gating de visibilidade).
-  //  - "balcao" : PDV/Balcão — pedido nasce oculto (rascunho) até a confirmação.
-  //  - "mesa"   : Mesa/Delivery já ativo no Caixa — NÃO alterar visibilidade.
-  context?: "app" | "balcao" | "mesa";
+  //  - "app"     : cliente pagando pelo app (fluxo padrão, gating de visibilidade).
+  //  - "balcao"  : PDV/Balcão — pedido nasce oculto (rascunho) até a confirmação.
+  //  - "mesa"    : Mesa/Delivery já ativo no Caixa — NÃO alterar visibilidade.
+  //  - "comanda" : liquidação unificada da comanda da mesa (v1.7.0).
+  context?: "app" | "balcao" | "mesa" | "comanda";
   // Card-only (Checkout Transparente / Card Payment Brick):
   token?: string;
   installments?: number;
