@@ -73,7 +73,8 @@ export type AdminTab =
   | "setores"
   | "fornecedores"
   | "funcionarios"
-  | "permissoes";
+  | "permissoes"
+  | "mesas";
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
