@@ -173,7 +173,7 @@ export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
   let query = supabase
     .from("orders")
     .select(
-      "id, status, status_pedido, total, discount, delivery_address, created_at, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes)",
+      "id, status, status_pedido, total, discount, delivery_address, created_at, tipo_atendimento, numero_mesa, pago_online, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes), pagamentos_pedido(valor_pago, meios_pagamento(nome, tipo))",
     )
     .eq("user_id", userId)
     // Rascunhos de pagamento e pagamentos abandonados são totalmente
@@ -186,32 +186,56 @@ export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
   if (empresaId) query = query.eq("empresa_id", empresaId);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).map((o) => ({
-    id: o.id,
-    status: o.status,
-    status_pedido: (o as { status_pedido?: string }).status_pedido ?? "",
-    total: Number(o.total),
-    discount: Number((o as { discount?: number }).discount ?? 0),
-    delivery_address: o.delivery_address,
-    created_at: o.created_at,
-    order_items: (o.order_items ?? []).map((it) => ({
-      id: it.id,
-      product_name: it.product_name,
-      unit_price: Number(it.unit_price),
-      quantity: it.quantity,
-      size: (it as { size?: string }).size ?? "",
-      addons: Array.isArray((it as { addons?: unknown }).addons)
-        ? ((it as unknown as {
-            addons: { name: string; price: number; quantity?: number }[];
-          }).addons)
-        : [],
-      second_flavor: (it as { second_flavor?: string }).second_flavor ?? "",
-      remocoes: Array.isArray((it as { remocoes?: unknown }).remocoes)
-        ? ((it as unknown as { remocoes: string[] }).remocoes)
-        : [],
-    })),
-  })) as OrderRow[];
+  return (data ?? []).map((o) => {
+    const rawPagamentos = Array.isArray(
+      (o as { pagamentos_pedido?: unknown }).pagamentos_pedido,
+    )
+      ? ((o as unknown as {
+          pagamentos_pedido: {
+            valor_pago: number;
+            meios_pagamento: { nome?: string; tipo?: string } | null;
+          }[];
+        }).pagamentos_pedido)
+      : [];
+    const pagamentos: OrderPayment[] = rawPagamentos.map((p) => ({
+      nome: p.meios_pagamento?.nome ?? "Pagamento",
+      tipo: p.meios_pagamento?.tipo ?? "",
+      valor: Number(p.valor_pago ?? 0),
+    }));
+    return {
+      id: o.id,
+      status: o.status,
+      status_pedido: (o as { status_pedido?: string }).status_pedido ?? "",
+      total: Number(o.total),
+      discount: Number((o as { discount?: number }).discount ?? 0),
+      delivery_address: o.delivery_address,
+      created_at: o.created_at,
+      tipo_atendimento:
+        (o as { tipo_atendimento?: string }).tipo_atendimento ?? "Delivery",
+      numero_mesa:
+        (o as { numero_mesa?: number | null }).numero_mesa ?? null,
+      pago_online: !!(o as { pago_online?: boolean }).pago_online,
+      pagamentos,
+      order_items: (o.order_items ?? []).map((it) => ({
+        id: it.id,
+        product_name: it.product_name,
+        unit_price: Number(it.unit_price),
+        quantity: it.quantity,
+        size: (it as { size?: string }).size ?? "",
+        addons: Array.isArray((it as { addons?: unknown }).addons)
+          ? ((it as unknown as {
+              addons: { name: string; price: number; quantity?: number }[];
+            }).addons)
+          : [],
+        second_flavor: (it as { second_flavor?: string }).second_flavor ?? "",
+        remocoes: Array.isArray((it as { remocoes?: unknown }).remocoes)
+          ? ((it as unknown as { remocoes: string[] }).remocoes)
+          : [],
+      })),
+    };
+  }) as OrderRow[];
 }
+
 
 /**
  * Status (esteira) de pedido que podem ser repetidos ("Repetir pedido"):
