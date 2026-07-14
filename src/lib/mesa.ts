@@ -376,13 +376,27 @@ export async function fetchSolicitacoesPendentes(): Promise<
   return (data ?? []) as SolicitacaoPendente[];
 }
 
-/** Operador libera a mesa (Visto) — cria/reaproveita a comanda. */
-export async function liberarMesa(id: string): Promise<string> {
+/** Operador libera a mesa (Visto) — cria/reaproveita a comanda.
+ *  Quando a mesa já tem uma comanda viva de OUTRO cliente, o servidor
+ *  responde com `MESA_OCUPADA:` e a UI mostra o AlertDialog. Passar
+ *  `forcar: true` autoriza a incineração explicitamente. */
+export async function liberarMesa(
+  id: string,
+  opts: { forcar?: boolean } = {},
+): Promise<string> {
   const { data, error } = await supabase.rpc("liberar_mesa", {
     p_solicitacao_id: id,
+    p_forcar: !!opts.forcar,
   });
   if (error) throw error;
   return data as string;
+}
+
+/** Detecta o erro tipado `MESA_OCUPADA: …` disparado pela RPC. */
+export function isMesaOcupadaError(err: unknown): boolean {
+  const msg =
+    err instanceof Error ? err.message : String((err as { message?: string })?.message ?? "");
+  return msg.includes("MESA_OCUPADA");
 }
 
 /** Operador recusa a solicitação de abertura. */
