@@ -12,7 +12,7 @@ import {
   Bell,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
+
 import {
   getMesaSession,
   clearMesaSession,
@@ -42,7 +42,7 @@ export const Route = createFileRoute("/minha-comanda")({
 
 function MinhaComandaPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  
   const [loading, setLoading] = useState(true);
   const [comanda, setComanda] = useState<ComandaAtiva | null>(null);
   const [pedidos, setPedidos] = useState<ComandaPedido[]>([]);
