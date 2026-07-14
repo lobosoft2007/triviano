@@ -251,16 +251,32 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   {formatBRL(totalPrice)}
                 </span>
               </div>
-              <Button asChild size="lg" className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base">
-                <a
-                  href="/checkout"
-                  aria-disabled={items.length === 0}
-                  onClick={handleCheckoutClick}
+              {isMesa ? (
+                <Button
+                  size="lg"
+                  className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base"
+                  disabled={items.length === 0 || sending}
+                  onClick={handleEnviarCozinha}
                 >
-                  Finalizar pedido
-                  <ArrowRight className="h-5 w-5" />
-                </a>
-              </Button>
+                  {sending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ChefHat className="h-5 w-5" />
+                  )}
+                  {sending ? "Enviando…" : "Enviar para a Cozinha"}
+                </Button>
+              ) : (
+                <Button asChild size="lg" className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base">
+                  <a
+                    href="/checkout"
+                    aria-disabled={items.length === 0}
+                    onClick={handleCheckoutClick}
+                  >
+                    Finalizar pedido
+                    <ArrowRight className="h-5 w-5" />
+                  </a>
+                </Button>
+              )}
             </div>
           </>
         )}
