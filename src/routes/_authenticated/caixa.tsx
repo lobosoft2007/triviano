@@ -1148,10 +1148,12 @@ interface MesaGroup {
 
 function VistoQueue({
   solicitacoes,
+  mesasOcupadas,
   onLiberar,
   onRecusar,
 }: {
   solicitacoes: SolicitacaoPendente[];
+  mesasOcupadas: Map<number, ComandaFechamento>;
   onLiberar: (id: string, mesa: number) => void;
   onRecusar: (id: string, mesa: number) => void;
 }) {
@@ -1170,43 +1172,68 @@ function VistoQueue({
         </h2>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {solicitacoes.map((s) => (
-          <div
-            key={s.id}
-            className="flex items-center gap-2 rounded-xl border border-border bg-card p-2.5"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-display text-sm font-bold">
-                Mesa {s.numero_mesa} · {s.nome_cliente || "Cliente"}
-              </p>
-              <p className="truncate text-[11px] text-muted-foreground">
-                {s.telefone || "sem telefone"} ·{" "}
-                {new Date(s.created_at).toLocaleTimeString("pt-BR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
+        {solicitacoes.map((s) => {
+          const ocupada = mesasOcupadas.get(s.numero_mesa);
+          const isConflito = !!ocupada;
+          return (
+            <div
+              key={s.id}
+              className={
+                isConflito
+                  ? "flex flex-col gap-2 rounded-xl border-2 border-destructive bg-destructive/10 p-2.5"
+                  : "flex items-center gap-2 rounded-xl border border-border bg-card p-2.5"
+              }
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-display text-sm font-bold">
+                  Mesa {s.numero_mesa} · {s.nome_cliente || "Cliente"}
+                </p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {s.telefone || "sem telefone"} ·{" "}
+                  {new Date(s.created_at).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                {isConflito && ocupada && (
+                  <p className="mt-1 truncate text-[11px] font-bold text-destructive">
+                    MESA OCUPADA · {ocupada.nome_cliente || "cliente"} ·{" "}
+                    R$ {Number(ocupada.total_parcial ?? 0).toFixed(2).replace(".", ",")}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 self-end">
+                <Button
+                  size="icon"
+                  variant={isConflito ? "destructive" : "success"}
+                  className="h-9 w-9 shrink-0 rounded-xl"
+                  aria-label={
+                    isConflito
+                      ? `Zerar mesa ${s.numero_mesa} e liberar`
+                      : `Liberar mesa ${s.numero_mesa}`
+                  }
+                  title={
+                    isConflito
+                      ? "Zerar mesa e começar do zero"
+                      : "Liberar mesa"
+                  }
+                  onClick={() => onLiberar(s.id, s.numero_mesa)}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-9 w-9 shrink-0 rounded-xl text-destructive hover:bg-destructive/10"
+                  aria-label={`Recusar mesa ${s.numero_mesa}`}
+                  onClick={() => onRecusar(s.id, s.numero_mesa)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <Button
-              size="icon"
-              variant="success"
-              className="h-9 w-9 shrink-0 rounded-xl"
-              aria-label={`Liberar mesa ${s.numero_mesa}`}
-              onClick={() => onLiberar(s.id, s.numero_mesa)}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-9 w-9 shrink-0 rounded-xl text-destructive hover:bg-destructive/10"
-              aria-label={`Recusar mesa ${s.numero_mesa}`}
-              onClick={() => onRecusar(s.id, s.numero_mesa)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
