@@ -436,6 +436,7 @@ function Shell({
       <main className="mx-auto w-full max-w-md px-5 py-8">
         {empresaNome ? null : null}
         {children}
+        <PoweredByBadge className="pt-8" />
       </main>
     </div>
   );
