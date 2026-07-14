@@ -94,34 +94,75 @@ Deno.serve(async (req) => {
   } catch {
     return json({ error: "JSON inválido." }, 400);
   }
-  if (!body.order_id || !body.method) {
-    return json({ error: "order_id e method são obrigatórios." }, 400);
+  const isComanda = !!body.comanda_id;
+  if ((!body.order_id && !body.comanda_id) || !body.method) {
+    return json({ error: "order_id ou comanda_id e method são obrigatórios." }, 400);
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-  // 2) Carregar o pedido e validar posse.
-  const { data: order, error: orderErr } = await admin
-    .from("orders")
-    .select("id, user_id, total, empresa_id, mp_order_id, pago_online")
-    .eq("id", body.order_id)
-    .maybeSingle();
-  if (orderErr || !order) return json({ error: "Pedido não encontrado." }, 404);
-  if (order.pago_online) return json({ error: "Pedido já pago." }, 409);
+  // 2) Carregar a ENTIDADE cobrada (pedido isolado OU comanda inteira) e
+  // validar posse. A comanda cobra o total_parcial (soma de todos os pedidos
+  // da mesa) — liquidação unificada (v1.7.0).
+  let entity: {
+    id: string;
+    user_id: string;
+    empresa_id: string;
+    total: number;
+    pago_online: boolean;
+  } | null = null;
 
-  // Autorização: o DONO do pedido sempre pode pagar. Além dele, um OPERADOR
-  // (papel admin) da EMPRESA dona do pedido pode gerar a cobrança — necessário
-  // no PDV/Caixa, onde o pedido de mesa pertence ao cliente, não ao operador.
+  if (isComanda) {
+    const { data: com, error: comErr } = await admin
+      .from("comanda_ativa")
+      .select("id, user_id, empresa_id, total_parcial, pago_online, status")
+      .eq("id", body.comanda_id)
+      .maybeSingle();
+    if (comErr || !com) return json({ error: "Comanda não encontrada." }, 404);
+    if (com.pago_online) return json({ error: "Comanda já paga." }, 409);
+    if (com.status === "fechada" || com.status === "cancelada") {
+      return json({ error: "Comanda não está aberta." }, 409);
+    }
+    if (!(Number(com.total_parcial) > 0)) {
+      return json({ error: "Comanda sem consumo para cobrar." }, 400);
+    }
+    entity = {
+      id: com.id,
+      user_id: com.user_id,
+      empresa_id: com.empresa_id,
+      total: Number(com.total_parcial),
+      pago_online: com.pago_online,
+    };
+  } else {
+    const { data: order, error: orderErr } = await admin
+      .from("orders")
+      .select("id, user_id, total, empresa_id, mp_order_id, pago_online")
+      .eq("id", body.order_id)
+      .maybeSingle();
+    if (orderErr || !order) return json({ error: "Pedido não encontrado." }, 404);
+    if (order.pago_online) return json({ error: "Pedido já pago." }, 409);
+    entity = {
+      id: order.id,
+      user_id: order.user_id,
+      empresa_id: order.empresa_id,
+      total: Number(order.total),
+      pago_online: order.pago_online,
+    };
+  }
+
+  // Autorização: o DONO (do pedido/comanda) sempre pode pagar. Além dele, um
+  // OPERADOR (papel admin) da EMPRESA dona pode gerar a cobrança — necessário
+  // no PDV/Caixa, onde a comanda pertence ao cliente, não ao operador.
   // Reutiliza `can_manage_empresa` (super_admin OU admin da própria empresa),
   // avaliado com o token do usuário logado (multi-tenant seguro).
-  let authorized = order.user_id === user.id;
-  if (!authorized && order.empresa_id) {
+  let authorized = entity.user_id === user.id;
+  if (!authorized && entity.empresa_id) {
     const { data: canManage } = await userClient.rpc("can_manage_empresa", {
-      _empresa_id: order.empresa_id,
+      _empresa_id: entity.empresa_id,
     });
     authorized = !!canManage;
   }
-  if (!authorized) return json({ error: "Pedido de outro usuário." }, 403);
+  if (!authorized) return json({ error: "Cobrança de outro usuário." }, 403);
 
 
   // 3) Credenciais do MERCADO PAGO da EMPRESA dona do pedido (multi-tenant).
