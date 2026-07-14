@@ -900,6 +900,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
           <div className="flex flex-col gap-4">
             <VistoQueue
               solicitacoes={solicitacoes ?? []}
+              mesasOcupadas={mesasOcupadasMap}
               onLiberar={handleLiberar}
               onRecusar={handleRecusar}
             />
