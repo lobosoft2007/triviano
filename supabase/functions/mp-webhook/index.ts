@@ -122,6 +122,20 @@ Deno.serve(async (req) => {
     .or(`mp_payment_id.eq.${resourceId},mp_order_id.eq.${resourceId}`)
     .maybeSingle();
 
+  // Liquidação unificada (v1.7.0): a cobrança da MESA referencia a COMANDA,
+  // não um pedido isolado. Se não achamos um pedido, procuramos a comanda.
+  let comanda:
+    | { id: string; empresa_id: string; mp_order_id: string | null; mp_payment_id: string | null; pago_online: boolean }
+    | null = null;
+  if (!order) {
+    const { data: com } = await admin
+      .from("comanda_ativa")
+      .select("id, empresa_id, mp_order_id, mp_payment_id, pago_online")
+      .or(`mp_payment_id.eq.${resourceId},mp_order_id.eq.${resourceId}`)
+      .maybeSingle();
+    comanda = com ?? null;
+  }
+
   let discoveredCfg:
     | (MpConfig & { empresa_id: string })
     | null = null;
