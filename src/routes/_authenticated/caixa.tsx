@@ -427,6 +427,18 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     refetchInterval: 8000,
     refetchOnWindowFocus: true,
   });
+  // Todas as mesas com comanda VIVA — para destacar conflito na Fila de Visto.
+  const { data: mesasVivas } = useQuery({
+    queryKey: ["mesas-vivas"],
+    queryFn: fetchComandasVivas,
+    refetchInterval: 8000,
+    refetchOnWindowFocus: true,
+  });
+  const mesasOcupadasMap = useMemo(() => {
+    const m = new Map<number, ComandaFechamento>();
+    for (const c of mesasVivas ?? []) m.set(c.numero_mesa, c);
+    return m;
+  }, [mesasVivas]);
 
   const fechamentoMesas = useMemo(
     () => new Set((fechamentos ?? []).map((f) => f.numero_mesa)),
