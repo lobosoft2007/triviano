@@ -704,6 +704,7 @@ function AdminPage() {
           {tab === "fornecedores" && <FornecedoresCrud />}
           {tab === "funcionarios" && <FuncionariosTab />}
           {tab === "permissoes" && <PermissoesTab />}
+          {tab === "mesas" && <MesasQrTab />}
 
           {tab === "cardapio" && (
             <>
