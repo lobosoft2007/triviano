@@ -9,8 +9,12 @@ import {
   ArrowRight,
   AlertCircle,
   BadgePercent,
+  ChefHat,
+  Loader2,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useMesaSession } from "@/hooks/useMesaSession";
+import { enviarPedidoMesa } from "@/lib/mesa";
 import { formatBRL } from "@/lib/format";
 import {
   Sheet,
@@ -35,9 +39,39 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     increment,
     decrement,
     removeItem,
+    clear,
   } = useCart();
   const [open, setOpen] = useState(false);
+  const [sending, setSending] = useState(false);
   const navigate = useNavigate();
+  const { session: mesa } = useMesaSession();
+  const isMesa = !!mesa;
+
+  async function handleEnviarCozinha() {
+    if (!mesa) return;
+    const safeItems = Array.isArray(items)
+      ? items.filter((item) => item && typeof item === "object")
+      : [];
+    if (safeItems.length === 0) {
+      toast.error("Adicione ao menos um item antes de enviar.");
+      return;
+    }
+    setSending(true);
+    try {
+      await enviarPedidoMesa(mesa.comandaId, safeItems);
+      clear();
+      setOpen(false);
+      toast.success("Pedido enviado para a cozinha! 🍽️");
+      void navigate({ to: "/minha-comanda" });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Não foi possível enviar.";
+      toast.error(message);
+    } finally {
+      setSending(false);
+    }
+  }
+
 
   function handleCheckoutClick(event: MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();
