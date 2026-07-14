@@ -1843,6 +1843,7 @@ function BillReceipt({
   pixKey,
   pixName,
   brcode,
+  mpDynamic = false,
 }: {
   mesa: number;
   orders: CaixaOrder[];
@@ -1853,6 +1854,11 @@ function BillReceipt({
   pixName: string;
   /** PIX Copia e Cola (BR Code com valor) — backup de digitação. */
   brcode: string;
+  /**
+   * true = QR dinâmico do Mercado Pago (baixa automática via webhook).
+   * false = PIX estático da chave da empresa (baixa manual).
+   */
+  mpDynamic?: boolean;
 }) {
   const items = orders.flatMap((o) => o.order_items);
   const subtotal = orders.reduce(
