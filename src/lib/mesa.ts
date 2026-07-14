@@ -444,6 +444,17 @@ export async function fetchComandasAguardandoFechamento(): Promise<
   return (data ?? []) as ComandaFechamento[];
 }
 
+/** Mesas com comanda VIVA (aberta ou aguardando fechamento) — usada para
+ *  detectar conflito antes de liberar a Fila de Visto. */
+export async function fetchComandasVivas(): Promise<ComandaFechamento[]> {
+  const { data, error } = await supabase
+    .from("comanda_ativa")
+    .select("numero_mesa, total_parcial, nome_cliente")
+    .in("status", ["aberta", "aguardando_fechamento"]);
+  if (error) throw error;
+  return (data ?? []) as ComandaFechamento[];
+}
+
 /* ------------------------------------------------------------------ */
 /* Gerador de QR (Admin)                                               */
 /* ------------------------------------------------------------------ */
