@@ -659,23 +659,53 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
       }
     }
 
-    // Dados PIX multi-tenant (chave/nome/cidade da empresa atual). Sem eles não
-    // é possível montar um BR Code válido — cai para constantes de segurança.
-    const pixCfg = await fetchPixStaticConfig().catch(() => null);
-    const pixKey = pixCfg?.chave_pix || PIX_KEY;
-    const pixName = pixCfg?.nome_recebedor || PIX_NAME;
-    const pixCity = pixCfg?.cidade_recebedor || "SAO PAULO";
+    // --- 1) Preferir o QR DINÂMICO do Mercado Pago (baixa automática) -----
+    // Se a empresa tem MP ativo e há uma comanda vinculada, geramos aqui a
+    // mesma Order que o app do cliente usaria. O QR impresso passa a estar
+    // ligado a um mp_order_id — quando o cliente pagar (pelo cupom OU pelo
+    // app), o webhook liquida a comanda inteira automaticamente.
+    let qr = "";
+    let brcode = "";
+    let pixKey = "";
+    let pixName = "";
+    let usedMp = false;
 
-    // BR Code EMV COM VALOR embutido → o app do banco abre já com o total certo.
-    const brcode = generatePixPayload({
-      pixKey,
-      merchantName: pixName,
-      merchantCity: pixCity,
-      amount: totalParcial,
-    });
-    const qr = await QRCode.toDataURL(brcode, { margin: 1, width: 220 }).catch(
-      () => "",
-    );
+    if (comandaId) {
+      try {
+        const mpCfg = await fetchMpPublicConfig();
+        if (mpCfg?.ativo && mpCfg.aceita_pix_online) {
+          const mpRes = await createMpComandaPayment({
+            comandaId,
+            method: "pix",
+          });
+          if (mpRes.qr_code_base64) {
+            qr = `data:image/png;base64,${mpRes.qr_code_base64}`;
+          }
+          brcode = mpRes.qr_code ?? "";
+          usedMp = !!(qr || brcode);
+        }
+      } catch (err) {
+        console.warn("printBill: falha ao gerar QR do MP, usando PIX estático.", err);
+      }
+    }
+
+    // --- 2) Fallback: PIX ESTÁTICO da empresa (sem baixa automática) ------
+    if (!usedMp) {
+      const pixCfg = await fetchPixStaticConfig().catch(() => null);
+      pixKey = pixCfg?.chave_pix || PIX_KEY;
+      pixName = pixCfg?.nome_recebedor || PIX_NAME;
+      const pixCity = pixCfg?.cidade_recebedor || "SAO PAULO";
+      brcode = generatePixPayload({
+        pixKey,
+        merchantName: pixName,
+        merchantCity: pixCity,
+        amount: totalParcial,
+      });
+      qr = await QRCode.toDataURL(brcode, { margin: 1, width: 220 }).catch(
+        () => "",
+      );
+    }
+
     await printAndRun(
       <BillReceipt
         mesa={mesa}
@@ -685,6 +715,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         pixKey={pixKey}
         pixName={pixName}
         brcode={brcode}
+        mpDynamic={usedMp}
       />,
       async () => {
         try {
