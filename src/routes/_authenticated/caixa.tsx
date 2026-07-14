@@ -1921,8 +1921,16 @@ function BillReceipt({
           <img src={qr} alt="PIX" style={{ width: "40mm", height: "40mm" }} />
         </div>
       )}
-      <p style={{ textAlign: "center" }}>Chave: {pixKey}</p>
-      <p style={{ textAlign: "center" }}>{pixName}</p>
+      {mpDynamic ? (
+        <p style={{ textAlign: "center", fontSize: 10 }}>
+          Pagamento via Mercado Pago — baixa automática
+        </p>
+      ) : (
+        <>
+          <p style={{ textAlign: "center" }}>Chave: {pixKey}</p>
+          <p style={{ textAlign: "center" }}>{pixName}</p>
+        </>
+      )}
       {brcode && (
         <p
           style={{
