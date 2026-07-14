@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
   // payment id que não bate mais na linha local. Para não perder a confirmação,
   // reconsultamos o pagamento nos tenants ativos e usamos external_reference
   // (= order.id) como fonte de verdade.
-  if (!order && isPaymentTopic) {
+  if (!order && !comanda && isPaymentTopic) {
     const { data: cfgs } = await admin
       .from("config_pagamentos")
       .select("empresa_id, mp_access_token, mp_access_token_prod, mp_access_token_test, mp_webhook_secret")
@@ -179,6 +179,24 @@ Deno.serve(async (req) => {
             });
             break;
           }
+          // Comanda (liquidação unificada): external_reference = comanda.id.
+          const { data: byComandaRef } = await admin
+            .from("comanda_ativa")
+            .select("id, empresa_id, mp_order_id, mp_payment_id, pago_online")
+            .eq("id", externalReference)
+            .eq("empresa_id", cfgItem.empresa_id)
+            .maybeSingle();
+          if (byComandaRef) {
+            comanda = byComandaRef;
+            discoveredCfg = cfgItem;
+            discoveredPayment = payment;
+            console.log("mp-webhook: comanda localizada por external_reference", {
+              comanda_id: comanda.id,
+              resourceId,
+              empresa_id: comanda.empresa_id,
+            });
+            break;
+          }
         } catch (e) {
           console.warn("mp-webhook: fallback external_reference falhou para tenant", {
             empresa_id: cfgItem.empresa_id,
@@ -186,9 +204,13 @@ Deno.serve(async (req) => {
           });
         }
       }
-      if (order) break;
+      if (order || comanda) break;
     }
   }
+
+  // Alvo unificado: pedido isolado (Delivery/Balcão) OU comanda (Mesa).
+  const isComanda = !order && !!comanda;
+  const target = order ?? comanda;
 
   if (!order) {
     // Pedido ainda não conhecido (corrida) — 200 para reentrega posterior.
