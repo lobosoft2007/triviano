@@ -216,6 +216,7 @@ export function AdminSidebar({
         { key: "empresa", label: "Configurações", icon: <Building2 className={iconCls} /> },
         { key: "identidade", label: "Identidade Visual", icon: <Palette className={iconCls} /> },
         { key: "pagamentos", label: "Pagamentos", icon: <CreditCard className={iconCls} /> },
+        { key: "mesas", label: "Mesas (QR-Codes)", icon: <Armchair className={iconCls} /> },
       ],
     },
   ];
