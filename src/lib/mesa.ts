@@ -171,9 +171,25 @@ export const MESA_SESSION_EVENT = "mesa-session-change";
 
 export function getMesaSession(): MesaSession | null {
   try {
-    const id = sessionStorage.getItem(MESA_COMANDA_KEY);
+    if (typeof window === "undefined") return null;
+    const store = window.localStorage;
+    let id = store.getItem(MESA_COMANDA_KEY);
+    let numeroRaw = store.getItem(MESA_NUMERO_KEY);
+    // Migração transparente: versões anteriores gravavam em sessionStorage.
+    if (!id && window.sessionStorage) {
+      const legacyId = window.sessionStorage.getItem(MESA_COMANDA_KEY);
+      const legacyNumero = window.sessionStorage.getItem(MESA_NUMERO_KEY);
+      if (legacyId) {
+        store.setItem(MESA_COMANDA_KEY, legacyId);
+        if (legacyNumero) store.setItem(MESA_NUMERO_KEY, legacyNumero);
+        window.sessionStorage.removeItem(MESA_COMANDA_KEY);
+        window.sessionStorage.removeItem(MESA_NUMERO_KEY);
+        id = legacyId;
+        numeroRaw = legacyNumero;
+      }
+    }
     if (!id) return null;
-    const numero = Number(sessionStorage.getItem(MESA_NUMERO_KEY));
+    const numero = Number(numeroRaw);
     return { comandaId: id, numero: Number.isFinite(numero) ? numero : 0 };
   } catch {
     return null;
@@ -182,8 +198,8 @@ export function getMesaSession(): MesaSession | null {
 
 export function setMesaSession(comandaId: string, numero: number): void {
   try {
-    sessionStorage.setItem(MESA_COMANDA_KEY, comandaId);
-    sessionStorage.setItem(MESA_NUMERO_KEY, String(numero));
+    window.localStorage.setItem(MESA_COMANDA_KEY, comandaId);
+    window.localStorage.setItem(MESA_NUMERO_KEY, String(numero));
     window.dispatchEvent(new Event(MESA_SESSION_EVENT));
   } catch {
     /* ignore */
@@ -192,11 +208,38 @@ export function setMesaSession(comandaId: string, numero: number): void {
 
 export function clearMesaSession(): void {
   try {
-    sessionStorage.removeItem(MESA_COMANDA_KEY);
-    sessionStorage.removeItem(MESA_NUMERO_KEY);
+    window.localStorage.removeItem(MESA_COMANDA_KEY);
+    window.localStorage.removeItem(MESA_NUMERO_KEY);
+    if (window.sessionStorage) {
+      window.sessionStorage.removeItem(MESA_COMANDA_KEY);
+      window.sessionStorage.removeItem(MESA_NUMERO_KEY);
+    }
     window.dispatchEvent(new Event(MESA_SESSION_EVENT));
   } catch {
     /* ignore */
+  }
+}
+
+/**
+ * Reidratação de Sessão (v1.7.2): se o app abrir sem sessão de mesa local
+ * mas o usuário logado tiver uma comanda viva no servidor, restaura o
+ * "modo mesa" automaticamente. Nunca sobrescreve sessão existente.
+ */
+export async function rehydrateMesaSessionFromServer(): Promise<void> {
+  try {
+    if (typeof window === "undefined") return;
+    if (getMesaSession()) return;
+    const { data, error } = await supabase
+      .from("comanda_ativa")
+      .select("id, numero_mesa, status")
+      .in("status", ["aberta", "aguardando_fechamento"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return;
+    setMesaSession(data.id, Number(data.numero_mesa) || 0);
+  } catch {
+    /* silencioso — reidratação é oportunista */
   }
 }
 

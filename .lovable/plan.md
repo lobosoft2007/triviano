@@ -1,54 +1,37 @@
-# Execução — Fase 1 (Banco + RPCs) e Fase 2 (Segurança do QR) — Módulo de Mesa v1.5.0
 
-Decisões homologadas incorporadas: **QR** com `@zxing/browser`; **Geofencing** apenas como colunas no banco (sem UI/validação por enquanto); **OTP** nativo atual. Motor financeiro (PIX/Checkout) **não é tocado** — apenas adições isoladas.
+# v1.7.2 — Execução (homologada)
 
-## Fase 1 — Migração do Banco
+Migração SQL já aplicada com sucesso:
+- Coluna `motivo_cancelamento` adicionada em `comanda_ativa`.
+- Limpeza única do legado: comandas duplicadas vivas incineradas (a mais recente por mesa foi mantida; as demais viraram `cancelada` com pedidos pendentes desvinculados) — a Mesa 3 já nasce limpa.
+- Índice único parcial `uq_comanda_ativa_mesa_viva` criado — bloqueio físico contra duas comandas vivas na mesma mesa.
+- `liberar_mesa` reescrita com Protocolo de Incineração por MESA (cancela qualquer resíduo antes de INSERT da nova comanda em R$ 0,00).
 
-### Enums
-- `solicitacao_mesa_status`: `('aguardando','liberada','recusada','expirada')`
-- `comanda_status`: `('aberta','aguardando_fechamento','fechada','cancelada')`
+Falta liberar os edits de código abaixo (aprove o plano para eu aplicar):
 
-### Tabela `solicitacoes_mesa`
-Campos de domínio: `empresa_id`, `numero_mesa`, `nome_cliente`, `telefone`, `user_id`, `status` (default `aguardando`), `host_origem`, `liberada_por`, `liberada_em`.
+## Arquivos a editar
 
-### Tabela `comanda_ativa`
-Campos de domínio: `empresa_id`, `numero_mesa`, `solicitacao_id`, `user_id`, `nome_cliente`, `status` (default `aberta`), `total_parcial` (default 0), `fechada_em`.
+**1. `src/lib/mesa.ts` — Reidratação + persistência real**
+- Trocar `sessionStorage` → `localStorage` em `getMesaSession`/`setMesaSession`/`clearMesaSession`.
+- Migração transparente: se houver chave antiga em `sessionStorage`, move para `localStorage` e limpa a antiga.
+- Novo helper `rehydrateMesaSessionFromServer()` — se não houver sessão local, procura `comanda_ativa` viva do usuário logado e restaura o "modo mesa".
 
-### Coluna nova em `orders`
-- `comanda_id uuid` (nullable, FK → `comanda_ativa`).
+**2. `src/lib/auth.tsx` — Reidratação no boot**
+- Após `validateSession` confirmar `user`, chamar `void rehydrateMesaSessionFromServer()` (silencioso, não bloqueia login). Preserva `signOut()` já com `clearMesaSession()` + `resetStatusAtendimento()`.
 
-### Colunas de geofence em `empresas` (dormentes, sem UI agora)
-- `mesa_exige_geofence boolean default false`, `latitude numeric`, `longitude numeric`, `geofence_raio_m integer default 200`, `mesa_qr_secret text` (segredo aleatório por empresa).
+**3. `src/routes/_authenticated/caixa.tsx` — Hardening Realtime**
+- Nos canais `caixa-orders` e `caixa-mesas`: `.subscribe((status) => …)` com reassinatura + backoff em `CHANNEL_ERROR`/`TIMED_OUT`/`CLOSED`.
+- Adicionar `refetchOnWindowFocus: true` e reduzir `refetchInterval` para 8 s nas queries `mesa-solicitacoes` e `mesa-fechamentos`.
+- Beep de entrada já implementado (linha 657) — apenas reconfirmar comportamento.
 
-### Segurança (GRANT + RLS)
-Ambas as tabelas: `GRANT SELECT, INSERT, UPDATE, DELETE ... TO authenticated; GRANT ALL ... TO service_role;`
-- **SELECT**: dono (`user_id = auth.uid()`) OU operador do tenant (`can_manage_empresa(empresa_id)`).
-- **UPDATE**: operador do tenant; dono marca a própria como desistência.
-- Escritas críticas via RPCs `SECURITY DEFINER`.
+**4. `src/components/PoweredByBadge.tsx` — Novo componente**
+- Renderiza discretamente `Desenvolvido por Triviano — v{APP_VERSION}` (lê de `src/lib/version.ts`, cor `text-muted-foreground`, `text-[10px]`).
 
-### Trigger de total
-- `comanda_recalc_total()` em `orders`: recalcula `comanda_ativa.total_parcial = Σ orders.total` da comanda com `status_pedido <> 'Cancelado'`.
+**5. Inclusão do badge nos formulários**
+- `src/routes/auth.tsx`, `src/routes/auth_.update-password.tsx`, `src/routes/reset-password.tsx`, `src/routes/checkout.tsx`, `src/routes/perfil.tsx`, `src/routes/mesa.tsx`, `src/components/caixa/ComandaPaymentDialog.tsx`, `src/components/caixa/PaymentDialog.tsx`, `src/components/caixa/OrderEditDialog.tsx`.
 
-### Realtime
-- `ALTER PUBLICATION supabase_realtime ADD TABLE public.solicitacoes_mesa, public.comanda_ativa;`
+**6. `src/lib/version.ts` — Bump**
+- `APP_VERSION = "1.7.2"`, `LAST_PATCH_DATE = "2026-07-14"`.
+- `STABLE_RELEASE.validated`: adicionar "Incineração da Comanda Zumbi (Protocolo por MESA + índice único)", "Reidratação de Sessão de Mesa via localStorage", "Hardening do Realtime no Caixa" e "Branding v1.7.2 nos formulários".
 
-## Fase 1 — RPCs (`SECURITY DEFINER`)
-- `mesa_token(p_empresa, p_numero)` → `substr(md5(empresa||':'||numero||':'||secret),1,10)`.
-- `abrir_solicitacao_mesa(p_host, p_numero_mesa, p_token, p_nome, p_telefone)`: auth; resolve empresa por host; valida token; grava `host_origem`; insere `aguardando`.
-- `liberar_mesa(p_solicitacao_id)`: admin + `can_manage_empresa`; cria `comanda_ativa`.
-- `recusar_solicitacao_mesa` / `desistir_solicitacao_mesa`.
-- `enviar_pedido_mesa(p_items, p_host, p_comanda_id, p_notes)`: chama `create_order` existente (sem alterá-lo) e vincula `comanda_id`.
-- `fechar_comanda(p_comanda_id)`: dono/operador → `aguardando_fechamento`.
-
-## Fase 2 — Segurança do QR
-Token keyed-hash por mesa + validação de host obrigatória na RPC (bloqueia abertura remota e adivinhação de mesa).
-
-## Fase 3 (Home) e Fase 4 (/mesa) — nesta rodada
-- **Home**: bifurcação com cards `🛵 DELIVERY` e `🪑 CONSUMIR NA MESA` no escopo delivery.
-- **Rota `/mesa`**: Nome+Telefone → OTP nativo → leitura de QR com `@zxing/browser` → tela de espera com "objeto rodando" (spinner) e status "Aguardando liberação do Caixa..." + botão "Desistir".
-- **Realtime**: o celular assina a própria `solicitacoes_mesa` (por id); ao operador clicar "Liberar" no Caixa, o evento chega instantaneamente e o cardápio é liberado.
-
-## Preservação
-Nenhuma alteração em `create_order`, `finalize_order_paid`, webhook MP, `meios_pagamento`, trava PIX, RLS/GRANT existentes.
-
-Fases 5–7 (carrinho modo mesa, "Minha Comanda", fila de Visto/fechamento no Caixa) e carimbo v1.5.0 ficam para a próxima rodada.
+Motor financeiro (`_settle_comanda`, `finalize_order_paid`, `finalize_comanda_paid`, webhook MP, RLS/GRANT) permanece intocado — respeita `mem://constraints/motor-financeiro-protegido`.
