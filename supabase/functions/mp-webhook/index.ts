@@ -242,13 +242,13 @@ Deno.serve(async (req) => {
   const accessToken = tokens[0];
   const webhookSecret = cfg?.mp_webhook_secret?.trim();
   console.log("mp-webhook: credenciais da empresa", {
-    empresa_id: order.empresa_id,
+    empresa_id: target.empresa_id,
     hasAccessToken: !!accessToken,
     hasWebhookSecret: !!webhookSecret,
   });
   if (tokens.length === 0) {
     console.error("mp-webhook: empresa sem access token configurado", {
-      empresa_id: order.empresa_id,
+      empresa_id: target.empresa_id,
     });
     return new Response("empresa sem credenciais", { status: 200, headers: corsHeaders });
   }
@@ -300,7 +300,7 @@ Deno.serve(async (req) => {
   } else {
     console.warn(
       "mp-webhook: sem webhook secret configurado — pulando validação de assinatura",
-      { empresa_id: order.empresa_id },
+      { empresa_id: target.empresa_id },
     );
   }
 
