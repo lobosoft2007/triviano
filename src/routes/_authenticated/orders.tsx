@@ -290,7 +290,9 @@ function OrdersPage() {
                   </button>
                 )}
               </article>
-            ))}
+              );
+            })}
+
           </div>
           </main>
         </ShellBody>
