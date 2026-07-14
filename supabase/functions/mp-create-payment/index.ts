@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
     .select(
       "mp_access_token, mp_access_token_prod, mp_access_token_test, mp_ativo",
     )
-    .eq("empresa_id", order.empresa_id)
+    .eq("empresa_id", entity.empresa_id)
     .eq("ativo", true)
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
   console.log(`mp-create-payment: ambiente=${env} host=${originHost}`);
 
 
-  const amount = Number(order.total).toFixed(2);
+  const amount = Number(entity.total).toFixed(2);
   const payerEmail = body.payer?.email?.trim() || user.email || "comprador@example.com";
 
   // 4) Montar a Order do Mercado Pago (API de Orders).
@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
   const mpBody = {
     type: "online",
     processing_mode: "automatic",
-    external_reference: order.id,
+    external_reference: entity.id,
     total_amount: amount,
     payer: {
       email: payerEmail,
@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
         // múltiplas Orders no MP e sobrescrever mp_payment_id no pedido local;
         // se o cliente pagasse uma cobrança antiga, o webhook não encontrava
         // mais a linha e o polling ficava preso no QR.
-        "X-Idempotency-Key": `${order.id}-${body.method}-${env}`,
+        "X-Idempotency-Key": `${entity.id}-${body.method}-${env}`,
       },
       body: JSON.stringify(mpBody),
     });
