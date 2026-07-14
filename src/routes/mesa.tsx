@@ -23,8 +23,7 @@ import {
   desistirSolicitacao,
   fetchSolicitacao,
   fetchMinhaComandaAberta,
-  MESA_COMANDA_KEY,
-  MESA_NUMERO_KEY,
+  setMesaSession,
   type SolicitacaoMesaStatus,
 } from "@/lib/mesa";
 import { Button } from "@/components/ui/button";
