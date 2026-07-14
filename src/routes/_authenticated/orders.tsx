@@ -185,6 +185,7 @@ function OrdersPage() {
           <div className="space-y-3">
             {data?.map((order) => {
               const pay = summarizePayment(order);
+              const stat = summarizeStatus(order);
               const isMesa =
                 (order.tipo_atendimento ?? "Delivery") !== "Delivery";
               const payToneClass =
@@ -199,16 +200,31 @@ function OrdersPage() {
                   : pay.icon === "clock"
                     ? Clock
                     : Wallet;
+              const statToneClass =
+                stat.tone === "success"
+                  ? "bg-success/12 text-success"
+                  : stat.tone === "destructive"
+                    ? "bg-destructive/12 text-destructive"
+                    : "bg-accent/15 text-accent-foreground";
+              const StatIcon =
+                stat.tone === "destructive"
+                  ? XCircle
+                  : stat.tone === "success"
+                    ? CheckCircle2
+                    : Clock;
               return (
               <article
                 key={order.id}
                 className="rounded-2xl bg-card p-4 shadow-card"
               >
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold text-success">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {statusLabels[order.status] ?? order.status}
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statToneClass}`}
+                  >
+                    <StatIcon className="h-3.5 w-3.5" />
+                    {stat.label}
                   </span>
+
                   <span className="text-xs text-muted-foreground">
                     {new Date(order.created_at).toLocaleDateString("pt-BR", {
                       day: "2-digit",
