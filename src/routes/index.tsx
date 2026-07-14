@@ -12,7 +12,7 @@ import {
   X,
   ArrowLeft,
   LogOut,
-  LogIn,
+  
   ClipboardList,
   Settings,
   Wallet,
