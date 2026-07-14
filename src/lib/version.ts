@@ -32,6 +32,10 @@ export const STABLE_RELEASE = {
   date: LAST_PATCH_DATE,
   safeRollback: true,
   validated: [
+    "Logout Seguro (Incineração de Contexto): redireciona p/ /auth + queryClient.clear() + volta a DELIVERY e limpa sessão de mesa",
+    "Doutrina de Hospitalidade: sem pagamento no app no modo Mesa (botão só chama fechar_comanda e alerta o Caixa)",
+    "PIX impresso corrigido: BR Code EMV com VALOR agregado (total_parcial) + dados PIX multi-tenant via get_pix_static_config",
+    "Card da mesa Amarelo Pulsante + Beep ao pedir a conta (reconfirmado)",
     "Liquidação Unificada da Comanda (cobrança/QR único por mesa via total_parcial)",
     "Baixa atômica: webhook finaliza TODOS os pedidos da comanda de uma vez",
     "Botão 'Finalizar e Receber' no Caixa (um clique liquida a conta inteira)",
