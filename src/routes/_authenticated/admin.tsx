@@ -29,6 +29,7 @@ import {
   UserCog,
   ShieldCheck,
   CreditCard,
+  Armchair,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -77,6 +78,7 @@ import { FuncionariosTab } from "@/components/admin/FuncionariosTab";
 import { usePermissions, ACCESS_DENIED_MSG, type PermissionFlag } from "@/lib/permissions";
 import { CombosCrud } from "@/components/admin/CombosCrud";
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
+import { MesasQrTab } from "@/components/admin/MesasQrTab";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { IdentidadeVisualTab } from "@/components/admin/IdentidadeVisualTab";
 import {
@@ -229,7 +231,8 @@ type AdminTab =
   | "setores"
   | "fornecedores"
   | "funcionarios"
-  | "permissoes";
+  | "permissoes"
+  | "mesas";
 
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
@@ -252,6 +255,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "fornecedores", label: "Fornecedores", icon: Truck },
   { key: "funcionarios", label: "Funcionários", icon: UserCog },
   { key: "permissoes", label: "Permissões", icon: ShieldCheck },
+  { key: "mesas", label: "Mesas (QR-Codes)", icon: Armchair },
 ];
 
 // Recurso da matriz de permissões exigido por cada aba ("master" = só o admin dono).
@@ -274,6 +278,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   fornecedores: "master",
   funcionarios: "master",
   permissoes: "master",
+  mesas: "master",
 };
 
 
@@ -699,6 +704,7 @@ function AdminPage() {
           {tab === "fornecedores" && <FornecedoresCrud />}
           {tab === "funcionarios" && <FuncionariosTab />}
           {tab === "permissoes" && <PermissoesTab />}
+          {tab === "mesas" && <MesasQrTab />}
 
           {tab === "cardapio" && (
             <>

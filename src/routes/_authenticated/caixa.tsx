@@ -18,6 +18,9 @@ import {
   Save,
   Pencil,
   HandCoins,
+  Bell,
+  Check,
+  X,
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { StatusControl } from "@/components/caixa/StatusControl";
@@ -53,6 +56,13 @@ import {
   type MyPermissions,
 } from "@/lib/permissions";
 import { empresaQueryOptions } from "@/lib/empresa";
+import {
+  fetchSolicitacoesPendentes,
+  fetchComandasAguardandoFechamento,
+  liberarMesa,
+  recusarSolicitacao,
+  type SolicitacaoPendente,
+} from "@/lib/mesa";
 import { formatBRL } from "@/lib/format";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
 import {
@@ -396,6 +406,23 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     queryFn: () => fetchMeiosPagamento(false),
   });
 
+  // Fila de Visto (solicitações de abertura) + comandas pedindo fechamento.
+  const { data: solicitacoes } = useQuery({
+    queryKey: ["mesa-solicitacoes"],
+    queryFn: fetchSolicitacoesPendentes,
+    refetchInterval: 15000,
+  });
+  const { data: fechamentos } = useQuery({
+    queryKey: ["mesa-fechamentos"],
+    queryFn: fetchComandasAguardandoFechamento,
+    refetchInterval: 15000,
+  });
+
+  const fechamentoMesas = useMemo(
+    () => new Set((fechamentos ?? []).map((f) => f.numero_mesa)),
+    [fechamentos],
+  );
+
   const resolveSector = useMemo(
     () => makeSectorResolver(printers ?? [], catRouting ?? []),
     [printers, catRouting],
@@ -410,6 +437,30 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         { event: "*", schema: "public", table: "orders" },
         () => {
           queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Realtime: Fila de Visto e pedidos de fechamento de mesa.
+  useEffect(() => {
+    const channel = supabase
+      .channel("caixa-mesas")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "solicitacoes_mesa" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comanda_ativa" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["mesa-fechamentos"] });
         },
       )
       .subscribe();
@@ -528,6 +579,65 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     );
   }
 
+  /* -------- Fila de Visto: liberar / recusar mesa ------------------- */
+  async function handleLiberar(id: string, mesa: number) {
+    try {
+      await liberarMesa(id);
+      await queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] });
+      toast.success(`Mesa ${mesa} liberada. Bom atendimento! 🍽️`);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível liberar a mesa.",
+      );
+    }
+  }
+
+  async function handleRecusar(id: string, mesa: number) {
+    if (!window.confirm(`Recusar a solicitação da mesa ${mesa}?`)) return;
+    try {
+      await recusarSolicitacao(id);
+      await queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] });
+      toast.success(`Solicitação da mesa ${mesa} recusada.`);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível recusar.",
+      );
+    }
+  }
+
+  // Alerta sonoro quando entra uma nova solicitação de abertura de mesa.
+  const prevSolicRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!solicitacoes) return;
+    const ids = new Set(solicitacoes.map((s) => s.id));
+    const prev = prevSolicRef.current;
+    if (prev && solicitacoes.some((s) => !prev.has(s.id)) && soundOn) {
+      playBeep();
+    }
+    prevSolicRef.current = ids;
+  }, [solicitacoes, soundOn]);
+
+  // Quando uma mesa PEDE o fechamento, imprime a conferência automaticamente.
+  const prevFechRef = useRef<Set<number> | null>(null);
+  useEffect(() => {
+    if (!fechamentos) return;
+    const nums = new Set(fechamentos.map((f) => f.numero_mesa));
+    const prev = prevFechRef.current;
+    if (prev) {
+      for (const f of fechamentos) {
+        if (prev.has(f.numero_mesa)) continue;
+        if (soundOn) playBeep();
+        const group = mesaOrders.filter((o) => o.numero_mesa === f.numero_mesa);
+        if (group.length > 0) {
+          void printBill(f.numero_mesa, group);
+        }
+        toast.warning(`Mesa ${f.numero_mesa} pediu a conta! Conferência impressa.`);
+      }
+    }
+    prevFechRef.current = nums;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechamentos, soundOn]);
+
   async function handleMov(tipo: MovimentacaoTipo) {
     const label =
       tipo === "Sangria"
@@ -638,12 +748,20 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         )}
 
         {orders && tab === "mesas" && (
-          <MesasColumn
-            orders={mesaOrders}
-            onDispatch={dispatchPreparation}
-            onPrintBill={printBill}
-            resolveSector={resolveSector}
-          />
+          <div className="flex flex-col gap-4">
+            <VistoQueue
+              solicitacoes={solicitacoes ?? []}
+              onLiberar={handleLiberar}
+              onRecusar={handleRecusar}
+            />
+            <MesasColumn
+              orders={mesaOrders}
+              onDispatch={dispatchPreparation}
+              onPrintBill={printBill}
+              resolveSector={resolveSector}
+              fechamentoMesas={fechamentoMesas}
+            />
+          </div>
         )}
 
         {tab === "balcao" && <BalcaoView />}
@@ -872,16 +990,88 @@ interface MesaGroup {
   awaitingBill: boolean;
 }
 
+/* ------------------------------------------------------------------ */
+/* Fila de Visto — solicitações de abertura de mesa                     */
+/* ------------------------------------------------------------------ */
+
+function VistoQueue({
+  solicitacoes,
+  onLiberar,
+  onRecusar,
+}: {
+  solicitacoes: SolicitacaoPendente[];
+  onLiberar: (id: string, mesa: number) => void;
+  onRecusar: (id: string, mesa: number) => void;
+}) {
+  if (solicitacoes.length === 0) return null;
+  return (
+    <div className="rounded-2xl border-2 border-warning bg-warning/10 p-3.5 shadow-card">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-warning text-warning-foreground">
+          <Bell className="h-4 w-4 animate-pulse" />
+        </span>
+        <h2 className="font-display text-base font-bold">
+          Solicitações de abertura
+          <span className="ml-2 rounded-full bg-warning px-2 py-0.5 text-xs font-bold text-warning-foreground">
+            {solicitacoes.length}
+          </span>
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {solicitacoes.map((s) => (
+          <div
+            key={s.id}
+            className="flex items-center gap-2 rounded-xl border border-border bg-card p-2.5"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-display text-sm font-bold">
+                Mesa {s.numero_mesa} · {s.nome_cliente || "Cliente"}
+              </p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {s.telefone || "sem telefone"} ·{" "}
+                {new Date(s.created_at).toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+            <Button
+              size="icon"
+              variant="success"
+              className="h-9 w-9 shrink-0 rounded-xl"
+              aria-label={`Liberar mesa ${s.numero_mesa}`}
+              onClick={() => onLiberar(s.id, s.numero_mesa)}
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-9 w-9 shrink-0 rounded-xl text-destructive hover:bg-destructive/10"
+              aria-label={`Recusar mesa ${s.numero_mesa}`}
+              onClick={() => onRecusar(s.id, s.numero_mesa)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MesasColumn({
   orders,
   onDispatch,
   onPrintBill,
   resolveSector,
+  fechamentoMesas,
 }: {
   orders: CaixaOrder[];
   onDispatch: (o: CaixaOrder) => void;
   onPrintBill: (mesa: number, group: CaixaOrder[]) => void;
   resolveSector: ResolveFn;
+  fechamentoMesas: Set<number>;
 }) {
   const [filter, setFilter] = useState<MesaFilter>("todas");
 
@@ -968,6 +1158,7 @@ function MesasColumn({
               onDispatch={onDispatch}
               onPrintBill={onPrintBill}
               resolveSector={resolveSector}
+              aguardandoFechamento={fechamentoMesas.has(g.mesa)}
             />
           ))}
         </div>
@@ -981,11 +1172,13 @@ function MesaCard({
   onDispatch,
   onPrintBill,
   resolveSector,
+  aguardandoFechamento,
 }: {
   group: MesaGroup;
   onDispatch: (o: CaixaOrder) => void;
   onPrintBill: (mesa: number, group: CaixaOrder[]) => void;
   resolveSector: ResolveFn;
+  aguardandoFechamento: boolean;
 }) {
   const [detailOpen, setDetailOpen] = useState(false);
   const wait = useWaitTime(group.openedAt);
@@ -1002,9 +1195,18 @@ function MesaCard({
           if (e.key === "Enter" || e.key === " ") setDetailOpen(true);
         }}
         className={`flex cursor-pointer flex-col rounded-2xl border bg-card p-3.5 shadow-card transition-colors hover:bg-secondary/50 ${
-          group.hasNew ? "border-primary ring-1 ring-primary/30" : "border-border"
+          aguardandoFechamento
+            ? "animate-pulse border-warning bg-warning/10 ring-2 ring-warning"
+            : group.hasNew
+              ? "border-primary ring-1 ring-primary/30"
+              : "border-border"
         }`}
       >
+        {aguardandoFechamento && (
+          <span className="mb-2 flex w-fit items-center gap-1 rounded-full bg-warning px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-warning-foreground">
+            <Bell className="h-3 w-3" /> Pediu a conta
+          </span>
+        )}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1.5 font-display text-base font-bold leading-tight">

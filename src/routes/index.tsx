@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ACCESS_DENIED_MSG } from "@/lib/permissions";
 import { useScope } from "@/hooks/useScope";
+import { useMesaSession } from "@/hooks/useMesaSession";
 import {
   ShoppingBag,
   Loader2,
@@ -19,6 +20,7 @@ import {
   User,
   Bike,
   Armchair,
+  ReceiptText,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
 import { empresaQueryOptions } from "@/lib/empresa";
@@ -68,6 +70,7 @@ interface Selection {
 function HomePage() {
   const { data, isLoading, isError } = useQuery(menuQueryOptions);
   const { data: empresa } = useQuery(empresaQueryOptions);
+  const { session: mesa } = useMesaSession();
   const { totalItems, totalPrice } = useCart();
   const { user, signOut } = useAuth();
 
@@ -255,24 +258,42 @@ function HomePage() {
         />
       )}
 
-      {/* Floating cart bar — opaque black, above everything */}
-      {totalItems > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-50 bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
-          <div className="mx-auto max-w-md">
-            <CartSheet>
-              <button className="flex w-full items-center justify-between rounded-2xl bg-primary px-5 py-4 text-primary-foreground shadow-float transition-transform active:scale-[0.99]">
+      {/* Floating bars — carrinho e/ou acesso à comanda da mesa */}
+      {(totalItems > 0 || mesa) && (
+        <div className="fixed inset-x-0 bottom-0 z-50 space-y-2 bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
+          <div className="mx-auto max-w-md space-y-2">
+            {mesa && (
+              <Link
+                to="/minha-comanda"
+                className="flex w-full items-center justify-between rounded-2xl border border-primary/40 bg-primary/10 px-5 py-3 text-primary shadow-card transition-transform active:scale-[0.99]"
+              >
                 <span className="flex items-center gap-2">
-                  <span className="relative">
-                    <ShoppingBag className="h-5 w-5" />
-                    <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground">
-                      {totalItems}
+                  <ReceiptText className="h-5 w-5" />
+                  <span className="text-sm font-semibold">
+                    Minha comanda · Mesa {mesa.numero || "—"}
+                  </span>
+                </span>
+                <ChevronRight className="h-5 w-5" />
+              </Link>
+            )}
+            {totalItems > 0 && (
+              <CartSheet>
+                <button className="flex w-full items-center justify-between rounded-2xl bg-primary px-5 py-4 text-primary-foreground shadow-float transition-transform active:scale-[0.99]">
+                  <span className="flex items-center gap-2">
+                    <span className="relative">
+                      <ShoppingBag className="h-5 w-5" />
+                      <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground">
+                        {totalItems}
+                      </span>
+                    </span>
+                    <span className="text-sm font-semibold">
+                      {mesa ? "Enviar para a cozinha" : "Ver carrinho"}
                     </span>
                   </span>
-                  <span className="text-sm font-semibold">Ver carrinho</span>
-                </span>
-                <span className="font-display text-base font-bold">{formatBRL(totalPrice)}</span>
-              </button>
-            </CartSheet>
+                  <span className="font-display text-base font-bold">{formatBRL(totalPrice)}</span>
+                </button>
+              </CartSheet>
+            )}
           </div>
         </div>
       )}

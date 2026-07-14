@@ -18,8 +18,8 @@
 //     o Patch volta automaticamente para 1.
 // ============================================================================
 
-export const APP_VERSION = "1.4.0";
-export const LAST_PATCH_DATE = "2026-07-13";
+export const APP_VERSION = "1.5.0";
+export const LAST_PATCH_DATE = "2026-07-14";
 export const VERSION_STATUS = "ESTÁVEL";
 
 /** Rótulo pronto para exibição, ex.: "v1.0.1". */
@@ -33,6 +33,7 @@ export const STABLE_RELEASE = {
   safeRollback: true,
   validated: [
     "Cashback Dinâmico por Meio de Pagamento (percentual por meio + crédito manual do admin)",
+    "Experiência de Mesa (QR assinado + Comanda + Fila de Visto + Fechamento)",
     "Painel Admin — Sidebar ERP (accordions filtrados por permissão)",
     "Isolamento Multi-Tenant de Admin",
     "Guards de Rota (Acesso Negado via URL)",

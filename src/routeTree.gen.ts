@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as MinhaComandaRouteImport } from './routes/minha-comanda'
 import { Route as MesaRouteImport } from './routes/mesa'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -36,6 +37,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhaComandaRoute = MinhaComandaRouteImport.update({
+  id: '/minha-comanda',
+  path: '/minha-comanda',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MesaRoute = MesaRouteImport.update({
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/mesa': typeof MesaRoute
+  '/minha-comanda': typeof MinhaComandaRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/mesa': typeof MesaRoute
+  '/minha-comanda': typeof MinhaComandaRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/mesa': typeof MesaRoute
+  '/minha-comanda': typeof MinhaComandaRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/mesa'
+    | '/minha-comanda'
     | '/reset-password'
     | '/sitemap.xml'
     | '/admin'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/mesa'
+    | '/minha-comanda'
     | '/reset-password'
     | '/sitemap.xml'
     | '/admin'
@@ -225,6 +236,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/mesa'
+    | '/minha-comanda'
     | '/reset-password'
     | '/sitemap.xml'
     | '/_authenticated/admin'
@@ -246,6 +258,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CheckoutRoute: typeof CheckoutRoute
   MesaRoute: typeof MesaRoute
+  MinhaComandaRoute: typeof MinhaComandaRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AuthUpdatePasswordRoute: typeof AuthUpdatePasswordRoute
@@ -268,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minha-comanda': {
+      id: '/minha-comanda'
+      path: '/minha-comanda'
+      fullPath: '/minha-comanda'
+      preLoaderRoute: typeof MinhaComandaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mesa': {
@@ -414,6 +434,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CheckoutRoute: CheckoutRoute,
   MesaRoute: MesaRoute,
+  MinhaComandaRoute: MinhaComandaRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AuthUpdatePasswordRoute: AuthUpdatePasswordRoute,
@@ -424,13 +445,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

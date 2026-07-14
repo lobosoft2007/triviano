@@ -9,8 +9,12 @@ import {
   ArrowRight,
   AlertCircle,
   BadgePercent,
+  ChefHat,
+  Loader2,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useMesaSession } from "@/hooks/useMesaSession";
+import { enviarPedidoMesa } from "@/lib/mesa";
 import { formatBRL } from "@/lib/format";
 import {
   Sheet,
@@ -35,9 +39,39 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     increment,
     decrement,
     removeItem,
+    clear,
   } = useCart();
   const [open, setOpen] = useState(false);
+  const [sending, setSending] = useState(false);
   const navigate = useNavigate();
+  const { session: mesa } = useMesaSession();
+  const isMesa = !!mesa;
+
+  async function handleEnviarCozinha() {
+    if (!mesa) return;
+    const safeItems = Array.isArray(items)
+      ? items.filter((item) => item && typeof item === "object")
+      : [];
+    if (safeItems.length === 0) {
+      toast.error("Adicione ao menos um item antes de enviar.");
+      return;
+    }
+    setSending(true);
+    try {
+      await enviarPedidoMesa(mesa.comandaId, safeItems);
+      clear();
+      setOpen(false);
+      toast.success("Pedido enviado para a cozinha! 🍽️");
+      void navigate({ to: "/minha-comanda" });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Não foi possível enviar.";
+      toast.error(message);
+    } finally {
+      setSending(false);
+    }
+  }
+
 
   function handleCheckoutClick(event: MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();
@@ -217,16 +251,32 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   {formatBRL(totalPrice)}
                 </span>
               </div>
-              <Button asChild size="lg" className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base">
-                <a
-                  href="/checkout"
-                  aria-disabled={items.length === 0}
-                  onClick={handleCheckoutClick}
+              {isMesa ? (
+                <Button
+                  size="lg"
+                  className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base"
+                  disabled={items.length === 0 || sending}
+                  onClick={handleEnviarCozinha}
                 >
-                  Finalizar pedido
-                  <ArrowRight className="h-5 w-5" />
-                </a>
-              </Button>
+                  {sending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ChefHat className="h-5 w-5" />
+                  )}
+                  {sending ? "Enviando…" : "Enviar para a Cozinha"}
+                </Button>
+              ) : (
+                <Button asChild size="lg" className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base">
+                  <a
+                    href="/checkout"
+                    aria-disabled={items.length === 0}
+                    onClick={handleCheckoutClick}
+                  >
+                    Finalizar pedido
+                    <ArrowRight className="h-5 w-5" />
+                  </a>
+                </Button>
+              )}
             </div>
           </>
         )}
