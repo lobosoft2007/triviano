@@ -53,6 +53,13 @@ import {
   type MyPermissions,
 } from "@/lib/permissions";
 import { empresaQueryOptions } from "@/lib/empresa";
+import {
+  fetchSolicitacoesPendentes,
+  fetchComandasAguardandoFechamento,
+  liberarMesa,
+  recusarSolicitacao,
+  type SolicitacaoPendente,
+} from "@/lib/mesa";
 import { formatBRL } from "@/lib/format";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
 import {
