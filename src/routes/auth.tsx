@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { APP_VERSION_LABEL } from "@/lib/version";
+import { PoweredByBadge } from "@/components/PoweredByBadge";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
