@@ -330,17 +330,27 @@ Deno.serve(async (req) => {
     status = String(j?.status ?? j?.transactions?.payments?.[0]?.status ?? "");
     externalReference = String(j?.external_reference ?? "");
     apiPaymentId = String(j?.id ?? j?.transactions?.payments?.[0]?.id ?? "");
+    // Valor pago (para conferência contra o total atual do alvo).
+    var paidAmount = Number(
+      j?.total_amount ??
+      j?.transaction_amount ??
+      j?.transactions?.payments?.[0]?.amount ??
+      j?.transactions?.payments?.[0]?.transaction_amount ??
+      0,
+    );
     console.log("mp-webhook: status reconsultado", {
       target_id: target.id,
       endpoint,
       httpStatus,
       mpStatus: status,
+      paidAmount,
       signatureValid,
     });
   } catch (e) {
     console.error("mp-webhook: falha ao reconsultar status", { target_id: target.id, error: String(e) });
     return new Response("retry", { status: 500, headers: corsHeaders });
   }
+
 
   // external_reference deve bater com o id do alvo (pedido OU comanda).
   if (externalReference && externalReference !== target.id) {
