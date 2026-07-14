@@ -303,6 +303,19 @@ Deno.serve(async (req) => {
         pago_online: isPaid,
       })
       .eq("id", entity.id);
+
+    // Cartão aprovado na hora: liquida a comanda inteira já aqui (o webhook
+    // também roda, mas _settle_comanda é idempotente).
+    if (isPaid) {
+      const { error: settleErr } = await admin.rpc("_settle_comanda", {
+        p_comanda_id: entity.id,
+        p_meio_id: null,
+        p_online: true,
+      });
+      if (settleErr) {
+        console.error("mp-create-payment: falha ao liquidar comanda", settleErr);
+      }
+    }
   } else {
     const updatePayload: Record<string, unknown> =
       context === "mesa"
