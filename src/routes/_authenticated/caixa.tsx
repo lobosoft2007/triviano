@@ -1184,6 +1184,7 @@ function MesaCard({
   aguardandoFechamento: boolean;
 }) {
   const [detailOpen, setDetailOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
   const wait = useWaitTime(group.openedAt);
   // Representative order (o mais recente) drives the quick status selector.
   const lead = group.orders[group.orders.length - 1];
