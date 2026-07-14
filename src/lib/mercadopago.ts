@@ -125,7 +125,75 @@ export async function fetchMpOrderStatus(orderId: string): Promise<MpOrderStatus
   };
 }
 
-// -------------------- SDK loader --------------------
+// -------------------- Comanda (Mesa) — liquidação unificada v1.7.0 --------
+
+export interface CreateMpComandaPaymentInput {
+  comandaId: string;
+  method: "pix" | "card";
+  token?: string;
+  installments?: number;
+  paymentMethodId?: string;
+  issuerId?: string;
+  payer?: {
+    email?: string;
+    identification?: { type?: string; number?: string };
+  };
+}
+
+/**
+ * Cria o pagamento da COMANDA inteira (soma de todos os pedidos da mesa) no
+ * Mercado Pago. A Order do MP referencia a comanda (não um pedido isolado);
+ * ao confirmar, o webhook liquida todos os pedidos vinculados de uma vez.
+ */
+export async function createMpComandaPayment(
+  input: CreateMpComandaPaymentInput,
+): Promise<CreateMpPaymentResult> {
+  const { data, error } = await supabase.functions.invoke<CreateMpPaymentResult>(
+    "mp-create-payment",
+    {
+      body: {
+        comanda_id: input.comandaId,
+        method: input.method,
+        context: "comanda",
+        token: input.token,
+        installments: input.installments,
+        payment_method_id: input.paymentMethodId,
+        issuer_id: input.issuerId,
+        payer: input.payer,
+        env: currentEnv(),
+      },
+    },
+  );
+  if (error) throw error;
+  if (!data) throw new Error("Resposta vazia do pagamento.");
+  return data;
+}
+
+export interface MpComandaStatus {
+  pago_online: boolean;
+  mp_status: string | null;
+  total_parcial: number;
+  status: string;
+}
+
+/** Lê a situação de pagamento da comanda (dono da comanda ou operador). */
+export async function fetchMpComandaStatus(
+  comandaId: string,
+): Promise<MpComandaStatus | null> {
+  const { data, error } = await supabase.rpc("mp_get_comanda_status", {
+    p_comanda_id: comandaId,
+  });
+  if (error) throw error;
+  const row = (data ?? [])[0];
+  if (!row) return null;
+  return {
+    pago_online: !!row.pago_online,
+    mp_status: row.mp_status ?? null,
+    total_parcial: Number(row.total_parcial ?? 0),
+    status: row.status ?? "aberta",
+  };
+}
+
 
 declare global {
   interface Window {

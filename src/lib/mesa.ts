@@ -350,6 +350,25 @@ export async function recusarSolicitacao(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Liquidação unificada (v1.7.0): o operador finaliza a conta INTEIRA da mesa
+ * em um clique. Registra o pagamento em cada pedido vinculado (meio escolhido),
+ * roda a regra financeira e fecha a comanda. Usado para Dinheiro/Cartão e para
+ * o PIX já confirmado no balcão.
+ */
+export async function finalizeComandaPaid(
+  comandaId: string,
+  meioId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("finalize_comanda_paid", {
+    p_comanda_id: comandaId,
+    p_meio_id: meioId,
+  });
+  if (error) throw error;
+}
+
+
+
 export interface ComandaFechamento {
   numero_mesa: number;
   total_parcial: number;

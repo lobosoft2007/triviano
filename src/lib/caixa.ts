@@ -111,6 +111,7 @@ export interface CaixaOrder {
   created_at: string;
   tipo_atendimento: "Delivery" | "Presencial";
   numero_mesa: number | null;
+  comanda_id: string | null;
   impresso_cozinha: boolean;
   impresso_conta: boolean;
   order_items: CaixaOrderItem[];
@@ -246,7 +247,7 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, user_id, status, status_pedido, total, discount, desconto_manual, delivery_address, phone, notes, observacoes_operador, created_at, tipo_atendimento, numero_mesa, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
+      "id, user_id, status, status_pedido, total, discount, desconto_manual, delivery_address, phone, notes, observacoes_operador, created_at, tipo_atendimento, numero_mesa, comanda_id, impresso_cozinha, impresso_conta, order_items(id, product_id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes, products(category_id))",
     )
     .not("status_pedido", "in", '("Finalizado",Cancelado)')
     // Rascunhos e pagamentos abandonados nunca chegam ao Caixa/KDS — ficam
@@ -295,6 +296,7 @@ export async function fetchCaixaOrders(): Promise<CaixaOrder[]> {
     created_at: o.created_at,
     tipo_atendimento: o.tipo_atendimento,
     numero_mesa: o.numero_mesa,
+    comanda_id: (o as { comanda_id?: string | null }).comanda_id ?? null,
     impresso_cozinha: o.impresso_cozinha,
     impresso_conta: o.impresso_conta,
     order_items: (o.order_items ?? []).map((it) => ({

@@ -21,12 +21,14 @@ import {
   Bell,
   Check,
   X,
+  Wallet,
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { StatusControl } from "@/components/caixa/StatusControl";
 import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
 import { CloseCaixaDialog } from "@/components/caixa/CloseCaixaDialog";
 import { PaymentDialog } from "@/components/caixa/PaymentDialog";
+import { ComandaPaymentDialog } from "@/components/caixa/ComandaPaymentDialog";
 import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { NotifyClient } from "@/components/caixa/NotifyClient";
 import { WhatsAppStatusButton } from "@/components/caixa/WhatsAppStatusButton";
@@ -988,6 +990,8 @@ interface MesaGroup {
   hasNew: boolean;
   /** conta já impressa em qualquer pedido → aguardando pagamento */
   awaitingBill: boolean;
+  /** comanda ativa que agrega os pedidos da mesa (liquidação unificada) */
+  comandaId: string | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1098,6 +1102,7 @@ function MesasColumn({
           customer: sorted[0]?.customer_name || "Cliente",
           hasNew: group.some((o) => !o.impresso_cozinha),
           awaitingBill: group.some((o) => o.impresso_conta),
+          comandaId: sorted.find((o) => o.comanda_id)?.comanda_id ?? null,
         };
       });
   }, [orders]);
@@ -1181,6 +1186,7 @@ function MesaCard({
   aguardandoFechamento: boolean;
 }) {
   const [detailOpen, setDetailOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
   const wait = useWaitTime(group.openedAt);
   // Representative order (o mais recente) drives the quick status selector.
   const lead = group.orders[group.orders.length - 1];
@@ -1291,8 +1297,30 @@ function MesaCard({
             >
               <Receipt className="mr-1.5 h-4 w-4" /> Imprimir conta / conferência
             </Button>
+            {group.comandaId && (
+              <Button
+                variant="success"
+                className="mt-2 h-12 w-full rounded-xl font-bold"
+                onClick={() => {
+                  setDetailOpen(false);
+                  setPayOpen(true);
+                }}
+              >
+                <Wallet className="mr-1.5 h-5 w-5" /> Finalizar e Receber
+              </Button>
+            )}
           </DialogContent>
         </Dialog>
+      )}
+
+      {payOpen && group.comandaId && (
+        <ComandaPaymentDialog
+          comandaId={group.comandaId}
+          numeroMesa={group.mesa}
+          total={group.total}
+          open={payOpen}
+          onOpenChange={setPayOpen}
+        />
       )}
     </>
   );

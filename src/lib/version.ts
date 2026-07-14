@@ -18,7 +18,7 @@
 //     o Patch volta automaticamente para 1.
 // ============================================================================
 
-export const APP_VERSION = "1.6.0";
+export const APP_VERSION = "1.7.0";
 export const LAST_PATCH_DATE = "2026-07-14";
 export const VERSION_STATUS = "ESTÁVEL";
 
@@ -32,6 +32,11 @@ export const STABLE_RELEASE = {
   date: LAST_PATCH_DATE,
   safeRollback: true,
   validated: [
+    "Liquidação Unificada da Comanda (cobrança/QR único por mesa via total_parcial)",
+    "Baixa atômica: webhook finaliza TODOS os pedidos da comanda de uma vez",
+    "Botão 'Finalizar e Receber' no Caixa (um clique liquida a conta inteira)",
+    "PIX agregado na 'Minha Comanda' do cliente",
+    "Motor financeiro compartilhado (finalize_order_paid e _settle_comanda)",
     "Reorganização de Fluxos Estritos (Muro de Autenticação em / + contexto MESA/DELIVERY em localStorage)",
     "Botão Camaleão do carrinho e Ícone de QR-Code no Header",
     "Checkout fixado como Delivery (seletor verde removido, validação de endereço preservada)",
