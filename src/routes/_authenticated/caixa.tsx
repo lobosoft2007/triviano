@@ -61,9 +61,12 @@ import { empresaQueryOptions } from "@/lib/empresa";
 import {
   fetchSolicitacoesPendentes,
   fetchComandasAguardandoFechamento,
+  fetchComandasVivas,
   fetchComandaById,
   liberarMesa,
+  isMesaOcupadaError,
   recusarSolicitacao,
+  type ComandaFechamento,
   type SolicitacaoPendente,
 } from "@/lib/mesa";
 import { fetchPixStaticConfig } from "@/lib/mercadopago";
