@@ -61,10 +61,13 @@ import { empresaQueryOptions } from "@/lib/empresa";
 import {
   fetchSolicitacoesPendentes,
   fetchComandasAguardandoFechamento,
+  fetchComandaById,
   liberarMesa,
   recusarSolicitacao,
   type SolicitacaoPendente,
 } from "@/lib/mesa";
+import { fetchPixStaticConfig } from "@/lib/mercadopago";
+import { generatePixPayload } from "@/lib/pixPayment";
 import { formatBRL } from "@/lib/format";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
 import {
