@@ -988,6 +988,8 @@ interface MesaGroup {
   hasNew: boolean;
   /** conta já impressa em qualquer pedido → aguardando pagamento */
   awaitingBill: boolean;
+  /** comanda ativa que agrega os pedidos da mesa (liquidação unificada) */
+  comandaId: string | null;
 }
 
 /* ------------------------------------------------------------------ */
