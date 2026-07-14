@@ -60,10 +60,13 @@ export function parseMesaQr(text: string): ParsedMesaQr | null {
   // 1) URL completa
   try {
     const u = new URL(raw);
-    const m = u.searchParams.get("m");
-    const t = u.searchParams.get("t");
-    if (m && t) {
-      const numero = Number(m);
+    const m = u.searchParams.get("m") ?? u.searchParams.get("mesa");
+    const t = u.searchParams.get("t") ?? u.searchParams.get("token");
+    // Suporta também o caminho /mesa/<numero>?token=xxx
+    const pathNum = u.pathname.match(/\/mesa\/(\d+)/)?.[1] ?? null;
+    const numRaw = m ?? pathNum;
+    if (numRaw && t) {
+      const numero = Number(numRaw);
       if (Number.isFinite(numero) && numero > 0) return { numero, token: t };
     }
   } catch {
