@@ -33,6 +33,7 @@ export const STABLE_RELEASE = {
   safeRollback: true,
   validated: [
     "Cashback Dinâmico por Meio de Pagamento (percentual por meio + crédito manual do admin)",
+    "Experiência de Mesa (QR assinado + Comanda + Fila de Visto + Fechamento)",
     "Painel Admin — Sidebar ERP (accordions filtrados por permissão)",
     "Isolamento Multi-Tenant de Admin",
     "Guards de Rota (Acesso Negado via URL)",
