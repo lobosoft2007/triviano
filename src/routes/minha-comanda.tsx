@@ -22,12 +22,9 @@ import {
   type ComandaAtiva,
   type ComandaPedido,
 } from "@/lib/mesa";
-import { fetchMpPublicConfig, type MpPublicConfig } from "@/lib/mercadopago";
-import { ComandaPixCharge } from "@/components/checkout/ComandaPixCharge";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
-import { QrCode } from "lucide-react";
 
 export const Route = createFileRoute("/minha-comanda")({
   head: () => ({
@@ -50,24 +47,8 @@ function MinhaComandaPage() {
   const [comanda, setComanda] = useState<ComandaAtiva | null>(null);
   const [pedidos, setPedidos] = useState<ComandaPedido[]>([]);
   const [closing, setClosing] = useState(false);
-  const [mpConfig, setMpConfig] = useState<MpPublicConfig | null>(null);
-  const [payPix, setPayPix] = useState(false);
   const comandaIdRef = useRef<string | null>(null);
 
-  // Configuração pública do Mercado Pago do tenant (só chave pública).
-  useEffect(() => {
-    let alive = true;
-    void fetchMpPublicConfig()
-      .then((cfg) => {
-        if (alive) setMpConfig(cfg);
-      })
-      .catch(() => {
-        /* PIX online indisponível — segue com pagamento no balcão */
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const reload = useCallback(async (comandaId: string) => {
     try {
