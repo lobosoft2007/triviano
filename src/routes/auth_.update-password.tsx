@@ -146,6 +146,7 @@ function UpdatePasswordPage() {
             </Button>
           </div>
         )}
+        <PoweredByBadge className="pt-4" />
       </div>
     </div>
   );
