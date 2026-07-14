@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
+import { PoweredByBadge } from "@/components/PoweredByBadge";
 import type { AppliedCombo } from "@/lib/combos";
 
 export const Route = createFileRoute("/checkout")({
