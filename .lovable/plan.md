@@ -1,25 +1,23 @@
-## Exibir forma de pagamento e origem em "Meus Pedidos"
+## Corrigir status exibido em "Meus Pedidos"
 
-Alterar apenas o PWA (frontend + fetch) para mostrar, em cada card de pedido:
+**Diagnóstico:** o card usa `order.status` (enum interno em inglês: `pending`, `delivered`, `cancelled`) com um mapa que só cobre parte dos valores. A esteira real do pedido vive em `order.status_pedido` (`Recebido` → `Em preparo` → `Pronto` → `Finalizado` / `Cancelado`) e é a que o Caixa/KDS atualizam. Resultado atual:
 
-- **Onde foi feito**: badge "Delivery" ou "Mesa N" (a partir de `orders.tipo_atendimento` + `numero_mesa`).
-- **Como foi pago**: badge com o meio de pagamento (PIX, Dinheiro, Cartão, Fiado, Cashback, etc.) + selo de status:
-  - **"Pago online"** (verde) quando `pago_online = true` — deixa claro que já foi quitado no app.
-  - **"A pagar na entrega"** (âmbar) quando é Delivery, ainda não pago e sem registro em `pagamentos_pedido`.
-  - **"Pago"** (verde) quando existir(em) registro(s) em `pagamentos_pedido` (baixa no Caixa).
-  - Se houver split (mais de um meio), lista todos com valores.
+- Delivery finalizado (`status=delivered`) → aparece como "Entregue" (não como "Finalizado").
+- Mesa/Presencial finalizado também cai em "Entregue".
+- "Cancelado" funciona por coincidência (`cancelled` está no mapa).
+- Nenhum estado intermediário (Em preparo / Pronto / Saiu para entrega) reflete o que a cozinha marcou, então tudo que ainda não terminou parece "Recebido".
 
-### Alterações técnicas
+**Correção (só frontend, `src/routes/_authenticated/orders.tsx`):**
 
-1. **`src/lib/orders.ts` — `fetchOrders` / `OrderRow`**
-   - Estender o `select` para incluir `tipo_atendimento, numero_mesa, pago_online, pagamentos_pedido(valor_pago, meios_pagamento(nome, tipo))`.
-   - Adicionar ao `OrderRow`: `tipo_atendimento`, `numero_mesa`, `pago_online`, `pagamentos: { nome, tipo, valor }[]`.
-   - Mapear a resposta preservando o restante inalterado.
+1. Substituir o mapa `statusLabels` por um baseado em `status_pedido`, com rótulo amigável por estado e sensível ao tipo de atendimento:
+   - `Recebido` → "Pedido recebido"
+   - `Em preparo` → "Em preparo"
+   - `Pronto` → Mesa: "Pronto para servir" · Delivery: "Pronto para entrega"
+   - `Saiu para entrega` → "Saiu para entrega"
+   - `Finalizado` → Mesa: "Finalizado" · Delivery: "Entregue"
+   - `Cancelado` → "Cancelado"
+   - Fallback: usa o próprio `status_pedido`.
+2. Definir a cor do chip pelo estado (`success` para Finalizado, `destructive` para Cancelado, `accent` para em andamento) em vez de sempre verde.
+3. Trocar o ícone quando cancelado (`XCircle`) para não parecer sucesso.
 
-2. **`src/routes/_authenticated/orders.tsx`**
-   - No cabeçalho de cada card, ao lado da data, adicionar dois chips:
-     - Origem: ícone `MapPin` "Delivery" ou ícone `Utensils` "Mesa {n}".
-     - Pagamento: badge com nome do meio + status ("Pago online" / "Pago" / "A pagar na entrega").
-   - Quando `pagamentos.length > 1`, mostrar linha extra abaixo do total: "Pago em: PIX R$X,XX + Dinheiro R$Y,YY".
-
-Sem mudanças de backend, RLS ou lógica de negócio — a política de `pagamentos_pedido` já libera leitura para o dono do pedido.
+Sem mudanças de backend — os dados já estão corretos em `status_pedido`, o problema é puramente de renderização.
