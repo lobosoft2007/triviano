@@ -36,6 +36,30 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
+type PaymentBadge = {
+  label: string;
+  tone: "success" | "warning" | "muted";
+  icon: "check" | "clock" | "wallet";
+};
+
+function summarizePayment(order: OrderRow): PaymentBadge {
+  if (order.pagamentos.length > 0) {
+    const nomes = order.pagamentos.map((p) => p.nome).join(" + ");
+    if (order.pago_online) {
+      return { label: `Pago online · ${nomes}`, tone: "success", icon: "check" };
+    }
+    return { label: `Pago · ${nomes}`, tone: "success", icon: "check" };
+  }
+  if (order.pago_online) {
+    return { label: "Pago online", tone: "success", icon: "check" };
+  }
+  if ((order.tipo_atendimento ?? "Delivery") === "Delivery") {
+    return { label: "A pagar na entrega", tone: "warning", icon: "clock" };
+  }
+  return { label: "A pagar no caixa", tone: "warning", icon: "wallet" };
+}
+
+
 function OrdersPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
