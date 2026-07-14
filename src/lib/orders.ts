@@ -129,6 +129,12 @@ export async function discardUnpaidDrafts(): Promise<number> {
   return Number(data ?? 0);
 }
 
+export interface OrderPayment {
+  nome: string;
+  tipo: string;
+  valor: number;
+}
+
 export interface OrderRow {
   id: string;
   status: string;
@@ -138,6 +144,10 @@ export interface OrderRow {
   discount: number;
   delivery_address: string;
   created_at: string;
+  tipo_atendimento: string;
+  numero_mesa: number | null;
+  pago_online: boolean;
+  pagamentos: OrderPayment[];
   order_items: {
     id: string;
     product_name: string;
@@ -149,6 +159,7 @@ export interface OrderRow {
     remocoes: string[];
   }[];
 }
+
 
 export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
   // Isolamento de histórico: mesmo um admin logado no PWA só vê os pedidos
