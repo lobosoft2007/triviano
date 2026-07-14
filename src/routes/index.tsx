@@ -12,11 +12,13 @@ import {
   X,
   ArrowLeft,
   LogOut,
-  LogIn,
+  
   ClipboardList,
   Settings,
   Wallet,
   User,
+  Bike,
+  Armchair,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
 import { empresaQueryOptions } from "@/lib/empresa";
@@ -171,21 +173,31 @@ function HomePage() {
                 </button>
               </>
             ) : (
-              <Link
-                to="/auth"
-                aria-label="Entrar"
-                onClick={() => {
-                  try {
-                    sessionStorage.setItem("post_login_redirect", "/");
-                  } catch {
-                    /* ignore storage errors */
-                  }
-                }}
-                className="flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary"
-              >
-                <LogIn className="h-4 w-4" />
-                Entrar
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/mesa"
+                  aria-label="Consumir na mesa"
+                  className="flex items-center gap-1.5 rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                >
+                  <Armchair className="h-4 w-4" />
+                  Na mesa
+                </Link>
+                <Link
+                  to="/auth"
+                  aria-label="Entrar para delivery"
+                  onClick={() => {
+                    try {
+                      sessionStorage.setItem("post_login_redirect", "/");
+                    } catch {
+                      /* ignore storage errors */
+                    }
+                  }}
+                  className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary"
+                >
+                  <Bike className="h-4 w-4" />
+                  Delivery
+                </Link>
+              </div>
             )}
           </div>
         </div>
