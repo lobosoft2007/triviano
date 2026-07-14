@@ -29,6 +29,7 @@ import {
   UserCog,
   ShieldCheck,
   CreditCard,
+  Armchair,
 } from "lucide-react";
 
 import { toast } from "sonner";
