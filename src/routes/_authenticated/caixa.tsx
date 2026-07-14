@@ -18,6 +18,9 @@ import {
   Save,
   Pencil,
   HandCoins,
+  Bell,
+  Check,
+  X,
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 import { StatusControl } from "@/components/caixa/StatusControl";
