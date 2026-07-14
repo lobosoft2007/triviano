@@ -8,8 +8,14 @@ import {
   ClipboardList,
   CheckCircle2,
   RotateCcw,
+  MapPin,
+  Utensils,
+  Wallet,
+  CircleDollarSign,
+  Clock,
 } from "lucide-react";
-import { fetchOrders, repeatOrder, isReorderable } from "@/lib/orders";
+import { fetchOrders, repeatOrder, isReorderable, type OrderRow } from "@/lib/orders";
+
 import { empresaQueryOptions } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 import { useCart } from "@/lib/cart";
