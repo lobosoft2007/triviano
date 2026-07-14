@@ -12,6 +12,7 @@ import {
   Bell,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import {
   getMesaSession,
   clearMesaSession,
@@ -21,9 +22,12 @@ import {
   type ComandaAtiva,
   type ComandaPedido,
 } from "@/lib/mesa";
+import { fetchMpPublicConfig, type MpPublicConfig } from "@/lib/mercadopago";
+import { ComandaPixCharge } from "@/components/checkout/ComandaPixCharge";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
+import { QrCode } from "lucide-react";
 
 export const Route = createFileRoute("/minha-comanda")({
   head: () => ({
