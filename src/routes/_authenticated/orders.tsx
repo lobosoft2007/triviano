@@ -273,7 +273,16 @@ function OrdersPage() {
                       {formatBRL(order.total)}
                     </span>
                   </div>
+                  {order.pagamentos.length > 1 && (
+                    <div className="pt-1 text-[11px] text-muted-foreground">
+                      Pago em:{" "}
+                      {order.pagamentos
+                        .map((p) => `${p.nome} ${formatBRL(p.valor)}`)
+                        .join(" + ")}
+                    </div>
+                  )}
                 </div>
+
 
                 {isReorderable(order.status_pedido) && (
                   <button
