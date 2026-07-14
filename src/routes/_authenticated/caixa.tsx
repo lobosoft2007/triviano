@@ -1295,8 +1295,30 @@ function MesaCard({
             >
               <Receipt className="mr-1.5 h-4 w-4" /> Imprimir conta / conferência
             </Button>
+            {group.comandaId && (
+              <Button
+                variant="success"
+                className="mt-2 h-12 w-full rounded-xl font-bold"
+                onClick={() => {
+                  setDetailOpen(false);
+                  setPayOpen(true);
+                }}
+              >
+                <Wallet className="mr-1.5 h-5 w-5" /> Finalizar e Receber
+              </Button>
+            )}
           </DialogContent>
         </Dialog>
+      )}
+
+      {payOpen && group.comandaId && (
+        <ComandaPaymentDialog
+          comandaId={group.comandaId}
+          numeroMesa={group.mesa}
+          total={group.total}
+          open={payOpen}
+          onOpenChange={setPayOpen}
+        />
       )}
     </>
   );
