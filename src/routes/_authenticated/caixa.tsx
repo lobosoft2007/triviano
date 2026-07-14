@@ -567,11 +567,49 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
 
 
   async function printBill(mesa: number, mesaOrdersGroup: CaixaOrder[]) {
-    const qr = await QRCode.toDataURL(PIX_KEY, { margin: 1, width: 220 }).catch(
+    // Valor AGREGADO da comanda (fonte da verdade). Busca o total_parcial da
+    // comanda_ativa vinculada; se não houver comanda, cai na soma dos pedidos.
+    const comandaId =
+      mesaOrdersGroup.find((o) => o.comanda_id)?.comanda_id ?? null;
+    let totalParcial = mesaOrdersGroup.reduce((s, o) => s + o.total, 0);
+    if (comandaId) {
+      try {
+        const comanda = await fetchComandaById(comandaId);
+        if (comanda && comanda.total_parcial > 0) {
+          totalParcial = comanda.total_parcial;
+        }
+      } catch {
+        /* mantém o fallback (soma dos pedidos) */
+      }
+    }
+
+    // Dados PIX multi-tenant (chave/nome/cidade da empresa atual). Sem eles não
+    // é possível montar um BR Code válido — cai para constantes de segurança.
+    const pixCfg = await fetchPixStaticConfig().catch(() => null);
+    const pixKey = pixCfg?.chave_pix || PIX_KEY;
+    const pixName = pixCfg?.nome_recebedor || PIX_NAME;
+    const pixCity = pixCfg?.cidade_recebedor || "SAO PAULO";
+
+    // BR Code EMV COM VALOR embutido → o app do banco abre já com o total certo.
+    const brcode = generatePixPayload({
+      pixKey,
+      merchantName: pixName,
+      merchantCity: pixCity,
+      amount: totalParcial,
+    });
+    const qr = await QRCode.toDataURL(brcode, { margin: 1, width: 220 }).catch(
       () => "",
     );
     await printAndRun(
-      <BillReceipt mesa={mesa} orders={mesaOrdersGroup} qr={qr} />,
+      <BillReceipt
+        mesa={mesa}
+        orders={mesaOrdersGroup}
+        qr={qr}
+        total={totalParcial}
+        pixKey={pixKey}
+        pixName={pixName}
+        brcode={brcode}
+      />,
       async () => {
         try {
           await Promise.all(mesaOrdersGroup.map((o) => markPrintedConta(o.id)));
