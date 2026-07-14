@@ -43,6 +43,16 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CaixaSidebar } from "@/components/caixa/CaixaSidebar";
 
 import { notifyStatusChange } from "@/lib/notifications";
@@ -61,9 +71,12 @@ import { empresaQueryOptions } from "@/lib/empresa";
 import {
   fetchSolicitacoesPendentes,
   fetchComandasAguardandoFechamento,
+  fetchComandasVivas,
   fetchComandaById,
   liberarMesa,
+  isMesaOcupadaError,
   recusarSolicitacao,
+  type ComandaFechamento,
   type SolicitacaoPendente,
 } from "@/lib/mesa";
 import { fetchPixStaticConfig } from "@/lib/mercadopago";
@@ -424,6 +437,18 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     refetchInterval: 8000,
     refetchOnWindowFocus: true,
   });
+  // Todas as mesas com comanda VIVA — para destacar conflito na Fila de Visto.
+  const { data: mesasVivas } = useQuery({
+    queryKey: ["mesas-vivas"],
+    queryFn: fetchComandasVivas,
+    refetchInterval: 8000,
+    refetchOnWindowFocus: true,
+  });
+  const mesasOcupadasMap = useMemo(() => {
+    const m = new Map<number, ComandaFechamento>();
+    for (const c of mesasVivas ?? []) m.set(c.numero_mesa, c);
+    return m;
+  }, [mesasVivas]);
 
   const fechamentoMesas = useMemo(
     () => new Set((fechamentos ?? []).map((f) => f.numero_mesa)),
@@ -496,6 +521,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
           { event: "*", schema: "public", table: "comanda_ativa" },
           () => {
             queryClient.invalidateQueries({ queryKey: ["mesa-fechamentos"] });
+            queryClient.invalidateQueries({ queryKey: ["mesas-vivas"] });
           },
         )
         .subscribe((status) => {
@@ -669,16 +695,50 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
   }
 
   /* -------- Fila de Visto: liberar / recusar mesa ------------------- */
+  const [conflitoMesa, setConflitoMesa] = useState<{
+    solicitacaoId: string;
+    numeroMesa: number;
+    ocupacao: ComandaFechamento;
+  } | null>(null);
+
+  const runLiberar = useCallback(
+    async (id: string, mesa: number, forcar: boolean) => {
+      try {
+        await liberarMesa(id, { forcar });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] }),
+          queryClient.invalidateQueries({ queryKey: ["mesas-vivas"] }),
+          queryClient.invalidateQueries({ queryKey: ["mesa-fechamentos"] }),
+          queryClient.invalidateQueries({ queryKey: ["caixa-orders"] }),
+        ]);
+        toast.success(
+          forcar
+            ? `Mesa ${mesa} zerada e reaberta. 🍽️`
+            : `Mesa ${mesa} liberada. Bom atendimento! 🍽️`,
+        );
+      } catch (err) {
+        if (isMesaOcupadaError(err)) {
+          const ocup =
+            mesasOcupadasMap.get(mesa) ?? {
+              numero_mesa: mesa,
+              total_parcial: 0,
+              nome_cliente: "cliente",
+            };
+          setConflitoMesa({ solicitacaoId: id, numeroMesa: mesa, ocupacao: ocup });
+          return;
+        }
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível liberar a mesa.",
+        );
+      }
+    },
+    [queryClient, mesasOcupadasMap],
+  );
+
   async function handleLiberar(id: string, mesa: number) {
-    try {
-      await liberarMesa(id);
-      await queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] });
-      toast.success(`Mesa ${mesa} liberada. Bom atendimento! 🍽️`);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Não foi possível liberar a mesa.",
-      );
-    }
+    await runLiberar(id, mesa, false);
   }
 
   async function handleRecusar(id: string, mesa: number) {
@@ -840,6 +900,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
           <div className="flex flex-col gap-4">
             <VistoQueue
               solicitacoes={solicitacoes ?? []}
+              mesasOcupadas={mesasOcupadasMap}
               onLiberar={handleLiberar}
               onRecusar={handleRecusar}
             />
@@ -882,8 +943,43 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         </DialogContent>
       </Dialog>
 
-
-
+      {/* Confirmação de mesa ocupada (Protocolo de Incineração — v1.7.3) */}
+      <AlertDialog
+        open={!!conflitoMesa}
+        onOpenChange={(v) => !v && setConflitoMesa(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Mesa {conflitoMesa?.numeroMesa} já está ocupada
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Cliente atual: <strong>{conflitoMesa?.ocupacao.nome_cliente || "cliente"}</strong> ·{" "}
+                Consumo: <strong>R$ {Number(conflitoMesa?.ocupacao.total_parcial ?? 0).toFixed(2).replace(".", ",")}</strong>.
+              </span>
+              <span className="block">
+                Ao <strong>zerar</strong>, todos os pedidos pendentes desta mesa serão
+                cancelados e uma nova comanda começa em R$ 0,00. Essa ação é irreversível.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Manter mesa atual</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!conflitoMesa) return;
+                const { solicitacaoId, numeroMesa } = conflitoMesa;
+                setConflitoMesa(null);
+                await runLiberar(solicitacaoId, numeroMesa, true);
+              }}
+            >
+              Zerar mesa e começar do zero
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Close cash register dialog */}
       {caixa && (
@@ -1087,10 +1183,12 @@ interface MesaGroup {
 
 function VistoQueue({
   solicitacoes,
+  mesasOcupadas,
   onLiberar,
   onRecusar,
 }: {
   solicitacoes: SolicitacaoPendente[];
+  mesasOcupadas: Map<number, ComandaFechamento>;
   onLiberar: (id: string, mesa: number) => void;
   onRecusar: (id: string, mesa: number) => void;
 }) {
@@ -1109,43 +1207,68 @@ function VistoQueue({
         </h2>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {solicitacoes.map((s) => (
-          <div
-            key={s.id}
-            className="flex items-center gap-2 rounded-xl border border-border bg-card p-2.5"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-display text-sm font-bold">
-                Mesa {s.numero_mesa} · {s.nome_cliente || "Cliente"}
-              </p>
-              <p className="truncate text-[11px] text-muted-foreground">
-                {s.telefone || "sem telefone"} ·{" "}
-                {new Date(s.created_at).toLocaleTimeString("pt-BR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
+        {solicitacoes.map((s) => {
+          const ocupada = mesasOcupadas.get(s.numero_mesa);
+          const isConflito = !!ocupada;
+          return (
+            <div
+              key={s.id}
+              className={
+                isConflito
+                  ? "flex flex-col gap-2 rounded-xl border-2 border-destructive bg-destructive/10 p-2.5"
+                  : "flex items-center gap-2 rounded-xl border border-border bg-card p-2.5"
+              }
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-display text-sm font-bold">
+                  Mesa {s.numero_mesa} · {s.nome_cliente || "Cliente"}
+                </p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {s.telefone || "sem telefone"} ·{" "}
+                  {new Date(s.created_at).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                {isConflito && ocupada && (
+                  <p className="mt-1 truncate text-[11px] font-bold text-destructive">
+                    MESA OCUPADA · {ocupada.nome_cliente || "cliente"} ·{" "}
+                    R$ {Number(ocupada.total_parcial ?? 0).toFixed(2).replace(".", ",")}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 self-end">
+                <Button
+                  size="icon"
+                  variant={isConflito ? "destructive" : "success"}
+                  className="h-9 w-9 shrink-0 rounded-xl"
+                  aria-label={
+                    isConflito
+                      ? `Zerar mesa ${s.numero_mesa} e liberar`
+                      : `Liberar mesa ${s.numero_mesa}`
+                  }
+                  title={
+                    isConflito
+                      ? "Zerar mesa e começar do zero"
+                      : "Liberar mesa"
+                  }
+                  onClick={() => onLiberar(s.id, s.numero_mesa)}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-9 w-9 shrink-0 rounded-xl text-destructive hover:bg-destructive/10"
+                  aria-label={`Recusar mesa ${s.numero_mesa}`}
+                  onClick={() => onRecusar(s.id, s.numero_mesa)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <Button
-              size="icon"
-              variant="success"
-              className="h-9 w-9 shrink-0 rounded-xl"
-              aria-label={`Liberar mesa ${s.numero_mesa}`}
-              onClick={() => onLiberar(s.id, s.numero_mesa)}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-9 w-9 shrink-0 rounded-xl text-destructive hover:bg-destructive/10"
-              aria-label={`Recusar mesa ${s.numero_mesa}`}
-              onClick={() => onRecusar(s.id, s.numero_mesa)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

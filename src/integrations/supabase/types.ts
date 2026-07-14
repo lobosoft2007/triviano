@@ -3128,7 +3128,12 @@ export type Database = {
       is_local_admin: { Args: never; Returns: boolean }
       is_master_admin: { Args: never; Returns: boolean }
       is_produto_publico: { Args: { _produto_id: string }; Returns: boolean }
-      liberar_mesa: { Args: { p_solicitacao_id: string }; Returns: string }
+      liberar_mesa:
+        | { Args: { p_solicitacao_id: string }; Returns: string }
+        | {
+            Args: { p_forcar?: boolean; p_solicitacao_id: string }
+            Returns: string
+          }
       mesa_token: {
         Args: { p_empresa: string; p_numero: number }
         Returns: string
