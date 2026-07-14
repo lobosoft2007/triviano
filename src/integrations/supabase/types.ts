@@ -238,8 +238,12 @@ export type Database = {
           empresa_id: string
           fechada_em: string | null
           id: string
+          mp_order_id: string | null
+          mp_payment_id: string | null
+          mp_status: string | null
           nome_cliente: string
           numero_mesa: number
+          pago_online: boolean
           solicitacao_id: string | null
           status: Database["public"]["Enums"]["comanda_status"]
           total_parcial: number
@@ -251,8 +255,12 @@ export type Database = {
           empresa_id: string
           fechada_em?: string | null
           id?: string
+          mp_order_id?: string | null
+          mp_payment_id?: string | null
+          mp_status?: string | null
           nome_cliente?: string
           numero_mesa: number
+          pago_online?: boolean
           solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["comanda_status"]
           total_parcial?: number
@@ -264,8 +272,12 @@ export type Database = {
           empresa_id?: string
           fechada_em?: string | null
           id?: string
+          mp_order_id?: string | null
+          mp_payment_id?: string | null
+          mp_status?: string | null
           nome_cliente?: string
           numero_mesa?: number
+          pago_online?: boolean
           solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["comanda_status"]
           total_parcial?: number
@@ -2702,6 +2714,14 @@ export type Database = {
       }
     }
     Functions: {
+      _finalize_order_financials: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
+      _settle_comanda: {
+        Args: { p_comanda_id: string; p_meio_id: string; p_online: boolean }
+        Returns: undefined
+      }
       abater_fiado_com_cashback: {
         Args: { p_user_id: string; p_valor?: number }
         Returns: {
@@ -2917,6 +2937,10 @@ export type Database = {
       }
       explode_order_stock: { Args: { p_order_id: string }; Returns: undefined }
       fechar_comanda: { Args: { p_comanda_id: string }; Returns: undefined }
+      finalize_comanda_paid: {
+        Args: { p_comanda_id: string; p_meio_id: string }
+        Returns: undefined
+      }
       finalize_order_paid: { Args: { p_order_id: string }; Returns: number }
       get_active_pix_config: {
         Args: never
@@ -3107,6 +3131,15 @@ export type Database = {
         Returns: number
       }
       mp_env_for_host: { Args: { p_host: string }; Returns: string }
+      mp_get_comanda_status: {
+        Args: { p_comanda_id: string }
+        Returns: {
+          mp_status: string
+          pago_online: boolean
+          status: string
+          total_parcial: number
+        }[]
+      }
       mp_get_order_status: {
         Args: { p_order_id: string }
         Returns: {
