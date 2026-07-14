@@ -18,7 +18,7 @@
 //     o Patch volta automaticamente para 1.
 // ============================================================================
 
-export const APP_VERSION = "1.5.0";
+export const APP_VERSION = "1.6.0";
 export const LAST_PATCH_DATE = "2026-07-14";
 export const VERSION_STATUS = "ESTÁVEL";
 
@@ -32,6 +32,9 @@ export const STABLE_RELEASE = {
   date: LAST_PATCH_DATE,
   safeRollback: true,
   validated: [
+    "Reorganização de Fluxos Estritos (Muro de Autenticação em / + contexto MESA/DELIVERY em localStorage)",
+    "Botão Camaleão do carrinho e Ícone de QR-Code no Header",
+    "Checkout fixado como Delivery (seletor verde removido, validação de endereço preservada)",
     "Cashback Dinâmico por Meio de Pagamento (percentual por meio + crédito manual do admin)",
     "Experiência de Mesa (QR assinado + Comanda + Fila de Visto + Fechamento)",
     "Painel Admin — Sidebar ERP (accordions filtrados por permissão)",

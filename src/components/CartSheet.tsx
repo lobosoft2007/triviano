@@ -6,7 +6,6 @@ import {
   Plus,
   Minus,
   Trash2,
-  ArrowRight,
   AlertCircle,
   BadgePercent,
   ChefHat,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useMesaSession } from "@/hooks/useMesaSession";
+import { useAtendimento } from "@/hooks/useAtendimento";
 import { enviarPedidoMesa } from "@/lib/mesa";
 import { formatBRL } from "@/lib/format";
 import {
@@ -45,7 +45,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   const [sending, setSending] = useState(false);
   const navigate = useNavigate();
   const { session: mesa } = useMesaSession();
-  const isMesa = !!mesa;
+  const { status } = useAtendimento();
+  // Contexto MESA só vale com uma comanda ativa neste aparelho.
+  const isMesa = status === "MESA" && !!mesa;
 
   async function handleEnviarCozinha() {
     if (!mesa) return;
@@ -263,7 +265,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   ) : (
                     <ChefHat className="h-5 w-5" />
                   )}
-                  {sending ? "Enviando…" : "Enviar para a Cozinha"}
+                  {sending ? "Enviando…" : "Enviar Pedido"}
                 </Button>
               ) : (
                 <Button asChild size="lg" className="h-13 w-full gap-2 rounded-2xl py-3.5 text-base">
@@ -272,8 +274,8 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                     aria-disabled={items.length === 0}
                     onClick={handleCheckoutClick}
                   >
-                    Finalizar pedido
-                    <ArrowRight className="h-5 w-5" />
+                    <ShoppingBag className="h-5 w-5" />
+                    Ir para pagamento
                   </a>
                 </Button>
               )}

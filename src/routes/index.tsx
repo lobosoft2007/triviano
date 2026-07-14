@@ -1,10 +1,12 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ACCESS_DENIED_MSG } from "@/lib/permissions";
 import { useScope } from "@/hooks/useScope";
 import { useMesaSession } from "@/hooks/useMesaSession";
+import { useAtendimento } from "@/hooks/useAtendimento";
+import { MesaScannerDialog } from "@/components/MesaScannerDialog";
 import {
   ShoppingBag,
   Loader2,
@@ -13,13 +15,12 @@ import {
   X,
   ArrowLeft,
   LogOut,
-  
+  ChefHat,
+  QrCode,
   ClipboardList,
   Settings,
   Wallet,
   User,
-  Bike,
-  Armchair,
   ReceiptText,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
@@ -38,6 +39,21 @@ import { Button } from "@/components/ui/button";
 const heroImg = "/images/hero.jpg";
 
 export const Route = createFileRoute("/")({
+  // Muro de Autenticação (v1.6.0): o cardápio nunca abre para quem não tem
+  // sessão. `ssr: false` porque a sessão do Supabase vive no localStorage e o
+  // servidor não a enxerga — checar no cliente evita loop de redirect no F5.
+  ssr: false,
+  beforeLoad: async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      try {
+        sessionStorage.setItem("post_login_redirect", "/");
+      } catch {
+        /* ignore storage errors */
+      }
+      throw redirect({ to: "/auth" });
+    }
+  },
   validateSearch: (s: Record<string, unknown>): { denied?: string } => ({
     denied: typeof s.denied === "string" ? s.denied : undefined,
   }),
@@ -71,8 +87,11 @@ function HomePage() {
   const { data, isLoading, isError } = useQuery(menuQueryOptions);
   const { data: empresa } = useQuery(empresaQueryOptions);
   const { session: mesa } = useMesaSession();
+  const { status } = useAtendimento();
+  const isMesa = status === "MESA" && !!mesa;
   const { totalItems, totalPrice } = useCart();
   const { user, signOut } = useAuth();
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -152,6 +171,16 @@ function HomePage() {
                     <Settings className="h-5 w-5" />
                   </Link>
                 )}
+                {/* Ícone QR — muda o contexto para MESA silenciosamente (v1.6.0) */}
+                <button
+                  aria-label="Ler QR-Code da mesa"
+                  onClick={() => setScannerOpen(true)}
+                  className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-secondary ${
+                    isMesa ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  <QrCode className="h-5 w-5" />
+                </button>
                 <NotificationBell />
                 <Link
                   to="/orders"
@@ -175,36 +204,13 @@ function HomePage() {
                   <LogOut className="h-5 w-5" />
                 </button>
               </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/mesa"
-                  aria-label="Consumir na mesa"
-                  className="flex items-center gap-1.5 rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
-                >
-                  <Armchair className="h-4 w-4" />
-                  Na mesa
-                </Link>
-                <Link
-                  to="/auth"
-                  aria-label="Entrar para delivery"
-                  onClick={() => {
-                    try {
-                      sessionStorage.setItem("post_login_redirect", "/");
-                    } catch {
-                      /* ignore storage errors */
-                    }
-                  }}
-                  className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary"
-                >
-                  <Bike className="h-4 w-4" />
-                  Delivery
-                </Link>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       </header>
+
+      <MesaScannerDialog open={scannerOpen} onOpenChange={setScannerOpen} />
+
 
       {/* Central scrolling panel — clamped between both bars, lower z-index */}
       <main className="relative z-10 mx-auto max-w-6xl pt-20 pb-28">
@@ -281,13 +287,17 @@ function HomePage() {
                 <button className="flex w-full items-center justify-between rounded-2xl bg-primary px-5 py-4 text-primary-foreground shadow-float transition-transform active:scale-[0.99]">
                   <span className="flex items-center gap-2">
                     <span className="relative">
-                      <ShoppingBag className="h-5 w-5" />
+                      {isMesa ? (
+                        <ChefHat className="h-5 w-5" />
+                      ) : (
+                        <ShoppingBag className="h-5 w-5" />
+                      )}
                       <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground">
                         {totalItems}
                       </span>
                     </span>
                     <span className="text-sm font-semibold">
-                      {mesa ? "Enviar para a cozinha" : "Ver carrinho"}
+                      {isMesa ? "Enviar pedido" : "Ver carrinho"}
                     </span>
                   </span>
                   <span className="font-display text-base font-bold">{formatBRL(totalPrice)}</span>
