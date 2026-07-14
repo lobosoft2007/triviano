@@ -17,6 +17,8 @@ import {
   Settings,
   Wallet,
   User,
+  Bike,
+  Armchair,
 } from "lucide-react";
 import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
 import { empresaQueryOptions } from "@/lib/empresa";
