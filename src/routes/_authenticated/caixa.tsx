@@ -943,8 +943,43 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         </DialogContent>
       </Dialog>
 
-
-
+      {/* Confirmação de mesa ocupada (Protocolo de Incineração — v1.7.3) */}
+      <AlertDialog
+        open={!!conflitoMesa}
+        onOpenChange={(v) => !v && setConflitoMesa(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Mesa {conflitoMesa?.numeroMesa} já está ocupada
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Cliente atual: <strong>{conflitoMesa?.ocupacao.nome_cliente || "cliente"}</strong> ·{" "}
+                Consumo: <strong>R$ {Number(conflitoMesa?.ocupacao.total_parcial ?? 0).toFixed(2).replace(".", ",")}</strong>.
+              </span>
+              <span className="block">
+                Ao <strong>zerar</strong>, todos os pedidos pendentes desta mesa serão
+                cancelados e uma nova comanda começa em R$ 0,00. Essa ação é irreversível.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Manter mesa atual</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!conflitoMesa) return;
+                const { solicitacaoId, numeroMesa } = conflitoMesa;
+                setConflitoMesa(null);
+                await runLiberar(solicitacaoId, numeroMesa, true);
+              }}
+            >
+              Zerar mesa e começar do zero
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Close cash register dialog */}
       {caixa && (
