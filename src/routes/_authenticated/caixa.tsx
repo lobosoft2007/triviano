@@ -748,12 +748,20 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         )}
 
         {orders && tab === "mesas" && (
-          <MesasColumn
-            orders={mesaOrders}
-            onDispatch={dispatchPreparation}
-            onPrintBill={printBill}
-            resolveSector={resolveSector}
-          />
+          <div className="flex flex-col gap-4">
+            <VistoQueue
+              solicitacoes={solicitacoes ?? []}
+              onLiberar={handleLiberar}
+              onRecusar={handleRecusar}
+            />
+            <MesasColumn
+              orders={mesaOrders}
+              onDispatch={dispatchPreparation}
+              onPrintBill={printBill}
+              resolveSector={resolveSector}
+              fechamentoMesas={fechamentoMesas}
+            />
+          </div>
         )}
 
         {tab === "balcao" && <BalcaoView />}
