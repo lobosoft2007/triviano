@@ -534,6 +534,7 @@ function AuthPage() {
             </TabsContent>
           </Tabs>
         )}
+        <PoweredByBadge className="pt-4" />
       </div>
     </div>
   );
