@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ACCESS_DENIED_MSG } from "@/lib/permissions";
 import { useScope } from "@/hooks/useScope";
+import { useMesaSession } from "@/hooks/useMesaSession";
 import {
   ShoppingBag,
   Loader2,
