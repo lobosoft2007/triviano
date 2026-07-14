@@ -12,7 +12,7 @@ import {
   Bell,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
+
 import {
   getMesaSession,
   clearMesaSession,
@@ -22,12 +22,9 @@ import {
   type ComandaAtiva,
   type ComandaPedido,
 } from "@/lib/mesa";
-import { fetchMpPublicConfig, type MpPublicConfig } from "@/lib/mercadopago";
-import { ComandaPixCharge } from "@/components/checkout/ComandaPixCharge";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
-import { QrCode } from "lucide-react";
 
 export const Route = createFileRoute("/minha-comanda")({
   head: () => ({
@@ -45,29 +42,13 @@ export const Route = createFileRoute("/minha-comanda")({
 
 function MinhaComandaPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  
   const [loading, setLoading] = useState(true);
   const [comanda, setComanda] = useState<ComandaAtiva | null>(null);
   const [pedidos, setPedidos] = useState<ComandaPedido[]>([]);
   const [closing, setClosing] = useState(false);
-  const [mpConfig, setMpConfig] = useState<MpPublicConfig | null>(null);
-  const [payPix, setPayPix] = useState(false);
   const comandaIdRef = useRef<string | null>(null);
 
-  // Configuração pública do Mercado Pago do tenant (só chave pública).
-  useEffect(() => {
-    let alive = true;
-    void fetchMpPublicConfig()
-      .then((cfg) => {
-        if (alive) setMpConfig(cfg);
-      })
-      .catch(() => {
-        /* PIX online indisponível — segue com pagamento no balcão */
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const reload = useCallback(async (comandaId: string) => {
     try {
@@ -283,59 +264,24 @@ function MinhaComandaPage() {
             </span>
           </div>
 
-          {payPix && comanda && mpConfig ? (
-            <div className="space-y-3">
-              <ComandaPixCharge
-                comandaId={comanda.id}
-                total={total}
-                config={mpConfig}
-                payerEmail={user?.email ?? undefined}
-                onConfirmed={() => {
-                  toast.success("Pagamento confirmado! Obrigado. 🧡");
-                  void reload(comanda.id);
-                }}
-              />
-              <Button
-                variant="ghost"
-                className="h-11 w-full rounded-xl text-muted-foreground"
-                onClick={() => setPayPix(false)}
-              >
-                Voltar
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {mpConfig?.ativo && mpConfig.aceita_pix_online && total > 0 && (
-                <Button
-                  size="lg"
-                  className="h-14 w-full gap-2 rounded-2xl text-base font-bold"
-                  disabled={pedidos.length === 0}
-                  onClick={() => setPayPix(true)}
-                >
-                  <QrCode className="h-5 w-5" />
-                  Pagar agora pelo PIX
-                </Button>
-              )}
-              <Button
-                size="lg"
-                variant={
-                  mpConfig?.ativo && mpConfig.aceita_pix_online
-                    ? "outline"
-                    : "default"
-                }
-                className="h-14 w-full gap-2 rounded-2xl text-base font-bold"
-                disabled={closing || pedidos.length === 0 || aguardando}
-                onClick={handleFechar}
-              >
-                {closing ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Flag className="h-5 w-5" />
-                )}
-                {aguardando ? "Aguardando atendente…" : "🏁 Chamar atendente"}
-              </Button>
-            </div>
-          )}
+          {/* Doutrina de Hospitalidade (v1.7.1): no modo Mesa NÃO há pagamento
+              pelo app. O botão apenas solicita o fechamento ao Caixa, que
+              imprime a conferência com o PIX já valorizado e recebe no balcão. */}
+          <Button
+            size="lg"
+            className="h-14 w-full gap-2 rounded-2xl text-base font-bold"
+            disabled={closing || pedidos.length === 0 || aguardando}
+            onClick={handleFechar}
+          >
+            {closing ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Flag className="h-5 w-5" />
+            )}
+            {aguardando
+              ? "Aguardando atendente…"
+              : "🏁 Fechar a conta e pagar"}
+          </Button>
         </div>
       </div>
     </Shell>

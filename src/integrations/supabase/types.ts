@@ -3014,6 +3014,15 @@ export type Database = {
         }[]
       }
       get_patrimonio_estoque: { Args: never; Returns: number }
+      get_pix_static_config: {
+        Args: { p_host?: string }
+        Returns: {
+          chave_pix: string
+          cidade_recebedor: string
+          empresa_id: string
+          nome_recebedor: string
+        }[]
+      }
       get_public_branding: {
         Args: never
         Returns: {

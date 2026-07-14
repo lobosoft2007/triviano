@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ACCESS_DENIED_MSG } from "@/lib/permissions";
@@ -84,6 +84,7 @@ interface Selection {
 }
 
 function HomePage() {
+  const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery(menuQueryOptions);
   const { data: empresa } = useQuery(empresaQueryOptions);
   const { session: mesa } = useMesaSession();
@@ -92,6 +93,17 @@ function HomePage() {
   const { totalItems, totalPrice } = useCart();
   const { user, signOut } = useAuth();
   const [scannerOpen, setScannerOpen] = useState(false);
+
+  // Logout com "Muro de Autenticação" instantâneo (v1.7.1): limpa o cache de
+  // dados protegidos e redireciona já para /auth (history REPLACE), ocultando
+  // o cardápio imediatamente sem esperar a próxima navegação.
+  const handleSignOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOut();
+    navigate({ to: "/auth", replace: true });
+  };
+
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -198,7 +210,7 @@ function HomePage() {
                 </Link>
                 <button
                   aria-label="Sair"
-                  onClick={() => signOut()}
+                  onClick={handleSignOut}
                   className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
                 >
                   <LogOut className="h-5 w-5" />
