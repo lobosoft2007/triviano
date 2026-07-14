@@ -1100,6 +1100,7 @@ function MesasColumn({
           customer: sorted[0]?.customer_name || "Cliente",
           hasNew: group.some((o) => !o.impresso_cozinha),
           awaitingBill: group.some((o) => o.impresso_conta),
+          comandaId: sorted.find((o) => o.comanda_id)?.comanda_id ?? null,
         };
       });
   }, [orders]);
