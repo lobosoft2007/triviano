@@ -450,6 +450,7 @@ function PerfilPage() {
             </Button>
           </div>
         )}
+        <PoweredByBadge className="pt-6" />
         </main>
       </ShellBody>
     </AppShell>
