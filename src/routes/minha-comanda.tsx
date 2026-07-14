@@ -282,19 +282,60 @@ function MinhaComandaPage() {
               {formatBRL(total)}
             </span>
           </div>
-          <Button
-            size="lg"
-            className="h-14 w-full gap-2 rounded-2xl text-base font-bold"
-            disabled={closing || pedidos.length === 0 || aguardando}
-            onClick={handleFechar}
-          >
-            {closing ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Flag className="h-5 w-5" />
-            )}
-            {aguardando ? "Aguardando atendente…" : "🏁 Fechar a conta e pagar"}
-          </Button>
+
+          {payPix && comanda && mpConfig ? (
+            <div className="space-y-3">
+              <ComandaPixCharge
+                comandaId={comanda.id}
+                total={total}
+                config={mpConfig}
+                payerEmail={user?.email ?? undefined}
+                onConfirmed={() => {
+                  toast.success("Pagamento confirmado! Obrigado. 🧡");
+                  void reload(comanda.id);
+                }}
+              />
+              <Button
+                variant="ghost"
+                className="h-11 w-full rounded-xl text-muted-foreground"
+                onClick={() => setPayPix(false)}
+              >
+                Voltar
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {mpConfig?.ativo && mpConfig.aceita_pix_online && total > 0 && (
+                <Button
+                  size="lg"
+                  className="h-14 w-full gap-2 rounded-2xl text-base font-bold"
+                  disabled={pedidos.length === 0}
+                  onClick={() => setPayPix(true)}
+                >
+                  <QrCode className="h-5 w-5" />
+                  Pagar agora pelo PIX
+                </Button>
+              )}
+              <Button
+                size="lg"
+                variant={
+                  mpConfig?.ativo && mpConfig.aceita_pix_online
+                    ? "outline"
+                    : "default"
+                }
+                className="h-14 w-full gap-2 rounded-2xl text-base font-bold"
+                disabled={closing || pedidos.length === 0 || aguardando}
+                onClick={handleFechar}
+              >
+                {closing ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Flag className="h-5 w-5" />
+                )}
+                {aguardando ? "Aguardando atendente…" : "🏁 Chamar atendente"}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </Shell>
