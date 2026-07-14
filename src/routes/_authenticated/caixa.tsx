@@ -406,6 +406,23 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     queryFn: () => fetchMeiosPagamento(false),
   });
 
+  // Fila de Visto (solicitações de abertura) + comandas pedindo fechamento.
+  const { data: solicitacoes } = useQuery({
+    queryKey: ["mesa-solicitacoes"],
+    queryFn: fetchSolicitacoesPendentes,
+    refetchInterval: 15000,
+  });
+  const { data: fechamentos } = useQuery({
+    queryKey: ["mesa-fechamentos"],
+    queryFn: fetchComandasAguardandoFechamento,
+    refetchInterval: 15000,
+  });
+
+  const fechamentoMesas = useMemo(
+    () => new Set((fechamentos ?? []).map((f) => f.numero_mesa)),
+    [fechamentos],
+  );
+
   const resolveSector = useMemo(
     () => makeSectorResolver(printers ?? [], catRouting ?? []),
     [printers, catRouting],
@@ -420,6 +437,30 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         { event: "*", schema: "public", table: "orders" },
         () => {
           queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Realtime: Fila de Visto e pedidos de fechamento de mesa.
+  useEffect(() => {
+    const channel = supabase
+      .channel("caixa-mesas")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "solicitacoes_mesa" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["mesa-solicitacoes"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comanda_ativa" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["mesa-fechamentos"] });
         },
       )
       .subscribe();
