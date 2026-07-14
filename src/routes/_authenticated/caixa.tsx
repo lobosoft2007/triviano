@@ -995,11 +995,13 @@ function MesasColumn({
   onDispatch,
   onPrintBill,
   resolveSector,
+  fechamentoMesas,
 }: {
   orders: CaixaOrder[];
   onDispatch: (o: CaixaOrder) => void;
   onPrintBill: (mesa: number, group: CaixaOrder[]) => void;
   resolveSector: ResolveFn;
+  fechamentoMesas: Set<number>;
 }) {
   const [filter, setFilter] = useState<MesaFilter>("todas");
 
