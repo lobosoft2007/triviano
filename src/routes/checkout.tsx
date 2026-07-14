@@ -226,10 +226,10 @@ function CheckoutPage() {
   const [checkoutSnapshot, setCheckoutSnapshot] = useState(readCheckoutSnapshot);
   const [pendingPayment, setPendingPayment] = useState(readPendingPaymentSnapshot);
   const [submitting, setSubmitting] = useState(false);
-  const [tipo, setTipo] = useState<"Delivery" | "Presencial">(
-    checkoutSnapshot?.tipo ?? "Delivery",
-  );
-  const [mesa, setMesa] = useState(checkoutSnapshot?.mesa ?? "");
+  // Legado removido (v1.6.0): o checkout é exclusivamente DELIVERY. O contexto
+  // de MESA nunca chega aqui — pedidos de mesa vão por `enviar_pedido_mesa`.
+  const tipo: "Delivery" | "Presencial" = "Delivery";
+  const mesa = "";
   const [address, setAddress] = useState(checkoutSnapshot?.address ?? "");
   const [phone, setPhone] = useState(checkoutSnapshot?.phone ?? "");
   const [notes, setNotes] = useState(checkoutSnapshot?.notes ?? "");
@@ -391,12 +391,8 @@ function CheckoutPage() {
 
 
 
-  // Taxa de serviço aplicada automaticamente em pedidos presenciais (mesa).
-  const serviceRate = empresa?.taxa_servico_mesa ?? 0;
-  const serviceFee =
-    tipo === "Presencial" && serviceRate > 0
-      ? Math.round(effectiveSubtotal * serviceRate) / 100
-      : 0;
+  // Checkout é exclusivamente delivery (v1.6.0) — sem taxa de serviço de mesa.
+  const serviceFee = 0;
 
   const baseTotal = Math.round((effectiveTotalPrice + serviceFee) * 100) / 100;
   const saldoCashback = profile?.saldo_cashback ?? 0;
@@ -794,12 +790,6 @@ function CheckoutPage() {
                 <div className="flex justify-between text-sm text-success">
                   <span>Desconto combo</span>
                   <span className="tabular-nums">− {formatBRL(effectiveDiscount)}</span>
-                </div>
-              )}
-              {serviceFee > 0 && (
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Taxa de serviço ({serviceRate}%)</span>
-                  <span className="tabular-nums">+ {formatBRL(serviceFee)}</span>
                 </div>
               )}
               {cashbackApplied > 0 && (
