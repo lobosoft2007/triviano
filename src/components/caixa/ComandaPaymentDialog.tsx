@@ -69,7 +69,7 @@ export function ComandaPaymentDialog({
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["caixa-orders"] }),
       queryClient.invalidateQueries({ queryKey: ["caixa-movs"] }),
-      queryClient.invalidateQueries({ queryKey: ["comandas-fechamento"] }),
+      queryClient.invalidateQueries({ queryKey: ["mesa-fechamentos"] }),
     ]);
   }
 
