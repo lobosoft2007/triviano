@@ -84,7 +84,6 @@ interface Selection {
 }
 
 function HomePage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery(menuQueryOptions);
   const { data: empresa } = useQuery(empresaQueryOptions);
