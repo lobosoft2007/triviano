@@ -238,6 +238,7 @@ export type Database = {
           empresa_id: string
           fechada_em: string | null
           id: string
+          motivo_cancelamento: string | null
           mp_order_id: string | null
           mp_payment_id: string | null
           mp_status: string | null
@@ -255,6 +256,7 @@ export type Database = {
           empresa_id: string
           fechada_em?: string | null
           id?: string
+          motivo_cancelamento?: string | null
           mp_order_id?: string | null
           mp_payment_id?: string | null
           mp_status?: string | null
@@ -272,6 +274,7 @@ export type Database = {
           empresa_id?: string
           fechada_em?: string | null
           id?: string
+          motivo_cancelamento?: string | null
           mp_order_id?: string | null
           mp_payment_id?: string | null
           mp_status?: string | null
