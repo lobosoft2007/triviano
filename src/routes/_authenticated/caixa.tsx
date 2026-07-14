@@ -990,7 +990,77 @@ interface MesaGroup {
   awaitingBill: boolean;
 }
 
-function MesasColumn({
+/* ------------------------------------------------------------------ */
+/* Fila de Visto — solicitações de abertura de mesa                     */
+/* ------------------------------------------------------------------ */
+
+function VistoQueue({
+  solicitacoes,
+  onLiberar,
+  onRecusar,
+}: {
+  solicitacoes: SolicitacaoPendente[];
+  onLiberar: (id: string, mesa: number) => void;
+  onRecusar: (id: string, mesa: number) => void;
+}) {
+  if (solicitacoes.length === 0) return null;
+  return (
+    <div className="rounded-2xl border-2 border-warning bg-warning/10 p-3.5 shadow-card">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-warning text-warning-foreground">
+          <Bell className="h-4 w-4 animate-pulse" />
+        </span>
+        <h2 className="font-display text-base font-bold">
+          Solicitações de abertura
+          <span className="ml-2 rounded-full bg-warning px-2 py-0.5 text-xs font-bold text-warning-foreground">
+            {solicitacoes.length}
+          </span>
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {solicitacoes.map((s) => (
+          <div
+            key={s.id}
+            className="flex items-center gap-2 rounded-xl border border-border bg-card p-2.5"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-display text-sm font-bold">
+                Mesa {s.numero_mesa} · {s.nome_cliente || "Cliente"}
+              </p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {s.telefone || "sem telefone"} ·{" "}
+                {new Date(s.created_at).toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+            <Button
+              size="icon"
+              variant="success"
+              className="h-9 w-9 shrink-0 rounded-xl"
+              aria-label={`Liberar mesa ${s.numero_mesa}`}
+              onClick={() => onLiberar(s.id, s.numero_mesa)}
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-9 w-9 shrink-0 rounded-xl text-destructive hover:bg-destructive/10"
+              aria-label={`Recusar mesa ${s.numero_mesa}`}
+              onClick={() => onRecusar(s.id, s.numero_mesa)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
   orders,
   onDispatch,
   onPrintBill,
