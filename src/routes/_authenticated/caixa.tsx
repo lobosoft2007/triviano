@@ -79,7 +79,11 @@ import {
   type ComandaFechamento,
   type SolicitacaoPendente,
 } from "@/lib/mesa";
-import { fetchPixStaticConfig } from "@/lib/mercadopago";
+import {
+  fetchPixStaticConfig,
+  fetchMpPublicConfig,
+  createMpComandaPayment,
+} from "@/lib/mercadopago";
 import { generatePixPayload } from "@/lib/pixPayment";
 import { formatBRL } from "@/lib/format";
 import { MoneyCounter, type MoneyCount } from "@/components/MoneyCounter";
