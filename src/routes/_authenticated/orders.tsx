@@ -159,7 +159,23 @@ function OrdersPage() {
           )}
 
           <div className="space-y-3">
-            {data?.map((order) => (
+            {data?.map((order) => {
+              const pay = summarizePayment(order);
+              const isMesa =
+                (order.tipo_atendimento ?? "Delivery") !== "Delivery";
+              const payToneClass =
+                pay.tone === "success"
+                  ? "bg-success/12 text-success"
+                  : pay.tone === "warning"
+                    ? "bg-accent/15 text-accent-foreground"
+                    : "bg-secondary text-muted-foreground";
+              const PayIcon =
+                pay.icon === "check"
+                  ? CircleDollarSign
+                  : pay.icon === "clock"
+                    ? Clock
+                    : Wallet;
+              return (
               <article
                 key={order.id}
                 className="rounded-2xl bg-card p-4 shadow-card"
@@ -178,6 +194,31 @@ function OrdersPage() {
                     })}
                   </span>
                 </div>
+
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-foreground">
+                    {isMesa ? (
+                      <>
+                        <Utensils className="h-3 w-3" />
+                        {order.numero_mesa
+                          ? `Mesa ${order.numero_mesa}`
+                          : "Presencial"}
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="h-3 w-3" />
+                        Delivery
+                      </>
+                    )}
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${payToneClass}`}
+                  >
+                    <PayIcon className="h-3 w-3" />
+                    {pay.label}
+                  </span>
+                </div>
+
 
                 <ul className="mt-3 space-y-1">
                   {order.order_items.map((it) => (
