@@ -238,14 +238,16 @@ Deno.serve(async (req) => {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        // A chave precisa ser estável por pedido + método. Antes usávamos
-        // Date.now(), então voltar ao carrinho/reabrir o checkout podia criar
-        // múltiplas Orders no MP e sobrescrever mp_payment_id no pedido local;
-        // se o cliente pagasse uma cobrança antiga, o webhook não encontrava
-        // mais a linha e o polling ficava preso no QR.
-        "X-Idempotency-Key": `${entity.id}-${body.method}-${env}`,
+        // A chave precisa ser estável por pedido/comanda + método + AMBIENTE +
+        // VALOR EM CENTAVOS. Assim, se o cliente adiciona/remove item e o total
+        // muda, o MP gera uma Order NOVA (não devolve a antiga com valor
+        // desatualizado). O trigger do banco já zera mp_order_id/mp_payment_id
+        // quando o total_parcial muda; esta chave garante idempotência correta
+        // dentro do mesmo valor (dupla proteção).
+        "X-Idempotency-Key": `${entity.id}-${body.method}-${env}-${Math.round(entity.total * 100)}`,
       },
       body: JSON.stringify(mpBody),
+
     });
   } catch (e) {
     console.error("mp-create-payment: fetch falhou", e);

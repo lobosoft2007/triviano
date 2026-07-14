@@ -75,6 +75,21 @@ export function ComandaPixCharge({
     if (!pix && !loading && !error) void startPix();
   }, [pix, loading, error, startPix]);
 
+  // Se o total da mesa mudou (cliente adicionou/removeu item), descarta o QR
+  // antigo e força nova geração pelo valor correto. Sem isso, o QR continuaria
+  // exibindo o valor congelado da primeira geração.
+  const lastTotalRef = useRef<number>(total);
+  useEffect(() => {
+    if (lastTotalRef.current !== total) {
+      lastTotalRef.current = total;
+      if (!paid) {
+        setPix(null);
+        setError(null);
+      }
+    }
+  }, [total, paid]);
+
+
   // -------- Polling do status da comanda (aguarda o webhook) --------
   useEffect(() => {
     if (paid || !pix) return;
