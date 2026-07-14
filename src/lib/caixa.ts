@@ -111,6 +111,7 @@ export interface CaixaOrder {
   created_at: string;
   tipo_atendimento: "Delivery" | "Presencial";
   numero_mesa: number | null;
+  comanda_id: string | null;
   impresso_cozinha: boolean;
   impresso_conta: boolean;
   order_items: CaixaOrderItem[];
