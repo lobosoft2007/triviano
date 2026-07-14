@@ -30,13 +30,35 @@ export const Route = createFileRoute("/_authenticated/orders")({
   component: OrdersPage,
 });
 
-const statusLabels: Record<string, string> = {
-  pending: "Recebido",
-  preparing: "Em preparo",
-  delivering: "Saiu para entrega",
-  delivered: "Entregue",
-  cancelled: "Cancelado",
+type StatusBadge = {
+  label: string;
+  tone: "success" | "destructive" | "accent";
 };
+
+function summarizeStatus(order: OrderRow): StatusBadge {
+  const s = order.status_pedido || "";
+  const isDelivery = (order.tipo_atendimento ?? "Delivery") === "Delivery";
+  switch (s) {
+    case "Recebido":
+      return { label: "Pedido recebido", tone: "accent" };
+    case "Em preparo":
+      return { label: "Em preparo", tone: "accent" };
+    case "Pronto":
+      return {
+        label: isDelivery ? "Pronto para entrega" : "Pronto para servir",
+        tone: "accent",
+      };
+    case "Saiu para entrega":
+      return { label: "Saiu para entrega", tone: "accent" };
+    case "Finalizado":
+      return { label: isDelivery ? "Entregue" : "Finalizado", tone: "success" };
+    case "Cancelado":
+      return { label: "Cancelado", tone: "destructive" };
+    default:
+      return { label: s || "Recebido", tone: "accent" };
+  }
+}
+
 
 type PaymentBadge = {
   label: string;
