@@ -245,8 +245,9 @@ Deno.serve(async (req) => {
         // quando o total_parcial muda; esta chave garante idempotência correta
         // dentro do mesmo valor (dupla proteção).
         "X-Idempotency-Key": `${entity.id}-${body.method}-${env}-${Math.round(entity.total * 100)}`,
-
+      },
       body: JSON.stringify(mpBody),
+
     });
   } catch (e) {
     console.error("mp-create-payment: fetch falhou", e);
