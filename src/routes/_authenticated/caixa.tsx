@@ -1476,8 +1476,8 @@ function MesaCard({
   const [detailOpen, setDetailOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const wait = useWaitTime(group.openedAt);
-  // Representative order (o mais recente) drives the quick status selector.
-  const lead = group.orders[group.orders.length - 1];
+  const isEmpty = group.orders.length === 0;
+
 
   return (
     <>
@@ -1523,12 +1523,18 @@ function MesaCard({
           <span>aberta há {wait}</span>
           <span>·</span>
           <span>{group.orders.length} pedido(s)</span>
-          {group.awaitingBill && (
+          {isEmpty && (
+            <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+              Aguardando pedido
+            </span>
+          )}
+          {!isEmpty && group.awaitingBill && (
             <span className="ml-auto rounded-full bg-amber-400/15 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
               Aguardando conta
             </span>
           )}
         </div>
+
 
         <div
           className="mt-2.5 flex items-center justify-end gap-2"
