@@ -24,7 +24,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
-import { StatusControl } from "@/components/caixa/StatusControl";
+
 import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
 import { CloseCaixaDialog } from "@/components/caixa/CloseCaixaDialog";
 import { PaymentDialog } from "@/components/caixa/PaymentDialog";
@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CaixaSidebar } from "@/components/caixa/CaixaSidebar";
 
-import { notifyStatusChange } from "@/lib/notifications";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
@@ -625,11 +625,9 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
 
     try {
       await markPrintedCozinha(order.id);
-      try {
-        await notifyStatusChange(order.id, order.user_id, "Em preparação");
-      } catch {
-        /* best-effort */
-      }
+      // v1.7.4: sem push automático em "Em preparação". O cliente só recebe
+      // notificações em (a) mesa liberada e (b) pedido recebido. Alertas
+      // extras ficam com o botão NotifyClient (manual).
       await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
       toast.success(
         `Impressões de preparo disparadas (${list.length} setor${
@@ -640,6 +638,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
       toast.error("Falha ao marcar impressão.");
     }
   }
+
 
 
   async function printBill(mesa: number, mesaOrdersGroup: CaixaOrder[]) {
@@ -789,17 +788,37 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     }
   }
 
-  // Alerta sonoro quando entra uma nova solicitação de abertura de mesa.
+  // Alerta sonoro + toast persistente quando entra uma NOVA solicitação de
+  // abertura. O toast só aparece quando o operador está em outra aba (na aba
+  // Mesas a Fila de Visto já é ultra-visível).
   const prevSolicRef = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (!solicitacoes) return;
     const ids = new Set(solicitacoes.map((s) => s.id));
     const prev = prevSolicRef.current;
-    if (prev && solicitacoes.some((s) => !prev.has(s.id)) && soundOn) {
-      playBeep();
+    if (prev) {
+      const novas = solicitacoes.filter((s) => !prev.has(s.id));
+      if (novas.length > 0) {
+        if (soundOn) playBeep();
+        if (tab !== "mesas") {
+          toast.warning(
+            `Nova solicitação de mesa (${novas[0].numero_mesa})${
+              novas.length > 1 ? ` e mais ${novas.length - 1}` : ""
+            }`,
+            {
+              duration: 12000,
+              action: {
+                label: "Ir para Mesas",
+                onClick: () => setTab("mesas"),
+              },
+            },
+          );
+        }
+      }
     }
     prevSolicRef.current = ids;
-  }, [solicitacoes, soundOn]);
+  }, [solicitacoes, soundOn, tab]);
+
 
   // Quando uma mesa PEDE o fechamento, imprime a conferência automaticamente.
   const prevFechRef = useRef<Set<number> | null>(null);
@@ -856,6 +875,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         activeTab={tab}
         deliveryCount={deliveryOrders.length}
         mesaCount={mesaOrders.length}
+        solicitacoesCount={solicitacoes?.length ?? 0}
         onSelectTab={setTab}
         onSuprimento={() => handleMov("Suprimento")}
         onSangria={() => handleMov("Sangria")}
@@ -865,6 +885,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         onFecharCaixa={() => setCloseOpen(true)}
         onLock={handleLock}
       />
+
       <SidebarInset className="min-h-0 overflow-hidden">
         <AppShell className="h-full">
           {/* Slim header */}
@@ -945,7 +966,9 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
               onPrintBill={printBill}
               resolveSector={resolveSector}
               fechamentoMesas={fechamentoMesas}
+              comandasVivas={mesasVivas ?? []}
             />
+
           </div>
         )}
 
@@ -1141,14 +1164,7 @@ function CompactOrderRow({
           </span>
         </div>
 
-        <div className="mt-2.5 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <div className="min-w-0 flex-1">
-            <StatusControl
-              orderId={order.id}
-              userId={order.user_id}
-              status={order.status_pedido}
-            />
-          </div>
+        <div className="mt-2.5 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           {isNew ? (
             <Button
               size="sm"
@@ -1164,6 +1180,7 @@ function CompactOrderRow({
           )}
         </div>
       </div>
+
 
       {detailOpen && (
         <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
@@ -1315,12 +1332,16 @@ function MesasColumn({
   onPrintBill,
   resolveSector,
   fechamentoMesas,
+  comandasVivas,
 }: {
   orders: CaixaOrder[];
   onDispatch: (o: CaixaOrder) => void;
   onPrintBill: (mesa: number, group: CaixaOrder[]) => void;
   resolveSector: ResolveFn;
   fechamentoMesas: Set<number>;
+  /** Todas as comandas VIVAS — usadas para manter a mesa visível mesmo antes
+   *  do primeiro pedido (Visto dado, cliente ainda escolhendo). */
+  comandasVivas: ComandaFechamento[];
 }) {
   const [filter, setFilter] = useState<MesaFilter>("todas");
 
@@ -1332,7 +1353,7 @@ function MesasColumn({
       arr.push(o);
       map.set(mesa, arr);
     }
-    return [...map.entries()]
+    const groups: MesaGroup[] = [...map.entries()]
       .sort((a, b) => a[0] - b[0])
       .map(([mesa, group]) => {
         const sorted = [...group].sort(
@@ -1350,7 +1371,29 @@ function MesasColumn({
           comandaId: sorted.find((o) => o.comanda_id)?.comanda_id ?? null,
         };
       });
-  }, [orders]);
+
+    // v1.7.4: mesas com comanda VIVA mas SEM pedidos ainda continuam visíveis
+    // (Visto foi dado, cliente está escolhendo). Só somem quando o operador
+    // encerra a comanda no recebimento.
+    const jaListadas = new Set(groups.map((g) => g.mesa));
+    for (const c of comandasVivas) {
+      if (jaListadas.has(c.numero_mesa)) continue;
+      groups.push({
+        mesa: c.numero_mesa,
+        orders: [],
+        total: Number(c.total_parcial ?? 0),
+        openedAt: c.created_at ?? new Date().toISOString(),
+        customer: c.nome_cliente || "Cliente",
+        hasNew: false,
+        awaitingBill: false,
+        comandaId: c.id ?? null,
+      });
+    }
+    groups.sort((a, b) => a.mesa - b.mesa);
+    return groups;
+  }, [orders, comandasVivas]);
+
+
 
   const visible = useMemo(() => {
     if (filter === "aguardando") return grouped.filter((g) => g.awaitingBill);
@@ -1433,8 +1476,8 @@ function MesaCard({
   const [detailOpen, setDetailOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const wait = useWaitTime(group.openedAt);
-  // Representative order (o mais recente) drives the quick status selector.
-  const lead = group.orders[group.orders.length - 1];
+  const isEmpty = group.orders.length === 0;
+
 
   return (
     <>
@@ -1480,33 +1523,34 @@ function MesaCard({
           <span>aberta há {wait}</span>
           <span>·</span>
           <span>{group.orders.length} pedido(s)</span>
-          {group.awaitingBill && (
+          {isEmpty && (
+            <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+              Aguardando pedido
+            </span>
+          )}
+          {!isEmpty && group.awaitingBill && (
             <span className="ml-auto rounded-full bg-amber-400/15 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
               Aguardando conta
             </span>
           )}
         </div>
 
+
         <div
-          className="mt-2.5 flex items-center gap-2"
+          className="mt-2.5 flex items-center justify-end gap-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="min-w-0 flex-1">
-            <StatusControl
-              orderId={lead.id}
-              userId={lead.user_id}
-              status={lead.status_pedido}
-            />
-          </div>
           <Button
             size="sm"
             variant="outline"
             className="shrink-0 rounded-xl"
             onClick={() => onPrintBill(group.mesa, group.orders)}
+            disabled={group.orders.length === 0}
           >
             <Receipt className="mr-1.5 h-4 w-4" /> Imprimir
           </Button>
         </div>
+
       </div>
 
       {detailOpen && (
@@ -1539,10 +1583,11 @@ function MesaCard({
               variant="outline"
               className="mt-3 w-full rounded-xl"
               onClick={() => onPrintBill(group.mesa, group.orders)}
+              disabled={isEmpty}
             >
               <Receipt className="mr-1.5 h-4 w-4" /> Imprimir conta / conferência
             </Button>
-            {group.comandaId && (
+            {group.comandaId && !isEmpty && (
               <Button
                 variant="success"
                 className="mt-2 h-12 w-full rounded-xl font-bold"
@@ -1557,6 +1602,7 @@ function MesaCard({
           </DialogContent>
         </Dialog>
       )}
+
 
       {payOpen && group.comandaId && (
         <ComandaPaymentDialog
@@ -1626,9 +1672,6 @@ function OrderCard({
         </span>
       </div>
 
-      <div className="mt-3">
-        <StatusControl orderId={order.id} userId={order.user_id} status={order.status_pedido} />
-      </div>
 
       {isNew ? (
         <Button className="mt-3 rounded-xl" onClick={() => onDispatch(order)}>

@@ -35,6 +35,8 @@ export async function listAllEmpresas(): Promise<EmpresaRow[]> {
     nome_fantasia: d.nome_fantasia ?? "",
     logotipo_url: d.logotipo_url ?? "/logo.png",
     taxa_servico_mesa: Number(d.taxa_servico_mesa ?? 0),
+    taxa_entrega_valor: Number((d as { taxa_entrega_valor?: number }).taxa_entrega_valor ?? 0),
+
     dominio_customizado: d.dominio_customizado ?? null,
     subdominio: (d as { subdominio?: string | null }).subdominio ?? null,
     cep: d.cep ?? "",

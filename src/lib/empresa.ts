@@ -70,6 +70,8 @@ export interface Empresa {
   /** Storage path OR external URL as stored in the database. */
   logotipo_url: string;
   taxa_servico_mesa: number;
+  /** Taxa de entrega FIXA em R$ para pedidos de delivery. 0 = desligada. */
+  taxa_entrega_valor: number;
   dominio_customizado: string | null;
   /** Tenant subdomain slug registered for this company (multi-tenant guard). */
   subdominio: string | null;
@@ -97,6 +99,7 @@ export interface Empresa {
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
 }
+
 
 export interface EmpresaBranding extends Empresa {
   /** Displayable (signed / external) URL resolved from logotipo_url. */
@@ -131,6 +134,8 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         logotipo_url: data.logotipo_url ?? "/logo.png",
         // Sensitive config is not exposed by the branding query.
         taxa_servico_mesa: 0,
+        taxa_entrega_valor: 0,
+
         dominio_customizado: data.dominio_customizado ?? null,
         subdominio: data.subdominio ?? null,
         cep: "",
@@ -155,6 +160,8 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         nome_fantasia: "",
         logotipo_url: "/logo.png",
         taxa_servico_mesa: 0,
+        taxa_entrega_valor: 0,
+
         dominio_customizado: null,
         subdominio: null,
         cep: "",
@@ -207,6 +214,8 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     nome_fantasia: row?.nome_fantasia ?? "",
     logotipo_url: row?.logotipo_url ?? "/logo.png",
     taxa_servico_mesa: Number(row?.taxa_servico_mesa ?? 0),
+    taxa_entrega_valor: 0,
+
     dominio_customizado: row?.dominio_customizado ?? null,
     subdominio: null,
     // Address & cashback columns are not readable by regular customers.
@@ -256,6 +265,8 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     nome_fantasia: row?.nome_fantasia ?? "",
     logotipo_url: row?.logotipo_url ?? "/logo.png",
     taxa_servico_mesa: Number(row?.taxa_servico_mesa ?? 0),
+    taxa_entrega_valor: Number((row as { taxa_entrega_valor?: number })?.taxa_entrega_valor ?? 0),
+
     dominio_customizado: row?.dominio_customizado ?? null,
     subdominio: null,
     cep: row?.cep ?? "",
@@ -293,6 +304,7 @@ export interface EmpresaUpdate {
   nome_fantasia: string;
   logotipo_url: string;
   taxa_servico_mesa: number;
+  taxa_entrega_valor: number;
   cep: string;
   logradouro: string;
   numero: string;
@@ -307,6 +319,7 @@ export interface EmpresaUpdate {
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
 }
+
 
 /** Update the active company configuration (admin only, enforced by RLS). */
 export async function updateEmpresa(id: string, patch: EmpresaUpdate): Promise<void> {

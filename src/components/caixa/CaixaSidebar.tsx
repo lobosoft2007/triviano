@@ -53,6 +53,8 @@ interface CaixaSidebarProps {
   activeTab: CaixaTab;
   deliveryCount: number;
   mesaCount: number;
+  /** Solicitações de abertura aguardando o Visto do operador (Fila de Visto). */
+  solicitacoesCount: number;
   onSelectTab: (tab: CaixaTab) => void;
   onSuprimento: () => void;
   onSangria: () => void;
@@ -62,6 +64,7 @@ interface CaixaSidebarProps {
   onFecharCaixa: () => void;
   onLock: () => void;
 }
+
 
 /** A single leaf entry inside an accordion group. */
 interface LeafEntry {
@@ -138,6 +141,7 @@ export function CaixaSidebar({
   activeTab,
   deliveryCount,
   mesaCount,
+  solicitacoesCount,
   onSelectTab,
   onSuprimento,
   onSangria,
@@ -160,6 +164,20 @@ export function CaixaSidebar({
 
   const iconCls = "h-4 w-4 shrink-0";
 
+  // Badge composto para "Mesas": mostra o nº de solicitações (âmbar, pulsando)
+  // e o nº de mesas com pedidos abertos. Aparecem juntos quando há os dois.
+  const mesasBadge: ReactNode =
+    solicitacoesCount > 0 || mesaCount > 0 ? (
+      <span className="flex items-center gap-1">
+        {solicitacoesCount > 0 && (
+          <span className="animate-pulse rounded-full bg-warning px-1.5 text-[10px] font-bold text-warning-foreground">
+            +{solicitacoesCount}
+          </span>
+        )}
+        {mesaCount > 0 && <span>{mesaCount}</span>}
+      </span>
+    ) : undefined;
+
   const operacional: GroupModel = {
     id: "operacional",
     label: "Operacional",
@@ -172,7 +190,7 @@ export function CaixaSidebar({
         show: canMesas,
         active: activeTab === "mesas",
         onClick: () => onSelectTab("mesas"),
-        badge: mesaCount > 0 ? mesaCount : undefined,
+        badge: mesasBadge,
       },
       {
         key: "delivery",
@@ -193,6 +211,7 @@ export function CaixaSidebar({
       },
     ],
   };
+
 
   const clientes: GroupModel = {
     id: "clientes",

@@ -722,6 +722,7 @@ export type Database = {
           numero: string
           percentual_cashback: number
           subdominio: string | null
+          taxa_entrega_valor: number
           taxa_servico_mesa: number
           updated_at: string
         }
@@ -753,6 +754,7 @@ export type Database = {
           numero?: string
           percentual_cashback?: number
           subdominio?: string | null
+          taxa_entrega_valor?: number
           taxa_servico_mesa?: number
           updated_at?: string
         }
@@ -784,6 +786,7 @@ export type Database = {
           numero?: string
           percentual_cashback?: number
           subdominio?: string | null
+          taxa_entrega_valor?: number
           taxa_servico_mesa?: number
           updated_at?: string
         }
@@ -2770,6 +2773,7 @@ export type Database = {
           nome_fantasia: string
           numero: string
           percentual_cashback: number
+          taxa_entrega_valor: number
           taxa_servico_mesa: number
         }[]
       }
@@ -2942,6 +2946,10 @@ export type Database = {
       fechar_comanda: { Args: { p_comanda_id: string }; Returns: undefined }
       finalize_comanda_paid: {
         Args: { p_comanda_id: string; p_meio_id: string }
+        Returns: undefined
+      }
+      finalize_comanda_split: {
+        Args: { p_comanda_id: string; p_pagamentos: Json }
         Returns: undefined
       }
       finalize_order_paid: { Args: { p_order_id: string }; Returns: number }

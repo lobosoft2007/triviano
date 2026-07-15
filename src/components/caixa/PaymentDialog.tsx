@@ -11,7 +11,8 @@ import {
   type CaixaOrder,
 } from "@/lib/caixa";
 import { insertNotification } from "@/lib/notifications";
-import { empresaQueryOptions } from "@/lib/empresa";
+import { empresaQueryOptions, empresaAdminConfigQueryOptions } from "@/lib/empresa";
+
 import { fetchMpPublicConfig } from "@/lib/mercadopago";
 import { PdvPixCharge } from "@/components/checkout/PdvPixCharge";
 import { formatBRL } from "@/lib/format";
@@ -41,7 +42,17 @@ export function PaymentDialog({
 }) {
   const queryClient = useQueryClient();
   const { data: empresa } = useQuery(empresaQueryOptions);
+  const { data: empresaAdmin } = useQuery({
+    ...empresaAdminConfigQueryOptions,
+    enabled: open,
+  });
   const brand = empresa?.nome_fantasia || "";
+  // Taxa de entrega fixa da empresa — só somada quando o pedido é DELIVERY.
+  const taxaEntrega =
+    order.tipo_atendimento === "Delivery"
+      ? Number(empresaAdmin?.taxa_entrega_valor ?? 0)
+      : 0;
+
 
 
   const { data: meios } = useQuery({
@@ -80,7 +91,9 @@ export function PaymentDialog({
     () => (pagamentos ?? []).reduce((s, p) => s + toCents(p.valor_pago), 0),
     [pagamentos],
   );
-  const totalCents = toCents(order.total);
+  const totalConta = Math.round((order.total + taxaEntrega) * 100) / 100;
+  const totalCents = toCents(totalConta);
+
   const restanteCents = totalCents - totalPagoCents;
   const restante = restanteCents / 100;
   const matches = restanteCents === 0;
@@ -190,7 +203,7 @@ export function PaymentDialog({
       await addPagamento({
         orderId: order.id,
         meioId: pixMeio.id,
-        valor: order.total,
+        valor: totalConta,
       });
       await finalizeOrderPaid(order.id);
       await queryClient.invalidateQueries({ queryKey: ["pagamentos", order.id] });
@@ -239,12 +252,13 @@ export function PaymentDialog({
                 Total a receber
               </p>
               <p className="font-display text-2xl font-black tabular-nums">
-                {formatBRL(order.total)}
+                {formatBRL(totalConta)}
               </p>
             </div>
             <PdvPixCharge
               orderId={order.id}
-              total={order.total}
+              total={totalConta}
+
               config={mpConfig}
               context="mesa"
               onConfirmed={handleOnlinePixConfirmed}
@@ -346,8 +360,18 @@ export function PaymentDialog({
           {/* Summary */}
           <div className="space-y-1 rounded-xl bg-card p-3 text-sm shadow-card">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total do pedido</span>
+              <span className="text-muted-foreground">Subtotal do pedido</span>
               <span className="tabular-nums">{formatBRL(order.total)}</span>
+            </div>
+            {taxaEntrega > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Taxa de entrega</span>
+                <span className="tabular-nums">{formatBRL(taxaEntrega)}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-border pt-1 font-semibold">
+              <span>Total a receber</span>
+              <span className="tabular-nums">{formatBRL(totalConta)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total pago</span>
@@ -364,6 +388,7 @@ export function PaymentDialog({
               <span className="tabular-nums">{formatBRL(Math.abs(restante))}</span>
             </div>
           </div>
+
 
           {!matches && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
