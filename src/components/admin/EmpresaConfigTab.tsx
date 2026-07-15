@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 interface FormState {
   nome_fantasia: string;
   taxa_servico_mesa: string;
+  taxa_entrega_valor: string;
   cep: string;
   logradouro: string;
   numero: string;
@@ -36,6 +37,7 @@ function empresaToForm(e: EmpresaBranding): FormState {
   return {
     nome_fantasia: e.nome_fantasia,
     taxa_servico_mesa: String(e.taxa_servico_mesa).replace(".", ","),
+    taxa_entrega_valor: String(e.taxa_entrega_valor).replace(".", ","),
     cep: e.cep,
     logradouro: e.logradouro,
     numero: e.numero,
@@ -50,6 +52,7 @@ function empresaToForm(e: EmpresaBranding): FormState {
     monitor_pizzaria: e.monitor_pizzaria,
   };
 }
+
 
 export function EmpresaConfigTab() {
   const queryClient = useQueryClient();
@@ -89,6 +92,11 @@ export function EmpresaConfigTab() {
       toast.error("A taxa de serviço deve estar entre 0 e 100%.");
       return;
     }
+    const taxaEntrega = parseNumberInput(form.taxa_entrega_valor);
+    if (taxaEntrega < 0) {
+      toast.error("A taxa de entrega não pode ser negativa.");
+      return;
+    }
     const pctCashback = parseNumberInput(form.percentual_cashback);
     if (pctCashback < 0 || pctCashback > 100) {
       toast.error("O percentual de cashback deve estar entre 0 e 100%.");
@@ -107,6 +115,7 @@ export function EmpresaConfigTab() {
         nome_fantasia: form.nome_fantasia.trim(),
         logotipo_url: logoRef,
         taxa_servico_mesa: taxa,
+        taxa_entrega_valor: taxaEntrega,
         cep: form.cep.trim(),
         logradouro: form.logradouro.trim(),
         numero: form.numero.trim(),
@@ -120,6 +129,7 @@ export function EmpresaConfigTab() {
         monitor_bar: form.monitor_bar,
         monitor_pizzaria: form.monitor_pizzaria,
       });
+
 
       toast.success("Configurações da empresa salvas!");
       setFile(null);
