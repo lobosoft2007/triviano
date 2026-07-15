@@ -360,8 +360,18 @@ export function PaymentDialog({
           {/* Summary */}
           <div className="space-y-1 rounded-xl bg-card p-3 text-sm shadow-card">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total do pedido</span>
+              <span className="text-muted-foreground">Subtotal do pedido</span>
               <span className="tabular-nums">{formatBRL(order.total)}</span>
+            </div>
+            {taxaEntrega > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Taxa de entrega</span>
+                <span className="tabular-nums">{formatBRL(taxaEntrega)}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-border pt-1 font-semibold">
+              <span>Total a receber</span>
+              <span className="tabular-nums">{formatBRL(totalConta)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total pago</span>
@@ -378,6 +388,7 @@ export function PaymentDialog({
               <span className="tabular-nums">{formatBRL(Math.abs(restante))}</span>
             </div>
           </div>
+
 
           {!matches && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
