@@ -1330,12 +1330,16 @@ function MesasColumn({
   onPrintBill,
   resolveSector,
   fechamentoMesas,
+  comandasVivas,
 }: {
   orders: CaixaOrder[];
   onDispatch: (o: CaixaOrder) => void;
   onPrintBill: (mesa: number, group: CaixaOrder[]) => void;
   resolveSector: ResolveFn;
   fechamentoMesas: Set<number>;
+  /** Todas as comandas VIVAS — usadas para manter a mesa visível mesmo antes
+   *  do primeiro pedido (Visto dado, cliente ainda escolhendo). */
+  comandasVivas: ComandaFechamento[];
 }) {
   const [filter, setFilter] = useState<MesaFilter>("todas");
 
@@ -1347,7 +1351,7 @@ function MesasColumn({
       arr.push(o);
       map.set(mesa, arr);
     }
-    return [...map.entries()]
+    const groups: MesaGroup[] = [...map.entries()]
       .sort((a, b) => a[0] - b[0])
       .map(([mesa, group]) => {
         const sorted = [...group].sort(
@@ -1365,7 +1369,29 @@ function MesasColumn({
           comandaId: sorted.find((o) => o.comanda_id)?.comanda_id ?? null,
         };
       });
-  }, [orders]);
+
+    // v1.7.4: mesas com comanda VIVA mas SEM pedidos ainda continuam visíveis
+    // (Visto foi dado, cliente está escolhendo). Só somem quando o operador
+    // encerra a comanda no recebimento.
+    const jaListadas = new Set(groups.map((g) => g.mesa));
+    for (const c of comandasVivas) {
+      if (jaListadas.has(c.numero_mesa)) continue;
+      groups.push({
+        mesa: c.numero_mesa,
+        orders: [],
+        total: Number(c.total_parcial ?? 0),
+        openedAt: c.created_at ?? new Date().toISOString(),
+        customer: c.nome_cliente || "Cliente",
+        hasNew: false,
+        awaitingBill: false,
+        comandaId: c.id ?? null,
+      });
+    }
+    groups.sort((a, b) => a.mesa - b.mesa);
+    return groups;
+  }, [orders, comandasVivas]);
+
+
 
   const visible = useMemo(() => {
     if (filter === "aguardando") return grouped.filter((g) => g.awaitingBill);
