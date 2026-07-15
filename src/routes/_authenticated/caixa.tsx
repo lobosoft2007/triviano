@@ -856,6 +856,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         activeTab={tab}
         deliveryCount={deliveryOrders.length}
         mesaCount={mesaOrders.length}
+        solicitacoesCount={solicitacoes?.length ?? 0}
         onSelectTab={setTab}
         onSuprimento={() => handleMov("Suprimento")}
         onSangria={() => handleMov("Sangria")}
@@ -865,6 +866,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         onFecharCaixa={() => setCloseOpen(true)}
         onLock={handleLock}
       />
+
       <SidebarInset className="min-h-0 overflow-hidden">
         <AppShell className="h-full">
           {/* Slim header */}
