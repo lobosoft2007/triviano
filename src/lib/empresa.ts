@@ -134,6 +134,8 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         logotipo_url: data.logotipo_url ?? "/logo.png",
         // Sensitive config is not exposed by the branding query.
         taxa_servico_mesa: 0,
+        taxa_entrega_valor: 0,
+
         dominio_customizado: data.dominio_customizado ?? null,
         subdominio: data.subdominio ?? null,
         cep: "",
@@ -158,6 +160,8 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         nome_fantasia: "",
         logotipo_url: "/logo.png",
         taxa_servico_mesa: 0,
+        taxa_entrega_valor: 0,
+
         dominio_customizado: null,
         subdominio: null,
         cep: "",
