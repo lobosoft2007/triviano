@@ -789,17 +789,37 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
     }
   }
 
-  // Alerta sonoro quando entra uma nova solicitação de abertura de mesa.
+  // Alerta sonoro + toast persistente quando entra uma NOVA solicitação de
+  // abertura. O toast só aparece quando o operador está em outra aba (na aba
+  // Mesas a Fila de Visto já é ultra-visível).
   const prevSolicRef = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (!solicitacoes) return;
     const ids = new Set(solicitacoes.map((s) => s.id));
     const prev = prevSolicRef.current;
-    if (prev && solicitacoes.some((s) => !prev.has(s.id)) && soundOn) {
-      playBeep();
+    if (prev) {
+      const novas = solicitacoes.filter((s) => !prev.has(s.id));
+      if (novas.length > 0) {
+        if (soundOn) playBeep();
+        if (tab !== "mesas") {
+          toast.warning(
+            `Nova solicitação de mesa (${novas[0].numero_mesa})${
+              novas.length > 1 ? ` e mais ${novas.length - 1}` : ""
+            }`,
+            {
+              duration: 12000,
+              action: {
+                label: "Ir para Mesas",
+                onClick: () => setTab("mesas"),
+              },
+            },
+          );
+        }
+      }
     }
     prevSolicRef.current = ids;
-  }, [solicitacoes, soundOn]);
+  }, [solicitacoes, soundOn, tab]);
+
 
   // Quando uma mesa PEDE o fechamento, imprime a conferência automaticamente.
   const prevFechRef = useRef<Set<number> | null>(null);
