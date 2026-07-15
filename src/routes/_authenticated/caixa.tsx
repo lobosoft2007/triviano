@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CaixaSidebar } from "@/components/caixa/CaixaSidebar";
 
-import { notifyStatusChange } from "@/lib/notifications";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
