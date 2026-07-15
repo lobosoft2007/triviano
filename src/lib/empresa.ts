@@ -214,6 +214,8 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     nome_fantasia: row?.nome_fantasia ?? "",
     logotipo_url: row?.logotipo_url ?? "/logo.png",
     taxa_servico_mesa: Number(row?.taxa_servico_mesa ?? 0),
+    taxa_entrega_valor: 0,
+
     dominio_customizado: row?.dominio_customizado ?? null,
     subdominio: null,
     // Address & cashback columns are not readable by regular customers.
@@ -263,6 +265,8 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     nome_fantasia: row?.nome_fantasia ?? "",
     logotipo_url: row?.logotipo_url ?? "/logo.png",
     taxa_servico_mesa: Number(row?.taxa_servico_mesa ?? 0),
+    taxa_entrega_valor: Number((row as { taxa_entrega_valor?: number })?.taxa_entrega_valor ?? 0),
+
     dominio_customizado: row?.dominio_customizado ?? null,
     subdominio: null,
     cep: row?.cep ?? "",
@@ -300,6 +304,7 @@ export interface EmpresaUpdate {
   nome_fantasia: string;
   logotipo_url: string;
   taxa_servico_mesa: number;
+  taxa_entrega_valor: number;
   cep: string;
   logradouro: string;
   numero: string;
@@ -314,6 +319,7 @@ export interface EmpresaUpdate {
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
 }
+
 
 /** Update the active company configuration (admin only, enforced by RLS). */
 export async function updateEmpresa(id: string, patch: EmpresaUpdate): Promise<void> {
