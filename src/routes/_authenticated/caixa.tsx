@@ -1162,14 +1162,7 @@ function CompactOrderRow({
           </span>
         </div>
 
-        <div className="mt-2.5 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <div className="min-w-0 flex-1">
-            <StatusControl
-              orderId={order.id}
-              userId={order.user_id}
-              status={order.status_pedido}
-            />
-          </div>
+        <div className="mt-2.5 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           {isNew ? (
             <Button
               size="sm"
@@ -1185,6 +1178,7 @@ function CompactOrderRow({
           )}
         </div>
       </div>
+
 
       {detailOpen && (
         <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
