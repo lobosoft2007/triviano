@@ -11,7 +11,8 @@ import {
   type CaixaOrder,
 } from "@/lib/caixa";
 import { insertNotification } from "@/lib/notifications";
-import { empresaQueryOptions } from "@/lib/empresa";
+import { empresaQueryOptions, empresaAdminConfigQueryOptions } from "@/lib/empresa";
+
 import { fetchMpPublicConfig } from "@/lib/mercadopago";
 import { PdvPixCharge } from "@/components/checkout/PdvPixCharge";
 import { formatBRL } from "@/lib/format";
@@ -41,7 +42,17 @@ export function PaymentDialog({
 }) {
   const queryClient = useQueryClient();
   const { data: empresa } = useQuery(empresaQueryOptions);
+  const { data: empresaAdmin } = useQuery({
+    ...empresaAdminConfigQueryOptions,
+    enabled: open,
+  });
   const brand = empresa?.nome_fantasia || "";
+  // Taxa de entrega fixa da empresa — só somada quando o pedido é DELIVERY.
+  const taxaEntrega =
+    order.tipo_atendimento === "Delivery"
+      ? Number(empresaAdmin?.taxa_entrega_valor ?? 0)
+      : 0;
+
 
 
   const { data: meios } = useQuery({
