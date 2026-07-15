@@ -430,6 +430,9 @@ export interface ComandaFechamento {
   numero_mesa: number;
   total_parcial: number;
   nome_cliente: string;
+  /** Presentes em fetchComandasVivas (usados para mostrar mesas sem pedidos). */
+  id?: string;
+  created_at?: string;
 }
 
 /** Mesas que pediram o fechamento (destaque amarelo pulsante no Caixa). */
@@ -444,16 +447,33 @@ export async function fetchComandasAguardandoFechamento(): Promise<
   return (data ?? []) as ComandaFechamento[];
 }
 
-/** Mesas com comanda VIVA (aberta ou aguardando fechamento) — usada para
- *  detectar conflito antes de liberar a Fila de Visto. */
+/** Mesas com comanda VIVA (aberta ou aguardando fechamento). Também usada
+ *  para manter a mesa visível no Caixa mesmo quando ainda não há pedidos. */
 export async function fetchComandasVivas(): Promise<ComandaFechamento[]> {
   const { data, error } = await supabase
     .from("comanda_ativa")
-    .select("numero_mesa, total_parcial, nome_cliente")
+    .select("id, numero_mesa, total_parcial, nome_cliente, created_at")
     .in("status", ["aberta", "aguardando_fechamento"]);
   if (error) throw error;
   return (data ?? []) as ComandaFechamento[];
 }
+
+/** Split de pagamento da comanda inteira (Recebimento no Caixa v1.7.4). */
+export interface ComandaPagamentoSplit {
+  meio_id: string;
+  valor: number;
+}
+export async function finalizeComandaSplit(
+  comandaId: string,
+  pagamentos: ComandaPagamentoSplit[],
+): Promise<void> {
+  const { error } = await supabase.rpc("finalize_comanda_split", {
+    p_comanda_id: comandaId,
+    p_pagamentos: pagamentos as unknown as Json,
+  });
+  if (error) throw error;
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Gerador de QR (Admin)                                               */
