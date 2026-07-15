@@ -1583,10 +1583,11 @@ function MesaCard({
               variant="outline"
               className="mt-3 w-full rounded-xl"
               onClick={() => onPrintBill(group.mesa, group.orders)}
+              disabled={isEmpty}
             >
               <Receipt className="mr-1.5 h-4 w-4" /> Imprimir conta / conferência
             </Button>
-            {group.comandaId && (
+            {group.comandaId && !isEmpty && (
               <Button
                 variant="success"
                 className="mt-2 h-12 w-full rounded-xl font-bold"
@@ -1601,6 +1602,7 @@ function MesaCard({
           </DialogContent>
         </Dialog>
       )}
+
 
       {payOpen && group.comandaId && (
         <ComandaPaymentDialog
