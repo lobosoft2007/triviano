@@ -91,7 +91,9 @@ export function PaymentDialog({
     () => (pagamentos ?? []).reduce((s, p) => s + toCents(p.valor_pago), 0),
     [pagamentos],
   );
-  const totalCents = toCents(order.total);
+  const totalConta = Math.round((order.total + taxaEntrega) * 100) / 100;
+  const totalCents = toCents(totalConta);
+
   const restanteCents = totalCents - totalPagoCents;
   const restante = restanteCents / 100;
   const matches = restanteCents === 0;
