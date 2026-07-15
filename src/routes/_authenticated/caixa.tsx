@@ -625,11 +625,9 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
 
     try {
       await markPrintedCozinha(order.id);
-      try {
-        await notifyStatusChange(order.id, order.user_id, "Em preparação");
-      } catch {
-        /* best-effort */
-      }
+      // v1.7.4: sem push automático em "Em preparação". O cliente só recebe
+      // notificações em (a) mesa liberada e (b) pedido recebido. Alertas
+      // extras ficam com o botão NotifyClient (manual).
       await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
       toast.success(
         `Impressões de preparo disparadas (${list.length} setor${
@@ -640,6 +638,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
       toast.error("Falha ao marcar impressão.");
     }
   }
+
 
 
   async function printBill(mesa: number, mesaOrdersGroup: CaixaOrder[]) {
