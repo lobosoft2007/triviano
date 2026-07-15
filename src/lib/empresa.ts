@@ -70,6 +70,8 @@ export interface Empresa {
   /** Storage path OR external URL as stored in the database. */
   logotipo_url: string;
   taxa_servico_mesa: number;
+  /** Taxa de entrega FIXA em R$ para pedidos de delivery. 0 = desligada. */
+  taxa_entrega_valor: number;
   dominio_customizado: string | null;
   /** Tenant subdomain slug registered for this company (multi-tenant guard). */
   subdominio: string | null;
@@ -97,6 +99,7 @@ export interface Empresa {
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
 }
+
 
 export interface EmpresaBranding extends Empresa {
   /** Displayable (signed / external) URL resolved from logotipo_url. */
