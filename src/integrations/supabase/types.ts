@@ -2773,6 +2773,7 @@ export type Database = {
           nome_fantasia: string
           numero: string
           percentual_cashback: number
+          taxa_entrega_valor: number
           taxa_servico_mesa: number
         }[]
       }
