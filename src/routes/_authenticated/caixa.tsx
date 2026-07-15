@@ -1503,25 +1503,20 @@ function MesaCard({
         </div>
 
         <div
-          className="mt-2.5 flex items-center gap-2"
+          className="mt-2.5 flex items-center justify-end gap-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="min-w-0 flex-1">
-            <StatusControl
-              orderId={lead.id}
-              userId={lead.user_id}
-              status={lead.status_pedido}
-            />
-          </div>
           <Button
             size="sm"
             variant="outline"
             className="shrink-0 rounded-xl"
             onClick={() => onPrintBill(group.mesa, group.orders)}
+            disabled={group.orders.length === 0}
           >
             <Receipt className="mr-1.5 h-4 w-4" /> Imprimir
           </Button>
         </div>
+
       </div>
 
       {detailOpen && (
