@@ -203,7 +203,7 @@ export function PaymentDialog({
       await addPagamento({
         orderId: order.id,
         meioId: pixMeio.id,
-        valor: order.total,
+        valor: totalConta,
       });
       await finalizeOrderPaid(order.id);
       await queryClient.invalidateQueries({ queryKey: ["pagamentos", order.id] });
@@ -252,12 +252,13 @@ export function PaymentDialog({
                 Total a receber
               </p>
               <p className="font-display text-2xl font-black tabular-nums">
-                {formatBRL(order.total)}
+                {formatBRL(totalConta)}
               </p>
             </div>
             <PdvPixCharge
               orderId={order.id}
-              total={order.total}
+              total={totalConta}
+
               config={mpConfig}
               context="mesa"
               onConfirmed={handleOnlinePixConfirmed}
