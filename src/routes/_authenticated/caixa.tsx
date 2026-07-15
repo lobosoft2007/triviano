@@ -24,7 +24,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
-import { StatusControl } from "@/components/caixa/StatusControl";
+
 import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
 import { CloseCaixaDialog } from "@/components/caixa/CloseCaixaDialog";
 import { PaymentDialog } from "@/components/caixa/PaymentDialog";
@@ -1636,9 +1636,6 @@ function OrderCard({
         </span>
       </div>
 
-      <div className="mt-3">
-        <StatusControl orderId={order.id} userId={order.user_id} status={order.status_pedido} />
-      </div>
 
       {isNew ? (
         <Button className="mt-3 rounded-xl" onClick={() => onDispatch(order)}>
