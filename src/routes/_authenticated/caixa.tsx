@@ -966,7 +966,9 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
               onPrintBill={printBill}
               resolveSector={resolveSector}
               fechamentoMesas={fechamentoMesas}
+              comandasVivas={mesasVivas ?? []}
             />
+
           </div>
         )}
 
