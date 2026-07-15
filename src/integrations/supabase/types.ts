@@ -3246,6 +3246,10 @@ export type Database = {
         Args: { _name: string }
         Returns: boolean
       }
+      storage_path_is_empresa_ativa: {
+        Args: { _name: string }
+        Returns: boolean
+      }
       storage_path_is_empresa_prefixed: {
         Args: { _name: string }
         Returns: boolean
