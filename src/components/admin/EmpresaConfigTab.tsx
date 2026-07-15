@@ -209,7 +209,7 @@ export function EmpresaConfigTab() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="taxa">Taxa de Serviço nas Mesas (%)</Label>
+          <Label htmlFor="taxa">Gorjeta sugerida nas mesas (%)</Label>
           <Input
             id="taxa"
             inputMode="decimal"
@@ -218,8 +218,28 @@ export function EmpresaConfigTab() {
             placeholder="Ex: 10"
             className="h-11 rounded-xl"
           />
+          <p className="text-[11px] text-muted-foreground">
+            Percentual sugerido no fechamento da comanda. O caixa/cliente pode aceitar
+            ou remover. 0% desliga a sugestão.
+          </p>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="taxa_entrega">Taxa de entrega (R$)</Label>
+          <Input
+            id="taxa_entrega"
+            inputMode="decimal"
+            value={form.taxa_entrega_valor}
+            onChange={(e) => set("taxa_entrega_valor", e.target.value)}
+            placeholder="Ex: 6,00"
+            className="h-11 rounded-xl"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Valor fixo somado ao total dos pedidos de delivery no recebimento.
+            R$&nbsp;0,00 desliga a cobrança.
+          </p>
         </div>
       </section>
+
 
       {/* Cashback */}
       <section className="rounded-2xl border border-border bg-card p-4">
