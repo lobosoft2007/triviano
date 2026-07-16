@@ -404,25 +404,41 @@ export function ComandaPaymentDialog({
                   {formatBRL(totalPagoCents / 100)}
                 </span>
               </div>
-              <div
-                className={`flex justify-between border-t border-border pt-1 font-display font-bold ${
-                  matches ? "text-success" : "text-destructive"
-                }`}
-              >
-                <span>{restanteCents >= 0 ? "Restante" : "Excedente"}</span>
-                <span className="tabular-nums">
-                  {formatBRL(Math.abs(restante))}
-                </span>
-              </div>
+              {restanteCents > 0 && (
+                <div className="flex justify-between border-t border-border pt-1 font-display font-bold text-destructive">
+                  <span>Restante</span>
+                  <span className="tabular-nums">
+                    {formatBRL(restanteCents / 100)}
+                  </span>
+                </div>
+              )}
+              {trocoCents > 0 && (
+                <div className="flex justify-between border-t border-border pt-1 font-display font-bold text-success">
+                  <span>Troco</span>
+                  <span className="tabular-nums">
+                    {formatBRL(trocoCents / 100)}
+                  </span>
+                </div>
+              )}
+              {excedenteCents > trocoCents && (
+                <div className="flex justify-between border-t border-border pt-1 font-display font-bold text-destructive">
+                  <span>Excedente (não é dinheiro)</span>
+                  <span className="tabular-nums">
+                    {formatBRL((excedenteCents - trocoCents) / 100)}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {!matches && (
+            {!matches && drafts.length > 0 && (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <AlertCircle className="h-3.5 w-3.5" />
-                A soma dos pagamentos precisa bater exatamente com o total para
-                fechar a mesa.
+                {excedenteCents > trocoCents
+                  ? "Excedente só pode vir de dinheiro (para virar troco)."
+                  : "A soma dos pagamentos precisa cobrir o total da conta."}
               </p>
             )}
+
 
             {finalizing && (
               <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
