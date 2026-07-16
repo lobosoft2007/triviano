@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, UserCog } from "lucide-react";
+import { Loader2, Lock, LockOpen, Plus, Trash2, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchNiveis, fetchFuncionarios, setFuncionarioNivel } from "@/lib/niveis";
+import { fetchNiveis, fetchFuncionarios, setFuncionarioNivel, setFuncionarioBloqueado } from "@/lib/niveis";
 import { createFuncionario, deleteFuncionario } from "@/lib/funcionarios.functions";
 
 export function FuncionariosTab() {
@@ -61,13 +61,23 @@ export function FuncionariosTab() {
   };
 
   const handleDelete = async (user_id: string, nome: string | null) => {
-    if (!confirm(`Excluir o funcionário "${nome ?? "sem nome"}"? Esta ação é permanente.`)) return;
+    if (!confirm(`Excluir o funcionário "${nome ?? "sem nome"}"? Esta ação é permanente. Prefira bloquear para preservar o histórico.`)) return;
     try {
       await deleteFn({ data: { user_id } });
       toast.success("Funcionário removido.");
       invalidate();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao remover.");
+    }
+  };
+
+  const handleToggleBloqueio = async (user_id: string, bloqueado: boolean) => {
+    try {
+      await setFuncionarioBloqueado(user_id, bloqueado);
+      toast.success(bloqueado ? "Funcionário bloqueado." : "Funcionário liberado.");
+      invalidate();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao atualizar o status.");
     }
   };
 
@@ -154,9 +164,24 @@ export function FuncionariosTab() {
           {(funcionarios ?? []).map((f) => (
             <div
               key={f.id}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
+              className={`flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 ${
+                f.bloqueado
+                  ? "border-dashed border-muted-foreground/40 bg-muted/40"
+                  : "border-border bg-card"
+              }`}
             >
-              <span className="min-w-40 flex-1 font-semibold">{f.full_name ?? "—"}</span>
+              <span
+                className={`min-w-40 flex-1 font-semibold ${
+                  f.bloqueado ? "text-muted-foreground line-through" : ""
+                }`}
+              >
+                {f.full_name ?? "—"}
+              </span>
+              {f.bloqueado && (
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  Bloqueado
+                </span>
+              )}
               <Select
                 value={f.nivel_id ?? ""}
                 onValueChange={(v) => handleChangeNivel(f.id, v)}
@@ -173,10 +198,29 @@ export function FuncionariosTab() {
                 </SelectContent>
               </Select>
               <Button
+                size="sm"
+                variant={f.bloqueado ? "default" : "outline"}
+                onClick={() => handleToggleBloqueio(f.id, !f.bloqueado)}
+                title={f.bloqueado ? "Liberar acesso" : "Bloquear acesso"}
+              >
+                {f.bloqueado ? (
+                  <>
+                    <LockOpen className="mr-1 h-4 w-4" />
+                    Liberar
+                  </>
+                ) : (
+                  <>
+                    <Lock className="mr-1 h-4 w-4" />
+                    Bloquear
+                  </>
+                )}
+              </Button>
+              <Button
                 size="icon"
                 variant="ghost"
                 className="text-destructive"
                 onClick={() => handleDelete(f.id, f.full_name)}
+                title="Excluir definitivamente"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

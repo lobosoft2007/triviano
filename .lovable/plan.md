@@ -1,43 +1,48 @@
+## Objetivo
 
-## Resposta curta
-Sim, funciona — mas só se, ao cadastrar o cliente no Admin, nós criarmos de fato um **usuário de autenticação** (em `auth.users`) já com e-mail confirmado e uma senha aleatória descartável. Sem isso, o "Esqueci minha senha" responde "e-mail não encontrado" e o cliente não consegue entrar.
+Permitir que o Admin **bloqueie** um funcionário (férias, afastamento, desligamento) em vez de excluir. O cadastro e todo o histórico (pedidos, movimentações de caixa, ajustes de estoque, etc.) permanecem intactos, mas o funcionário fica **impedido de operar** dentro do Triviano enquanto estiver bloqueado.
 
-Hoje a tela `Admin → Clientes` (`ClientesView.tsx`) só lê/edita `profiles`. Ela não cria conta de auth. Então precisamos adicionar esse fluxo.
+## 1. Banco de dados (uma migração)
 
-## Como vai funcionar (fluxo do cliente)
-1. Operador cadastra o cliente no Admin com nome, telefone, endereço e **e-mail** (obrigatório).
-2. Sistema cria o usuário em `auth.users` (e-mail já confirmado, senha aleatória forte que ninguém verá) e o `profiles` correspondente com todos os dados.
-3. Opcional: já disparar o e-mail de redefinição na hora ("Enviar link de definição de senha").
-4. Cliente abre o link do restaurante → **Entrar** → **Esqueci minha senha** → digita o e-mail → recebe o e-mail (template `recovery.tsx` que já existe) → cai em `/auth/update-password` (rota que já existe) → define a senha → entra normalmente.
+A coluna `profiles.bloqueado boolean` já existe (usada hoje para clientes) — vamos reutilizá-la para funcionários também.
 
-## O que vou construir
+- **RPC `admin_set_funcionario_bloqueado(p_user_id uuid, p_bloqueado boolean)`** (`security definer`):
+  - Só executa se `is_local_admin()` for verdadeiro.
+  - Confirma que o alvo pertence à mesma `empresa_id` do operador e tem `nivel_id IS NOT NULL` (é funcionário, não cliente nem master).
+  - Faz `UPDATE public.profiles SET bloqueado = p_bloqueado WHERE id = p_user_id`.
+  - `GRANT EXECUTE ... TO authenticated`.
+- **Ajuste em `get_my_permissions()`**: se o próprio `profiles.bloqueado` do usuário logado for `true`, retorna a linha `DENY_ALL` (todas as flags `false`, `is_admin/is_manager/is_funcionario = false`). Isso desliga automaticamente todos os guards do Caixa e Admin sem tocar em cada tela.
+- **Ajuste em `admin_list_funcionarios()`**: passa a devolver também `bloqueado boolean` para alimentar a UI.
 
-### Backend (server function protegida, admin-only)
-- `src/lib/clientes-admin.functions.ts` com `createClienteByAdmin`:
-  - `.middleware([requireSupabaseAuth])` + checagem de papel admin da empresa do operador.
-  - `await import("@/integrations/supabase/client.server")` dentro do handler.
-  - `supabaseAdmin.auth.admin.createUser({ email, email_confirm: true, password: <random 32 chars>, user_metadata: { full_name, empresa_id } })`.
-  - `UPSERT` em `public.profiles` com todos os campos do formulário (nome, CEP, endereço atomizado, telefone, `empresa_id`, etc.), vinculado ao `id` retornado.
-  - Se `enviarLinkAgora === true`: `supabaseAdmin.auth.admin.generateLink({ type: 'recovery', email })` **ou** deixar o cliente fazer o "Esqueci minha senha" sozinho (mais simples e usa o fluxo padrão já homologado).
-  - Retorna `{ ok, userId }`. Se o e-mail já existir, retorna erro amigável ("Já existe cliente com esse e-mail").
+Motor financeiro, RLS de pedidos, triggers e webhook do MP não são alterados (mem://constraints/motor-financeiro-protegido).
 
-### Frontend (Admin)
-- Em `src/components/admin/ClientesView.tsx`: novo botão **"Novo cliente"** abrindo um `Dialog` com `AddressFields` + Nome + E-mail + checkbox "Enviar link de definição de senha agora".
-- Chama a server fn acima, invalida `["clientes"]`, mostra toast do tipo _"Cliente criado. Ele receberá o link para definir a senha ao clicar em 'Esqueci minha senha' na tela de acesso."_ (ou "Link enviado para o e-mail X" quando marcado).
+## 2. Backend TS
 
-### Nada muda em:
-- `/auth` (esqueci minha senha) — já funciona.
-- `/auth/update-password` — já funciona.
-- Templates de e-mail (`recovery.tsx`) — já customizados.
-- Motor financeiro / RLS / triggers — **não tocar**.
+- `src/lib/niveis.ts`
+  - `Funcionario` ganha `bloqueado: boolean`.
+  - Nova função `setFuncionarioBloqueado(user_id, bloqueado)` chamando a RPC acima.
 
-## Pré-requisitos que já estão OK
-- Envio de e-mails auth ativo (template `recovery` já em `src/lib/email-templates/recovery.tsx`).
-- Rota `/auth/update-password` existente e testada.
-- `profiles` já aceita todos os campos de endereço.
+## 3. UI — `src/components/admin/FuncionariosTab.tsx`
 
-## Ponto de atenção
-- Rate-limit de e-mails de auth do projeto: se o Admin cadastrar muitos clientes num curto período e todos pedirem redefinição no mesmo momento, pode bater no limite. Já temos ferramenta para aumentar quando necessário; sinalizo se acontecer.
-- Clientes sem e-mail (só telefone) **não** conseguem usar esse fluxo — a redefinição de senha exige e-mail. Nesse caso o cadastro precisa ser feito pelo próprio cliente na tela de acesso, como hoje.
+Na linha de cada funcionário, ao lado do seletor de nível e antes do botão excluir:
 
-Posso implementar?
+- **Switch "Ativo / Bloqueado"** (ou botão com ícone `Lock` / `LockOpen`).
+- Quando bloqueado: a linha ganha um badge cinza "Bloqueado" e o nome fica em `text-muted-foreground`.
+- Toast de confirmação ("Funcionário bloqueado." / "Funcionário liberado.").
+- Invalida `["funcionarios"]` no cache.
+
+O botão **Excluir** permanece disponível (para casos realmente definitivos), mas o texto de ajuda no topo da aba passa a sugerir bloquear em vez de excluir para preservar o histórico.
+
+## 4. Efeito prático do bloqueio
+
+Como `get_my_permissions()` passa a devolver `DENY_ALL` para funcionário bloqueado:
+
+- Guards `canEnterCaixa` / `canEnterAdmin` recusam a entrada e a rota `_authenticated` redireciona para `/` (comportamento já existente para quem não tem permissão).
+- Toda RPC financeira/operacional que exige uma flag específica (abrir caixa, sangria, fechar comanda, etc.) já falha via `has_permission_flag` do backend.
+- Login continua funcionando (não bloqueamos `auth.users`), então o desbloqueio é imediato quando o Admin voltar a marcar como ativo — sem precisar recriar conta nem redefinir senha.
+
+## 5. Fora do escopo
+
+- Não alteramos schema de pedidos/caixa (autoria preservada por FK atual).
+- Não mexemos em clientes (fluxo `set_cliente_bloqueado` já existe e continua separado).
+- Sem novos e-mails ou notificações ao funcionário bloqueado.

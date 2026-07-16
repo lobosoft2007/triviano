@@ -121,12 +121,19 @@ export interface Funcionario {
   full_name: string | null;
   nivel_id: string | null;
   nome_nivel: string | null;
+  bloqueado: boolean;
 }
 
 export async function fetchFuncionarios(): Promise<Funcionario[]> {
   const { data, error } = await supabase.rpc("admin_list_funcionarios");
   if (error) throw error;
-  return (data ?? []) as Funcionario[];
+  return ((data ?? []) as Array<Partial<Funcionario>>).map((r) => ({
+    id: r.id as string,
+    full_name: r.full_name ?? null,
+    nivel_id: r.nivel_id ?? null,
+    nome_nivel: r.nome_nivel ?? null,
+    bloqueado: Boolean(r.bloqueado),
+  }));
 }
 
 export async function setFuncionarioNivel(user_id: string, nivel_id: string): Promise<void> {
@@ -136,3 +143,16 @@ export async function setFuncionarioNivel(user_id: string, nivel_id: string): Pr
   });
   if (error) throw error;
 }
+
+/** Bloqueia ou desbloqueia um funcionário (preserva o histórico do usuário). */
+export async function setFuncionarioBloqueado(
+  user_id: string,
+  bloqueado: boolean,
+): Promise<void> {
+  const { error } = await supabase.rpc("admin_set_funcionario_bloqueado", {
+    p_user_id: user_id,
+    p_bloqueado: bloqueado,
+  });
+  if (error) throw error;
+}
+
