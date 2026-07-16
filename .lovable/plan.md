@@ -1,64 +1,73 @@
-## 1) Impressão direta da conta via WebUSB / Web Serial
+## Veredicto sobre as 5 recomendações
 
-Objetivo: ao clicar "Imprimir conta / conferência" na mesa, o cupom sai instantaneamente na impressora térmica configurada, sem diálogo do navegador, sem instalação de nada, sem afetar outros programas do PC.
+### 1. Desativar botão direito e F12 — ❌ NÃO fazer
+**Segurança teatral.** Qualquer pessoa abre DevTools por menu do navegador, atalho alternativo, ou simplesmente `view-source:`. Não impede pirataria (o JS já foi baixado pelo browser), atrapalha suporte técnico, quebra acessibilidade e passa imagem amadora. Grandes players (Stripe, Linear, Notion) não fazem isso. **Recomendo ignorar.**
 
-### Escopo técnico
+### 2. Remover Source Maps — ✅ FAZER (rápido)
+Source maps em produção expõem o código-fonte legível (nomes de variáveis, comentários, estrutura de pastas). Vamos garantir `build.sourcemap: false` no `vite.config.ts` para o build de produção. Mantemos em dev. **Ganho real e baixo custo.**
 
-**a) Nova lib `src/lib/thermal-printer.ts`**
-- `requestUsbDevice()` → `navigator.usb.requestDevice({ filters: [{ classCode: 7 }] })` (classe "Printer") + `open()`, `selectConfiguration(1)`, `claimInterface(0)`, descobre `endpointOut`.
-- `requestSerialPort()` → `navigator.serial.requestPort()` + `open({ baudRate: 9600 })`.
-- `encodeReceipt(lines)` → monta bytes ESC/POS: init (`0x1B 0x40`), CP850, alinhamentos, negrito, largura dupla no cabeçalho, feed final, corte parcial (`0x1D 0x56 0x42 0x00`).
-- `printBytes(bytes)` → escreve no endpoint/porta previamente aberto; reabre com a permissão salva (via `navigator.usb.getDevices()` / `navigator.serial.getPorts()`) sem reprompt.
-- `isSupported()` → detecta a API disponível no navegador atual.
+### 3. Auth Guard nas rotas /admin — ✅ JÁ ESTÁ (verificar e documentar)
+Já implementado em `src/routes/_authenticated/route.tsx`: 
+- Redireciona não-autenticados para `/auth`
+- Checa `super_admin` para `/superadmin`
+- Checa matriz de permissões (`canEnterAdmin`, `canEnterCaixa`) para `/admin` e `/caixa`
+- Bypass só para `role: admin` em app_metadata
 
-**b) Persistência da preferência**
-- `localStorage` por empresa: `thermal-printer:<empresaId>` = `{ transport: 'webusb'|'webserial', vendorId, productId, serialNumber }`.
-- Reaproveita a permissão que o navegador já guarda no perfil — não precisa reprompt em cada uso.
-- Sem migração de schema. Se quisermos guardar por-usuário mais tarde, viramos coluna em `config_impressoras`; por ora, é preferência local do PC.
+Ação: **auditar** se todas as sub-rotas administrativas realmente estão sob `_authenticated/` (não há duplicata pública) e revisar se cada server function sensível usa `requireSupabaseAuth` + checagem de role via `has_role`. Não vejo lacuna óbvia, mas vale um sweep.
 
-**c) UI de conexão (dentro de `src/routes/_authenticated/caixa.tsx`, no bloco de impressoras)**
-- Novo botão "Conectar impressora térmica" ao lado de cada impressora com `tipo_conexao='USB'`.
-- Botão abre o seletor nativo → salva a preferência → dispara um cupom de teste ("*** TESTE OK ***" + corte).
-- Indicador visual: "Conectada · Bematech MP-4200 TH" (verde) ou "Não configurada · usa diálogo do navegador" (âmbar).
+### 4. RLS em TODAS as tabelas — ⚠️ PARCIALMENTE (auditar, não ativar cegamente)
+Ativar RLS sem política = tabela travada (quebra o app). Ativar com política errada = vazamento. O correto é:
+- Rodar `supabase--linter` + `security--get_table_schema` para listar tabelas **sem RLS** ou **sem policies**
+- Para cada uma, decidir: multi-tenant por `empresa_id`? Por `user_id`? Público? Só service_role?
+- Escrever policies + GRANTs corretos por tabela
+- Confirmar que views sensíveis (ex: `view_products_public`) continuam invoker
 
-**d) Integração no fluxo de impressão**
-- Refatorar `printAndRun` em `caixa.tsx` para tentar, nesta ordem:
-  1. Se há preferência salva e `isSupported()`: renderiza o cupom em texto (mesmo conteúdo do `BillReceipt` atual, só que em `string` monoespaçada), passa por `encodeReceipt` + `printBytes`.
-  2. Se falhar (impressora offline, permissão revogada): fallback para `window.print()` atual + toast "Impressão direta indisponível — imprimindo pelo navegador".
-- Novo helper `renderBillAsText(mesa, orders, empresa)` que produz as linhas do cupom (cabeçalho da empresa, mesa, itens, subtotal/gorjeta/total, rodapé). Mantém o `BillReceipt` React só para o fallback e para impressão em outros contextos que ainda usam `window.print`.
+Já temos RLS na maioria (visível no `supabase-tables`, todas mostram policies > 0). Preciso confirmar se **cobertura é 100%** e se as policies existentes realmente isolam por `empresa_id` (multi-tenant já está fechado conforme memórias, mas vale re-scan).
 
-**e) Escopo restrito**
-- Só a "Imprimir conta / conferência" da mesa usa o caminho novo nesta fase. Cupons de cozinha (`dispatchPreparation`), balcão, extrato de fiado continuam como estão. Se aprovado, migramos os demais em uma fase 2.
+### 5. `.env` no `.gitignore` — ✅ JÁ ESTÁ (mas contexto importa)
+No Lovable, `.env` é gerenciado pela plataforma e **não é commitado no repo GitHub sincronizado** — as chaves vão para Workspace Secrets. As chaves que aparecem no `.env` local são a **publishable/anon key** do Supabase, que é **pública por design** (protegida por RLS). O **service role key** nunca aparece nesse `.env` no Lovable Cloud (é injetado só no runtime do servidor). 
 
-### Limitações honestas
-- Funciona em Chrome/Edge desktop e Android. Safari/iOS não suportam WebUSB nem Web Serial — nesses navegadores o fallback `window.print()` continua ativo.
-- Depende de impressora ESC/POS (padrão em térmicas 80mm de PDV). Impressoras "GDI-only" ficam no fallback.
-- A permissão é por perfil de navegador — se o operador trocar de PC/perfil, precisa reconectar uma vez.
+Ação: **verificar** o `.gitignore` do projeto para garantir que `.env` está listado, mas o risco real é baixo porque a única chave lá é pública.
 
 ---
 
-## 2) Troco em dinheiro no "Finalizar e Receber" (aprovado)
+## Plano de execução
 
-Apenas front-end, em `src/components/caixa/ComandaPaymentDialog.tsx`:
+### Passo 1 — Remover source maps de produção
+Editar `vite.config.ts`:
+```ts
+build: { sourcemap: false }
+```
+Manter dev intacto.
 
-- Detectar drafts de dinheiro reaproveitando `NON_CASH_MEIOS` (o que não está no set é dinheiro).
-- Calcular `excedente = max(0, totalPago − totalConta)` e `cashPago = soma dos drafts em dinheiro`.
-- `troco = min(excedente, cashPago)`. Excedente em cartão/PIX continua bloqueando (não faz sentido dar troco em cartão).
-- Habilitar "Finalizar e Receber" quando `restante ≤ 0 && excedente === troco`.
-- Resumo ganha linha "Troco" em verde/negrito quando `troco > 0`; linha "Excedente" em vermelho quando `excedente > troco`.
-- Antes de chamar `finalizeComandaSplit`, cortar o excesso dos drafts de dinheiro (reduzindo o último) para que a soma enviada bata exatamente com `totalConta`. Troco é físico, não entra em `pagamentos_pedido`.
-- Toast final: `Mesa X liquidada! Troco: R$ Y,YY`.
+### Passo 2 — Auditoria de segurança automatizada
+Rodar em sequência (leitura, sem mudanças):
+1. `security--run_security_scan` — pega findings ativos do scanner Lovable
+2. `supabase--linter` — pega tabelas sem RLS, policies faltando, GRANTs errados
+3. `security--get_table_schema` — mapa completo de RLS/policies por tabela
 
-**Não altera**: `finalize_comanda_split`, `_finalize_order_financials`, RPCs, triggers, motor financeiro, `PaymentDialog` do delivery, PIX online.
+Gerar um **relatório consolidado** listando:
+- Tabelas sem RLS habilitado
+- Tabelas com RLS mas sem policies (efetivamente travadas)
+- Policies com escopo suspeito (ex: `USING (true)` em tabela sensível)
+- Server functions sem `requireSupabaseAuth`
 
----
+### Passo 3 — Auditoria de rotas admin
+Grep em `src/routes/` procurando arquivos administrativos fora de `_authenticated/`. Listar rotas + confirmar guard.
 
-## Validação
+### Passo 4 — Verificar `.gitignore`
+Confirmar `.env` listado. Se não, adicionar.
 
-- Chrome desktop, primeira vez: clicar "Conectar impressora térmica" → escolher a térmica no seletor → cupom de teste sai. Fechar e reabrir o navegador → segue conectada sem reprompt.
-- Clicar "Imprimir conta" numa mesa aberta → cupom sai direto, sem diálogo.
-- Desconectar o cabo USB e imprimir → toast informa que caiu no fallback e o diálogo do navegador aparece.
-- Safari → botão "Conectar" fica desabilitado com tooltip "Não suportado neste navegador"; impressão usa diálogo normal.
-- Mesa R$ 87,00, lançar Dinheiro R$ 100,00 → botão habilita, resumo mostra "Troco R$ 13,00", banco grava R$ 87,00.
-- Mesa R$ 87,00, lançar Cartão R$ 100,00 → botão continua bloqueado (excedente em cartão).
-- Mesa R$ 87,00, Cartão R$ 50 + Dinheiro R$ 50 → troco R$ 13, envia Cartão 50 + Dinheiro 37.
+### Passo 5 — Apresentar relatório
+Antes de qualquer correção de RLS, mostrar o que foi encontrado e propor um segundo plano cirúrgico por tabela (não vou ativar RLS em massa cegamente — respeita a memória `motor-financeiro-protegido`).
+
+### O que NÃO farei
+- ❌ Bloquear F12/menu de contexto (teatro)
+- ❌ Ativar RLS em massa sem policies (quebra app)
+- ❌ Mexer em triggers/RPCs financeiras sem plano específico aprovado
+- ❌ Rotacionar chaves Supabase (não solicitado)
+
+## Detalhes técnicos
+- `vite.config.ts` está no root; edit único de 1 linha.
+- Scanners retornam JSON estruturado, transformo em tabela markdown.
+- Zero migração de banco neste plano — só leitura + config front.
