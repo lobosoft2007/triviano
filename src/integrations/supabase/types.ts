@@ -1602,6 +1602,7 @@ export type Database = {
           empresa_id: string
           exige_maquineta: boolean
           id: string
+          is_sistema: boolean
           nome: string
           percentual_cashback: number
           updated_at: string
@@ -1612,6 +1613,7 @@ export type Database = {
           empresa_id?: string
           exige_maquineta?: boolean
           id?: string
+          is_sistema?: boolean
           nome: string
           percentual_cashback?: number
           updated_at?: string
@@ -1622,6 +1624,7 @@ export type Database = {
           empresa_id?: string
           exige_maquineta?: boolean
           id?: string
+          is_sistema?: boolean
           nome?: string
           percentual_cashback?: number
           updated_at?: string
@@ -2973,6 +2976,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      delete_meio_pagamento: { Args: { p_id: string }; Returns: undefined }
       desistir_solicitacao_mesa: {
         Args: { p_solicitacao_id: string }
         Returns: undefined
