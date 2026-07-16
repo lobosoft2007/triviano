@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   CreditCard,
   Armchair,
+  Clock,
 } from "lucide-react";
 
 import { toast } from "sonner";
