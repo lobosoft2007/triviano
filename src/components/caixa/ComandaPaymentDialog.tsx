@@ -309,11 +309,12 @@ export function ComandaPaymentDialog({
                     key={d.key}
                     className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-3 py-2 text-sm"
                   >
-                    <span className="font-medium">{d.meio_nome}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold tabular-nums">
+                    <span className="min-w-0 flex-1 truncate font-medium">{d.meio_nome}</span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="whitespace-nowrap font-semibold tabular-nums">
                         {formatBRL(d.valor)}
                       </span>
+
                       <button
                         onClick={() => handleRemove(d.key)}
                         className="flex h-7 w-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
