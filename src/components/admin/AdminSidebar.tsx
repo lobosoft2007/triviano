@@ -95,11 +95,21 @@ interface LeafEntry {
   icon: ReactNode;
 }
 
+/** An entry that expands to show nested leaf entries. */
+interface NestedEntry {
+  key: AdminTab;
+  label: string;
+  icon: ReactNode;
+  children: LeafEntry[];
+}
+
+type NavEntry = LeafEntry | NestedEntry;
+
 interface GroupModel {
   id: string;
   label: string;
   icon: ReactNode;
-  children: LeafEntry[];
+  children: NavEntry[];
 }
 
 /* ------------------------------------------------------------------ */
