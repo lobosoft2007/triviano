@@ -61,19 +61,6 @@ export function NotifyClient({ order }: { order: CaixaOrder }) {
     }
   }
 
-  function handleWhatsApp() {
-    const text = message.trim();
-    const body = `Olá ${customerName}! Sobre o seu pedido ${orderNo} no ${brand}:${
-      text ? `\n\n${text}` : ""
-    }`;
-    const link = buildWhatsAppLink(phone, body);
-    if (!link) {
-      toast.error("Cliente sem telefone cadastrado.");
-      return;
-    }
-    window.open(link, "_blank", "noopener,noreferrer");
-  }
-
   return (
     <div className="mt-3 rounded-xl border border-border bg-secondary/40 p-3">
       <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -86,29 +73,19 @@ export function NotifyClient({ order }: { order: CaixaOrder }) {
         rows={2}
         className="w-full resize-none rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
       />
-      <div className="mt-2 flex gap-2">
-        <Button
-          size="sm"
-          className="flex-1 rounded-lg"
-          onClick={handlePush}
-          disabled={sending}
-        >
-          {sending ? (
-            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="mr-1.5 h-4 w-4" />
-          )}
-          Enviar pelo App
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="flex-1 rounded-lg"
-          onClick={handleWhatsApp}
-        >
-          <MessageCircle className="mr-1.5 h-4 w-4" /> WhatsApp
-        </Button>
-      </div>
+      <Button
+        size="sm"
+        className="mt-2 w-full rounded-lg"
+        onClick={handlePush}
+        disabled={sending}
+      >
+        {sending ? (
+          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+        ) : (
+          <Send className="mr-1.5 h-4 w-4" />
+        )}
+        Enviar pelo App
+      </Button>
     </div>
   );
 }
