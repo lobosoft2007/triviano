@@ -232,7 +232,12 @@ async function sendUsb(pref: ThermalPreference, bytes: Uint8Array): Promise<void
       // Some printers accept chunks up to 64KB; split defensively.
       const CHUNK = 4096;
       for (let i = 0; i < bytes.length; i += CHUNK) {
-        await device.transferOut(endpoint.endpointNumber, bytes.subarray(i, i + CHUNK));
+        const slice = bytes.subarray(i, i + CHUNK);
+        const buf = slice.buffer.slice(
+          slice.byteOffset,
+          slice.byteOffset + slice.byteLength,
+        ) as ArrayBuffer;
+        await device.transferOut(endpoint.endpointNumber, buf);
       }
     } finally {
       await device.releaseInterface(iface.interfaceNumber).catch(() => {});
