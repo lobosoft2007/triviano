@@ -111,6 +111,20 @@ import {
   type Printer as PrinterConfig,
   type ResolvedSector,
 } from "@/lib/printers";
+import {
+  buildTestCoupon,
+  clearPreference as clearThermalPref,
+  getPreference as getThermalPref,
+  isSupported as isThermalSupported,
+  isWebSerialSupported,
+  isWebUsbSupported,
+  printBytes as printThermalBytes,
+  requestSerialPort as requestThermalSerial,
+  requestUsbDevice as requestThermalUsb,
+  setPreference as setThermalPref,
+  type ThermalPreference,
+} from "@/lib/thermal-printer";
+import { buildMesaBillEscPos } from "@/lib/thermal-receipts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -355,6 +369,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { data: empresa } = useQuery(empresaQueryOptions);
 
 
 
@@ -705,6 +720,38 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
       );
     }
 
+    // --- 3) Impressão direta na térmica (WebUSB/Serial), se pareada -------
+    const thermalPref = empresa?.id ? getThermalPref(empresa.id) : null;
+    if (thermalPref && isThermalSupported()) {
+      try {
+        const bytes = buildMesaBillEscPos({
+          restaurantName: RESTAURANT,
+          mesa,
+          orders: mesaOrdersGroup,
+          total: totalParcial,
+          pixKey,
+          pixName,
+          brcode,
+          mpDynamic: usedMp,
+        });
+        await printThermalBytes(thermalPref, bytes);
+        try {
+          await Promise.all(mesaOrdersGroup.map((o) => markPrintedConta(o.id)));
+          await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
+        } catch {
+          /* mantém — não bloqueia o toast de sucesso */
+        }
+        toast.success(`Conta da mesa ${mesa} impressa.`);
+        return;
+      } catch (err) {
+        console.warn("Impressão térmica direta falhou; caindo no diálogo.", err);
+        toast.info(
+          "Impressão direta indisponível — usando o diálogo do navegador.",
+        );
+      }
+    }
+
+    // --- 4) Fallback: diálogo de impressão do navegador -------------------
     await printAndRun(
       <BillReceipt
         mesa={mesa}
@@ -2109,6 +2156,7 @@ function ConfigTab() {
           </p>
         </header>
         <div className="space-y-3">
+          <ThermalDirectPrintCard />
           {printers.map((p) => (
             <PrinterCard key={p.id} printer={p} />
           ))}
@@ -2117,6 +2165,164 @@ function ConfigTab() {
     </div>
   );
 }
+
+/**
+ * Pareamento da impressora térmica para impressão DIRETA da conta da mesa
+ * (WebUSB / Web Serial) — sem diálogo do navegador. Preferência local por
+ * empresa, salva no localStorage do PC/perfil atual.
+ */
+function ThermalDirectPrintCard() {
+  const { data: empresa } = useQuery(empresaQueryOptions);
+  const [pref, setPref] = useState<ThermalPreference | null>(null);
+  const [busy, setBusy] = useState(false);
+  const usbOk = isWebUsbSupported();
+  const serialOk = isWebSerialSupported();
+  const anyOk = usbOk || serialOk;
+
+  useEffect(() => {
+    if (empresa?.id) setPref(getThermalPref(empresa.id));
+  }, [empresa?.id]);
+
+  async function handleConnect(kind: "usb" | "serial") {
+    if (!empresa?.id) return;
+    setBusy(true);
+    try {
+      const next =
+        kind === "usb" ? await requestThermalUsb() : await requestThermalSerial();
+      setThermalPref(empresa.id, next);
+      setPref(next);
+      // Cupom de teste (não bloqueia o toast se falhar).
+      try {
+        await printThermalBytes(next, buildTestCoupon(next.label));
+        toast.success(`Impressora conectada: ${next.label}`);
+      } catch (err) {
+        toast.warning(
+          `Pareada, mas o teste falhou: ${
+            err instanceof Error ? err.message : "erro desconhecido"
+          }`,
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Falha ao parear.";
+      if (!/cancel/i.test(msg)) toast.error(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleTest() {
+    if (!pref) return;
+    setBusy(true);
+    try {
+      await printThermalBytes(pref, buildTestCoupon(pref.label));
+      toast.success("Teste enviado.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha no teste.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handleForget() {
+    if (!empresa?.id) return;
+    clearThermalPref(empresa.id);
+    setPref(null);
+    toast.success("Impressora desvinculada deste aparelho.");
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
+      <div className="mb-2 flex items-center gap-2">
+        <Printer className="h-4 w-4 text-primary" />
+        <span className="font-display font-bold">Impressão direta da conta</span>
+      </div>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Envia o cupom da conta da mesa direto pra impressora térmica USB
+        deste computador, sem abrir o diálogo do navegador. Preferência
+        salva neste aparelho.
+      </p>
+
+      {!anyOk && (
+        <p className="rounded-lg bg-secondary p-2 text-xs text-muted-foreground">
+          Este navegador não suporta WebUSB/Web Serial. Use Chrome ou Edge no
+          computador do caixa. Enquanto isso, a impressão usa o diálogo do
+          navegador.
+        </p>
+      )}
+
+      {anyOk && pref && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
+          <Check className="h-4 w-4" />
+          <span className="min-w-0 flex-1 truncate font-semibold">
+            {pref.label}
+          </span>
+          <span className="text-[10px] uppercase tracking-wide">
+            {pref.transport === "webusb" ? "USB" : "Serial"}
+          </span>
+        </div>
+      )}
+
+      {anyOk && !pref && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm text-muted-foreground">
+          <X className="h-4 w-4" />
+          Não configurada · usa diálogo do navegador
+        </div>
+      )}
+
+      {anyOk && (
+        <div className="flex flex-wrap gap-2">
+          {usbOk && (
+            <Button
+              size="sm"
+              variant={pref ? "outline" : "default"}
+              className="flex-1 rounded-xl"
+              onClick={() => handleConnect("usb")}
+              disabled={busy || !empresa?.id}
+            >
+              <Usb className="mr-1.5 h-4 w-4" />
+              {pref?.transport === "webusb" ? "Reparear USB" : "Conectar USB"}
+            </Button>
+          )}
+          {serialOk && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 rounded-xl"
+              onClick={() => handleConnect("serial")}
+              disabled={busy || !empresa?.id}
+            >
+              <Network className="mr-1.5 h-4 w-4" />
+              {pref?.transport === "webserial" ? "Reparear Serial" : "Serial"}
+            </Button>
+          )}
+          {pref && (
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-xl"
+                onClick={handleTest}
+                disabled={busy}
+              >
+                Testar
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="rounded-xl text-destructive"
+                onClick={handleForget}
+                disabled={busy}
+              >
+                Esquecer
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function PrinterCard({ printer }: { printer: PrinterConfig }) {
   const queryClient = useQueryClient();
