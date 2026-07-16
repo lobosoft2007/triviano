@@ -2204,7 +2204,19 @@ function ThermalDirectPrintCard() {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Falha ao parear.";
-      if (!/cancel/i.test(msg)) toast.error(msg);
+      // "No device selected." = usuário fechou o diálogo (vazio ou cancelou).
+      // Se foi na tentativa USB, oferecer o caminho Serial como alternativa —
+      // é o que resolve na Elgin i7 Plus com driver do Windows instalado.
+      if (/no device selected|nenhum dispositivo/i.test(msg)) {
+        if (kind === "usb" && serialOk) {
+          toast.info(
+            "Nenhuma impressora apareceu? Tente 'Conectar via porta COM (Serial)' — funciona com o driver da Elgin já instalado no Windows.",
+            { duration: 8000 },
+          );
+        }
+      } else if (!/cancel/i.test(msg)) {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
