@@ -204,7 +204,7 @@ export function ComandaPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent hideClose className="max-h-[90vh] max-w-md overflow-y-auto">
+      <DialogContent hideClose className="max-h-[90vh] max-w-lg overflow-y-auto">
         <ModalActionBar
           title={
             onlinePix
@@ -259,11 +259,11 @@ export function ComandaPaymentDialog({
             {/* Split — Adicionar pagamento */}
             <div className="space-y-2 rounded-xl border border-border p-3">
               <Label>Adicionar pagamento</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={meioId}
                   onChange={(e) => setMeioId(e.target.value)}
-                  className="h-10 flex-1 rounded-lg border border-border bg-background px-2 text-sm"
+                  className="h-10 min-w-0 flex-1 basis-40 rounded-lg border border-border bg-background px-2 text-sm"
                 >
                   {(meios ?? []).map((m) => (
                     <option key={m.id} value={m.id}>
@@ -276,7 +276,7 @@ export function ComandaPaymentDialog({
                   value={valor}
                   onChange={(e) => setValor(e.target.value)}
                   placeholder="0,00"
-                  className="h-10 w-28 rounded-lg"
+                  className="h-10 w-24 min-w-0 rounded-lg"
                 />
                 <Button
                   onClick={handleAdd}
@@ -286,6 +286,7 @@ export function ComandaPaymentDialog({
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+
               {restanteCents > 0 && (
                 <button
                   onClick={fillRemaining}
@@ -308,11 +309,12 @@ export function ComandaPaymentDialog({
                     key={d.key}
                     className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-3 py-2 text-sm"
                   >
-                    <span className="font-medium">{d.meio_nome}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold tabular-nums">
+                    <span className="min-w-0 flex-1 truncate font-medium">{d.meio_nome}</span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="whitespace-nowrap font-semibold tabular-nums">
                         {formatBRL(d.valor)}
                       </span>
+
                       <button
                         onClick={() => handleRemove(d.key)}
                         className="flex h-7 w-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
