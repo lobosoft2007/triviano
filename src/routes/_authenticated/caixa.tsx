@@ -2175,6 +2175,7 @@ function ThermalDirectPrintCard() {
   const { data: empresa } = useQuery(empresaQueryOptions);
   const [pref, setPref] = useState<ThermalPreference | null>(null);
   const [busy, setBusy] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
   const usbOk = isWebUsbSupported();
   const serialOk = isWebSerialSupported();
   const anyOk = usbOk || serialOk;
@@ -2182,6 +2183,12 @@ function ThermalDirectPrintCard() {
   useEffect(() => {
     if (empresa?.id) setPref(getThermalPref(empresa.id));
   }, [empresa?.id]);
+
+  function isAccessDeniedError(msg: string): boolean {
+    return /access denied|failed to (open|claim)|the device was disconnected|unable to claim/i.test(
+      msg,
+    );
+  }
 
   async function handleConnect(kind: "usb" | "serial") {
     if (!empresa?.id) return;
@@ -2194,21 +2201,29 @@ function ThermalDirectPrintCard() {
       // Cupom de teste (não bloqueia o toast se falhar).
       try {
         await printThermalBytes(next, buildTestCoupon(next.label));
+        setAccessDenied(false);
         toast.success(`Impressora conectada: ${next.label}`);
       } catch (err) {
-        toast.warning(
-          `Pareada, mas o teste falhou: ${
-            err instanceof Error ? err.message : "erro desconhecido"
-          }`,
-        );
+        const msg = err instanceof Error ? err.message : "erro desconhecido";
+        if (isAccessDeniedError(msg)) {
+          setAccessDenied(true);
+          toast.warning(
+            "Pareada, mas o Windows não libera acesso direto (driver da impressora está usando). A conta continua imprimindo pelo diálogo do navegador. Para impressão silenciosa, veja as opções abaixo.",
+            { duration: 10000 },
+          );
+        } else {
+          toast.warning(`Pareada, mas o teste falhou: ${msg}`);
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Falha ao parear.";
-      // "No device selected." = usuário fechou o diálogo (vazio ou cancelou).
-      // Se foi na tentativa USB, oferecer o caminho Serial como alternativa —
-      // é o que resolve na Elgin i7 Plus com driver do Windows instalado.
       if (/no device selected|nenhum dispositivo/i.test(msg)) {
-        if (kind === "usb" && serialOk) {
+        if (kind === "serial") {
+          toast.info(
+            "Nenhuma porta COM disponível. A Elgin i7 Plus só expõe COM se você ativar 'USB Virtual COM' no utilitário oficial da Elgin.",
+            { duration: 9000 },
+          );
+        } else if (serialOk) {
           toast.info(
             "Nenhuma impressora apareceu? Tente 'Conectar via porta COM (Serial)' — funciona com o driver da Elgin já instalado no Windows.",
             { duration: 8000 },
@@ -2227,9 +2242,19 @@ function ThermalDirectPrintCard() {
     setBusy(true);
     try {
       await printThermalBytes(pref, buildTestCoupon(pref.label));
+      setAccessDenied(false);
       toast.success("Teste enviado.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha no teste.");
+      const msg = err instanceof Error ? err.message : "Falha no teste.";
+      if (isAccessDeniedError(msg)) {
+        setAccessDenied(true);
+        toast.warning(
+          "Windows não libera acesso direto — driver da impressora está usando. Veja as opções abaixo.",
+          { duration: 8000 },
+        );
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
@@ -2239,6 +2264,7 @@ function ThermalDirectPrintCard() {
     if (!empresa?.id) return;
     clearThermalPref(empresa.id);
     setPref(null);
+    setAccessDenied(false);
     toast.success("Impressora desvinculada deste aparelho.");
   }
 
