@@ -874,7 +874,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         perms={perms}
         activeTab={tab}
         deliveryCount={deliveryOrders.length}
-        mesaCount={mesaOrders.length}
+        mesaCount={mesasVivas?.length ?? 0}
         solicitacoesCount={solicitacoes?.length ?? 0}
         onSelectTab={setTab}
         onSuprimento={() => handleMov("Suprimento")}
