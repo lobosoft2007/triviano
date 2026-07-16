@@ -2845,12 +2845,17 @@ export type Database = {
       admin_list_funcionarios: {
         Args: never
         Returns: {
+          bloqueado: boolean
           created_at: string
           full_name: string
           id: string
           nivel_id: string
           nome_nivel: string
         }[]
+      }
+      admin_set_funcionario_bloqueado: {
+        Args: { p_bloqueado: boolean; p_user_id: string }
+        Returns: undefined
       }
       admin_set_funcionario_nivel: {
         Args: { p_nivel_id: string; p_user_id: string }
