@@ -670,7 +670,8 @@ function AdminPage() {
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Retaguarda</p>
                 <h1 className="truncate font-display text-xl font-bold leading-tight">
-                  {TABS.find((t) => t.key === tab)?.label ?? "Gerenciador"}
+                  {TABS.find((t) => t.key === tab)?.label ??
+                    (tab === "horarios" ? "Horários" : "Gerenciador")}
                 </h1>
               </div>
               <div className="ml-auto flex items-center gap-2">
