@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { insertNotification } from "@/lib/notifications";
 import { empresaQueryOptions } from "@/lib/empresa";
@@ -10,27 +9,13 @@ import type { CaixaOrder } from "@/lib/caixa";
 
 /**
  * "Notificar Cliente" section inside an active order card. Lets the operator
- * push a custom in-app notification or open WhatsApp pre-filled.
+ * push a custom in-app notification to the client.
  */
 export function NotifyClient({ order }: { order: CaixaOrder }) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const { data: empresa } = useQuery(empresaQueryOptions);
   const brand = empresa?.nome_fantasia || "";
-
-  const { data: profile } = useQuery({
-    queryKey: ["customer-profile", order.user_id],
-    enabled: !!order.user_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, phone")
-        .eq("id", order.user_id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const orderNo = `#${order.id.slice(0, 6).toUpperCase()}`;
 
