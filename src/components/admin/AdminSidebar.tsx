@@ -116,31 +116,45 @@ interface GroupModel {
 /* Accordion group — renders only if it has at least one visible child */
 /* ------------------------------------------------------------------ */
 
-function SidebarAccordionGroup({
-  group,
+function isNested(entry: NavEntry): entry is NestedEntry {
+  return "children" in entry && Array.isArray(entry.children);
+}
+
+function entryVisible(entry: NavEntry, tabAllowed: (tab: AdminTab) => boolean) {
+  if (!isNested(entry)) return tabAllowed(entry.key);
+  return entry.children.some((c) => tabAllowed(c.key));
+}
+
+function entryHasActive(entry: NavEntry, activeTab: AdminTab) {
+  if (!isNested(entry)) return entry.key === activeTab;
+  return entry.children.some((c) => c.key === activeTab);
+}
+
+function SidebarNestedGroup({
+  entry,
   activeTab,
   tabAllowed,
   onSelectTab,
 }: {
-  group: GroupModel;
+  entry: NestedEntry;
   activeTab: AdminTab;
   tabAllowed: (tab: AdminTab) => boolean;
   onSelectTab: (tab: AdminTab) => void;
 }) {
-  const visible = group.children.filter((c) => tabAllowed(c.key));
+  const visible = entry.children.filter((c) => tabAllowed(c.key));
   if (visible.length === 0) return null;
 
   const hasActive = visible.some((c) => c.key === activeTab);
 
   return (
-    <Collapsible defaultOpen={hasActive} className="group/collapsible">
-      <SidebarMenuItem>
+    <SidebarMenuSubItem>
+      <Collapsible defaultOpen={hasActive} className="group/collapsible">
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton className="font-semibold">
-            {group.icon}
-            <span>{group.label}</span>
+          <SidebarMenuSubButton className="font-semibold">
+            {entry.icon}
+            <span>{entry.label}</span>
             <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-          </SidebarMenuButton>
+          </SidebarMenuSubButton>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarMenuSub>
@@ -156,6 +170,63 @@ function SidebarAccordionGroup({
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarMenuSubItem>
+  );
+}
+
+function SidebarAccordionGroup({
+  group,
+  activeTab,
+  tabAllowed,
+  onSelectTab,
+}: {
+  group: GroupModel;
+  activeTab: AdminTab;
+  tabAllowed: (tab: AdminTab) => boolean;
+  onSelectTab: (tab: AdminTab) => void;
+}) {
+  const visible = group.children.filter((c) => entryVisible(c, tabAllowed));
+  if (visible.length === 0) return null;
+
+  const hasActive = visible.some((c) => entryHasActive(c, activeTab));
+
+  return (
+    <Collapsible defaultOpen={hasActive} className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton className="font-semibold">
+            {group.icon}
+            <span>{group.label}</span>
+            <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {visible.map((c) =>
+              isNested(c) ? (
+                <SidebarNestedGroup
+                  key={c.key}
+                  entry={c}
+                  activeTab={activeTab}
+                  tabAllowed={tabAllowed}
+                  onSelectTab={onSelectTab}
+                />
+              ) : (
+                <SidebarMenuSubItem key={c.key}>
+                  <SidebarMenuSubButton
+                    isActive={c.key === activeTab}
+                    onClick={() => onSelectTab(c.key)}
+                    className="cursor-pointer"
+                  >
+                    {c.icon}
+                    <span>{c.label}</span>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              ),
+            )}
           </SidebarMenuSub>
         </CollapsibleContent>
       </SidebarMenuItem>
