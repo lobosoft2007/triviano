@@ -82,6 +82,8 @@ export function CategoriasCrud() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
+  const [horariosFor, setHorariosFor] = useState<AdminCategory | null>(null);
+
 
   const openNew = () => {
     setForm(EMPTY);
