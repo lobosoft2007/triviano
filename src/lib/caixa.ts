@@ -102,7 +102,13 @@ export async function updateMeioPagamento(
     ativo: boolean;
   }>,
 ): Promise<void> {
-  const payload: Record<string, unknown> = {};
+  const payload: {
+    nome?: string;
+    exige_maquineta?: boolean;
+    ativo?: boolean;
+    percentual_cashback?: number;
+  } = {};
+
   if (patch.nome !== undefined) {
     const nome = patch.nome.trim();
     if (!nome) throw new Error("Informe o nome do meio de pagamento.");
