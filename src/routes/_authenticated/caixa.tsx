@@ -1569,6 +1569,7 @@ function MesaCard({
                   order={o}
                   onDispatch={onDispatch}
                   resolveSector={resolveSector}
+                  variant="mesa"
                 />
               ))}
             </div>
@@ -1587,6 +1588,12 @@ function MesaCard({
             >
               <Receipt className="mr-1.5 h-4 w-4" /> Imprimir conta / conferência
             </Button>
+            {!isEmpty && group.orders.length > 0 && (
+              <>
+                <WhatsAppStatusButton order={group.orders[group.orders.length - 1]} />
+                <NotifyClient order={group.orders[group.orders.length - 1]} />
+              </>
+            )}
             {group.comandaId && !isEmpty && (
               <Button
                 variant="success"
@@ -1621,12 +1628,15 @@ function OrderCard({
   order,
   onDispatch,
   resolveSector,
+  variant = "delivery",
 }: {
   order: CaixaOrder;
   onDispatch: (o: CaixaOrder) => void;
   resolveSector: ResolveFn;
+  variant?: "delivery" | "mesa";
 }) {
   const isNew = !order.impresso_cozinha;
+  const isMesa = variant === "mesa";
   return (
     <div
       className={`flex flex-col rounded-2xl border bg-card p-4 shadow-card ${
@@ -1683,16 +1693,19 @@ function OrderCard({
         </p>
       )}
 
-      <OrderActions order={order} />
+      <OrderActions order={order} showPayment={!isMesa} />
 
-      <WhatsAppStatusButton order={order} />
-
-      <NotifyClient order={order} />
+      {!isMesa && (
+        <>
+          <WhatsAppStatusButton order={order} />
+          <NotifyClient order={order} />
+        </>
+      )}
     </div>
   );
 }
 
-function OrderActions({ order }: { order: CaixaOrder }) {
+function OrderActions({ order, showPayment = true }: { order: CaixaOrder; showPayment?: boolean }) {
   const [editOpen, setEditOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   return (
@@ -1706,13 +1719,15 @@ function OrderActions({ order }: { order: CaixaOrder }) {
         >
           <Pencil className="mr-1.5 h-4 w-4" /> Editar
         </Button>
-        <Button
-          size="sm"
-          className="flex-1 rounded-xl"
-          onClick={() => setPayOpen(true)}
-        >
-          <HandCoins className="mr-1.5 h-4 w-4" /> Pagamento
-        </Button>
+        {showPayment && (
+          <Button
+            size="sm"
+            className="flex-1 rounded-xl"
+            onClick={() => setPayOpen(true)}
+          >
+            <HandCoins className="mr-1.5 h-4 w-4" /> Pagamento
+          </Button>
+        )}
       </div>
       {editOpen && (
         <OrderEditDialog
@@ -1721,7 +1736,7 @@ function OrderActions({ order }: { order: CaixaOrder }) {
           onOpenChange={setEditOpen}
         />
       )}
-      {payOpen && (
+      {showPayment && payOpen && (
         <PaymentDialog order={order} open={payOpen} onOpenChange={setPayOpen} />
       )}
     </>
