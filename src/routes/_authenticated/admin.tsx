@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   CreditCard,
   Armchair,
+  Clock,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -73,6 +74,7 @@ import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
 
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
+import { HorariosResumoTab } from "@/components/admin/HorariosResumoTab";
 import { PermissoesTab } from "@/components/admin/PermissoesTab";
 import { FuncionariosTab } from "@/components/admin/FuncionariosTab";
 import { usePermissions, ACCESS_DENIED_MSG, type PermissionFlag } from "@/lib/permissions";
@@ -216,6 +218,7 @@ const EMPTY_FORM: FormState = {
 type AdminTab =
   | "cardapio"
   | "categorias"
+  | "horarios"
   | "combos"
   | "empresa"
   | "identidade"
@@ -238,6 +241,7 @@ type AdminTab =
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
+  { key: "horarios", label: "Horários", icon: Clock },
   { key: "combos", label: "Campanhas", icon: Megaphone },
   { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
   { key: "identidade", label: "Identidade Visual", icon: Palette },
@@ -262,6 +266,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
 const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   cardapio: "acesso_cadastro_produtos",
   categorias: "acesso_cadastro_produtos",
+  horarios: "acesso_cadastro_produtos",
   combos: "acesso_cadastro_produtos",
   empresa: "master",
   identidade: "master",
@@ -692,6 +697,7 @@ function AdminPage() {
           {tab === "ajustes" && <AjusteRapidoView />}
           {tab === "compras" && <SugestaoComprasView />}
           {tab === "categorias" && <CategoriasCrud />}
+          {tab === "horarios" && <HorariosResumoTab />}
           {tab === "combos" && <CombosCrud />}
           {tab === "empresa" && <EmpresaConfigTab />}
           {tab === "identidade" && <IdentidadeVisualTab />}

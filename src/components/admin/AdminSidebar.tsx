@@ -27,6 +27,7 @@ import {
   Lock,
   Crown,
   Armchair,
+  Clock,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
@@ -59,6 +60,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 export type AdminTab =
   | "cardapio"
   | "categorias"
+  | "horarios"
   | "combos"
   | "empresa"
   | "identidade"
@@ -172,6 +174,7 @@ export function AdminSidebar({
       children: [
         { key: "cardapio", label: "Cardápio", icon: <UtensilsCrossed className={iconCls} /> },
         { key: "categorias", label: "Categorias", icon: <Tags className={iconCls} /> },
+        { key: "horarios", label: "Horários", icon: <Clock className={iconCls} /> },
         { key: "insumos", label: "Insumos", icon: <Package className={iconCls} /> },
         { key: "subprodutos", label: "SubProdutos", icon: <Boxes className={iconCls} /> },
         { key: "setores", label: "Setores", icon: <Layers className={iconCls} /> },
