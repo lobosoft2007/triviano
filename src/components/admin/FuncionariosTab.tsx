@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, UserCog } from "lucide-react";
+import { Loader2, Lock, LockOpen, Plus, Trash2, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchNiveis, fetchFuncionarios, setFuncionarioNivel } from "@/lib/niveis";
+import { fetchNiveis, fetchFuncionarios, setFuncionarioNivel, setFuncionarioBloqueado } from "@/lib/niveis";
 import { createFuncionario, deleteFuncionario } from "@/lib/funcionarios.functions";
 
 export function FuncionariosTab() {
