@@ -1,13 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Send, MessageCircle, Loader2 } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  insertNotification,
-  buildWhatsAppLink,
-} from "@/lib/notifications";
+import { insertNotification } from "@/lib/notifications";
 import { empresaQueryOptions } from "@/lib/empresa";
 import type { CaixaOrder } from "@/lib/caixa";
 

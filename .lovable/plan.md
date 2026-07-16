@@ -1,24 +1,45 @@
-## Problema
-No Caixa, o modal "Finalizar e Receber" (`ComandaPaymentDialog.tsx`) está com scroll horizontal — os valores (ex.: `formatBRL`) estão sendo cortados. Causa provável: o modal usa `max-w-md` (≈ 28rem) e a linha "Adicionar pagamento" empilha `select` + `Input` (`w-28`) + botão `+` num único flex-row, sem permitir wrap; e as linhas de resumo/drafts têm valores tabulares longos disputando espaço.
+## Objetivo
+No modo **Mesas** do Caixa, enxugar o card de cada rodada e mover a notificação do cliente para o nível da comanda inteira.
 
-## Ajustes propostos (apenas UI em `ComandaPaymentDialog.tsx`)
+## Mudanças (apenas UI/composição — sem lógica financeira)
 
-1. **Alargar o Dialog**: trocar `max-w-md` por `max-w-lg` (mantém encaixe em mobile via `w-[95vw]` implícito do `DialogContent`). Isso já elimina a maior parte do overflow.
+Arquivo único: `src/routes/_authenticated/caixa.tsx`.
 
-2. **Linha "Adicionar pagamento" mais tolerante**:
-   - Envolver select+input+botão em `flex flex-wrap gap-2` (ou grid `grid-cols-[1fr_auto_auto]`) para que em telas estreitas o input caia para baixo em vez de estourar.
-   - Trocar `w-28` do `Input` por `w-24 min-w-0` e adicionar `min-w-0` no `select` para permitir shrink real (sem `min-w-0`, flex children não encolhem abaixo do conteúdo, gerando scroll horizontal).
+### 1. `OrderCard` vira consciente do contexto
+Adicionar prop opcional `variant?: "delivery" | "mesa"` (default `"delivery"`).
 
-3. **Linhas de drafts e resumo**:
-   - Adicionar `min-w-0` nos containers e `truncate` no nome do meio de pagamento (`d.meio_nome`) para valores longos não empurrarem o total.
-   - Garantir `tabular-nums` já presente + `whitespace-nowrap` nos valores.
+Quando `variant === "mesa"`, o `OrderCard` **não renderiza**:
+- `<OrderActions />` na parte de baixo é substituído por só o botão **Editar** (sem o "Pagamento", já que o pagamento é unificado por comanda via "Finalizar e Receber").
+- `<WhatsAppStatusButton />`
+- `<NotifyClient />`
 
-4. **Header (ModalActionBar)**: título "Finalizar e Receber · Mesa N" pode ficar longo — se necessário, aplicar `truncate` no title (verificar se o componente já suporta; se não, apenas manter o alargamento do dialog resolve).
+Delivery continua idêntico (todos os blocos presentes).
 
-## Escopo
-- Um único arquivo tocado: `src/components/caixa/ComandaPaymentDialog.tsx`.
-- Sem mudanças de lógica financeira, split, PIX ou queries.
-- Sem mudanças no `ModalActionBar` a menos que o title continue truncando após alargar.
+Implementação: extrair o botão "Pagamento" do `OrderActions` para que ele receba um flag `showPayment` (ou dividir em dois botões independentes dentro do `OrderCard`, mantendo Editar sempre e Pagamento só em delivery).
+
+### 2. No diálogo de detalhe da mesa (por volta da linha 1565)
+Depois do `.map` que renderiza os `OrderCard variant="mesa"` e antes/depois do bloco "Total da mesa + Imprimir conta + Finalizar e Receber", adicionar **uma única vez**:
+
+```
+<WhatsAppStatusButton order={ultimoPedido} />
+<NotifyClient order={ultimoPedido} />
+```
+
+`ultimoPedido` = `group.orders[group.orders.length - 1]` (o mais recente da comanda — carrega `user_id`/`phone` necessários; ambos os componentes já buscam o profile pelo `user_id`, então qualquer pedido serve).
+
+Colocar os dois logo antes do botão "Finalizar e Receber" para deixar o fluxo: conferência → notificar → cobrar.
+
+### 3. `NotifyClient` — remover botão WhatsApp interno
+Em `src/components/caixa/NotifyClient.tsx`:
+- Remover o botão "WhatsApp" e a função `handleWhatsApp` (o WhatsApp fica só no `WhatsAppStatusButton` acima).
+- O botão "Enviar pelo App" passa a ocupar 100% da largura (`w-full` no lugar de `flex-1`, e remover o wrapper `flex gap-2`).
+
+Como `NotifyClient` também é usado no card de delivery, essa mudança afeta os dois modos — o que é desejável: no delivery já existe o `WhatsAppStatusButton` logo acima, então o botão WhatsApp interno era redundante em ambos os contextos.
+
+## Fora do escopo
+- Sem alterar `ComandaPaymentDialog`, RPCs, ou o `WhatsAppStatusButton`.
+- Sem mudar o card de delivery (só perde o WhatsApp duplicado dentro do `NotifyClient`, que é ganho de UX).
 
 ## Validação
-- Abrir modal em viewport 375px e 768px, conferir ausência de scroll horizontal e valores íntegros.
+- Abrir uma mesa com 2+ rodadas: cada card deve mostrar só itens + Editar; um único bloco "Avisar via WhatsApp" + "Notificar cliente" aparece antes de "Finalizar e Receber".
+- Delivery: card continua com Editar + Pagamento, WhatsApp e Notificar (sem botão WhatsApp duplicado dentro do quadro Notificar).
