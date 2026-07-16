@@ -744,10 +744,17 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         toast.success(`Conta da mesa ${mesa} impressa.`);
         return;
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.warn("Impressão térmica direta falhou; caindo no diálogo.", err);
-        toast.info(
-          "Impressão direta indisponível — usando o diálogo do navegador.",
-        );
+        if (/access denied|failed to (open|claim)|unable to claim/i.test(msg)) {
+          toast.info(
+            "Impressora ocupada pelo driver do Windows — usando o diálogo do navegador.",
+          );
+        } else {
+          toast.info(
+            "Impressão direta indisponível — usando o diálogo do navegador.",
+          );
+        }
       }
     }
 
@@ -2175,6 +2182,7 @@ function ThermalDirectPrintCard() {
   const { data: empresa } = useQuery(empresaQueryOptions);
   const [pref, setPref] = useState<ThermalPreference | null>(null);
   const [busy, setBusy] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
   const usbOk = isWebUsbSupported();
   const serialOk = isWebSerialSupported();
   const anyOk = usbOk || serialOk;
@@ -2182,6 +2190,12 @@ function ThermalDirectPrintCard() {
   useEffect(() => {
     if (empresa?.id) setPref(getThermalPref(empresa.id));
   }, [empresa?.id]);
+
+  function isAccessDeniedError(msg: string): boolean {
+    return /access denied|failed to (open|claim)|the device was disconnected|unable to claim/i.test(
+      msg,
+    );
+  }
 
   async function handleConnect(kind: "usb" | "serial") {
     if (!empresa?.id) return;
@@ -2194,21 +2208,29 @@ function ThermalDirectPrintCard() {
       // Cupom de teste (não bloqueia o toast se falhar).
       try {
         await printThermalBytes(next, buildTestCoupon(next.label));
+        setAccessDenied(false);
         toast.success(`Impressora conectada: ${next.label}`);
       } catch (err) {
-        toast.warning(
-          `Pareada, mas o teste falhou: ${
-            err instanceof Error ? err.message : "erro desconhecido"
-          }`,
-        );
+        const msg = err instanceof Error ? err.message : "erro desconhecido";
+        if (isAccessDeniedError(msg)) {
+          setAccessDenied(true);
+          toast.warning(
+            "Pareada, mas o Windows não libera acesso direto (driver da impressora está usando). A conta continua imprimindo pelo diálogo do navegador. Para impressão silenciosa, veja as opções abaixo.",
+            { duration: 10000 },
+          );
+        } else {
+          toast.warning(`Pareada, mas o teste falhou: ${msg}`);
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Falha ao parear.";
-      // "No device selected." = usuário fechou o diálogo (vazio ou cancelou).
-      // Se foi na tentativa USB, oferecer o caminho Serial como alternativa —
-      // é o que resolve na Elgin i7 Plus com driver do Windows instalado.
       if (/no device selected|nenhum dispositivo/i.test(msg)) {
-        if (kind === "usb" && serialOk) {
+        if (kind === "serial") {
+          toast.info(
+            "Nenhuma porta COM disponível. A Elgin i7 Plus só expõe COM se você ativar 'USB Virtual COM' no utilitário oficial da Elgin.",
+            { duration: 9000 },
+          );
+        } else if (serialOk) {
           toast.info(
             "Nenhuma impressora apareceu? Tente 'Conectar via porta COM (Serial)' — funciona com o driver da Elgin já instalado no Windows.",
             { duration: 8000 },
@@ -2227,9 +2249,19 @@ function ThermalDirectPrintCard() {
     setBusy(true);
     try {
       await printThermalBytes(pref, buildTestCoupon(pref.label));
+      setAccessDenied(false);
       toast.success("Teste enviado.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha no teste.");
+      const msg = err instanceof Error ? err.message : "Falha no teste.";
+      if (isAccessDeniedError(msg)) {
+        setAccessDenied(true);
+        toast.warning(
+          "Windows não libera acesso direto — driver da impressora está usando. Veja as opções abaixo.",
+          { duration: 8000 },
+        );
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
@@ -2239,6 +2271,7 @@ function ThermalDirectPrintCard() {
     if (!empresa?.id) return;
     clearThermalPref(empresa.id);
     setPref(null);
+    setAccessDenied(false);
     toast.success("Impressora desvinculada deste aparelho.");
   }
 
@@ -2340,6 +2373,50 @@ function ThermalDirectPrintCard() {
             </>
           )}
         </div>
+      )}
+
+      {accessDenied && pref?.transport === "webusb" && (
+        <details className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+          <summary className="cursor-pointer font-semibold text-amber-700 dark:text-amber-400">
+            Windows bloqueou o USB — como habilitar impressão silenciosa
+          </summary>
+          <div className="mt-2 space-y-2 text-muted-foreground">
+            <p>
+              O Chrome pareou a impressora, mas o driver do Windows não libera
+              o canal USB direto. A conta segue imprimindo pelo diálogo do
+              navegador (Ctrl+P). Para impressão 100% silenciosa, escolha um
+              dos caminhos abaixo:
+            </p>
+            <div>
+              <p className="font-semibold text-foreground">
+                Opção A — Ativar &quot;USB Virtual COM&quot; (recomendado)
+              </p>
+              <ol className="ml-4 list-decimal">
+                <li>Baixe e abra o utilitário oficial da Elgin (i7 Config / Elgin Printer Utility).</li>
+                <li>Troque a interface USB de &quot;Printer&quot; para &quot;Virtual COM&quot;.</li>
+                <li>Reinicie a impressora. Uma porta COM aparecerá no Windows.</li>
+                <li>Volte aqui e clique em <strong>Conectar via porta COM (Serial)</strong>.</li>
+              </ol>
+              <p className="mt-1 text-[10px]">
+                Obs.: neste modo a impressora sai da lista &quot;Impressoras e scanners&quot; do Windows.
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">
+                Opção B — Substituir driver por WinUSB (Zadig)
+              </p>
+              <ol className="ml-4 list-decimal">
+                <li>Baixe o Zadig (zadig.akeo.ie).</li>
+                <li>Selecione a impressora Elgin na lista.</li>
+                <li>Instale o driver <strong>WinUSB</strong> sobre ela.</li>
+                <li>Volte aqui e clique em <strong>Reparear USB</strong>.</li>
+              </ol>
+              <p className="mt-1 text-[10px]">
+                Obs.: perde a impressora do Windows (Word/Excel não conseguem mais imprimir nela).
+              </p>
+            </div>
+          </div>
+        </details>
       )}
     </div>
   );
