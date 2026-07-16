@@ -229,6 +229,14 @@ export function CategoriasCrud() {
             </div>
 
             <button
+              aria-label={`Horários de ${c.name}`}
+              onClick={() => setHorariosFor(c)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+              title="Horários de funcionamento"
+            >
+              <Clock className="h-4 w-4" />
+            </button>
+            <button
               aria-label={`Editar ${c.name}`}
               onClick={() => openEdit(c)}
               className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
@@ -242,6 +250,7 @@ export function CategoriasCrud() {
             >
               <Trash2 className="h-4 w-4" />
             </button>
+
           </div>
         ))}
       </div>
