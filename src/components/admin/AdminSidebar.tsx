@@ -45,11 +45,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BrandLogo } from "@/components/BrandLogo";
 
 /* ------------------------------------------------------------------ */
@@ -238,13 +234,7 @@ function SidebarAccordionGroup({
 /* Admin Sidebar                                                       */
 /* ------------------------------------------------------------------ */
 
-export function AdminSidebar({
-  activeTab,
-  isSuperAdmin,
-  tabAllowed,
-  onSelectTab,
-  onLock,
-}: AdminSidebarProps) {
+export function AdminSidebar({ activeTab, isSuperAdmin, tabAllowed, onSelectTab, onLock }: AdminSidebarProps) {
   const iconCls = "h-4 w-4 shrink-0";
 
   const groups: GroupModel[] = [
@@ -295,9 +285,7 @@ export function AdminSidebar({
       id: "marketing",
       label: "Marketing",
       icon: <Megaphone className={iconCls} />,
-      children: [
-        { key: "combos", label: "Campanhas", icon: <Megaphone className={iconCls} /> },
-      ],
+      children: [{ key: "combos", label: "Campanhas", icon: <Megaphone className={iconCls} /> }],
     },
     {
       id: "empresa",
@@ -317,8 +305,8 @@ export function AdminSidebar({
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-1 py-1.5 group-data-[collapsible=icon]:justify-center">
           <BrandLogo
-            showName
-            imgClassName="h-8 w-8 shrink-0 rounded-lg object-contain"
+            showName // h-16 w-auto rounded-md opacity-100
+            imgClassName="h-16 w-auto rounded-md opacity-100 object-contain" // h-8 w-8 shrink-0 rounded-lg
             nameClassName="truncate font-display text-base font-bold leading-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden"
           />
         </div>
@@ -356,11 +344,7 @@ export function AdminSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <a
-                href="https://wa.me/5521993383918"
-                target="_blank"
-                rel="noreferrer"
-              >
+              <a href="https://wa.me/5521993383918" target="_blank" rel="noreferrer">
                 <LifeBuoy className={iconCls} />
                 <span>Suporte</span>
               </a>
@@ -377,14 +361,8 @@ export function AdminSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
         <div className="flex items-center justify-center gap-4 px-4 py-4 group-data-[collapsible=icon]:hidden">
-          <img
-            src="/Logomarca da Triviano.webp"
-            alt="Triviano"
-            className="h-16 w-auto rounded-md opacity-100"
-          />
-          <span className="text-[8px] font-medium uppercase tracking-wide text-muted-foreground">
-            por Triviano
-          </span>
+          <img src="/Logomarca da Triviano.webp" alt="Triviano" className="h-16 w-auto rounded-md opacity-100" />
+          <span className="text-[8px] font-medium uppercase tracking-wide text-muted-foreground">por Triviano</span>
         </div>
       </SidebarFooter>
     </Sidebar>
