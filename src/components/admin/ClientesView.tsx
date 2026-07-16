@@ -72,26 +72,30 @@ export function ClientesView({ canBlock = false }: { canBlock?: boolean }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome, telefone, bairro ou cidade…"
-            className="h-11 rounded-xl pl-9"
-          />
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <User className="h-5 w-5 text-primary" />
+          <h2 className="font-display text-lg font-bold">Clientes</h2>
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            {clientes?.length ?? 0}
+          </span>
         </div>
         {canBlock && (
-          <Button
-            onClick={() => setCreating(true)}
-            className="h-11 shrink-0 rounded-xl"
-          >
-            <UserPlus className="mr-2 h-4 w-4" /> Novo cliente
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <UserPlus className="mr-1 h-4 w-4" /> Novo cliente
           </Button>
         )}
-      </div>
+      </header>
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nome, telefone, bairro ou cidade…"
+          className="h-11 rounded-xl pl-9"
+        />
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center py-10">
