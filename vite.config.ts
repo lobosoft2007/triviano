@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    // Não emitir source maps em produção — evita expor o código-fonte legível
+    // (nomes de variáveis, comentários, estrutura de pastas) a quem inspecionar o build.
+    build: { sourcemap: false },
+  },
 });
