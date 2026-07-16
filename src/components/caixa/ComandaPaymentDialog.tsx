@@ -118,10 +118,24 @@ export function ComandaPaymentDialog({
     () => drafts.reduce((s, d) => s + toCents(d.valor), 0),
     [drafts],
   );
+  const cashPagoCents = useMemo(
+    () =>
+      drafts
+        .filter((d) => d.meio_nome.trim().toLowerCase() === "dinheiro")
+        .reduce((s, d) => s + toCents(d.valor), 0),
+    [drafts],
+  );
   const totalContaCents = toCents(totalConta);
   const restanteCents = totalContaCents - totalPagoCents;
   const restante = restanteCents / 100;
-  const matches = restanteCents === 0 && drafts.length > 0;
+  const excedenteCents = Math.max(0, -restanteCents);
+  const trocoCents = Math.min(excedenteCents, cashPagoCents);
+  // Excedente coberto por dinheiro vira TROCO (não bloqueia); qualquer sobra
+  // em cartão/PIX continua bloqueando — não faz sentido dar troco em cartão.
+  const matches =
+    drafts.length > 0 &&
+    restanteCents <= 0 &&
+    excedenteCents === trocoCents;
   const canOnlinePix = mpPixActive && drafts.length === 0 && totalContaCents > 0;
 
   function handleAdd() {
