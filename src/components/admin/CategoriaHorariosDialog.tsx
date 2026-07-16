@@ -170,21 +170,24 @@ export function CategoriaHorariosDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent hideClose className="max-w-lg">
-        <ModalActionBar
-          title={`Horários — ${categoriaNome}`}
-          onBack={() => onOpenChange(false)}
-          onSave={handleSave}
-          saving={saving}
-          saveLabel="Salvar"
-        />
+      <DialogContent hideClose className="flex max-h-[90vh] max-w-lg flex-col p-0">
+        <div className="shrink-0 border-b border-border bg-background px-6 pt-6 pb-3">
+          <ModalActionBar
+            title={`Horários — ${categoriaNome}`}
+            onBack={() => onOpenChange(false)}
+            onSave={handleSave}
+            saving={saving}
+            saveLabel="Salvar"
+          />
 
-        <p className="mb-3 text-xs text-muted-foreground">
-          <Clock className="mr-1 inline h-3 w-3" />
-          Sem nenhuma janela = categoria disponível o tempo todo. Múltiplas
-          janelas por dia são permitidas (ex.: 11:00–15:00 e 18:00–23:00).
-        </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            <Clock className="mr-1 inline h-3 w-3" />
+            Sem nenhuma janela = categoria disponível o tempo todo. Múltiplas
+            janelas por dia são permitidas (ex.: 11:00–15:00 e 18:00–23:00).
+          </p>
+        </div>
 
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
         {isLoading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
