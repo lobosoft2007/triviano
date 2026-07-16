@@ -48,6 +48,8 @@ import { ModalActionBar } from "@/components/ui/modal-action-bar";
 export function ClientesView({ canBlock = false }: { canBlock?: boolean }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Cliente | null>(null);
+  const [creating, setCreating] = useState(false);
+
 
   const { data: clientes, isLoading } = useQuery({
     queryKey: ["clientes"],
