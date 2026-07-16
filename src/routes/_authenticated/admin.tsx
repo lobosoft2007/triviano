@@ -697,6 +697,7 @@ function AdminPage() {
           {tab === "ajustes" && <AjusteRapidoView />}
           {tab === "compras" && <SugestaoComprasView />}
           {tab === "categorias" && <CategoriasCrud />}
+          {tab === "horarios" && <HorariosResumoTab />}
           {tab === "combos" && <CombosCrud />}
           {tab === "empresa" && <EmpresaConfigTab />}
           {tab === "identidade" && <IdentidadeVisualTab />}
