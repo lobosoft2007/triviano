@@ -28,7 +28,9 @@ export interface MeioPagamento {
   ativo: boolean;
   exige_maquineta: boolean;
   percentual_cashback: number;
+  is_sistema?: boolean;
 }
+
 
 /** Loads payment methods (active only by default), ordered by name. */
 export async function fetchMeiosPagamento(
