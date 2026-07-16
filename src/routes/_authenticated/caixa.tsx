@@ -111,6 +111,20 @@ import {
   type Printer as PrinterConfig,
   type ResolvedSector,
 } from "@/lib/printers";
+import {
+  buildTestCoupon,
+  clearPreference as clearThermalPref,
+  getPreference as getThermalPref,
+  isSupported as isThermalSupported,
+  isWebSerialSupported,
+  isWebUsbSupported,
+  printBytes as printThermalBytes,
+  requestSerialPort as requestThermalSerial,
+  requestUsbDevice as requestThermalUsb,
+  setPreference as setThermalPref,
+  type ThermalPreference,
+} from "@/lib/thermal-printer";
+import { buildMesaBillEscPos } from "@/lib/thermal-receipts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
