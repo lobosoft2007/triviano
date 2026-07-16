@@ -2312,7 +2312,9 @@ function ThermalDirectPrintCard() {
               disabled={busy || !empresa?.id}
             >
               <Network className="mr-1.5 h-4 w-4" />
-              {pref?.transport === "webserial" ? "Reparear Serial" : "Serial"}
+              {pref?.transport === "webserial"
+                ? "Reparear Serial (COM)"
+                : "Conectar via porta COM (Serial)"}
             </Button>
           )}
           {pref && (
