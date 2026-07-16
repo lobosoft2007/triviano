@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -10,6 +11,7 @@ import {
   Pencil,
   Save,
   X,
+  UserPlus,
 } from "lucide-react";
 import {
   fetchClientes,
@@ -17,16 +19,19 @@ import {
   adminUpdateCliente,
   type Cliente,
 } from "@/lib/clientes";
+import { createClienteByAdmin } from "@/lib/clientes-admin.functions";
 import { composeAddress } from "@/lib/profile";
 import { geocodeAddress } from "@/lib/cep";
 import { formatBRL } from "@/lib/format";
 import {
   AddressFields,
+  emptyAddress,
   type AddressState,
 } from "@/components/AddressFields";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +48,8 @@ import { ModalActionBar } from "@/components/ui/modal-action-bar";
 export function ClientesView({ canBlock = false }: { canBlock?: boolean }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Cliente | null>(null);
+  const [creating, setCreating] = useState(false);
+
 
   const { data: clientes, isLoading } = useQuery({
     queryKey: ["clientes"],
@@ -65,15 +72,26 @@ export function ClientesView({ canBlock = false }: { canBlock?: boolean }) {
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nome, telefone, bairro ou cidade…"
-          className="h-11 rounded-xl pl-9"
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome, telefone, bairro ou cidade…"
+            className="h-11 rounded-xl pl-9"
+          />
+        </div>
+        {canBlock && (
+          <Button
+            onClick={() => setCreating(true)}
+            className="h-11 shrink-0 rounded-xl"
+          >
+            <UserPlus className="mr-2 h-4 w-4" /> Novo cliente
+          </Button>
+        )}
       </div>
+
 
       {isLoading ? (
         <div className="flex justify-center py-10">
@@ -124,9 +142,17 @@ export function ClientesView({ canBlock = false }: { canBlock?: boolean }) {
           onUpdated={(next) => setSelected(next)}
         />
       )}
+
+      {creating && (
+        <NewClienteDialog
+          open={creating}
+          onOpenChange={setCreating}
+        />
+      )}
     </div>
   );
 }
+
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -338,3 +364,111 @@ function ClienteDetailDialog({
     </Dialog>
   );
 }
+
+function NewClienteDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const queryClient = useQueryClient();
+  const create = useServerFn(createClienteByAdmin);
+  const [busy, setBusy] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [sendReset, setSendReset] = useState(true);
+  const [address, setAddress] = useState<AddressState>(emptyAddress);
+
+  async function handleSave() {
+    if (!fullName.trim()) {
+      toast.error("Informe o nome do cliente.");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      toast.error("Informe um e-mail válido.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const geo = await geocodeAddress({
+        logradouro: address.logradouro,
+        numero: address.numero,
+        bairro: address.bairro,
+        municipio: address.municipio,
+        estado: address.estado,
+        cep: address.cep,
+      });
+      await create({
+        data: {
+          email: email.trim(),
+          full_name: fullName.trim(),
+          ...address,
+          latitude: geo?.latitude ?? null,
+          longitude: geo?.longitude ?? null,
+          send_reset: sendReset,
+        },
+      });
+      await queryClient.invalidateQueries({ queryKey: ["clientes"] });
+      toast.success(
+        sendReset
+          ? "Cliente criado. Enviamos o link para definir a senha."
+          : "Cliente criado. Ele poderá definir a senha em 'Esqueci minha senha'.",
+      );
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao criar cliente.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent hideClose className="max-h-[90vh] max-w-md overflow-y-auto">
+        <ModalActionBar
+          title="Novo cliente"
+          onBack={() => onOpenChange(false)}
+          onSave={handleSave}
+          saving={busy}
+          saveLabel="Criar"
+        />
+        <div className="space-y-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="new_full_name">Nome completo</Label>
+            <Input
+              id="new_full_name"
+              className="h-12 rounded-xl"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="new_email">E-mail</Label>
+            <Input
+              id="new_email"
+              type="email"
+              autoComplete="off"
+              placeholder="cliente@email.com"
+              className="h-12 rounded-xl"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              O cliente definirá a própria senha pelo link "Esqueci minha senha".
+            </p>
+          </div>
+          <AddressFields value={address} onChange={setAddress} />
+          <label className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 p-3 text-sm">
+            <Checkbox
+              checked={sendReset}
+              onCheckedChange={(v) => setSendReset(v === true)}
+            />
+            <span>Enviar agora o e-mail para definir a senha</span>
+          </label>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
