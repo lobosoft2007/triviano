@@ -285,14 +285,14 @@ export function AdminSidebar({
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="flex items-center justify-center gap-1.5 px-2 py-2 group-data-[collapsible=icon]:hidden">
+        <div className="flex items-center justify-center gap-4 px-4 py-4 group-data-[collapsible=icon]:hidden">
           <img
-            src="/logo-triviano.svg"
+            src="/Logomarca da Triviano.webp"
             alt="Triviano"
-            className="h-4 w-auto opacity-70"
+            className="h-16 w-auto rounded-md opacity-100"
           />
-          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            by Triviano
+          <span className="text-[8px] font-medium uppercase tracking-wide text-muted-foreground">
+            por Triviano
           </span>
         </div>
       </SidebarFooter>

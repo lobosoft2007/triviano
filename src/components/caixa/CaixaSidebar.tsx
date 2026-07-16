@@ -387,10 +387,10 @@ export function CaixaSidebar({
           <img
             src="/logo-triviano.svg"
             alt="Triviano"
-            className="h-4 w-auto opacity-70"
+            className="h-16 w-auto rounded-md opacity-100"
           />
           <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            by Triviano
+            por Triviano
           </span>
         </div>
       </SidebarFooter>
