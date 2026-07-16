@@ -183,13 +183,30 @@ export function ComandaPaymentDialog({
     if (!matches) return;
     setFinalizing(true);
     try {
-      const payload: ComandaPagamentoSplit[] = drafts.map((d) => ({
-        meio_id: d.meio_id,
-        valor: d.valor,
-      }));
+      // Se há troco (excedente em dinheiro), reduz o excesso dos drafts de
+      // dinheiro antes de enviar — o motor financeiro grava apenas o valor
+      // que efetivamente cobre a conta; o troco é físico, entregue ao
+      // cliente, e não entra em pagamentos_pedido.
+      let restanteTrocoCents = trocoCents;
+      const payload: ComandaPagamentoSplit[] = drafts.map((d) => {
+        if (
+          restanteTrocoCents > 0 &&
+          d.meio_nome.trim().toLowerCase() === "dinheiro"
+        ) {
+          const cents = toCents(d.valor);
+          const cut = Math.min(cents, restanteTrocoCents);
+          restanteTrocoCents -= cut;
+          return { meio_id: d.meio_id, valor: (cents - cut) / 100 };
+        }
+        return { meio_id: d.meio_id, valor: d.valor };
+      }).filter((p) => p.valor > 0);
       await finalizeComandaSplit(comandaId, payload);
       await invalidateAll();
-      toast.success(`Mesa ${numeroMesa} liquidada com sucesso! 🎉`);
+      const trocoMsg =
+        trocoCents > 0 ? ` Troco: ${formatBRL(trocoCents / 100)}` : "";
+      toast.success(
+        `Mesa ${numeroMesa} liquidada com sucesso! 🎉${trocoMsg}`,
+      );
       onOpenChange(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao finalizar.";
@@ -207,6 +224,7 @@ export function ComandaPaymentDialog({
       setFinalizing(false);
     }
   }
+
 
   async function handleOnlinePixConfirmed() {
     // Webhook já liquidou a comanda; aqui só refresh de UI.
