@@ -2,24 +2,13 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Minus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  saveOrderEdits,
-  recalcOrderTotal,
-  itemsSubtotal,
-  type CaixaOrder,
-} from "@/lib/caixa";
+import { saveOrderEdits, recalcOrderTotal, itemsSubtotal, type CaixaOrder } from "@/lib/caixa";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 
 interface EditableItem {
@@ -53,16 +42,11 @@ export function OrderEditDialog({
   );
   const [obs, setObs] = useState(order.observacoes_operador);
   const [descMode, setDescMode] = useState<"R$" | "%">("R$");
-  const [descValue, setDescValue] = useState(
-    order.desconto_manual ? String(order.desconto_manual) : "",
-  );
+  const [descValue, setDescValue] = useState(order.desconto_manual ? String(order.desconto_manual) : "");
   const [saving, setSaving] = useState(false);
 
   const keptItems = items.filter((i) => !i.removed);
-  const subtotal = useMemo(
-    () => itemsSubtotal(keptItems.map((i) => ({ ...i } as never))),
-    [keptItems],
-  );
+  const subtotal = useMemo(() => itemsSubtotal(keptItems.map((i) => ({ ...i }) as never)), [keptItems]);
 
   const descManualReais = useMemo(() => {
     const raw = Number(descValue.replace(",", ".")) || 0;
@@ -73,7 +57,7 @@ export function OrderEditDialog({
   const total = useMemo(
     () =>
       recalcOrderTotal(
-        keptItems.map((i) => ({ ...i } as never)),
+        keptItems.map((i) => ({ ...i }) as never),
         order.discount,
         descManualReais,
       ),
@@ -81,16 +65,10 @@ export function OrderEditDialog({
   );
 
   function setQty(id: string, delta: number) {
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === id ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i,
-      ),
-    );
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i)));
   }
   function toggleRemove(id: string) {
-    setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, removed: !i.removed } : i)),
-    );
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, removed: !i.removed } : i)));
   }
 
   async function handleSave() {
@@ -137,22 +115,15 @@ export function OrderEditDialog({
               {items.map((it) => (
                 <div
                   key={it.id}
-                  className={`flex items-center gap-2 px-3 py-2 ${
-                    it.removed ? "bg-destructive/5 opacity-60" : ""
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-2 ${it.removed ? "bg-destructive/5 opacity-60" : ""}`}
                 >
                   <div className="min-w-0 flex-1">
-                    <p
-                      className={`truncate text-sm font-medium ${
-                        it.removed ? "line-through" : ""
-                      }`}
-                    >
+                    <p className={`truncate text-sm font-medium ${it.removed ? "line-through" : ""}`}>
                       {it.product_name}
                       {it.size ? ` (${it.size})` : ""}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatBRL(it.unit_price)} un ·{" "}
-                      {formatBRL(it.unit_price * it.quantity)}
+                      {formatBRL(it.unit_price)} un · {formatBRL(it.unit_price * it.quantity)}
                     </p>
                   </div>
                   {!it.removed && (
@@ -164,9 +135,7 @@ export function OrderEditDialog({
                       >
                         <Minus className="h-3.5 w-3.5" />
                       </button>
-                      <span className="w-6 text-center text-sm font-semibold tabular-nums">
-                        {it.quantity}
-                      </span>
+                      <span className="w-6 text-center text-sm font-semibold tabular-nums">{it.quantity}</span>
                       <button
                         onClick={() => setQty(it.id, 1)}
                         className="flex h-7 w-7 items-center justify-center rounded-md border border-border hover:bg-secondary"
@@ -179,18 +148,12 @@ export function OrderEditDialog({
                   <button
                     onClick={() => toggleRemove(it.id)}
                     className={`flex h-7 w-7 items-center justify-center rounded-md ${
-                      it.removed
-                        ? "text-primary hover:bg-primary/10"
-                        : "text-destructive hover:bg-destructive/10"
+                      it.removed ? "text-primary hover:bg-primary/10" : "text-destructive hover:bg-destructive/10"
                     }`}
                     aria-label={it.removed ? "Restaurar item" : "Excluir item"}
                     title={it.removed ? "Restaurar" : "Excluir"}
                   >
-                    {it.removed ? (
-                      <Plus className="h-4 w-4" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
+                    {it.removed ? <Plus className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
                   </button>
                 </div>
               ))}
@@ -207,9 +170,7 @@ export function OrderEditDialog({
                     key={m}
                     onClick={() => setDescMode(m)}
                     className={`px-3 text-sm font-semibold ${
-                      descMode === m
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background text-muted-foreground"
+                      descMode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
                     }`}
                   >
                     {m}
@@ -234,7 +195,7 @@ export function OrderEditDialog({
               id="obs-operador"
               value={obs}
               onChange={(e) => setObs(e.target.value)}
-              placeholder="Ex.: cliente pediu troco para R$100, entregar até 20h…"
+              placeholder="Ex.: Fecharemos a cozinha em 10 minutos…"
               rows={3}
             />
           </div>
@@ -254,20 +215,15 @@ export function OrderEditDialog({
             {descManualReais > 0 && (
               <div className="flex justify-between text-muted-foreground">
                 <span>Desconto manual</span>
-                <span className="tabular-nums">
-                  - {formatBRL(descManualReais)}
-                </span>
+                <span className="tabular-nums">- {formatBRL(descManualReais)}</span>
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-1 font-display font-bold">
               <span>Total</span>
-              <span className="tabular-nums text-primary">
-                {formatBRL(total)}
-              </span>
+              <span className="tabular-nums text-primary">{formatBRL(total)}</span>
             </div>
           </div>
         </div>
-
       </DialogContent>
     </Dialog>
   );
