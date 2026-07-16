@@ -241,7 +241,6 @@ type AdminTab =
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
-  { key: "horarios", label: "Horários", icon: Clock },
   { key: "combos", label: "Campanhas", icon: Megaphone },
   { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
   { key: "identidade", label: "Identidade Visual", icon: Palette },
