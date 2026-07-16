@@ -1569,6 +1569,7 @@ function MesaCard({
                   order={o}
                   onDispatch={onDispatch}
                   resolveSector={resolveSector}
+                  variant="mesa"
                 />
               ))}
             </div>
@@ -1587,6 +1588,12 @@ function MesaCard({
             >
               <Receipt className="mr-1.5 h-4 w-4" /> Imprimir conta / conferência
             </Button>
+            {!isEmpty && group.orders.length > 0 && (
+              <>
+                <WhatsAppStatusButton order={group.orders[group.orders.length - 1]} />
+                <NotifyClient order={group.orders[group.orders.length - 1]} />
+              </>
+            )}
             {group.comandaId && !isEmpty && (
               <Button
                 variant="success"
