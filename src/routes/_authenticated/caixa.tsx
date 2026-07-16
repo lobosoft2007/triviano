@@ -369,6 +369,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { data: empresa } = useQuery(empresaQueryOptions);
 
 
 
