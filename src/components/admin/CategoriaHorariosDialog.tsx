@@ -266,6 +266,7 @@ export function CategoriaHorariosDialog({
             })}
           </div>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );
