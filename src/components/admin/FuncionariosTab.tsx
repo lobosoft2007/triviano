@@ -61,13 +61,23 @@ export function FuncionariosTab() {
   };
 
   const handleDelete = async (user_id: string, nome: string | null) => {
-    if (!confirm(`Excluir o funcionário "${nome ?? "sem nome"}"? Esta ação é permanente.`)) return;
+    if (!confirm(`Excluir o funcionário "${nome ?? "sem nome"}"? Esta ação é permanente. Prefira bloquear para preservar o histórico.`)) return;
     try {
       await deleteFn({ data: { user_id } });
       toast.success("Funcionário removido.");
       invalidate();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao remover.");
+    }
+  };
+
+  const handleToggleBloqueio = async (user_id: string, bloqueado: boolean) => {
+    try {
+      await setFuncionarioBloqueado(user_id, bloqueado);
+      toast.success(bloqueado ? "Funcionário bloqueado." : "Funcionário liberado.");
+      invalidate();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao atualizar o status.");
     }
   };
 
