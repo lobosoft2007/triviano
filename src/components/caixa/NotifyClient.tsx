@@ -33,8 +33,6 @@ export function NotifyClient({ order }: { order: CaixaOrder }) {
   });
 
   const orderNo = `#${order.id.slice(0, 6).toUpperCase()}`;
-  const phone = profile?.phone || order.phone || "";
-  const customerName = profile?.full_name || "Cliente";
 
   async function handlePush() {
     const text = message.trim();
