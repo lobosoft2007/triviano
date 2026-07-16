@@ -59,6 +59,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 export type AdminTab =
   | "cardapio"
   | "categorias"
+  | "horarios"
   | "combos"
   | "empresa"
   | "identidade"
