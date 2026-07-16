@@ -238,7 +238,9 @@ function HomePage() {
           </p>
         )}
 
-        {data &&
+        {data?.isClosed && <StoreClosedBanner nextOpening={data.nextOpening} />}
+
+        {data && !data.isClosed &&
           data.categories.map((cat) => {
             const products = data.products.filter((p) => p.category_id === cat.id);
             if (products.length === 0) return null;
@@ -251,6 +253,7 @@ function HomePage() {
               />
             );
           })}
+
       </main>
 
       {/* Details modal */}
