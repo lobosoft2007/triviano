@@ -515,7 +515,9 @@ export function PaymentConfigTab() {
         </DialogContent>
       </Dialog>
 
+      <MeiosPagamentoCrud />
       <CashbackPorMeioSection />
+
     </section>
   );
 }
