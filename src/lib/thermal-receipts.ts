@@ -18,37 +18,26 @@ export function buildMesaBillEscPos(input: {
   brcode?: string;
   mpDynamic?: boolean;
 }): Uint8Array {
-  const {
-    restaurantName,
-    mesa,
-    orders,
-    total,
-    pixKey,
-    pixName,
-    brcode,
-    mpDynamic,
-  } = input;
+  const { restaurantName, mesa, orders, total, pixKey, pixName, brcode, mpDynamic } = input;
   const items = orders.flatMap((o) => o.order_items);
   const subtotal = orders.reduce(
-    (s, o) =>
-      s + o.order_items.reduce((a, it) => a + it.unit_price * it.quantity, 0),
+    (s, o) => s + o.order_items.reduce((a, it) => a + it.unit_price * it.quantity, 0),
     0,
   );
   const discount = orders.reduce((s, o) => s + o.discount, 0);
 
   const p = new EscPos().init();
 
-  p.align("center").bold(true).line(restaurantName || "");
+  p.align("center")
+    .bold(true)
+    .line(restaurantName || "");
   p.line(`CONTA - MESA ${mesa || "-"}`);
   p.bold(false).line(new Date().toLocaleString("pt-BR"));
   p.line("-".repeat(42));
 
   p.align("left");
   for (const it of items) {
-    p.line(twoCol(
-      `${it.quantity}x ${it.product_name}`,
-      formatBRL(it.unit_price * it.quantity),
-    ));
+    p.line(twoCol(`${it.quantity}x ${it.product_name}`, formatBRL(it.unit_price * it.quantity)));
   }
   p.line("-".repeat(42));
 
@@ -56,10 +45,14 @@ export function buildMesaBillEscPos(input: {
   if (discount > 0) {
     p.line(twoCol("Desconto", `- ${formatBRL(discount)}`));
   }
-  p.bold(true).line(twoCol("TOTAL", formatBRL(total))).bold(false);
+  p.bold(true)
+    .line(twoCol("TOTAL", formatBRL(total)))
+    .bold(false);
   p.line("-".repeat(42));
 
-  p.align("center").bold(true).line(`Pague com PIX - ${formatBRL(total)}`);
+  p.align("center")
+    .bold(true)
+    .line(`Pague com PIX - ${formatBRL(total)}`);
   p.bold(false);
   if (mpDynamic) {
     p.line("Pagamento via Mercado Pago");

@@ -1,18 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Loader2,
-  QrCode,
-  Plus,
-  Trash2,
-  AlertCircle,
-} from "lucide-react";
+import { Loader2, QrCode, Plus, Trash2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { fetchMeiosPagamento } from "@/lib/caixa";
-import {
-  finalizeComandaSplit,
-  type ComandaPagamentoSplit,
-} from "@/lib/mesa";
+import { finalizeComandaSplit, type ComandaPagamentoSplit } from "@/lib/mesa";
 import { fetchMpPublicConfig } from "@/lib/mercadopago";
 import { empresaAdminConfigQueryOptions } from "@/lib/empresa";
 import { ComandaPixCharge } from "@/components/checkout/ComandaPixCharge";
@@ -82,10 +73,7 @@ export function ComandaPaymentDialog({
   }, [open, gorjetaAtiva]);
 
   const valorGorjeta = useMemo(
-    () =>
-      gorjetaAtiva && incluirGorjeta
-        ? Math.round(total * gorjetaPct) / 100
-        : 0,
+    () => (gorjetaAtiva && incluirGorjeta ? Math.round(total * gorjetaPct) / 100 : 0),
     [gorjetaAtiva, incluirGorjeta, gorjetaPct, total],
   );
   const totalConta = useMemo(
@@ -114,10 +102,7 @@ export function ComandaPaymentDialog({
     }
   }, [open]);
 
-  const totalPagoCents = useMemo(
-    () => drafts.reduce((s, d) => s + toCents(d.valor), 0),
-    [drafts],
-  );
+  const totalPagoCents = useMemo(() => drafts.reduce((s, d) => s + toCents(d.valor), 0), [drafts]);
   const cashPagoCents = useMemo(
     () =>
       drafts
@@ -132,10 +117,7 @@ export function ComandaPaymentDialog({
   const trocoCents = Math.min(excedenteCents, cashPagoCents);
   // Excedente coberto por dinheiro vira TROCO (não bloqueia); qualquer sobra
   // em cartão/PIX continua bloqueando — não faz sentido dar troco em cartão.
-  const matches =
-    drafts.length > 0 &&
-    restanteCents <= 0 &&
-    excedenteCents === trocoCents;
+  const matches = drafts.length > 0 && restanteCents <= 0 && excedenteCents === trocoCents;
   const canOnlinePix = mpPixActive && drafts.length === 0 && totalContaCents > 0;
 
   function handleAdd() {
@@ -188,31 +170,26 @@ export function ComandaPaymentDialog({
       // que efetivamente cobre a conta; o troco é físico, entregue ao
       // cliente, e não entra em pagamentos_pedido.
       let restanteTrocoCents = trocoCents;
-      const payload: ComandaPagamentoSplit[] = drafts.map((d) => {
-        if (
-          restanteTrocoCents > 0 &&
-          d.meio_nome.trim().toLowerCase() === "dinheiro"
-        ) {
-          const cents = toCents(d.valor);
-          const cut = Math.min(cents, restanteTrocoCents);
-          restanteTrocoCents -= cut;
-          return { meio_id: d.meio_id, valor: (cents - cut) / 100 };
-        }
-        return { meio_id: d.meio_id, valor: d.valor };
-      }).filter((p) => p.valor > 0);
+      const payload: ComandaPagamentoSplit[] = drafts
+        .map((d) => {
+          if (restanteTrocoCents > 0 && d.meio_nome.trim().toLowerCase() === "dinheiro") {
+            const cents = toCents(d.valor);
+            const cut = Math.min(cents, restanteTrocoCents);
+            restanteTrocoCents -= cut;
+            return { meio_id: d.meio_id, valor: (cents - cut) / 100 };
+          }
+          return { meio_id: d.meio_id, valor: d.valor };
+        })
+        .filter((p) => p.valor > 0);
       await finalizeComandaSplit(comandaId, payload);
       await invalidateAll();
-      const trocoMsg =
-        trocoCents > 0 ? ` Troco: ${formatBRL(trocoCents / 100)}` : "";
-      toast.success(
-        `Mesa ${numeroMesa} liquidada com sucesso! 🎉${trocoMsg}`,
-      );
+      const trocoMsg = trocoCents > 0 ? ` Troco: ${formatBRL(trocoCents / 100)}` : "";
+      toast.success(`Mesa ${numeroMesa} liquidada com sucesso! 🎉${trocoMsg}`);
       onOpenChange(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao finalizar.";
       if (msg.includes("ESTOQUE_INSUFICIENTE")) {
-        const insumo =
-          msg.split("ESTOQUE_INSUFICIENTE:")[1]?.trim() || "um insumo";
+        const insumo = msg.split("ESTOQUE_INSUFICIENTE:")[1]?.trim() || "um insumo";
         toast.error(
           `Estoque insuficiente: "${insumo}" acabou de esgotar. Reponha o estoque para prosseguir.`,
           { duration: 8000 },
@@ -224,7 +201,6 @@ export function ComandaPaymentDialog({
       setFinalizing(false);
     }
   }
-
 
   async function handleOnlinePixConfirmed() {
     // Webhook já liquidou a comanda; aqui só refresh de UI.
@@ -239,9 +215,7 @@ export function ComandaPaymentDialog({
       <DialogContent hideClose className="max-h-[90vh] max-w-lg overflow-y-auto">
         <ModalActionBar
           title={
-            onlinePix
-              ? `PIX · Mesa ${numeroMesa}`
-              : `Finalizar e Receber · Mesa ${numeroMesa}`
+            onlinePix ? `PIX · Mesa ${numeroMesa}` : `Finalizar e Receber · Mesa ${numeroMesa}`
           }
           onBack={() => (onlinePix ? setOnlinePix(false) : onOpenChange(false))}
           onSave={handleFinalize}
@@ -310,11 +284,7 @@ export function ComandaPaymentDialog({
                   placeholder="0,00"
                   className="h-10 w-24 min-w-0 rounded-lg"
                 />
-                <Button
-                  onClick={handleAdd}
-                  size="icon"
-                  className="h-10 w-10 shrink-0"
-                >
+                <Button onClick={handleAdd} size="icon" className="h-10 w-10 shrink-0">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -364,33 +334,24 @@ export function ComandaPaymentDialog({
             {gorjetaAtiva && (
               <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm">
                 <div className="min-w-0">
-                  <span className="block font-semibold">
-                    Gorjeta ({gorjetaPct}% — sugerida)
-                  </span>
+                  <span className="block font-semibold">Gorjeta ({gorjetaPct}% — sugerida)</span>
                   <span className="text-[11px] text-muted-foreground">
                     {formatBRL(valorGorjeta)} · Pode remover se o cliente pedir.
                   </span>
                 </div>
-                <Switch
-                  checked={incluirGorjeta}
-                  onCheckedChange={setIncluirGorjeta}
-                />
+                <Switch checked={incluirGorjeta} onCheckedChange={setIncluirGorjeta} />
               </label>
             )}
 
             {/* Resumo */}
             <div className="space-y-1 rounded-xl bg-card p-3 text-sm shadow-card">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Consumo dos pedidos
-                </span>
+                <span className="text-muted-foreground">Consumo dos pedidos</span>
                 <span className="tabular-nums">{formatBRL(total)}</span>
               </div>
               {valorGorjeta > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Gorjeta ({gorjetaPct}%)
-                  </span>
+                  <span className="text-muted-foreground">Gorjeta ({gorjetaPct}%)</span>
                   <span className="tabular-nums">{formatBRL(valorGorjeta)}</span>
                 </div>
               )}
@@ -400,24 +361,18 @@ export function ComandaPaymentDialog({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total pago</span>
-                <span className="tabular-nums">
-                  {formatBRL(totalPagoCents / 100)}
-                </span>
+                <span className="tabular-nums">{formatBRL(totalPagoCents / 100)}</span>
               </div>
               {restanteCents > 0 && (
                 <div className="flex justify-between border-t border-border pt-1 font-display font-bold text-destructive">
                   <span>Restante</span>
-                  <span className="tabular-nums">
-                    {formatBRL(restanteCents / 100)}
-                  </span>
+                  <span className="tabular-nums">{formatBRL(restanteCents / 100)}</span>
                 </div>
               )}
               {trocoCents > 0 && (
                 <div className="flex justify-between border-t border-border pt-1 font-display font-bold text-success">
                   <span>Troco</span>
-                  <span className="tabular-nums">
-                    {formatBRL(trocoCents / 100)}
-                  </span>
+                  <span className="tabular-nums">{formatBRL(trocoCents / 100)}</span>
                 </div>
               )}
               {excedenteCents > trocoCents && (
@@ -438,7 +393,6 @@ export function ComandaPaymentDialog({
                   : "A soma dos pagamentos precisa cobrir o total da conta."}
               </p>
             )}
-
 
             {finalizing && (
               <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">

@@ -28,15 +28,25 @@ const STORAGE_PREFIX = "thermal-printer:";
 /* ---------------------------------------------------------------- */
 
 export function isWebUsbSupported(): boolean {
-  return typeof navigator !== "undefined" && !!(navigator as unknown as {
-    usb?: unknown;
-  }).usb;
+  return (
+    typeof navigator !== "undefined" &&
+    !!(
+      navigator as unknown as {
+        usb?: unknown;
+      }
+    ).usb
+  );
 }
 
 export function isWebSerialSupported(): boolean {
-  return typeof navigator !== "undefined" && !!(navigator as unknown as {
-    serial?: unknown;
-  }).serial;
+  return (
+    typeof navigator !== "undefined" &&
+    !!(
+      navigator as unknown as {
+        serial?: unknown;
+      }
+    ).serial
+  );
 }
 
 export function isSupported(): boolean {
@@ -57,10 +67,7 @@ export function getPreference(empresaId: string): ThermalPreference | null {
   }
 }
 
-export function setPreference(
-  empresaId: string,
-  pref: ThermalPreference,
-): void {
+export function setPreference(empresaId: string, pref: ThermalPreference): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_PREFIX + empresaId, JSON.stringify(pref));
 }
@@ -186,9 +193,7 @@ async function findPairedUsb(pref: ThermalPreference): Promise<UsbDevice> {
       (!pref.serialNumber || d.serialNumber === pref.serialNumber),
   );
   if (!match) {
-    throw new Error(
-      "Impressora não encontrada. Reconecte o cabo USB ou refaça o pareamento.",
-    );
+    throw new Error("Impressora não encontrada. Reconecte o cabo USB ou refaça o pareamento.");
   }
   return match;
 }
@@ -199,15 +204,10 @@ async function findPairedSerial(pref: ThermalPreference): Promise<SerialPort> {
   const ports = await serial.getPorts();
   const match = ports.find((p) => {
     const info = p.getInfo();
-    return (
-      info.usbVendorId === pref.vendorId &&
-      info.usbProductId === pref.productId
-    );
+    return info.usbVendorId === pref.vendorId && info.usbProductId === pref.productId;
   });
   if (!match) {
-    throw new Error(
-      "Porta serial não encontrada. Reconecte o cabo ou refaça o pareamento.",
-    );
+    throw new Error("Porta serial não encontrada. Reconecte o cabo ou refaça o pareamento.");
   }
   return match;
 }
@@ -219,9 +219,7 @@ async function sendUsb(pref: ThermalPreference, bytes: Uint8Array): Promise<void
   try {
     if (!device.configuration) await device.selectConfiguration(1);
     const iface = device.configuration!.interfaces.find((i) =>
-      i.alternate.endpoints.some(
-        (e) => e.direction === "out" && e.type === "bulk",
-      ),
+      i.alternate.endpoints.some((e) => e.direction === "out" && e.type === "bulk"),
     );
     if (!iface) throw new Error("Interface de impressora não encontrada.");
     const endpoint = iface.alternate.endpoints.find(
@@ -247,10 +245,7 @@ async function sendUsb(pref: ThermalPreference, bytes: Uint8Array): Promise<void
   }
 }
 
-async function sendSerial(
-  pref: ThermalPreference,
-  bytes: Uint8Array,
-): Promise<void> {
+async function sendSerial(pref: ThermalPreference, bytes: Uint8Array): Promise<void> {
   const port = await findPairedSerial(pref);
   await port.open({ baudRate: 9600 });
   try {
@@ -265,10 +260,7 @@ async function sendSerial(
   }
 }
 
-export async function printBytes(
-  pref: ThermalPreference,
-  bytes: Uint8Array,
-): Promise<void> {
+export async function printBytes(pref: ThermalPreference, bytes: Uint8Array): Promise<void> {
   if (pref.transport === "webusb") return sendUsb(pref, bytes);
   return sendSerial(pref, bytes);
 }
@@ -350,20 +342,87 @@ function encodeCp850(input: string): Uint8Array {
 
 // Minimal Unicode → CP850 lookup covering pt-BR/es-ES glyphs we actually print.
 const CP850_MAP: Record<string, number> = {
-  "Ç": 0x80, "ü": 0x81, "é": 0x82, "â": 0x83, "ä": 0x84, "à": 0x85,
-  "å": 0x86, "ç": 0x87, "ê": 0x88, "ë": 0x89, "è": 0x8a, "ï": 0x8b,
-  "î": 0x8c, "ì": 0x8d, "Ä": 0x8e, "Å": 0x8f, "É": 0x90, "æ": 0x91,
-  "Æ": 0x92, "ô": 0x93, "ö": 0x94, "ò": 0x95, "û": 0x96, "ù": 0x97,
-  "ÿ": 0x98, "Ö": 0x99, "Ü": 0x9a, "ø": 0x9b, "£": 0x9c, "Ø": 0x9d,
-  "×": 0x9e, "ƒ": 0x9f, "á": 0xa0, "í": 0xa1, "ó": 0xa2, "ú": 0xa3,
-  "ñ": 0xa4, "Ñ": 0xa5, "ª": 0xa6, "º": 0xa7, "¿": 0xa8, "®": 0xa9,
-  "¬": 0xaa, "½": 0xab, "¼": 0xac, "¡": 0xad, "«": 0xae, "»": 0xaf,
-  "Á": 0xb5, "Â": 0xb6, "À": 0xb7, "©": 0xb8, "¢": 0xbf, "ã": 0xc6,
-  "Ã": 0xc7, "ð": 0xd0, "Ð": 0xd1, "Ê": 0xd2, "Ë": 0xd3, "È": 0xd4,
-  "ı": 0xd5, "Í": 0xd6, "Î": 0xd7, "Ï": 0xd8, "Ó": 0xe0, "ß": 0xe1,
-  "Ô": 0xe2, "Ò": 0xe3, "õ": 0xe4, "Õ": 0xe5, "µ": 0xe6, "þ": 0xe7,
-  "Þ": 0xe8, "Ú": 0xe9, "Û": 0xea, "Ù": 0xeb, "ý": 0xec, "Ý": 0xed,
-  "±": 0xf1, "°": 0xf8, "€": 0xd5, // best-effort
+  Ç: 0x80,
+  ü: 0x81,
+  é: 0x82,
+  â: 0x83,
+  ä: 0x84,
+  à: 0x85,
+  å: 0x86,
+  ç: 0x87,
+  ê: 0x88,
+  ë: 0x89,
+  è: 0x8a,
+  ï: 0x8b,
+  î: 0x8c,
+  ì: 0x8d,
+  Ä: 0x8e,
+  Å: 0x8f,
+  É: 0x90,
+  æ: 0x91,
+  Æ: 0x92,
+  ô: 0x93,
+  ö: 0x94,
+  ò: 0x95,
+  û: 0x96,
+  ù: 0x97,
+  ÿ: 0x98,
+  Ö: 0x99,
+  Ü: 0x9a,
+  ø: 0x9b,
+  "£": 0x9c,
+  Ø: 0x9d,
+  "×": 0x9e,
+  ƒ: 0x9f,
+  á: 0xa0,
+  í: 0xa1,
+  ó: 0xa2,
+  ú: 0xa3,
+  ñ: 0xa4,
+  Ñ: 0xa5,
+  ª: 0xa6,
+  º: 0xa7,
+  "¿": 0xa8,
+  "®": 0xa9,
+  "¬": 0xaa,
+  "½": 0xab,
+  "¼": 0xac,
+  "¡": 0xad,
+  "«": 0xae,
+  "»": 0xaf,
+  Á: 0xb5,
+  Â: 0xb6,
+  À: 0xb7,
+  "©": 0xb8,
+  "¢": 0xbf,
+  ã: 0xc6,
+  Ã: 0xc7,
+  ð: 0xd0,
+  Ð: 0xd1,
+  Ê: 0xd2,
+  Ë: 0xd3,
+  È: 0xd4,
+  ı: 0xd5,
+  Í: 0xd6,
+  Î: 0xd7,
+  Ï: 0xd8,
+  Ó: 0xe0,
+  ß: 0xe1,
+  Ô: 0xe2,
+  Ò: 0xe3,
+  õ: 0xe4,
+  Õ: 0xe5,
+  µ: 0xe6,
+  þ: 0xe7,
+  Þ: 0xe8,
+  Ú: 0xe9,
+  Û: 0xea,
+  Ù: 0xeb,
+  ý: 0xec,
+  Ý: 0xed,
+  "±": 0xf1,
+  "°": 0xf8,
+  "€": 0xd5, // best-effort
 };
 
 /* ---------------------------------------------------------------- */
