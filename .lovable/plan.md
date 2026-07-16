@@ -1,40 +1,24 @@
-## Objetivo
-Transformar a aba **Horários** em um sub-item de **Categorias** no sidebar do `/admin`, mantendo o conteúdo e as permissões atuais.
+## Problema
+No Caixa, o modal "Finalizar e Receber" (`ComandaPaymentDialog.tsx`) está com scroll horizontal — os valores (ex.: `formatBRL`) estão sendo cortados. Causa provável: o modal usa `max-w-md` (≈ 28rem) e a linha "Adicionar pagamento" empilha `select` + `Input` (`w-28`) + botão `+` num único flex-row, sem permitir wrap; e as linhas de resumo/drafts têm valores tabulares longos disputando espaço.
 
-## Contexto atual
-- `src/routes/_authenticated/admin.tsx` define `AdminTab` com `"horarios"` e renderiza `<HorariosResumoTab />` no switch de conteúdo.
-- `src/components/admin/AdminSidebar.tsx` lista `"horarios"` como item irmão de `"categorias"` dentro do grupo "Cadastros".
-- Ambos usam a permissão `acesso_cadastro_produtos`.
+## Ajustes propostos (apenas UI em `ComandaPaymentDialog.tsx`)
 
-## Mudanças propostas
+1. **Alargar o Dialog**: trocar `max-w-md` por `max-w-lg` (mantém encaixe em mobile via `w-[95vw]` implícito do `DialogContent`). Isso já elimina a maior parte do overflow.
 
-### 1. Estrutura do sidebar (`src/components/admin/AdminSidebar.tsx`)
-- Introduzir suporte a **itens aninhados** no grupo "Cadastros":
-  - "Categorias" vira um item expansível com dois sub-itens:
-    - **Categorias** → tab `"categorias"`
-    - **Horários** → tab `"horarios"`
-- Criar um helper interno (ex.: `SidebarNestedGroup`) que renderize um `Collapsible` dentro de `SidebarMenuSub`, reaproveitando os componentes do shadcn Sidebar.
-- Manter o comportamento de abertura automática: quando `activeTab` for `"categorias"` ou `"horarios"`, o grupo "Cadastros" e o sub-menu "Categorias" ficam abertos.
-- Preservar a regra de `tabAllowed`: só exibe o sub-item se a flag permitir.
+2. **Linha "Adicionar pagamento" mais tolerante**:
+   - Envolver select+input+botão em `flex flex-wrap gap-2` (ou grid `grid-cols-[1fr_auto_auto]`) para que em telas estreitas o input caia para baixo em vez de estourar.
+   - Trocar `w-28` do `Input` por `w-24 min-w-0` e adicionar `min-w-0` no `select` para permitir shrink real (sem `min-w-0`, flex children não encolhem abaixo do conteúdo, gerando scroll horizontal).
 
-### 2. Tipo e renderização de conteúdo (`src/routes/_authenticated/admin.tsx`)
-- Manter `"horarios"` no tipo `AdminTab`.
-- Manter `TAB_FLAG.horarios = "acesso_cadastro_produtos"`.
-- Manter a renderização `{tab === "horarios" && <HorariosResumoTab />}`.
-- Remover `"horarios"` do array `TABS` usado para descobrir a primeira aba permitida e o label do header (ou marcar como `hidden: true`), pois ele não deve mais aparecer como aba de topo.
-- O header continua mostrando o label correto via `TABS.find(...)` ou fallback para "Horários".
+3. **Linhas de drafts e resumo**:
+   - Adicionar `min-w-0` nos containers e `truncate` no nome do meio de pagamento (`d.meio_nome`) para valores longos não empurrarem o total.
+   - Garantir `tabular-nums` já presente + `whitespace-nowrap` nos valores.
 
-### 3. Ícones
-- O item pai "Categorias" continua com ícone `Tags`.
-- O sub-item "Horários" usa ícone `Clock`.
+4. **Header (ModalActionBar)**: título "Finalizar e Receber · Mesa N" pode ficar longo — se necessário, aplicar `truncate` no title (verificar se o componente já suporta; se não, apenas manter o alargamento do dialog resolve).
 
-## Detalhes técnicos
-- Sem novas queries ou alterações no backend.
-- Sem mudanças na lógica de `HorariosResumoTab` ou `CategoriaHorariosDialog`.
-- Layout respeita o `AppShell` e o sidebar colapsável (`collapsible="icon"`).
-- Cores e tokens permanecem semânticos (nenhum hardcoded).
+## Escopo
+- Um único arquivo tocado: `src/components/caixa/ComandaPaymentDialog.tsx`.
+- Sem mudanças de lógica financeira, split, PIX ou queries.
+- Sem mudanças no `ModalActionBar` a menos que o title continue truncando após alargar.
 
-## Fora do escopo
-- Alterar o conteúdo/funcionalidade da aba Horários.
-- Criar horários por produto individual.
-- Mudar permissões ou regras de acesso.
+## Validação
+- Abrir modal em viewport 375px e 768px, conferir ausência de scroll horizontal e valores íntegros.

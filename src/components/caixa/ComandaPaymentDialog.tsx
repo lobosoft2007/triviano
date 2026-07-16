@@ -204,7 +204,7 @@ export function ComandaPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent hideClose className="max-h-[90vh] max-w-md overflow-y-auto">
+      <DialogContent hideClose className="max-h-[90vh] max-w-lg overflow-y-auto">
         <ModalActionBar
           title={
             onlinePix
