@@ -241,7 +241,6 @@ type AdminTab =
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
-  { key: "horarios", label: "Horários", icon: Clock },
   { key: "combos", label: "Campanhas", icon: Megaphone },
   { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
   { key: "identidade", label: "Identidade Visual", icon: Palette },
@@ -671,7 +670,8 @@ function AdminPage() {
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Retaguarda</p>
                 <h1 className="truncate font-display text-xl font-bold leading-tight">
-                  {TABS.find((t) => t.key === tab)?.label ?? "Gerenciador"}
+                  {TABS.find((t) => t.key === tab)?.label ??
+                    (tab === "horarios" ? "Horários" : "Gerenciador")}
                 </h1>
               </div>
               <div className="ml-auto flex items-center gap-2">
