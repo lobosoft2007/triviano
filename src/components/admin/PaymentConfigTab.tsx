@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { CashbackPorMeioSection } from "@/components/admin/CashbackPorMeioSection";
+import { MeiosPagamentoCrud } from "@/components/admin/MeiosPagamentoCrud";
+
 
 const GATEWAYS = ["Efí", "Mercado Pago", "Inter", "Asaas", "Outro"];
 
