@@ -102,7 +102,7 @@ interface UsbDevice {
   selectConfiguration(n: number): Promise<void>;
   claimInterface(n: number): Promise<void>;
   releaseInterface(n: number): Promise<void>;
-  transferOut(endpoint: number, data: BufferSource): Promise<unknown>;
+  transferOut(endpoint: number, data: ArrayBuffer): Promise<unknown>;
 }
 interface UsbApi {
   requestDevice(opts: { filters: unknown[] }): Promise<UsbDevice>;
