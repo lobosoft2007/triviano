@@ -146,6 +146,47 @@ export type Database = {
           },
         ]
       }
+      category_horarios: {
+        Row: {
+          categoria_id: string
+          created_at: string
+          dia_semana: number
+          empresa_id: string
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          categoria_id: string
+          created_at?: string
+          dia_semana: number
+          empresa_id: string
+          hora_fim: string
+          hora_inicio: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          categoria_id?: string
+          created_at?: string
+          dia_semana?: number
+          empresa_id?: string
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_horarios_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes_cashback: {
         Row: {
           cliente_id: string
@@ -2853,6 +2894,10 @@ export type Database = {
           nome_nivel: string
         }[]
       }
+      admin_set_category_horarios: {
+        Args: { p_categoria_id: string; p_horarios: Json }
+        Returns: undefined
+      }
       admin_set_funcionario_bloqueado: {
         Args: { p_bloqueado: boolean; p_user_id: string }
         Returns: undefined
@@ -3020,6 +3065,15 @@ export type Database = {
           is_manager: boolean
         }[]
       }
+      get_next_opening: {
+        Args: { p_empresa_id: string }
+        Returns: {
+          categoria_nome: string
+          dia_semana: number
+          hora_inicio: string
+          quando: string
+        }[]
+      }
       get_painel_retirada: {
         Args: { _empresa_id?: string }
         Returns: {
@@ -3135,6 +3189,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_categoria_aberta: {
+        Args: { p_at?: string; p_categoria_id: string }
         Returns: boolean
       }
       is_empresa_ativa: { Args: { _empresa_id: string }; Returns: boolean }
