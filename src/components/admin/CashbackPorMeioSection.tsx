@@ -37,6 +37,11 @@ export function CashbackPorMeioSection() {
           cliente. Ex.: PIX 5%, Dinheiro 2%, Cartão 0% (desativado). O bônus é
           calculado sobre o valor efetivamente pago em cada meio.
         </p>
+        <p className="mt-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+          <strong>Fiado</strong> também é configurável aqui. O cashback sobre
+          fiado é creditado apenas quando o pedido é quitado.
+        </p>
+
       </header>
 
       {isLoading ? (
