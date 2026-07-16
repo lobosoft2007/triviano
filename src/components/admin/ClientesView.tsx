@@ -72,15 +72,26 @@ export function ClientesView({ canBlock = false }: { canBlock?: boolean }) {
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nome, telefone, bairro ou cidade…"
-          className="h-11 rounded-xl pl-9"
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome, telefone, bairro ou cidade…"
+            className="h-11 rounded-xl pl-9"
+          />
+        </div>
+        {canBlock && (
+          <Button
+            onClick={() => setCreating(true)}
+            className="h-11 shrink-0 rounded-xl"
+          >
+            <UserPlus className="mr-2 h-4 w-4" /> Novo cliente
+          </Button>
+        )}
       </div>
+
 
       {isLoading ? (
         <div className="flex justify-center py-10">
