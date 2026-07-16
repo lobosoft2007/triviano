@@ -32,7 +32,11 @@ export const STABLE_RELEASE = {
   date: LAST_PATCH_DATE,
   safeRollback: true,
   validated: [
-    "Trava anti-incineração acidental: liberar_mesa exige confirmação quando a mesa já tem comanda viva; check-in duplo do mesmo cliente reaproveita a comanda intacta",
+    "Impressão térmica direta (WebUSB/Web Serial) da conta da mesa, sem preview do navegador — com fallback para window.print()",
+    "Pareamento e teste de impressora ESC/POS no Caixa → Configurações → Impressoras",
+    "Troco em dinheiro no Finalizar e Receber (calcula e exibe troco, corta excesso antes de gravar, preserva motor financeiro)",
+    "Hardening anti-pirataria: source maps desativados em produção (vite.config.ts) e .env bloqueado no .gitignore",
+    "Auditoria de rotas admin/caixa/superadmin confirmada sob _authenticated/ com guards rígidos",
     "Cockpit destaca mesa ocupada em vermelho e força AlertDialog antes de zerar",
     "Reidratação de Sessão validada em multi-device (usuário continua na mesma comanda em outro aparelho após login)",
     "Incineração da Comanda Zumbi: liberar_mesa cancela resíduos por MESA + índice único parcial impede comandas duplicadas vivas",
