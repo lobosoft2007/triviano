@@ -254,8 +254,15 @@ export function AdminSidebar({
       icon: <ClipboardList className={iconCls} />,
       children: [
         { key: "cardapio", label: "Cardápio", icon: <UtensilsCrossed className={iconCls} /> },
-        { key: "categorias", label: "Categorias", icon: <Tags className={iconCls} /> },
-        { key: "horarios", label: "Horários", icon: <Clock className={iconCls} /> },
+        {
+          key: "categorias",
+          label: "Categorias",
+          icon: <Tags className={iconCls} />,
+          children: [
+            { key: "categorias", label: "Categorias", icon: <Tags className={iconCls} /> },
+            { key: "horarios", label: "Horários", icon: <Clock className={iconCls} /> },
+          ],
+        },
         { key: "insumos", label: "Insumos", icon: <Package className={iconCls} /> },
         { key: "subprodutos", label: "SubProdutos", icon: <Boxes className={iconCls} /> },
         { key: "setores", label: "Setores", icon: <Layers className={iconCls} /> },
