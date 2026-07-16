@@ -1,5 +1,5 @@
-// Ensures TanStack Start's `server` augmentation on FilebaseRouteOptionsInterface
-// (defined in @tanstack/start-client-core/serverRoute) is loaded project-wide,
+// Loads TanStack Start's `server` augmentation on FilebaseRouteOptionsInterface
+// (defined in @tanstack/start-client-core/dist/esm/serverRoute.d.ts) project-wide
 // so createFileRoute({ server: { handlers: ... } }) type-checks in every route file.
-import "@tanstack/start-client-core";
+/// <reference types="@tanstack/start-client-core" />
 export {};
