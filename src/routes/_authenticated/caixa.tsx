@@ -2374,6 +2374,50 @@ function ThermalDirectPrintCard() {
           )}
         </div>
       )}
+
+      {accessDenied && pref?.transport === "webusb" && (
+        <details className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+          <summary className="cursor-pointer font-semibold text-amber-700 dark:text-amber-400">
+            Windows bloqueou o USB — como habilitar impressão silenciosa
+          </summary>
+          <div className="mt-2 space-y-2 text-muted-foreground">
+            <p>
+              O Chrome pareou a impressora, mas o driver do Windows não libera
+              o canal USB direto. A conta segue imprimindo pelo diálogo do
+              navegador (Ctrl+P). Para impressão 100% silenciosa, escolha um
+              dos caminhos abaixo:
+            </p>
+            <div>
+              <p className="font-semibold text-foreground">
+                Opção A — Ativar &quot;USB Virtual COM&quot; (recomendado)
+              </p>
+              <ol className="ml-4 list-decimal">
+                <li>Baixe e abra o utilitário oficial da Elgin (i7 Config / Elgin Printer Utility).</li>
+                <li>Troque a interface USB de &quot;Printer&quot; para &quot;Virtual COM&quot;.</li>
+                <li>Reinicie a impressora. Uma porta COM aparecerá no Windows.</li>
+                <li>Volte aqui e clique em <strong>Conectar via porta COM (Serial)</strong>.</li>
+              </ol>
+              <p className="mt-1 text-[10px]">
+                Obs.: neste modo a impressora sai da lista &quot;Impressoras e scanners&quot; do Windows.
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">
+                Opção B — Substituir driver por WinUSB (Zadig)
+              </p>
+              <ol className="ml-4 list-decimal">
+                <li>Baixe o Zadig (zadig.akeo.ie).</li>
+                <li>Selecione a impressora Elgin na lista.</li>
+                <li>Instale o driver <strong>WinUSB</strong> sobre ela.</li>
+                <li>Volte aqui e clique em <strong>Reparear USB</strong>.</li>
+              </ol>
+              <p className="mt-1 text-[10px]">
+                Obs.: perde a impressora do Windows (Word/Excel não conseguem mais imprimir nela).
+              </p>
+            </div>
+          </div>
+        </details>
+      )}
     </div>
   );
 }
