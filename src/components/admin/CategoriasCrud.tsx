@@ -329,6 +329,17 @@ export function CategoriasCrud() {
 
         </DialogContent>
       </Dialog>
+
+      {horariosFor && (
+        <CategoriaHorariosDialog
+          open={!!horariosFor}
+          onOpenChange={(v) => !v && setHorariosFor(null)}
+          categoriaId={horariosFor.id}
+          categoriaNome={horariosFor.name}
+          onSaved={() => invalidate()}
+        />
+      )}
     </section>
+
   );
 }
