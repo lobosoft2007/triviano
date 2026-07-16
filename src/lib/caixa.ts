@@ -38,7 +38,7 @@ export async function fetchMeiosPagamento(
 ): Promise<MeioPagamento[]> {
   let q = supabase
     .from("meios_pagamento")
-    .select("id, nome, ativo, exige_maquineta, percentual_cashback")
+    .select("id, nome, ativo, exige_maquineta, percentual_cashback, is_sistema")
     .order("nome");
   if (activeOnly) q = q.eq("ativo", true);
   const { data, error } = await q;
@@ -48,8 +48,12 @@ export async function fetchMeiosPagamento(
     percentual_cashback: Number(
       (m as { percentual_cashback?: number }).percentual_cashback ?? 0,
     ),
+    is_sistema: Boolean(
+      (m as { is_sistema?: boolean }).is_sistema ?? false,
+    ),
   }));
 }
+
 
 /** Updates the cashback percentage of a payment method (admin/manager only). */
 export async function updateMeioCashback(
