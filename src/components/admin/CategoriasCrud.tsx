@@ -8,7 +8,10 @@ import {
   Tags,
   ArrowUp,
   ArrowDown,
+  Clock,
 } from "lucide-react";
+import { CategoriaHorariosDialog } from "@/components/admin/CategoriaHorariosDialog";
+
 import { toast } from "sonner";
 import {
   listAdminCategories,
