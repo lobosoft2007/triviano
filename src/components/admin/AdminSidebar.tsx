@@ -27,6 +27,7 @@ import {
   Lock,
   Crown,
   Armchair,
+  Clock,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
