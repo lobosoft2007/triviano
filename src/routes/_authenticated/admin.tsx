@@ -74,6 +74,7 @@ import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { SugestaoComprasView } from "@/components/admin/SugestaoComprasView";
 
 import { CategoriasCrud } from "@/components/admin/CategoriasCrud";
+import { HorariosResumoTab } from "@/components/admin/HorariosResumoTab";
 import { PermissoesTab } from "@/components/admin/PermissoesTab";
 import { FuncionariosTab } from "@/components/admin/FuncionariosTab";
 import { usePermissions, ACCESS_DENIED_MSG, type PermissionFlag } from "@/lib/permissions";
