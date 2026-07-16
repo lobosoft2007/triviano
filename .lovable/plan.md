@@ -1,45 +1,60 @@
-## Regra de vida atual das notificações (sino do PWA)
+## Objetivo
 
-- **Origem**: `notificacoes_cliente`, inseridas pelo Caixa a cada mudança de status do pedido e pelo gatilho de cashback.
-- **Filtro por tenant**: só notificações de pedidos da empresa do host atual.
-- **Janela visível**: últimas 24h (banco continua guardando o histórico para auditoria).
-- **Limite**: 50 registros, mais recentes primeiro.
-- **Lidas/não lidas**: badge conta só `lida=false`. Abrir o sino marca todas as visíveis como lidas.
-- **Realtime**: Supabase Realtime + banner nativo quando permitido.
-- **Hoje não há forma de esconder** — some sozinho depois de 24h.
+Permitir que o dono da empresa **cadastre, edite, ative/desative e apague** meios de pagamento (Vale Alimentação, Vale Refeição, Ticket, PicPay, etc.), com o percentual de cashback configurável no mesmo lugar. Fiado já existe e já é configurável — apenas será destacado no aviso da tela.
 
-## O que muda
+## Onde
 
-1. **Ocultar sem apagar** (per-device, sem tocar no banco).
-2. **Scroll vertical** dentro do popover, tanto no celular quanto no desktop, para ver todas as notificações do dia.
+Aba **Admin → Configurações de Pagamento**, logo acima do bloco atual "Cashback por meio de pagamento".
 
-## Passos
+## Escopo
 
-### 1. Ocultar visualmente (sem apagar do banco)
+### 1. Nova seção "Meios de Pagamento" (`MeiosPagamentoCrud.tsx`)
 
-- Novo helper `src/lib/hiddenNotifications.ts`:
-  - `getHiddenIds(userId)` — lê `localStorage["hidden-notifications:<userId>"]` e purga IDs com timestamp > 24h.
-  - `hideNotification(userId, id)` / `hideAll(userId, ids)` — grava `{id, ts}` no mapa.
-- `src/hooks/useNotifications.ts`:
-  - Estado `hiddenIds` (Set) inicializado por `getHiddenIds`.
-  - Filtra `notifications` removendo IDs ocultos; recalcula `unreadCount`.
-  - Expõe `hideOne(id)` e `hideAll()`.
-- `src/components/NotificationBell.tsx`:
-  - Botão discreto `EyeOff` à direita de cada item → `hideOne(n.id)` com `stopPropagation`.
-  - Botão "Ocultar todas" no cabeçalho ao lado de "Marcar todas".
-  - Sem confirmação, sem toast — ação silenciosa (o registro fica no banco para auditoria).
+Lista em cartões, cada linha com:
+- Nome (editável inline ou via dialog)
+- Toggle **Ativo**
+- Toggle **Exige maquineta** (usado hoje para cartões)
+- Campo **% Cashback** (0–100, mesmo input do bloco atual)
+- Botão **Salvar** por linha e botão **Excluir** (com confirmação)
 
-### 2. Scroll vertical no popover (mobile + desktop)
+Cabeçalho com botão **"+ Novo meio de pagamento"** abrindo dialog com: nome, exige maquineta, % cashback inicial, ativo.
 
-- No `PopoverContent` do sino, aplicar altura máxima responsiva e overflow vertical apenas na lista:
-  - Wrapper da lista: `max-h-[70vh] sm:max-h-96 overflow-y-auto overscroll-contain`.
-  - Manter o cabeçalho ("X notificações" + "Marcar todas" + "Ocultar todas") **fora** do container rolável, para ele ficar sempre visível enquanto a lista rola.
-  - Rodapé (se houver) também fica fixo, fora do scroll.
-- Garantir que o `PopoverContent` em si não corte a lista: usar `p-0` no conteúdo e aplicar o padding só nos filhos, para o scroll ocupar toda a altura disponível.
-- No mobile o popover já é ancorado ao ícone; a altura `70vh` é suficiente para ver muito mais que 4 itens sem invadir o restante da tela.
+Regras:
+- Nome único por empresa (validação client + índice).
+- **Não permitir excluir** meios "de sistema" (PIX, Dinheiro, Cashback, Fiado, Cartão de Crédito, Cartão de Débito) — apenas desativar. Meios criados pelo usuário podem ser excluídos se não tiverem uso em `pagamentos_pedido`.
+- Ao excluir com histórico de uso: bloquear e sugerir desativar.
 
-## Fora do escopo
+### 2. Helpers em `src/lib/caixa.ts`
 
-- Nenhuma alteração de banco, RLS, motor financeiro, push nativo, WhatsApp ou realtime.
-- Não sincronizo o "oculto" entre dispositivos (é intencional).
-- Não altero a janela de 24h nem o motor de inserção pelo Caixa.
+Adicionar:
+- `createMeioPagamento({ nome, exige_maquineta, percentual_cashback, ativo })`
+- `updateMeioPagamento(id, patch)` (nome + flags, além do cashback já existente)
+- `deleteMeioPagamento(id)` — chama nova RPC `delete_meio_pagamento` que valida sistema/uso.
+
+O `updateMeioCashback` atual continua funcionando (compat com o bloco de cashback).
+
+### 3. Migração de banco
+
+- `meios_pagamento`: adicionar coluna `is_sistema boolean not null default false` e marcar como `true` os 6 meios padrão existentes.
+- Índice único `(empresa_id, lower(nome))`.
+- Trigger no `insert` de novos meios: `empresa_id` = `current_empresa_id()` (padrão já usado no projeto), `is_sistema = false`.
+- RPC `delete_meio_pagamento(p_id uuid)` (security definer): valida `can_manage_empresa`, rejeita se `is_sistema` ou se existir referência em `pagamentos_pedido`/`contas_financeiras.id_meio_pagamento`. Sem essas travas, uma exclusão quebraria relatórios e conciliação.
+- Políticas RLS: manter SELECT como está; adicionar INSERT/UPDATE/DELETE para admins da empresa via `can_manage_empresa(empresa_id)` (padrão já usado nas outras tabelas). GRANTs conforme padrão do projeto.
+
+### 4. Bloco "Cashback por meio de pagamento" existente
+
+- Mantido como está — passa a listar automaticamente os meios novos.
+- Adicionar uma linha de aviso curto: *"Fiado também é configurável. Cashback sobre fiado é creditado apenas quando o pedido é quitado."* (só texto, sem mudança de motor).
+
+## Fora do escopo (não mexer)
+
+- Motor de cashback (`award_order_cashback`), motor de fiado, `finalize_order_paid`, PIX, webhook MP, RLS financeira — protegidos por `mem://constraints/motor-financeiro-protegido`.
+- Nada muda no fluxo do Caixa: os novos meios aparecem automaticamente na tela de pagamento (que já lê `fetchMeiosPagamento(true)`).
+- Sem sincronização com Mercado Pago / adquirente — meio novo é apenas registro contábil interno.
+
+## Entregáveis
+
+1. Migração SQL (`is_sistema`, índice, RPC `delete_meio_pagamento`, políticas, GRANTs).
+2. `src/lib/caixa.ts`: 3 novos helpers.
+3. `src/components/admin/MeiosPagamentoCrud.tsx` (novo).
+4. `src/components/admin/PaymentConfigTab.tsx`: montar o CRUD acima do bloco de cashback + aviso sobre Fiado.
