@@ -142,9 +142,17 @@ export function ClientesView({ canBlock = false }: { canBlock?: boolean }) {
           onUpdated={(next) => setSelected(next)}
         />
       )}
+
+      {creating && (
+        <NewClienteDialog
+          open={creating}
+          onOpenChange={setCreating}
+        />
+      )}
     </div>
   );
 }
+
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
