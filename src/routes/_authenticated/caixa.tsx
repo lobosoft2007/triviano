@@ -2253,6 +2253,14 @@ function ThermalDirectPrintCard() {
         deste computador, sem abrir o diálogo do navegador. Preferência
         salva neste aparelho.
       </p>
+      {anyOk && !pref && serialOk && (
+        <p className="mb-3 rounded-lg bg-primary/5 p-2 text-[11px] text-muted-foreground">
+          <strong>Elgin i7 Plus / Bematech já instalada no Windows?</strong>{" "}
+          Use <strong>Conectar via porta COM (Serial)</strong> — o WebUSB não
+          enxerga impressoras que já têm driver do sistema, mas a Serial
+          funciona sem mexer em nada.
+        </p>
+      )}
 
       {!anyOk && (
         <p className="rounded-lg bg-secondary p-2 text-xs text-muted-foreground">
