@@ -306,7 +306,7 @@ export function AdminSidebar({ activeTab, isSuperAdmin, tabAllowed, onSelectTab,
         <div className="flex items-center gap-2 px-1 py-1.5 group-data-[collapsible=icon]:justify-center">
           <BrandLogo
             showName // h-16 w-auto rounded-md opacity-100
-            imgClassName="h-16 w-auto rounded-md opacity-100 object-contain" // h-8 w-8 shrink-0 rounded-lg
+            imgClassName="h-24 w-auto rounded-md opacity-100 object-contain" // h-8 w-8 shrink-0 rounded-lg
             nameClassName="truncate font-display text-base font-bold leading-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden"
           />
         </div>
