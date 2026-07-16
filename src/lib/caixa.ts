@@ -68,6 +68,70 @@ export async function updateMeioCashback(
   if (error) throw error;
 }
 
+/** Creates a new payment method for the current empresa. */
+export async function createMeioPagamento(input: {
+  nome: string;
+  exige_maquineta: boolean;
+  percentual_cashback: number;
+  ativo: boolean;
+}): Promise<string> {
+  const nome = input.nome.trim();
+  if (!nome) throw new Error("Informe o nome do meio de pagamento.");
+  const pct = Math.max(0, Math.min(100, Number(input.percentual_cashback) || 0));
+  const { data, error } = await supabase
+    .from("meios_pagamento")
+    .insert({
+      nome,
+      exige_maquineta: !!input.exige_maquineta,
+      percentual_cashback: pct,
+      ativo: !!input.ativo,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data!.id as string;
+}
+
+/** Updates name, flags and cashback percentage of a payment method. */
+export async function updateMeioPagamento(
+  id: string,
+  patch: Partial<{
+    nome: string;
+    exige_maquineta: boolean;
+    percentual_cashback: number;
+    ativo: boolean;
+  }>,
+): Promise<void> {
+  const payload: Record<string, unknown> = {};
+  if (patch.nome !== undefined) {
+    const nome = patch.nome.trim();
+    if (!nome) throw new Error("Informe o nome do meio de pagamento.");
+    payload.nome = nome;
+  }
+  if (patch.exige_maquineta !== undefined)
+    payload.exige_maquineta = !!patch.exige_maquineta;
+  if (patch.ativo !== undefined) payload.ativo = !!patch.ativo;
+  if (patch.percentual_cashback !== undefined) {
+    payload.percentual_cashback = Math.max(
+      0,
+      Math.min(100, Number(patch.percentual_cashback) || 0),
+    );
+  }
+  if (Object.keys(payload).length === 0) return;
+  const { error } = await supabase
+    .from("meios_pagamento")
+    .update(payload)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Deletes a non-system, unused payment method via the guarded RPC. */
+export async function deleteMeioPagamento(id: string): Promise<void> {
+  const { error } = await supabase.rpc("delete_meio_pagamento", { p_id: id });
+  if (error) throw error;
+}
+
+
 export interface Caixa {
   id: string;
   id_usuario: string;
