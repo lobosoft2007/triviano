@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -10,6 +11,7 @@ import {
   Pencil,
   Save,
   X,
+  UserPlus,
 } from "lucide-react";
 import {
   fetchClientes,
@@ -17,16 +19,19 @@ import {
   adminUpdateCliente,
   type Cliente,
 } from "@/lib/clientes";
+import { createClienteByAdmin } from "@/lib/clientes-admin.functions";
 import { composeAddress } from "@/lib/profile";
 import { geocodeAddress } from "@/lib/cep";
 import { formatBRL } from "@/lib/format";
 import {
   AddressFields,
+  emptyAddress,
   type AddressState,
 } from "@/components/AddressFields";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
