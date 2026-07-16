@@ -37,6 +37,7 @@ export const STABLE_RELEASE = {
     "Troco em dinheiro no Finalizar e Receber (calcula e exibe troco, corta excesso antes de gravar, preserva motor financeiro)",
     "Hardening anti-pirataria: source maps desativados em produção (vite.config.ts) e .env bloqueado no .gitignore",
     "Auditoria de rotas admin/caixa/superadmin confirmada sob _authenticated/ com guards rígidos",
+    "Trava anti-incineração acidental: liberar_mesa exige confirmação quando a mesa já tem comanda viva; check-in duplo do mesmo cliente reaproveita a comanda intacta",
     "Cockpit destaca mesa ocupada em vermelho e força AlertDialog antes de zerar",
     "Reidratação de Sessão validada em multi-device (usuário continua na mesma comanda em outro aparelho após login)",
     "Incineração da Comanda Zumbi: liberar_mesa cancela resíduos por MESA + índice único parcial impede comandas duplicadas vivas",
