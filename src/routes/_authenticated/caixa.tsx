@@ -744,10 +744,17 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         toast.success(`Conta da mesa ${mesa} impressa.`);
         return;
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.warn("Impressão térmica direta falhou; caindo no diálogo.", err);
-        toast.info(
-          "Impressão direta indisponível — usando o diálogo do navegador.",
-        );
+        if (/access denied|failed to (open|claim)|unable to claim/i.test(msg)) {
+          toast.info(
+            "Impressora ocupada pelo driver do Windows — usando o diálogo do navegador.",
+          );
+        } else {
+          toast.info(
+            "Impressão direta indisponível — usando o diálogo do navegador.",
+          );
+        }
       }
     }
 
