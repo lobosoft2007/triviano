@@ -265,6 +265,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
 const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   cardapio: "acesso_cadastro_produtos",
   categorias: "acesso_cadastro_produtos",
+  horarios: "acesso_cadastro_produtos",
   combos: "acesso_cadastro_produtos",
   empresa: "master",
   identidade: "master",
