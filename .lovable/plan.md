@@ -1,40 +1,40 @@
-## Painel Resumo de Horários no /admin
+## Objetivo
+Transformar a aba **Horários** em um sub-item de **Categorias** no sidebar do `/admin`, mantendo o conteúdo e as permissões atuais.
 
-Adicionar uma nova aba **"Horários"** no `/admin` que mostra, em uma única tela, todas as categorias do cardápio com suas janelas de funcionamento, status atual (aberta/fechada agora) e acesso rápido para editar.
+## Contexto atual
+- `src/routes/_authenticated/admin.tsx` define `AdminTab` com `"horarios"` e renderiza `<HorariosResumoTab />` no switch de conteúdo.
+- `src/components/admin/AdminSidebar.tsx` lista `"horarios"` como item irmão de `"categorias"` dentro do grupo "Cadastros".
+- Ambos usam a permissão `acesso_cadastro_produtos`.
 
-### O que a aba mostra
-- **Cabeçalho de status geral**: total de categorias, quantas estão abertas agora, quantas sem horário definido (24/7) e quantas fechadas.
-- **Grade de cards** (uma por categoria), ordenada por nome, cada card contém:
-  - Nome da categoria + ícone/emoji atual.
-  - Badge de status: `Aberta agora` (verde) · `Fechada agora` (cinza) · `Sempre disponível` (âmbar, quando não há janelas).
-  - Mini-grade **Dom–Sáb** (7 colunas) com as janelas de horário do dia. Dias sem janela ficam apagados com "—".
-  - Botão **"Editar horários"** que abre o mesmo `CategoriaHorariosDialog` já existente.
-- **Filtros no topo**: busca por nome + toggle "Só abertas agora" / "Só fechadas" / "Sem restrição".
+## Mudanças propostas
 
-### Como funciona
-- Reusa `listCategoryHorarios` e `CategoriaHorariosDialog` — sem SQL novo.
-- Faz **1 query agregada** em `category_horarios` (todas categorias da empresa em uma chamada) + lê categorias já em cache do admin (mesma fonte que `CategoriasCrud`).
-- Status "aberta agora" calculado no cliente comparando `dia_semana`/`hora_inicio`/`hora_fim` com `new Date()`, atualizado a cada 60s.
-- Após salvar no dialog, `queryClient.invalidateQueries` refaz o resumo.
+### 1. Estrutura do sidebar (`src/components/admin/AdminSidebar.tsx`)
+- Introduzir suporte a **itens aninhados** no grupo "Cadastros":
+  - "Categorias" vira um item expansível com dois sub-itens:
+    - **Categorias** → tab `"categorias"`
+    - **Horários** → tab `"horarios"`
+- Criar um helper interno (ex.: `SidebarNestedGroup`) que renderize um `Collapsible` dentro de `SidebarMenuSub`, reaproveitando os componentes do shadcn Sidebar.
+- Manter o comportamento de abertura automática: quando `activeTab` for `"categorias"` ou `"horarios"`, o grupo "Cadastros" e o sub-menu "Categorias" ficam abertos.
+- Preservar a regra de `tabAllowed`: só exibe o sub-item se a flag permitir.
 
-### Permissão
-- Aba usa a mesma flag de `categorias`: `acesso_cadastro_produtos` (staff com essa permissão acessa; master também).
+### 2. Tipo e renderização de conteúdo (`src/routes/_authenticated/admin.tsx`)
+- Manter `"horarios"` no tipo `AdminTab`.
+- Manter `TAB_FLAG.horarios = "acesso_cadastro_produtos"`.
+- Manter a renderização `{tab === "horarios" && <HorariosResumoTab />}`.
+- Remover `"horarios"` do array `TABS` usado para descobrir a primeira aba permitida e o label do header (ou marcar como `hidden: true`), pois ele não deve mais aparecer como aba de topo.
+- O header continua mostrando o label correto via `TABS.find(...)` ou fallback para "Horários".
 
-### Arquivos a criar/editar
-- **Novo**: `src/components/admin/HorariosResumoTab.tsx` — componente da aba (query, filtros, cards, dialog reutilizado).
-- **Editar**: `src/routes/_authenticated/admin.tsx`
-  - Adicionar `"horarios"` ao tipo `AdminTab`.
-  - Entrada em `TABS` (após "categorias"): `{ key: "horarios", label: "Horários", icon: Clock }`.
-  - Entrada em `TAB_FLAG`: `horarios: "acesso_cadastro_produtos"`.
-  - Render do `<HorariosResumoTab />` no switch de conteúdo.
-- **Editar**: `src/components/admin/AdminSidebar.tsx` (se listar tabs explicitamente) — verificar e incluir; caso ele leia de `TABS` centralizadas, nada a mudar.
+### 3. Ícones
+- O item pai "Categorias" continua com ícone `Tags`.
+- O sub-item "Horários" usa ícone `Clock`.
 
-### Detalhes técnicos
-- Query única: `supabase.from("category_horarios").select("categoria_id, dia_semana, hora_inicio, hora_fim").in("categoria_id", ids)` agrupada por categoria em memória.
-- Cálculo de "aberta agora" respeita janelas que cruzam meia-noite (ex.: 22:00–02:00) dividindo em dois intervalos.
-- Layout responsivo: grid `md:grid-cols-2 xl:grid-cols-3`, dentro do padrão `AppShell` já usado no admin. Nenhum token de cor hardcoded.
+## Detalhes técnicos
+- Sem novas queries ou alterações no backend.
+- Sem mudanças na lógica de `HorariosResumoTab` ou `CategoriaHorariosDialog`.
+- Layout respeita o `AppShell` e o sidebar colapsável (`collapsible="icon"`).
+- Cores e tokens permanecem semânticos (nenhum hardcoded).
 
-### Fora do escopo
-- Edição em lote de horários (só via dialog existente, uma categoria por vez).
-- Horários por produto individual.
-- Alterações no PWA cliente.
+## Fora do escopo
+- Alterar o conteúdo/funcionalidade da aba Horários.
+- Criar horários por produto individual.
+- Mudar permissões ou regras de acesso.
