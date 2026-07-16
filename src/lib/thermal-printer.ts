@@ -146,10 +146,22 @@ function getSerial(): SerialApi | null {
 export async function requestUsbDevice(): Promise<ThermalPreference> {
   const usb = getUsb();
   if (!usb) throw new Error("WebUSB não é suportado neste navegador.");
-  // ESC/POS printers usually expose USB class 7 (Printer). We keep the
-  // filter list open so any device shows in the picker — some vendors
-  // advertise the printer as a vendor-specific class.
-  const device = await usb.requestDevice({ filters: [] });
+  // Alguns builds do Chrome escondem dispositivos sem filtro por VID. Listamos
+  // a classe USB "Printer" (7) e VIDs comuns de impressoras ESC/POS no Brasil.
+  // Se a impressora estiver "presa" no driver do Windows (ex.: Elgin i7 Plus
+  // instalada como impressora do sistema), ela pode não aparecer aqui — nesse
+  // caso o operador deve usar o pareamento via Web Serial (porta COM).
+  const filters = [
+    { classCode: 7 }, // USB Printer class
+    { vendorId: 0x0416 }, // Elgin / Winbond
+    { vendorId: 0x04b8 }, // Epson
+    { vendorId: 0x0483 }, // Bematech / STM
+    { vendorId: 0x1fc9 }, // NXP (Daruma etc.)
+    { vendorId: 0x0fe6 }, // ICS Advent (genéricos)
+    { vendorId: 0x28e9 }, // GD32 / clones
+    { vendorId: 0x154f }, // SNBC
+  ];
+  const device = await usb.requestDevice({ filters });
   return {
     transport: "webusb",
     vendorId: device.vendorId,

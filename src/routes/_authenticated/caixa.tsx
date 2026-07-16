@@ -2204,7 +2204,19 @@ function ThermalDirectPrintCard() {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Falha ao parear.";
-      if (!/cancel/i.test(msg)) toast.error(msg);
+      // "No device selected." = usuário fechou o diálogo (vazio ou cancelou).
+      // Se foi na tentativa USB, oferecer o caminho Serial como alternativa —
+      // é o que resolve na Elgin i7 Plus com driver do Windows instalado.
+      if (/no device selected|nenhum dispositivo/i.test(msg)) {
+        if (kind === "usb" && serialOk) {
+          toast.info(
+            "Nenhuma impressora apareceu? Tente 'Conectar via porta COM (Serial)' — funciona com o driver da Elgin já instalado no Windows.",
+            { duration: 8000 },
+          );
+        }
+      } else if (!/cancel/i.test(msg)) {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
@@ -2241,6 +2253,14 @@ function ThermalDirectPrintCard() {
         deste computador, sem abrir o diálogo do navegador. Preferência
         salva neste aparelho.
       </p>
+      {anyOk && !pref && serialOk && (
+        <p className="mb-3 rounded-lg bg-primary/5 p-2 text-[11px] text-muted-foreground">
+          <strong>Elgin i7 Plus / Bematech já instalada no Windows?</strong>{" "}
+          Use <strong>Conectar via porta COM (Serial)</strong> — o WebUSB não
+          enxerga impressoras que já têm driver do sistema, mas a Serial
+          funciona sem mexer em nada.
+        </p>
+      )}
 
       {!anyOk && (
         <p className="rounded-lg bg-secondary p-2 text-xs text-muted-foreground">
@@ -2292,7 +2312,9 @@ function ThermalDirectPrintCard() {
               disabled={busy || !empresa?.id}
             >
               <Network className="mr-1.5 h-4 w-4" />
-              {pref?.transport === "webserial" ? "Reparear Serial" : "Serial"}
+              {pref?.transport === "webserial"
+                ? "Reparear Serial (COM)"
+                : "Conectar via porta COM (Serial)"}
             </Button>
           )}
           {pref && (
