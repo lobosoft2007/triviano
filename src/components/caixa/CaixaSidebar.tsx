@@ -36,11 +36,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BrandLogo } from "@/components/BrandLogo";
 import type { CaixaTab, MyPermissions } from "@/lib/permissions";
 
@@ -65,7 +61,6 @@ interface CaixaSidebarProps {
   onLock: () => void;
 }
 
-
 /** A single leaf entry inside an accordion group. */
 interface LeafEntry {
   key: string;
@@ -88,13 +83,7 @@ interface GroupModel {
 /* Accordion group — renders only if it has at least one visible child */
 /* ------------------------------------------------------------------ */
 
-function SidebarAccordionGroup({
-  group,
-  defaultOpen,
-}: {
-  group: GroupModel;
-  defaultOpen: boolean;
-}) {
+function SidebarAccordionGroup({ group, defaultOpen }: { group: GroupModel; defaultOpen: boolean }) {
   const visible = group.children.filter((c) => c.show);
   if (visible.length === 0) return null;
 
@@ -112,16 +101,10 @@ function SidebarAccordionGroup({
           <SidebarMenuSub>
             {visible.map((c) => (
               <SidebarMenuSubItem key={c.key}>
-                <SidebarMenuSubButton
-                  isActive={c.active}
-                  onClick={c.onClick}
-                  className="cursor-pointer"
-                >
+                <SidebarMenuSubButton isActive={c.active} onClick={c.onClick} className="cursor-pointer">
                   {c.icon}
                   <span>{c.label}</span>
-                  {c.badge != null && (
-                    <SidebarMenuBadge>{c.badge}</SidebarMenuBadge>
-                  )}
+                  {c.badge != null && <SidebarMenuBadge>{c.badge}</SidebarMenuBadge>}
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             ))}
@@ -211,7 +194,6 @@ export function CaixaSidebar({
       },
     ],
   };
-
 
   const clientes: GroupModel = {
     id: "clientes",
@@ -325,7 +307,7 @@ export function CaixaSidebar({
         <div className="flex items-center gap-2 px-1 py-1.5 group-data-[collapsible=icon]:justify-center">
           <BrandLogo
             showName
-            imgClassName="h-8 w-8 shrink-0 rounded-lg object-contain"
+            imgClassName="h-24 w-auto rounded-md opacity-100 object-contain"
             nameClassName="truncate font-display text-base font-bold leading-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden"
           />
         </div>
@@ -363,11 +345,7 @@ export function CaixaSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <a
-                href="https://wa.me/5521993383918"
-                target="_blank"
-                rel="noreferrer"
-              >
+              <a href="https://wa.me/5521993383918" target="_blank" rel="noreferrer">
                 <LifeBuoy className={iconCls} />
                 <span>Suporte</span>
               </a>
@@ -384,14 +362,8 @@ export function CaixaSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
         <div className="flex items-center justify-center gap-1.5 px-2 py-2 group-data-[collapsible=icon]:hidden">
-          <img
-            src="/logo-triviano.svg"
-            alt="Triviano"
-            className="h-16 w-auto rounded-md opacity-100"
-          />
-          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            por Triviano
-          </span>
+          <img src="/logo-triviano.svg" alt="Triviano" className="h-16 w-auto rounded-md opacity-100" />
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">por Triviano</span>
         </div>
       </SidebarFooter>
     </Sidebar>
