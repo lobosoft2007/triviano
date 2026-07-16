@@ -8,7 +8,10 @@ import {
   Tags,
   ArrowUp,
   ArrowDown,
+  Clock,
 } from "lucide-react";
+import { CategoriaHorariosDialog } from "@/components/admin/CategoriaHorariosDialog";
+
 import { toast } from "sonner";
 import {
   listAdminCategories,
@@ -79,6 +82,8 @@ export function CategoriasCrud() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
+  const [horariosFor, setHorariosFor] = useState<AdminCategory | null>(null);
+
 
   const openNew = () => {
     setForm(EMPTY);
@@ -224,6 +229,14 @@ export function CategoriasCrud() {
             </div>
 
             <button
+              aria-label={`Horários de ${c.name}`}
+              onClick={() => setHorariosFor(c)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
+              title="Horários de funcionamento"
+            >
+              <Clock className="h-4 w-4" />
+            </button>
+            <button
               aria-label={`Editar ${c.name}`}
               onClick={() => openEdit(c)}
               className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
@@ -237,6 +250,7 @@ export function CategoriasCrud() {
             >
               <Trash2 className="h-4 w-4" />
             </button>
+
           </div>
         ))}
       </div>
@@ -315,6 +329,17 @@ export function CategoriasCrud() {
 
         </DialogContent>
       </Dialog>
+
+      {horariosFor && (
+        <CategoriaHorariosDialog
+          open={!!horariosFor}
+          onOpenChange={(v) => !v && setHorariosFor(null)}
+          categoriaId={horariosFor.id}
+          categoriaNome={horariosFor.name}
+          onSaved={() => invalidate()}
+        />
+      )}
     </section>
+
   );
 }

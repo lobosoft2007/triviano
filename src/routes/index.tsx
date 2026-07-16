@@ -22,8 +22,10 @@ import {
   Wallet,
   User,
   ReceiptText,
+  Clock,
 } from "lucide-react";
-import { menuQueryOptions, type Category, type Product } from "@/lib/menu";
+import { menuQueryOptions, type Category, type Product, type NextOpening } from "@/lib/menu";
+
 import { empresaQueryOptions } from "@/lib/empresa";
 import { useCart, type NewCartItem } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
@@ -238,7 +240,9 @@ function HomePage() {
           </p>
         )}
 
-        {data &&
+        {data?.isClosed && <StoreClosedBanner nextOpening={data.nextOpening} />}
+
+        {data && !data.isClosed &&
           data.categories.map((cat) => {
             const products = data.products.filter((p) => p.category_id === cat.id);
             if (products.length === 0) return null;
@@ -251,6 +255,7 @@ function HomePage() {
               />
             );
           })}
+
       </main>
 
       {/* Details modal */}
@@ -322,6 +327,48 @@ function HomePage() {
     </div>
   );
 }
+
+const DIAS_LABEL = [
+  "Domingo",
+  "Segunda-feira",
+  "Terça-feira",
+  "Quarta-feira",
+  "Quinta-feira",
+  "Sexta-feira",
+  "Sábado",
+];
+
+function StoreClosedBanner({ nextOpening }: { nextOpening: NextOpening | null }) {
+  let msg = "Volte em breve!";
+  if (nextOpening) {
+    const hora = String(nextOpening.hora_inicio).slice(0, 5);
+    const when = new Date(nextOpening.quando);
+    const now = new Date();
+    const sameDay =
+      when.toDateString() === now.toDateString();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isTomorrow = when.toDateString() === tomorrow.toDateString();
+    const dayLabel = sameDay
+      ? "hoje"
+      : isTomorrow
+        ? "amanhã"
+        : DIAS_LABEL[nextOpening.dia_semana];
+    msg = `Reabre ${dayLabel} às ${hora}.`;
+  }
+  return (
+    <div className="mx-4 my-8 rounded-2xl border border-border bg-card p-8 text-center shadow-card">
+      <Clock className="mx-auto mb-3 h-10 w-10 text-primary" />
+      <h2 className="font-display text-2xl font-bold">Loja fechada</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Nenhuma categoria está disponível neste horário.
+      </p>
+      <p className="mt-4 text-base font-semibold">{msg}</p>
+    </div>
+  );
+}
+
+
 
 function CategoryRow({
   category,

@@ -86,10 +86,79 @@ export interface Product {
 
 
 
-export async function fetchMenu(): Promise<{
+/** One time-window a category is open on a given weekday (0=Sun..6=Sat). */
+export interface CategoryHorario {
+  categoria_id: string;
+  dia_semana: number;
+  hora_inicio: string; // "HH:MM:SS"
+  hora_fim: string;
+}
+
+export interface NextOpening {
+  dia_semana: number;
+  hora_inicio: string;
+  categoria_nome: string;
+  quando: string; // ISO timestamp
+}
+
+export interface Menu {
   categories: Category[];
   products: Product[];
-}> {
+  /** All categories of the current tenant, including those closed right now. */
+  allCategories: Category[];
+  /** Per-category schedule rows (empty list for a category = always open). */
+  horarios: CategoryHorario[];
+  /** True when there isn't a single category open right now. */
+  isClosed: boolean;
+  /** Next opening slot in the current tenant (only set when isClosed). */
+  nextOpening: NextOpening | null;
+}
+
+function currentDowAndMinutes(): { dow: number; minutes: number } {
+  // Timezone alinhado ao motor SQL (America/Sao_Paulo). Usa Intl para converter
+  // sem depender do fuso do dispositivo do cliente.
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(now).map((p) => [p.type, p.value]),
+  );
+  const dowMap: Record<string, number> = {
+    Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+  };
+  const dow = dowMap[parts.weekday ?? "Sun"] ?? 0;
+  const hh = parseInt(parts.hour ?? "0", 10);
+  const mm = parseInt(parts.minute ?? "0", 10);
+  return { dow, minutes: hh * 60 + (isNaN(mm) ? 0 : mm) };
+}
+
+function toMinutes(hhmmss: string): number {
+  const [h = "0", m = "0"] = hhmmss.split(":");
+  return parseInt(h, 10) * 60 + parseInt(m, 10);
+}
+
+/** True when the category has no schedule OR any window contains now. */
+export function isCategoriaAbertaAgora(
+  categoriaId: string,
+  horarios: CategoryHorario[],
+): boolean {
+  const rows = horarios.filter((h) => h.categoria_id === categoriaId);
+  if (rows.length === 0) return true;
+  const { dow, minutes } = currentDowAndMinutes();
+  return rows.some(
+    (r) =>
+      r.dia_semana === dow &&
+      toMinutes(r.hora_inicio) <= minutes &&
+      toMinutes(r.hora_fim) > minutes,
+  );
+}
+
+export async function fetchMenu(): Promise<Menu> {
   // Multi-tenant: descobre a empresa do endereço atual e escopa o cardápio.
   const empresaId = await resolveTenantEmpresaId();
 
@@ -108,7 +177,16 @@ export async function fetchMenu(): Promise<{
     prodQuery = prodQuery.eq("empresa_id", empresaId);
   }
 
-  const [catRes, prodRes, ingRes, poRes, addRes, freeRes, availRes] =
+  const horariosQuery = empresaId
+    ? supabase
+        .from("category_horarios" as never)
+        .select("categoria_id, dia_semana, hora_inicio, hora_fim")
+        .eq("empresa_id", empresaId)
+    : supabase
+        .from("category_horarios" as never)
+        .select("categoria_id, dia_semana, hora_inicio, hora_fim");
+
+  const [catRes, prodRes, ingRes, poRes, addRes, freeRes, availRes, horRes] =
     await Promise.all([
       catQuery,
       prodQuery,
@@ -131,6 +209,7 @@ export async function fetchMenu(): Promise<{
         .order("sort_order"),
       // Preventive stock signal (no cost/stock values exposed, only a flag).
       supabase.rpc("get_menu_availability"),
+      horariosQuery,
     ]);
 
   if (catRes.error) throw catRes.error;
@@ -146,7 +225,14 @@ export async function fetchMenu(): Promise<{
       .map((r) => r.id),
   );
 
-
+  const horarios: CategoryHorario[] = (
+    (horRes.data ?? []) as unknown as CategoryHorario[]
+  ).map((h) => ({
+    categoria_id: h.categoria_id,
+    dia_semana: Number(h.dia_semana),
+    hora_inicio: String(h.hora_inicio),
+    hora_fim: String(h.hora_fim),
+  }));
 
   // Map product_id -> list of removable ingredient names.
   const removableMap = new Map<string, string[]>();
@@ -179,27 +265,28 @@ export async function fetchMenu(): Promise<{
     const list = freeAddonsMap.get(row.produto_id) ?? [];
     list.push({ nome: String(row.nome) });
     freeAddonsMap.set(row.produto_id, list);
-    // All free-addon rows of a product share the same overflow price.
     if (!freeAddonPriceMap.has(row.produto_id)) {
       freeAddonPriceMap.set(row.produto_id, Number(row.preco ?? 0));
     }
   }
 
-  const result = {
-    categories: (catRes.data ?? []).map((c) => ({
-      id: c.id,
-      name: c.name,
-      slug: c.slug,
-      sort_order: c.sort_order,
-      min_items: (c as { min_items?: number }).min_items ?? 0,
-      allows_half: (c as { allows_half?: boolean }).allows_half ?? false,
-      combo_role: ((c as { combo_role?: string }).combo_role ?? "") as ComboRole,
-      cor_fonte: (c as { cor_fonte?: string }).cor_fonte ?? "text-white",
-      tamanho_fonte:
-        (c as { tamanho_fonte?: string }).tamanho_fonte ?? "text-base",
-    })) as Category[],
-    products: [] as Product[],
-  };
+  const allCategories = (catRes.data ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    sort_order: c.sort_order,
+    min_items: (c as { min_items?: number }).min_items ?? 0,
+    allows_half: (c as { allows_half?: boolean }).allows_half ?? false,
+    combo_role: ((c as { combo_role?: string }).combo_role ?? "") as ComboRole,
+    cor_fonte: (c as { cor_fonte?: string }).cor_fonte ?? "text-white",
+    tamanho_fonte:
+      (c as { tamanho_fonte?: string }).tamanho_fonte ?? "text-base",
+  })) as Category[];
+
+  // Filtra categorias fechadas neste instante (sem horário = sempre aberta).
+  const openCategories = allCategories.filter((c) =>
+    isCategoriaAbertaAgora(c.id, horarios),
+  );
 
   const rawProducts = (prodRes.data ?? []).map((p) => {
     const pid = p.id ?? "";
@@ -215,13 +302,11 @@ export async function fetchMenu(): Promise<{
       eixo_variacao:
         (p as { eixo_variacao?: string | null }).eixo_variacao ?? "Tamanho",
       price_options: priceOptionsMap.get(pid) ?? [],
-
       addons: addonsMap.get(pid) ?? [],
       free_addons: freeAddonsMap.get(pid) ?? [],
       free_addon_limit: Number(p.free_addon_limit ?? 0),
       free_addon_price: freeAddonPriceMap.get(pid) ?? 0,
       removable_ingredients: removableMap.get(pid) ?? [],
-      // Internal fields are intentionally NOT exposed by the public view.
       manipulado: true,
       setor_id: null,
       fornecedor_id: null,
@@ -230,14 +315,33 @@ export async function fetchMenu(): Promise<{
     };
   }) as Product[];
 
-
   const urlMap = await resolveImageUrls(rawProducts.map((p) => p.image_url));
-  result.products = rawProducts.map((p) => ({
+  const products = rawProducts.map((p) => ({
     ...p,
     image_url: urlMap[p.image_url] ?? p.image_url,
   }));
 
-  return result;
+  const openIds = new Set(openCategories.map((c) => c.id));
+  const openProducts = products.filter((p) => openIds.has(p.category_id));
+
+  const isClosed = openCategories.length === 0 && allCategories.length > 0;
+  let nextOpening: NextOpening | null = null;
+  if (isClosed && empresaId) {
+    const { data: nextRows } = await supabase.rpc("get_next_opening" as never, {
+      p_empresa_id: empresaId,
+    } as never);
+    const row = ((nextRows ?? []) as unknown as NextOpening[])[0];
+    nextOpening = row ?? null;
+  }
+
+  return {
+    categories: openCategories,
+    products: openProducts,
+    allCategories,
+    horarios,
+    isClosed,
+    nextOpening,
+  };
 }
 
 /**
@@ -253,10 +357,9 @@ export async function fetchEsgotadoIds(): Promise<Set<string>> {
   );
 }
 
-
-
 export const menuQueryOptions = {
   queryKey: ["menu"],
   queryFn: fetchMenu,
   staleTime: 1000 * 60 * 5,
 };
+

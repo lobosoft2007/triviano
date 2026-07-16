@@ -1,48 +1,59 @@
 ## Objetivo
 
-Permitir que o Admin **bloqueie** um funcionário (férias, afastamento, desligamento) em vez de excluir. O cadastro e todo o histórico (pedidos, movimentações de caixa, ajustes de estoque, etc.) permanecem intactos, mas o funcionário fica **impedido de operar** dentro do Triviano enquanto estiver bloqueado.
+Permitir horários de funcionamento **por categoria**, com múltiplas janelas por dia da semana. Categoria fora do horário some do cardápio público. Quando **nenhuma** categoria está aberta, o PWA do cliente mostra "Loja fechada" com o próximo dia/horário de abertura.
 
-## 1. Banco de dados (uma migração)
+Hoje não existe nada de horário nem no `empresas` nem em `categories`.
 
-A coluna `profiles.bloqueado boolean` já existe (usada hoje para clientes) — vamos reutilizá-la para funcionários também.
+## 1. Banco (uma migração)
 
-- **RPC `admin_set_funcionario_bloqueado(p_user_id uuid, p_bloqueado boolean)`** (`security definer`):
-  - Só executa se `is_local_admin()` for verdadeiro.
-  - Confirma que o alvo pertence à mesma `empresa_id` do operador e tem `nivel_id IS NOT NULL` (é funcionário, não cliente nem master).
-  - Faz `UPDATE public.profiles SET bloqueado = p_bloqueado WHERE id = p_user_id`.
-  - `GRANT EXECUTE ... TO authenticated`.
-- **Ajuste em `get_my_permissions()`**: se o próprio `profiles.bloqueado` do usuário logado for `true`, retorna a linha `DENY_ALL` (todas as flags `false`, `is_admin/is_manager/is_funcionario = false`). Isso desliga automaticamente todos os guards do Caixa e Admin sem tocar em cada tela.
-- **Ajuste em `admin_list_funcionarios()`**: passa a devolver também `bloqueado boolean` para alimentar a UI.
+Nova tabela `public.category_horarios`:
 
-Motor financeiro, RLS de pedidos, triggers e webhook do MP não são alterados (mem://constraints/motor-financeiro-protegido).
+- `id uuid pk`
+- `categoria_id uuid` FK `categories.id ON DELETE CASCADE`
+- `empresa_id uuid` (denormalizado p/ RLS rápida, preenchido por trigger a partir da categoria)
+- `dia_semana smallint` 0–6 (0 = domingo, padrão JS `getDay()`)
+- `hora_inicio time`, `hora_fim time`
+- `created_at`, `updated_at`
+- índice `(categoria_id, dia_semana)`
 
-## 2. Backend TS
+Regras: `hora_fim > hora_inicio` (janelas que cruzam a meia-noite viram duas linhas, uma até 23:59 e outra a partir de 00:00 no dia seguinte — mantém a lógica simples). **Sem linhas = categoria disponível 24/7** (compat retro com o cardápio atual).
 
-- `src/lib/niveis.ts`
-  - `Funcionario` ganha `bloqueado: boolean`.
-  - Nova função `setFuncionarioBloqueado(user_id, bloqueado)` chamando a RPC acima.
+`GRANT SELECT TO anon, authenticated` (para o cardápio público) + `GRANT ALL TO service_role`. RLS: SELECT público liberado (dado não-sensível), INSERT/UPDATE/DELETE restrito a `is_local_admin()` da mesma `empresa_id`.
 
-## 3. UI — `src/components/admin/FuncionariosTab.tsx`
+**Timezone:** fixo `America/Sao_Paulo` (calculado em SQL via `timezone('America/Sao_Paulo', now())`). Multi-tenant é todo BR, então não precisa coluna por empresa neste primeiro corte.
 
-Na linha de cada funcionário, ao lado do seletor de nível e antes do botão excluir:
+## 2. Funções SQL
 
-- **Switch "Ativo / Bloqueado"** (ou botão com ícone `Lock` / `LockOpen`).
-- Quando bloqueado: a linha ganha um badge cinza "Bloqueado" e o nome fica em `text-muted-foreground`.
-- Toast de confirmação ("Funcionário bloqueado." / "Funcionário liberado.").
-- Invalida `["funcionarios"]` no cache.
+- `is_categoria_aberta(p_categoria_id uuid, p_at timestamptz default now()) returns boolean` — true se não há linhas OU alguma linha bate no `(dia_semana, hora)` local.
+- **Ajustar `get_public_menu(p_empresa_id)`** para filtrar categorias fechadas via join com `category_horarios` (mantendo as sem horário). Categorias fechadas somem — assim o cardápio já vem pronto sem lógica no cliente.
+- `get_next_opening(p_empresa_id uuid) returns table(dia_semana smallint, hora_inicio time, categoria_nome text)` — varre até 7 dias à frente e devolve o próximo slot de qualquer categoria da empresa; usada quando o cardápio volta vazio.
 
-O botão **Excluir** permanece disponível (para casos realmente definitivos), mas o texto de ajuda no topo da aba passa a sugerir bloquear em vez de excluir para preservar o histórico.
+## 3. Backend TS (`src/lib/menu.ts` + novo helper)
 
-## 4. Efeito prático do bloqueio
+- Tipo `MenuState = { categories, products, isClosed, nextOpening? }`.
+- Chama `get_public_menu` + `get_next_opening` em paralelo. Se `categories.length === 0`, marca `isClosed = true` e devolve `nextOpening`.
 
-Como `get_my_permissions()` passa a devolver `DENY_ALL` para funcionário bloqueado:
+## 4. Admin — `src/components/admin/CategoriasCrud.tsx`
 
-- Guards `canEnterCaixa` / `canEnterAdmin` recusam a entrada e a rota `_authenticated` redireciona para `/` (comportamento já existente para quem não tem permissão).
-- Toda RPC financeira/operacional que exige uma flag específica (abrir caixa, sangria, fechar comanda, etc.) já falha via `has_permission_flag` do backend.
-- Login continua funcionando (não bloqueamos `auth.users`), então o desbloqueio é imediato quando o Admin voltar a marcar como ativo — sem precisar recriar conta nem redefinir senha.
+- Novo botão "Horários" (ícone `Clock`) em cada categoria, abrindo modal `CategoriaHorariosDialog`:
+  - Lista as 7 linhas de dia da semana.
+  - Cada dia: switch **Fechado / Aberto** + botão "+ janela" para adicionar múltiplos intervalos (ex.: 11:00–15:00 e 18:00–23:00).
+  - Ação "Copiar para os outros dias" para agilizar.
+  - Salva chamando `upsertCategoryHorarios(categoria_id, linhas[])` (delete-all + insert em transação via RPC `admin_set_category_horarios`).
+- Badge discreto no card da categoria quando tem restrição de horário.
 
-## 5. Fora do escopo
+## 5. PWA cliente — cardápio (`src/routes/_authenticated/menu.tsx` e/ou `home-netflix.tsx`)
 
-- Não alteramos schema de pedidos/caixa (autoria preservada por FK atual).
-- Não mexemos em clientes (fluxo `set_cliente_bloqueado` já existe e continua separado).
-- Sem novos e-mails ou notificações ao funcionário bloqueado.
+- Quando `menu.isClosed`: substituir a grade por um card grande "Loja fechada no momento" + `nextOpening` formatado ("Reabre segunda-feira às 11:00") + CTA para abrir carrinho vazio desativado. Rotas de checkout já protegidas pelo carrinho vazio, mas adiciono um guard no `CartSheet` que impede checkout se todos os itens forem de categorias que fecharam entre a adição e o pagamento (revalida via `is_categoria_aberta` no `create_order`).
+- Categorias com restrição podem ganhar uma tag "até 15:00" no header (opcional; incluído).
+
+## 6. Guarda no pedido
+
+- Em `create_order` (RPC existente), validar cada produto: se a categoria dele estiver fechada agora, aborta com mensagem "O item X só está disponível entre HH:MM e HH:MM." Evita brechas em quem deixou o carrinho aberto.
+
+## 7. Fora do escopo
+
+- Horário por produto individual (por enquanto só por categoria).
+- Feriados/exceções pontuais.
+- Timezone configurável por empresa (fixo em `America/Sao_Paulo` neste corte).
+- Motor financeiro, meios de pagamento e webhook MP: não são tocados.
