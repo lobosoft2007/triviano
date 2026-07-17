@@ -86,10 +86,10 @@ export function formatMoney(v: number): string {
  * that isolates the report container from the rest of the app. Coexists with
  * the 80mm thermal-receipt print rule (which requires `.thermal-receipt`).
  */
-export function printReport() {
+export function printReport(orientation: ReportOrientation = "portrait") {
   const style = document.createElement("style");
   style.id = "report-print-page";
-  style.textContent = `@media print { @page { size: A4 portrait; margin: 14mm 12mm 20mm 12mm; } }`;
+  style.textContent = `@media print { @page { size: A4 ${orientation}; margin: 14mm 12mm 20mm 12mm; } }`;
   document.head.appendChild(style);
   document.body.classList.add("printing-report");
   const cleanup = () => {
