@@ -228,6 +228,10 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
 
     dominio_customizado: row?.dominio_customizado ?? null,
     subdominio: null,
+    // Fiscal data is not exposed to regular customers.
+    cnpj: "",
+    inscricao_estadual: "",
+    regime_tributario: "simples_nacional",
     // Address & cashback columns are not readable by regular customers.
     cep: "",
     logradouro: "",
