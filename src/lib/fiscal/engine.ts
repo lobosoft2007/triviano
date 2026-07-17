@@ -45,8 +45,7 @@ async function loadConfigFiscal(
     .from("config_fiscal")
     .select("*")
     .eq("empresa_id", empresaId)
-    .eq("ativo", true)
-    .single();
+    .maybeSingle();
   if (error || !data) {
     throw new Error(
       `Configuração fiscal não encontrada para a empresa. Cadastre-a em /caixa?tab=fiscal`,
@@ -54,6 +53,7 @@ async function loadConfigFiscal(
   }
   return data;
 }
+
 
 async function loadOrder(
   supabase: ReturnType<typeof createAdminClient>,
