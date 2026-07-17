@@ -44,10 +44,13 @@ export function RelatorioChatIA() {
     queryFn: () => list(),
   });
 
+  const { data: empresaConfig } = useQuery(empresaAdminConfigQueryOptions);
+
   const generateMutation = useMutation({
     mutationFn: async (text: string) => {
       const history: ChatMessage[] = messages;
-      const result = await generate({ data: { prompt: text, history } });
+      const model = empresaConfig?.ai_report_model ?? "openai/gpt-5.5";
+      const result = await generate({ data: { prompt: text, history, model } });
       return { text, result };
     },
     onSuccess: ({ text, result }) => {
