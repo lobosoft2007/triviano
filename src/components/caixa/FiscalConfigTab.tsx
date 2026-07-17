@@ -16,6 +16,7 @@ import {
   type FiscalConfig,
 } from "@/lib/fiscal/config";
 import { uploadCertificate } from "@/lib/storage";
+import { ManifestacaoView } from "@/components/caixa/ManifestacaoView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
