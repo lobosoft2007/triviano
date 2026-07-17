@@ -29,6 +29,7 @@ import {
   Crown,
   Armchair,
   Clock,
+  Bike,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
@@ -75,7 +76,9 @@ export type AdminTab =
   | "fornecedores"
   | "funcionarios"
   | "permissoes"
-  | "mesas";
+  | "mesas"
+  | "entregadores"
+  | "ifood";
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -299,6 +302,15 @@ export function AdminSidebar({ activeTab, isSuperAdmin, tabAllowed, onSelectTab,
         { key: "pagamentos", label: "Pagamentos", icon: <CreditCard className={iconCls} /> },
         { key: "fiscal", label: "Fiscal", icon: <ReceiptText className={iconCls} /> },
         { key: "mesas", label: "Mesas (QR-Codes)", icon: <Armchair className={iconCls} /> },
+      ],
+    },
+    {
+      id: "delivery",
+      label: "Delivery",
+      icon: <Bike className={iconCls} />,
+      children: [
+        { key: "entregadores", label: "Entregadores", icon: <Bike className={iconCls} /> },
+        { key: "ifood", label: "iFood", icon: <UtensilsCrossed className={iconCls} /> },
       ],
     },
   ];

@@ -124,7 +124,8 @@ export type CaixaTab =
   | "balcao"
   | "config"
   | "fiado"
-  | "clientes";
+  | "clientes"
+  | "entregas";
 
 export const CAIXA_TAB_FLAG: Record<CaixaTab, PermissionFlag | "master"> = {
   delivery: "acesso_delivery",
@@ -133,6 +134,7 @@ export const CAIXA_TAB_FLAG: Record<CaixaTab, PermissionFlag | "master"> = {
   config: "master",
   fiado: "acesso_financeiro",
   clientes: "master",
+  entregas: "acesso_delivery",
 };
 
 /** Display order used to pick the first Caixa tab a user is allowed to open. */
@@ -140,6 +142,7 @@ export const CAIXA_TAB_ORDER: CaixaTab[] = [
   "delivery",
   "mesas",
   "balcao",
+  "entregas",
   "fiado",
   "config",
   "clientes",
