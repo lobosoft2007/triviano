@@ -230,6 +230,7 @@ export function ReportShell<T>({
       visible: defaultVisible,
       fontFamily: REPORT_FONTS[0].value,
       fontSize: 11,
+      orientation: "portrait",
     }),
     [defaultVisible],
   );
