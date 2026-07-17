@@ -3733,6 +3733,7 @@ export type Database = {
       admin_list_empresas: {
         Args: never
         Returns: {
+          ai_report_model: string
           ativo: boolean
           bairro: string
           cashback_ativo: boolean
