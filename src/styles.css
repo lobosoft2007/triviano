@@ -203,4 +203,51 @@
     size: 80mm auto;
     margin: 0;
   }
+
+  /* A4 report printing (activated when body has .printing-report class). */
+  body.printing-report .report-a4,
+  body.printing-report .report-a4 * {
+    visibility: visible;
+  }
+  body.printing-report .report-a4 {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    width: 100%;
+    color: #000;
+    background: #fff;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+  /* Repeat header/footer on every printed page. */
+  body.printing-report .report-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+  }
+  body.printing-report .report-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+  }
+  /* Leave space for the fixed header/footer inside the flowing content. */
+  body.printing-report .report-content {
+    padding-top: 16mm;
+    padding-bottom: 14mm;
+  }
+  /* Live page counter (Chrome/Edge): hide the on-screen placeholder text
+     and print only the counter via ::after. */
+  body.printing-report .report-pagenum {
+    font-size: 0;
+  }
+  body.printing-report .report-pagenum::after {
+    font-size: 10px;
+    content: "Pág " counter(page) " / " counter(pages);
+  }
 }

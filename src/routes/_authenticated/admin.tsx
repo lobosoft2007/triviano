@@ -97,6 +97,7 @@ import {
 
 import { useIsSuperAdmin } from "@/lib/superadmin";
 import { ClientesView } from "@/components/admin/ClientesView";
+import { RelatorioClientes } from "@/components/admin/reports/RelatorioClientes";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 import {
@@ -243,7 +244,8 @@ type AdminTab =
   | "permissoes"
   | "mesas"
   | "entregadores"
-  | "ifood";
+  | "ifood"
+  | "rel-clientes";
 
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
@@ -270,6 +272,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "mesas", label: "Mesas (QR-Codes)", icon: Armchair },
   { key: "entregadores", label: "Entregadores", icon: Bike },
   { key: "ifood", label: "iFood", icon: UtensilsCrossed },
+  { key: "rel-clientes", label: "Relatório · Clientes cadastrados", icon: Users },
 ];
 
 // Recurso da matriz de permissões exigido por cada aba ("master" = só o admin dono).
@@ -297,6 +300,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   mesas: "master",
   entregadores: "master",
   ifood: "master",
+  "rel-clientes": "master",
 };
 
 
@@ -748,6 +752,8 @@ function AdminPage() {
           {tab === "mesas" && <MesasQrTab />}
           {tab === "entregadores" && <EntregadoresCrud />}
           {tab === "ifood" && <IfoodMerchantsCrud />}
+          {tab === "rel-clientes" && <RelatorioClientes />}
+
 
           {tab === "cardapio" && (
             <>
