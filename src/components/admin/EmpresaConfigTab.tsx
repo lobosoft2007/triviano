@@ -68,7 +68,10 @@ function empresaToForm(e: EmpresaBranding, markup: number): FormState {
 
 export function EmpresaConfigTab() {
   const queryClient = useQueryClient();
-  const { data: empresa, isLoading } = useQuery(empresaAdminConfigQueryOptions);
+  const { data: empresa, isLoading, error } = useQuery({
+    ...empresaAdminConfigQueryOptions,
+    retry: false,
+  });
   const { data: markupData } = useQuery({
     queryKey: ["empresa-markup-ifood", empresa?.id],
     enabled: !!empresa?.id,
@@ -210,6 +213,20 @@ export function EmpresaConfigTab() {
       setApplyingMarkup(false);
     }
   };
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-6 text-sm text-destructive">
+        <p className="font-semibold">Não foi possível carregar as configurações da empresa.</p>
+        <p className="mt-1 text-xs opacity-80">
+          {error instanceof Error ? error.message : String(error)}
+        </p>
+        <p className="mt-2 text-xs opacity-80">
+          Verifique se seu usuário tem papel de administrador da empresa.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading || !form) {
     return (
