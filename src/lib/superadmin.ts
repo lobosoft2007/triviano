@@ -59,6 +59,10 @@ export async function listAllEmpresas(): Promise<EmpresaRow[]> {
     monitor_bar: false,
     monitor_pizzaria: false,
     ai_report_model: d.ai_report_model ?? "openai/gpt-5.5",
+    ai_report_provider:
+      ((d as { ai_report_provider?: "lovable" | "openai" | "google" })
+        .ai_report_provider) ?? "lovable",
+    ai_report_has_key: false,
     markup_ifood_percentual: Number((d as { markup_ifood_percentual?: number | null }).markup_ifood_percentual ?? 0),
     created_at: d.created_at,
   }));
