@@ -19,6 +19,9 @@ interface FormState {
   nome_fantasia: string;
   taxa_servico_mesa: string;
   taxa_entrega_valor: string;
+  cnpj: string;
+  inscricao_estadual: string;
+  regime_tributario: string;
   cep: string;
   logradouro: string;
   numero: string;
