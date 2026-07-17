@@ -214,6 +214,20 @@ export function EmpresaConfigTab() {
     }
   };
 
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-6 text-sm text-destructive">
+        <p className="font-semibold">Não foi possível carregar as configurações da empresa.</p>
+        <p className="mt-1 text-xs opacity-80">
+          {error instanceof Error ? error.message : String(error)}
+        </p>
+        <p className="mt-2 text-xs opacity-80">
+          Verifique se seu usuário tem papel de administrador da empresa.
+        </p>
+      </div>
+    );
+  }
+
   if (isLoading || !form) {
     return (
       <div className="flex justify-center py-20">
