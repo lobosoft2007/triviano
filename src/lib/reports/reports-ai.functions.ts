@@ -65,7 +65,7 @@ function buildModel(creds: AiCreds) {
   if (creds.provider === "lovable") {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("LOVABLE_API_KEY ausente no servidor.");
-    const gateway = createLovableAiGatewayProvider(key, undefined, {
+    const gateway = createLovableAiGatewayProvider(key, {
       structuredOutputs: isOpenAi,
     });
     return { model: gateway(creds.model), structuredOutputs: isOpenAi };
