@@ -39,7 +39,7 @@ interface FormState {
   markup_ifood_percentual: string;
 }
 
-function empresaToForm(e: EmpresaBranding): FormState {
+function empresaToForm(e: EmpresaBranding, markup: number): FormState {
   return {
     nome_fantasia: e.nome_fantasia,
     taxa_servico_mesa: String(e.taxa_servico_mesa).replace(".", ","),
@@ -59,6 +59,7 @@ function empresaToForm(e: EmpresaBranding): FormState {
     monitor_cozinha: e.monitor_cozinha,
     monitor_bar: e.monitor_bar,
     monitor_pizzaria: e.monitor_pizzaria,
+    markup_ifood_percentual: String(markup).replace(".", ","),
   };
 }
 
@@ -66,19 +67,33 @@ function empresaToForm(e: EmpresaBranding): FormState {
 export function EmpresaConfigTab() {
   const queryClient = useQueryClient();
   const { data: empresa, isLoading } = useQuery(empresaAdminConfigQueryOptions);
+  const { data: markupData } = useQuery({
+    queryKey: ["empresa-markup-ifood", empresa?.id],
+    enabled: !!empresa?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("markup_ifood_percentual")
+        .eq("id", empresa!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return Number(data?.markup_ifood_percentual ?? 0);
+    },
+  });
 
   const [form, setForm] = useState<FormState | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [applyingMarkup, setApplyingMarkup] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (empresa && !form) {
-      setForm(empresaToForm(empresa));
+    if (empresa && !form && markupData !== undefined) {
+      setForm(empresaToForm(empresa, markupData ?? 0));
       setPreview(empresa.logo_display_url);
     }
-  }, [empresa, form]);
+  }, [empresa, form, markupData]);
 
   useEffect(() => {
     if (!file) return;
@@ -142,16 +157,54 @@ export function EmpresaConfigTab() {
         monitor_pizzaria: form.monitor_pizzaria,
       });
 
+      // Markup iFood: persistido em coluna separada (não está no RPC do admin).
+      const markupPct = parseNumberInput(form.markup_ifood_percentual);
+      await supabase
+        .from("empresas")
+        .update({ markup_ifood_percentual: markupPct })
+        .eq("id", empresa.id);
 
       toast.success("Configurações da empresa salvas!");
       setFile(null);
       await queryClient.invalidateQueries({ queryKey: ["empresa-ativa"] });
       await queryClient.invalidateQueries({ queryKey: ["empresa-config"] });
       await queryClient.invalidateQueries({ queryKey: ["empresa-admin-config"] });
+      await queryClient.invalidateQueries({ queryKey: ["empresa-markup-ifood"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível salvar.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleApplyMarkup = async (overwrite: boolean) => {
+    if (!empresa || !form) return;
+    const pct = parseNumberInput(form.markup_ifood_percentual);
+    if (pct <= 0) {
+      toast.error("Defina um percentual de markup maior que zero antes.");
+      return;
+    }
+    const msg = overwrite
+      ? `Aplicar +${pct}% em TODOS os produtos (inclui os que já têm preço iFood definido)?`
+      : `Aplicar +${pct}% apenas nos produtos SEM preço iFood definido?`;
+    if (!confirm(msg)) return;
+
+    setApplyingMarkup(true);
+    try {
+      // Grava o markup antes de aplicar para garantir consistência.
+      await supabase
+        .from("empresas")
+        .update({ markup_ifood_percentual: pct })
+        .eq("id", empresa.id);
+      const count = await applyIfoodMarkup(empresa.id, overwrite);
+      toast.success(
+        `Markup aplicado. ${count} produto(s) atualizado(s) no nível principal (variações e adicionais também recalculados).`,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["admin-menu"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao aplicar markup.");
+    } finally {
+      setApplyingMarkup(false);
     }
   };
 
