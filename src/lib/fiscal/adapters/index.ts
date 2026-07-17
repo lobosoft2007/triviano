@@ -1,20 +1,20 @@
 import type { FiscalAdapter, FiscalProvider } from "@/lib/fiscal/types";
-import { TecnospeedAdapter } from "@/lib/fiscal/adapters/tecnospeed";
+import { TecnospeedAdapter, type TecnospeedCredentials } from "@/lib/fiscal/adapters/tecnospeed";
 
-const adapters: Record<FiscalProvider, () => FiscalAdapter> = {
-  tecnospeed: () => new TecnospeedAdapter(),
-  acbr: () => {
-    throw new Error("Adapter ACBr ainda não implementado.");
-  },
-  nativo: () => {
-    throw new Error("Emissão nativa ainda não implementada.");
-  },
-};
+export type { TecnospeedCredentials };
 
-export function getAdapter(provider: FiscalProvider): FiscalAdapter {
-  const factory = adapters[provider];
-  if (!factory) {
-    throw new Error(`Provedor fiscal não suportado: ${provider}`);
+export function getAdapter(
+  provider: FiscalProvider,
+  cred?: TecnospeedCredentials,
+): FiscalAdapter {
+  switch (provider) {
+    case "tecnospeed":
+      return new TecnospeedAdapter(cred);
+    case "acbr":
+      throw new Error("Adapter ACBr ainda não implementado.");
+    case "nativo":
+      throw new Error("Emissão nativa ainda não implementada.");
+    default:
+      throw new Error(`Provedor fiscal não suportado: ${provider}`);
   }
-  return factory();
 }
