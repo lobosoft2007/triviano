@@ -702,43 +702,8 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
       );
     }
 
-    // --- 3) Impressão direta na térmica (WebUSB/Serial), se pareada -------
-    const thermalPref = empresa?.id ? getThermalPref(empresa.id) : null;
-    if (thermalPref && isThermalSupported()) {
-      try {
-        const bytes = buildMesaBillEscPos({
-          restaurantName: RESTAURANT,
-          mesa,
-          orders: mesaOrdersGroup,
-          total: totalParcial,
-          pixKey,
-          pixName,
-          brcode,
-          mpDynamic: usedMp,
-        });
-        await printThermalBytes(thermalPref, bytes);
-        try {
-          await Promise.all(mesaOrdersGroup.map((o) => markPrintedConta(o.id)));
-          await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
-        } catch {
-          /* mantém — não bloqueia o toast de sucesso */
-        }
-        toast.success(`Conta da mesa ${mesa} impressa.`);
-        return;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.warn("Impressão térmica direta falhou; caindo no diálogo.", err);
-        if (/access denied|failed to (open|claim)|unable to claim/i.test(msg)) {
-          toast.info(
-            "Impressora ocupada pelo driver do Windows — usando o diálogo do navegador.",
-          );
-        } else {
-          toast.info(
-            "Impressão direta indisponível — usando o diálogo do navegador.",
-          );
-        }
-      }
-    }
+    // --- 3) Impressão via fila do SO (diálogo do navegador → impressora padrão)
+
 
     // --- 4) Fallback: diálogo de impressão do navegador -------------------
     await printAndRun(
