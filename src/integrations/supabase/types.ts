@@ -3192,12 +3192,14 @@ export type Database = {
           cashback_ativo: boolean
           cep: string
           cidade: string
+          cnpj: string
           complemento: string
           cor_primaria: string
           cor_secundaria: string
           dominio_customizado: string
           estado: string
           id: string
+          inscricao_estadual: string
           logotipo_url: string
           logradouro: string
           modo_fundo: string
@@ -3207,6 +3209,7 @@ export type Database = {
           nome_fantasia: string
           numero: string
           percentual_cashback: number
+          regime_tributario: string
           taxa_entrega_valor: number
           taxa_servico_mesa: number
         }[]
