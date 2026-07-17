@@ -411,15 +411,15 @@ export interface ProductDetail {
 export async function fetchProductDetail(
   productId: string,
 ): Promise<ProductDetail> {
-  const [poRes, addRes, freeRes, fichaRes, prodRes, ingRes] = await Promise.all([
+  const [poRes, addRes, freeRes, fichaRes, prodRes, ingRes, prodIfoodRes] = await Promise.all([
     supabase
       .from("produtos_price_options")
-      .select("id, tamanho, preco, sort_order")
+      .select("id, tamanho, preco, preco_ifood, sort_order")
       .eq("produto_id", productId)
       .order("sort_order"),
     supabase
       .from("produtos_addons")
-      .select("nome, preco, sort_order")
+      .select("nome, preco, preco_ifood, sort_order")
       .eq("produto_id", productId)
       .order("sort_order"),
     supabase
@@ -437,6 +437,9 @@ export async function fetchProductDetail(
     // Internal recipe columns (insumo/subproduto/quantidade) are no longer
     // readable directly from the table — fetched via a role-guarded function.
     supabase.rpc("admin_get_ingredientes", { p_product_id: productId }),
+
+    // Preço iFood ainda não retornado pelo RPC — leitura suplementar direta.
+    supabase.from("products").select("preco_ifood").eq("id", productId).maybeSingle(),
   ]);
   if (poRes.error) throw poRes.error;
   if (addRes.error) throw addRes.error;
@@ -447,6 +450,7 @@ export async function fetchProductDetail(
 
   const fiscais = (fichaRes.data?.dados_fiscais ?? {}) as Record<string, unknown>;
   const prodMeta = (prodRes.data ?? [])[0];
+  const prodIfood = (prodIfoodRes.data ?? null) as { preco_ifood?: number | null } | null;
 
   // All ficha lines with their (optional) price_option_id link.
   const allFicha: FichaLine[] = (ingRes.data ?? []).map((r) => ({
@@ -471,15 +475,24 @@ export async function fetchProductDetail(
     custo_compra: Number(
       (prodMeta as { custo_compra?: number })?.custo_compra ?? 0,
     ),
+    preco_ifood: prodIfood?.preco_ifood != null ? Number(prodIfood.preco_ifood) : null,
     price_options: (poRes.data ?? []).map((p) => ({
       id: String(p.id),
       tamanho: String(p.tamanho),
       preco: Number(p.preco),
+      preco_ifood:
+        (p as { preco_ifood?: number | null }).preco_ifood != null
+          ? Number((p as { preco_ifood?: number | null }).preco_ifood)
+          : null,
       ficha: allFicha.filter((f) => f.price_option_id === String(p.id)),
     })),
     addons: (addRes.data ?? []).map((a) => ({
       nome: String(a.nome),
       preco: Number(a.preco),
+      preco_ifood:
+        (a as { preco_ifood?: number | null }).preco_ifood != null
+          ? Number((a as { preco_ifood?: number | null }).preco_ifood)
+          : null,
     })),
     free_addons: (freeRes.data ?? []).map((a) => ({
       nome: String(a.nome),
