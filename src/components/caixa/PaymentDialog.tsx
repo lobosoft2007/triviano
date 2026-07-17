@@ -12,6 +12,7 @@ import {
 } from "@/lib/caixa";
 import { insertNotification } from "@/lib/notifications";
 import { empresaQueryOptions, empresaAdminConfigQueryOptions } from "@/lib/empresa";
+import { emitirNFCePorPedido } from "@/lib/fiscal";
 
 import { fetchMpPublicConfig } from "@/lib/mercadopago";
 import { PdvPixCharge } from "@/components/checkout/PdvPixCharge";
