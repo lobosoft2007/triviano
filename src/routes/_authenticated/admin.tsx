@@ -29,6 +29,7 @@ import {
   UserCog,
   ShieldCheck,
   CreditCard,
+  ReceiptText,
   Armchair,
   Clock,
 } from "lucide-react";
