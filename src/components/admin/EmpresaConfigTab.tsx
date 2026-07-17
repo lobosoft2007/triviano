@@ -60,6 +60,7 @@ function empresaToForm(e: EmpresaBranding, markup: number): FormState {
     monitor_cozinha: e.monitor_cozinha,
     monitor_bar: e.monitor_bar,
     monitor_pizzaria: e.monitor_pizzaria,
+    ai_report_model: e.ai_report_model ?? "openai/gpt-5.5",
     markup_ifood_percentual: String(markup).replace(".", ","),
   };
 }
