@@ -60,11 +60,60 @@ export function FiscalConfigTab() {
   const [form, setForm] = useState<FiscalConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [busy, setBusy] = useState<null | "ping" | "empresa" | "cert" | "teste">(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const pingFn = useServerFn(pingProvedorFiscal);
+  const syncEmpresaFn = useServerFn(sincronizarEmpresaFiscal);
+  const syncCertFn = useServerFn(sincronizarCertificadoFiscal);
+  const testeFn = useServerFn(emitirNFCeTeste);
 
   useEffect(() => {
     if (data) setForm(data);
   }, [data]);
+
+  function setAmbiente(v: "homologacao" | "producao") {
+    if (!form) return;
+    const currentUrl = form.credenciais.base_url || "";
+    const isDefaultUrl =
+      !currentUrl || currentUrl === SANDBOX_URL || currentUrl === PROD_URL;
+    setForm({
+      ...form,
+      ambiente: v,
+      credenciais: {
+        ...form.credenciais,
+        base_url: isDefaultUrl
+          ? v === "producao"
+            ? PROD_URL
+            : SANDBOX_URL
+          : currentUrl,
+      },
+    });
+  }
+
+  async function runAction(
+    key: "ping" | "empresa" | "cert" | "teste",
+    fn: () => Promise<unknown>,
+    successMsg: (r: any) => string,
+  ) {
+    if (!form?.empresa_id) return;
+    setBusy(key);
+    try {
+      const r: any = await fn();
+      if (r && r.sucesso === false) {
+        toast.error(r.mensagem || "Falha na operação.");
+      } else if (r && r.ok === false) {
+        toast.error(`Provedor respondeu HTTP ${r.status}.`);
+      } else {
+        toast.success(successMsg(r));
+      }
+      await queryClient.invalidateQueries({ queryKey: ["fiscal-config"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro inesperado.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
