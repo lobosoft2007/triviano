@@ -17,6 +17,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
+type AiProvider = "lovable" | "openai" | "google";
+
+const MODELS_BY_PROVIDER: Record<AiProvider, { value: string; label: string }[]> = {
+  lovable: [
+    { value: "openai/gpt-5.5", label: "OpenAI GPT-5.5 (padrão)" },
+    { value: "openai/gpt-5.4", label: "OpenAI GPT-5.4" },
+    { value: "openai/gpt-5.4-mini", label: "OpenAI GPT-5.4 Mini" },
+    { value: "openai/gpt-5.4-nano", label: "OpenAI GPT-5.4 Nano" },
+    { value: "google/gemini-3.5-flash", label: "Google Gemini 3.5 Flash" },
+    { value: "google/gemini-3.1-flash-lite", label: "Google Gemini 3.1 Flash Lite" },
+  ],
+  openai: [
+    { value: "gpt-4o-mini", label: "gpt-4o-mini (econômico)" },
+    { value: "gpt-4o", label: "gpt-4o" },
+    { value: "gpt-4.1-mini", label: "gpt-4.1-mini" },
+    { value: "gpt-4.1", label: "gpt-4.1" },
+  ],
+  google: [
+    { value: "gemini-1.5-flash", label: "gemini-1.5-flash (econômico)" },
+    { value: "gemini-1.5-pro", label: "gemini-1.5-pro" },
+    { value: "gemini-2.0-flash-exp", label: "gemini-2.0-flash-exp" },
+  ],
+};
+
+function defaultModelFor(provider: AiProvider): string {
+  return MODELS_BY_PROVIDER[provider][0].value;
+}
+
 interface FormState {
   nome_fantasia: string;
   taxa_servico_mesa: string;
@@ -36,11 +64,15 @@ interface FormState {
   monitor_cozinha: boolean;
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
+  ai_report_provider: AiProvider;
   ai_report_model: string;
+  ai_report_api_key: string; // new value the user typed; blank = keep existing
+  ai_report_clear_key: boolean;
   markup_ifood_percentual: string;
 }
 
 function empresaToForm(e: EmpresaBranding, markup: number): FormState {
+  const provider = (e.ai_report_provider ?? "lovable") as AiProvider;
   return {
     nome_fantasia: e.nome_fantasia,
     taxa_servico_mesa: String(e.taxa_servico_mesa).replace(".", ","),
@@ -60,7 +92,10 @@ function empresaToForm(e: EmpresaBranding, markup: number): FormState {
     monitor_cozinha: e.monitor_cozinha,
     monitor_bar: e.monitor_bar,
     monitor_pizzaria: e.monitor_pizzaria,
-    ai_report_model: e.ai_report_model ?? "openai/gpt-5.5",
+    ai_report_provider: provider,
+    ai_report_model: e.ai_report_model ?? defaultModelFor(provider),
+    ai_report_api_key: "",
+    ai_report_clear_key: false,
     markup_ifood_percentual: String(markup).replace(".", ","),
   };
 }
