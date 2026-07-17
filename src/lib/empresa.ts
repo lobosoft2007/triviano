@@ -75,6 +75,10 @@ export interface Empresa {
   dominio_customizado: string | null;
   /** Tenant subdomain slug registered for this company (multi-tenant guard). */
   subdominio: string | null;
+  /** Dados fiscais da empresa. */
+  cnpj: string;
+  inscricao_estadual: string;
+  regime_tributario: string;
   cep: string;
   logradouro: string;
   numero: string;
