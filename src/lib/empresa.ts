@@ -253,6 +253,7 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     monitor_cozinha: false,
     monitor_bar: false,
     monitor_pizzaria: false,
+    ai_report_model: "openai/gpt-5.5",
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -306,6 +307,7 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     monitor_cozinha: row?.monitor_cozinha ?? false,
     monitor_bar: row?.monitor_bar ?? false,
     monitor_pizzaria: row?.monitor_pizzaria ?? false,
+    ai_report_model: row?.ai_report_model ?? "openai/gpt-5.5",
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
