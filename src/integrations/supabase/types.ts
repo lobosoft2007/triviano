@@ -3359,6 +3359,54 @@ export type Database = {
           },
         ]
       }
+      relatorios_salvos: {
+        Row: {
+          created_at: string
+          criado_por: string
+          descricao: string | null
+          empresa_id: string
+          id: string
+          nome: string
+          spec: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          nome: string
+          spec: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          nome?: string
+          spec?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relatorios_salvos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relatorios_salvos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       setores: {
         Row: {
           created_at: string
