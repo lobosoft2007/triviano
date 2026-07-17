@@ -241,11 +241,13 @@
     padding-top: 16mm;
     padding-bottom: 14mm;
   }
-  /* Live page counter (Chrome/Edge). */
-  body.printing-report .report-pagenum::after {
-    content: "Pág " counter(page) " / " counter(pages);
-  }
+  /* Live page counter (Chrome/Edge): hide the on-screen placeholder text
+     and print only the counter via ::after. */
   body.printing-report .report-pagenum {
+    font-size: 0;
+  }
+  body.printing-report .report-pagenum::after {
     font-size: 10px;
+    content: "Pág " counter(page) " / " counter(pages);
   }
 }
