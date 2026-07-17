@@ -314,7 +314,7 @@ export async function consultarDFe(
 ) {
   const supabase = createAdminClient();
   const config = await loadConfigFiscal(supabase, empresaId);
-  const adapter = getAdapter(config.provider as "tecnospeed");
+  const adapter = getAdapter(config.provider as "tecnospeed", config.credenciais as Record<string, string>);
   return adapter.consultarDFe({ empresa_id: empresaId, cnpj, ultimo_nsu: ultimoNsu });
 }
 
