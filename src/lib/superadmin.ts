@@ -59,6 +59,7 @@ export async function listAllEmpresas(): Promise<EmpresaRow[]> {
     monitor_bar: false,
     monitor_pizzaria: false,
     ai_report_model: d.ai_report_model ?? "openai/gpt-5.5",
+    markup_ifood_percentual: Number(d.markup_ifood_percentual ?? 0),
     created_at: d.created_at,
   }));
 }
