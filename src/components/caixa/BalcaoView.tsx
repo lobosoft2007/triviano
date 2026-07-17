@@ -1037,10 +1037,10 @@ function BalcaoPaymentDialog({
    * Emite NFC-e de forma não-bloqueante após a finalização do pedido.
    */
   async function emitirNFCeBestEffort(orderId: string) {
-    if (!empresa?.id) return;
+    if (!empresaId) return;
     try {
       const res = await emitirNFCePorPedido({
-        data: { empresa_id: empresa.id, order_id: orderId },
+        data: { empresa_id: empresaId, order_id: orderId },
       });
       if (res.sucesso && res.status === "autorizada") {
         toast.success(`NFC-e ${res.chave_acesso?.slice(-8) ?? ""} autorizada.`);
