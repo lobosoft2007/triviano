@@ -31,7 +31,7 @@ export const ReportSpecSchema = z.object({
     z.object({
       field: z.string(),
       op: z.enum(FILTER_OPS),
-      value: z.unknown().nullable(),
+      value: z.any(),
     }),
   ),
   columns: z.array(
