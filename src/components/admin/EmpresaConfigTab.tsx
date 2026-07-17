@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, ImagePlus, Building2, Save, Bike } from "lucide-react";
+import { Loader2, ImagePlus, Building2, Save, Bike, Bot } from "lucide-react";
 import { toast } from "sonner";
 import {
   empresaAdminConfigQueryOptions,
