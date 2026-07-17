@@ -645,6 +645,7 @@ export function BalcaoView() {
           lines={lines}
           estimatedTotal={total}
           userId={user?.id ?? ""}
+          empresaId={empresa?.id}
           afterFinalize={afterFinalize}
           onPaid={() => {
             clearCart();
