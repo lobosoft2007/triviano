@@ -521,34 +521,96 @@ export function EmpresaConfigTab() {
         </div>
       </section>
 
-      {/* Modelo de IA — Assistente de Relatórios */}
+      {/* Provedor + Modelo de IA — Assistente de Relatórios (BYOK) */}
       <section className="rounded-2xl border border-border bg-card p-4">
         <div className="mb-3 flex items-center gap-2">
           <Bot className="h-4 w-4 text-primary" />
-          <h3 className="font-display text-sm font-bold">Modelo de IA dos Relatórios</h3>
+          <h3 className="font-display text-sm font-bold">Assistente de IA (Relatórios)</h3>
         </div>
         <p className="mb-3 text-xs text-muted-foreground">
-          Modelo usado pelo Assistente IA em <strong>Relatórios</strong>. Modelos OpenAI
-          costumam seguir schemas mais rigorousamente; Gemini pode ser mais econômico.
+          Escolha o provedor de IA. Com <strong>Lovable AI Gateway</strong>, o consumo é
+          cobrado dos créditos do workspace Lovable (não requer chave própria). Com
+          <strong> OpenAI</strong> ou <strong>Google Gemini</strong>, informe a chave da
+          sua conta — o custo é faturado diretamente pelo provedor. A chave é gravada
+          criptografada e nunca retornada ao navegador.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ai_report_model">Provedor / Modelo</Label>
+            <Label htmlFor="ai_report_provider">Provedor</Label>
+            <select
+              id="ai_report_provider"
+              value={form.ai_report_provider}
+              onChange={(e) => {
+                const provider = e.target.value as AiProvider;
+                setForm((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        ai_report_provider: provider,
+                        ai_report_model: defaultModelFor(provider),
+                      }
+                    : prev,
+                );
+              }}
+              className="h-11 rounded-xl border border-border bg-background px-3 text-sm"
+            >
+              <option value="lovable">Lovable AI Gateway (padrão)</option>
+              <option value="openai">OpenAI (chave própria)</option>
+              <option value="google">Google Gemini (chave própria)</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ai_report_model">Modelo</Label>
             <select
               id="ai_report_model"
               value={form.ai_report_model}
               onChange={(e) => set("ai_report_model", e.target.value)}
               className="h-11 rounded-xl border border-border bg-background px-3 text-sm"
             >
-              <option value="openai/gpt-5.5">OpenAI GPT-5.5 (padrão)</option>
-              <option value="openai/gpt-5.4">OpenAI GPT-5.4</option>
-              <option value="openai/gpt-5.4-mini">OpenAI GPT-5.4 Mini</option>
-              <option value="openai/gpt-5.4-nano">OpenAI GPT-5.4 Nano</option>
-              <option value="google/gemini-3.1-pro-preview">Google Gemini 3.1 Pro</option>
-              <option value="google/gemini-3.5-flash">Google Gemini 3.5 Flash</option>
-              <option value="google/gemini-3.1-flash-lite">Google Gemini 3.1 Flash Lite</option>
+              {MODELS_BY_PROVIDER[form.ai_report_provider].map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
             </select>
           </div>
+
+          {form.ai_report_provider !== "lovable" && (
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <Label htmlFor="ai_report_api_key">
+                Chave de API {empresa?.ai_report_has_key ? "(uma chave já está salva — deixe em branco para manter)" : "(obrigatória)"}
+              </Label>
+              <Input
+                id="ai_report_api_key"
+                type="password"
+                autoComplete="off"
+                placeholder={
+                  form.ai_report_provider === "openai"
+                    ? "sk-..."
+                    : "AIza..."
+                }
+                value={form.ai_report_api_key}
+                onChange={(e) => set("ai_report_api_key", e.target.value)}
+                className="h-11 rounded-xl"
+              />
+              {empresa?.ai_report_has_key && (
+                <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={form.ai_report_clear_key}
+                    onChange={(e) => set("ai_report_clear_key", e.target.checked)}
+                  />
+                  Remover a chave salva (voltará a usar o Lovable Gateway)
+                </label>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {form.ai_report_provider === "openai"
+                  ? "Obtenha em platform.openai.com/api-keys. Cobrança direta pela OpenAI."
+                  : "Obtenha em aistudio.google.com/app/apikey. Cobrança direta pelo Google."}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
