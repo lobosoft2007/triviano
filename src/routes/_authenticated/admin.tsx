@@ -309,12 +309,20 @@ function detailToForm(d: ProductDetail): ProductDetailForm {
     fornecedor_id: d.fornecedor_id ?? NONE,
     margem_revenda: String(d.margem_revenda ?? 100).replace(".", ","),
     custo_compra: d.custo_compra ? String(d.custo_compra).replace(".", ",") : "",
+    preco_ifood:
+      d.preco_ifood != null && d.preco_ifood > 0
+        ? String(d.preco_ifood).replace(".", ",")
+        : "",
     ncm: d.ncm,
     ean: d.ean,
     price_options: d.price_options.map((o) => ({
       id: o.id ?? crypto.randomUUID(),
       label: o.tamanho,
       preco: String(o.preco).replace(".", ","),
+      preco_ifood:
+        o.preco_ifood != null && o.preco_ifood > 0
+          ? String(o.preco_ifood).replace(".", ",")
+          : "",
       ficha: (o.ficha ?? []).map((f) => ({
         tipo: f.tipo,
         ref_id: f.ref_id,
@@ -328,6 +336,10 @@ function detailToForm(d: ProductDetail): ProductDetailForm {
     addons: d.addons.map((a) => ({
       label: a.nome,
       preco: String(a.preco).replace(".", ","),
+      preco_ifood:
+        a.preco_ifood != null && a.preco_ifood > 0
+          ? String(a.preco_ifood).replace(".", ",")
+          : "",
     })),
     free_addons: d.free_addons.map((a) => ({
       label: a.nome,
@@ -344,18 +356,25 @@ function detailToForm(d: ProductDetail): ProductDetailForm {
 }
 
 function formToDetail(d: ProductDetailForm): ProductDetail {
+  const parseIfood = (v: string | undefined) => {
+    if (!v || !v.trim()) return null;
+    const n = parseNumberInput(v);
+    return n > 0 ? n : null;
+  };
   return {
     manipulado: d.manipulado,
     setor_id: d.setor_id === NONE ? null : d.setor_id,
     fornecedor_id: d.fornecedor_id === NONE ? null : d.fornecedor_id,
     margem_revenda: parseNumberInput(d.margem_revenda),
     custo_compra: parseNumberInput(d.custo_compra),
+    preco_ifood: parseIfood(d.preco_ifood),
     ncm: d.ncm,
     ean: d.ean,
     price_options: d.price_options.map((o) => ({
       id: o.id,
       tamanho: o.label,
       preco: parseNumberInput(o.preco),
+      preco_ifood: parseIfood(o.preco_ifood),
       ficha: o.ficha
         .filter((f) => f.ref_id)
         .map((f) => ({
@@ -369,6 +388,7 @@ function formToDetail(d: ProductDetailForm): ProductDetail {
     addons: d.addons.map((a) => ({
       nome: a.label,
       preco: parseNumberInput(a.preco),
+      preco_ifood: parseIfood(a.preco_ifood),
     })),
     free_addons: d.free_addons.map((a) => ({
       nome: a.label,
