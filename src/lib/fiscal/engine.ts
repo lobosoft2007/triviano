@@ -237,7 +237,7 @@ export async function emitirNotaFiscalPorPedido(
     ambiente,
   };
 
-  const adapter = getAdapter(config.provider as "tecnospeed");
+  const adapter = getAdapter(config.provider as "tecnospeed", config.credenciais as Record<string, string>);
   const res = isNfce
     ? await adapter.emitirNFCe(req)
     : await adapter.emitirNFe(req);
