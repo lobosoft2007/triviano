@@ -1,86 +1,48 @@
-# Plano Fiscal — Motor Abstrato de Emissão e Recepção
-
 ## Objetivo
-Tornar o sistema capaz de emitir NFC-e/NF-e, receber/manifestar NF-es de fornecedores e integrar entrada de estoque, usando um provedor SaaS fiscal agora, mas com arquitetura que permita trocar para ACBr ou solução nativa depois da Reforma Tributária sem refatorar o Caixa/Admin.
+Adicionar um **interruptor global de emissão fiscal** por empresa: quando ligado, todas as vendas geram NF automaticamente (comportamento correto/padrão); quando desligado, a empresa opera normalmente sem emitir nenhuma nota, por decisão do próprio admin.
 
-## Por que não nativo no Worker
-A SEFAZ exige integração com 27 UFs + DF, cada uma com endpoints, schemas e regras próprios. A assinatura XML com certificado A1 depende de bibliotecas criptográficas que não rodam de forma confiável no runtime Cloudflare Worker atual. Além disso, é preciso implementar: contingências (FS-DA, SVC-RS/SP, EPEC), motor tributário (ICMS, CST/CSOSN, PIS/COFINS, IPI, FCP, DIFAL, ICMS-ST), geração de DANFE/DANFCe, manifestação do destinatário e manutenção contínua de schemas. Estimativa realista: 6+ meses de trabalho dedicado.
+Não é escolha por pedido. É uma chave única, no nível da empresa.
 
-## Arquitetura proposta: motor fiscal interno + adapters
-```text
-Caixa/Admin/Perfil
-        │
-        ▼
-┌───────────────────────┐
-│  Motor Fiscal Interno │  ← domínio próprio: emitirNFCe, emitirNFe,
-│  (server functions)   │    consultarDFe, manifestarNFe, obterDanfe
-└───────────────────────┘
-        │
-        ▼
-┌───────────────────────┐
-│      Adapter Ativo    │  ← configurado por empresa
-│  (SaaS / ACBr / Nativo)│
-└───────────────────────┘
-        │
-        ▼
-      SEFAZ
-```
-- O app chama apenas funções do **motor fiscal interno**.
-- O motor chama o **adapter ativo** da empresa (SaaS hoje, ACBr/nativo amanhã).
-- Cada adapter traduz os dados internos para o formato do provedor e vice-versa.
-- Telas e regras de negócio não conhecem o provedor.
+## Como vai funcionar
 
-## Opções de adapter
+A tabela `config_fiscal` já tem a coluna `ativo` (boolean). Vamos usá-la exatamente como esse interruptor mestre:
 
-### 1. Provedor SaaS fiscal (Tecnospeed, Focus NFe, PlugNotas, WebmaniaBR)
-- Rápido de implementar, suportado pelo Worker (apenas HTTPS fetch).
-- Custo por nota ou mensalidade fixa.
-- Menor manutenção interna.
-- Ideal para entrar no ar rápido.
+- `ativo = true` → toda venda finalizada dispara emissão de NFC-e automaticamente (padrão correto).
+- `ativo = false` → nenhuma nota é emitida, em lugar nenhum do sistema. O restante do fluxo (pagamento, estoque, comanda) segue normal.
 
-### 2. ACBr próprio + servidor dedicado
-- Open source, sem custo por nota.
-- Requer servidor Windows/Linux com API HTTP própria.
-- Maior controle, mas maior infraestrutura.
+Não precisa criar coluna nova — só passar a respeitar o `ativo` de verdade nos pontos de emissão.
 
-### 3. Nativo no Worker
-- Invável hoje por limitações de runtime.
-- Poderia ser reavaliado no futuro se o runtime suportar crypto PKCS#12.
+## Onde aparece na tela
 
-## Por que essa abstração facilita a Reforma Tributária
-- A reforma vai mudar cálculos, campos do XML e possivelmente criar novos documentos.
-- Com adapters, as mudanças ficam isoladas na camada de tradução.
-- Se o provedor SaaS atualizar a API, trocamos só o adapter.
-- Se você decidir ir para ACBr ou nativo, trocamos só o adapter.
-- O Caixa, o Admin e o estoque permanecem inalterados.
+Na **aba Fiscal** (`/caixa?tab=fiscal`), no topo do card de configuração, um único switch bem visível:
 
-## Dados que devem ficar no nosso banco (independência do provedor)
-- XML de envio e de autorização.
-- Chave de acesso, número, série, status.
-- PDF/DANFE/DANFCe (ou link + cópia).
-- Eventos: cancelamento, carta de correção, manifestação.
-- Configuração tributária por produto e por empresa.
+**"Emitir Nota Fiscal automaticamente em todas as vendas"**  
+Texto de apoio: *"Recomendado. Desative apenas se a sua empresa optou temporariamente por operar sem emissão fiscal."*
 
-## Escopo de documentos
-- **NFC-e**: emissão automática no finalize_order_paid, DANFCe A4/térmica, QR code, contingência.
-- **NF-e**: emissão manual/condicional para CNPJ, devoluções e notas de entrada, DANFE A4.
-- **Manifestação do Destinatário**: polling de NSU, painel de Ciência/Confirmação/Desconhecimento/OPNR, download do XML.
-- **Entrada automática no estoque**: ao confirmar NF de fornecedor, itens entram no estoque com mapeamento produto do fornecedor → insumo/subproduto cadastrado.
+Quando desligado, aparece um aviso amarelo no topo da aba: *"Emissão fiscal desativada. Nenhuma nota está sendo gerada."* — para que fique óbvio ao operador e ao admin sempre que abrirem a tela.
 
-## Modelo tributário
-- **Simples Nacional**: CSOSN, PIS/COFINS geralmente não destacados.
-- **Lucro Presumido/Real**: CST completo, ICMS, PIS, COFINS, IPI, ICMS-ST quando aplicável.
-- **Multi-tenant**: cada empresa/franquia define regime e regras tributárias nas configurações.
+Credenciais, certificado A1, séries e numeração continuam preservados — desligar não apaga nada, só suspende a emissão.
 
-## Entregas sugeridas
-1. Criar a camada de motor fiscal interno e a interface de adapter.
-2. Implementar adapter para o provedor SaaS escolhido.
-3. Configuração fiscal por empresa (regime, credenciais do provedor, certificado A1 se necessário).
-4. Emissão de NFC-e no fluxo do Caixa.
-5. Consulta e manifestação de NF-es de entrada.
-6. Entrada automática no estoque a partir da NF confirmada.
-7. Emissão de NF-e avulsa (B2B/devolução).
-8. Documentação para troca futura de adapter.
+## Onde o motor respeita o switch
 
-## Pergunta para prosseguir
-Você confirma o provedor **Tecnospeed** como o adapter inicial, com escopo **NFC-e + manifestação de NF-e de entrada + entrada automática no estoque**, mantendo a arquitetura de adapters para troca futura após a Reforma Tributária?
+Adicionar um único guard `isEmissaoAtiva(empresa_id)` em `src/lib/fiscal/engine.ts` que lê `config_fiscal.ativo`. Antes de qualquer chamada real ao adapter, o engine consulta esse guard:
+
+- Se `ativo = false` → retorna silenciosamente sem chamar o provedor (log local, sem toast de erro, sem gravar `notas_fiscais`).
+- Se `ativo = true` → segue o fluxo atual.
+
+Como o guard vive dentro do próprio `emitirNotaFiscalPorPedido`, os call sites atuais (`PaymentDialog`, `BalcaoView` e futuros pontos como `finalizeComandaSplit`) não precisam mudar — o comportamento correto é automático.
+
+Manifestação de NF-e de entrada (consulta DFe) continua funcionando independentemente, pois é leitura, não emissão.
+
+## O que NÃO muda
+
+- Motor financeiro, RLS, triggers, `finalize_order_paid`: intocados.
+- Estrutura de `notas_fiscais`, adapters, tipos fiscais: sem alteração.
+- Nenhuma nova coluna, nenhuma migração de dados.
+
+## Detalhes técnicos
+
+- **Sem migração de schema.** A coluna `ativo` já existe e já é lida em `fetchFiscalConfig`.
+- **`src/lib/fiscal/engine.ts`**: adicionar `isEmissaoAtiva(empresaId)` (SELECT `ativo` em `config_fiscal`) e chamar no início de `emitirNotaFiscalPorPedido`. Retorno padronizado `{ sucesso: true, status: "pendente", mensagem: "Emissão fiscal desativada pela empresa" }` para não quebrar tipagem dos call sites.
+- **`src/components/caixa/FiscalConfigTab.tsx`**: substituir a ausência de UI para `ativo` por um `<Switch>` shadcn no topo do card, com label e helper text descritos acima, e o banner amarelo condicional.
+- **Sem mudança em `PaymentDialog` / `BalcaoView`** — o guard fica no engine.
