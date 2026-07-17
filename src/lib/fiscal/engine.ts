@@ -62,12 +62,43 @@ async function loadOrder(
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, user_id, customer_name, total, delivery_address, phone, status_pedido, order_items:order_items(*, product:product_id(ncm, ean, cfop, csosn, cst_icms, origem_icms))",
+      "id, user_id, total, delivery_address, phone, status_pedido, empresa_id",
     )
     .eq("id", orderId)
     .single();
   if (error || !data) throw new Error(`Pedido não encontrado: ${error?.message}`);
   return data;
+}
+
+async function loadOrderItems(
+  supabase: ReturnType<typeof createAdminClient>,
+  orderId: string,
+) {
+  const { data, error } = await supabase
+    .from("order_items")
+    .select(
+      "id, product_id, product_name, unit_price, quantity, size, second_flavor, addons, remocoes",
+    )
+    .eq("order_id", orderId);
+  if (error) throw new Error(`Erro ao carregar itens: ${error.message}`);
+  return data ?? [];
+}
+
+async function loadProducts(
+  supabase: ReturnType<typeof createAdminClient>,
+  productIds: string[],
+) {
+  if (productIds.length === 0) return new Map<string, Record<string, unknown>>();
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, ncm, ean, cfop, csosn, cst_icms, origem_icms")
+    .in("id", productIds);
+  if (error) throw new Error(`Erro ao carregar produtos: ${error.message}`);
+  const map = new Map<string, Record<string, unknown>>();
+  for (const p of data ?? []) {
+    if (p.id) map.set(p.id, p);
+  }
+  return map;
 }
 
 async function loadProfile(
@@ -76,7 +107,9 @@ async function loadProfile(
 ) {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, cpf, cnpj, address, address_number, complement, neighborhood, city, state, zip_code")
+    .select(
+      "id, full_name, logradouro, numero, complemento, bairro, municipio, estado, cep",
+    )
     .eq("id", userId)
     .single();
   if (error) return null;
@@ -112,59 +145,49 @@ function buildDestinatario(
   order: Awaited<ReturnType<typeof loadOrder>>,
   profile: Awaited<ReturnType<typeof loadProfile>> | null,
 ): DestinatarioFiscal | undefined {
-  const nome = order.customer_name || profile?.full_name || "Consumidor";
-  const cpf = profile?.cpf;
-  const cnpj = profile?.cnpj;
+  const nome = profile?.full_name || "Consumidor";
 
   const endereco: EnderecoFiscal | undefined = profile
     ? {
-        logradouro: profile.address || "",
-        numero: profile.address_number || "",
-        complemento: profile.complement || undefined,
-        bairro: profile.neighborhood || "",
-        cidade: profile.city || "",
-        estado: profile.state || "",
-        cep: profile.zip_code || "",
+        logradouro: profile.logradouro || "",
+        numero: profile.numero || "",
+        complemento: profile.complemento || undefined,
+        bairro: profile.bairro || "",
+        cidade: profile.municipio || "",
+        estado: profile.estado || "",
+        cep: profile.cep || "",
       }
     : undefined;
 
   return {
     nome,
-    cpf,
-    cnpj,
     endereco,
   };
 }
 
 function buildItens(
-  order: Awaited<ReturnType<typeof loadOrder>>,
+  orderItems: Awaited<ReturnType<typeof loadOrderItems>>,
+  productMap: Map<string, Record<string, unknown>>,
 ): ItemNotaFiscal[] {
-  const items = Array.isArray(order.order_items) ? order.order_items : [];
-  return items.map((item: Record<string, unknown>) => {
-    const product = item.product as
-      | {
-          ncm: string | null;
-          ean: string | null;
-          cfop: string | null;
-          csosn: string | null;
-          cst_icms: string | null;
-          origem_icms: string | null;
-        }
-      | null;
+  return orderItems.map((item) => {
+    const product = item.product_id ? productMap.get(item.product_id) : null;
     const qtd = Number(item.quantity ?? 1);
     const unit = Number(item.unit_price ?? 0);
+    const descricao = [item.product_name, item.size, item.second_flavor]
+      .filter(Boolean)
+      .join(" / ");
     return {
-      produto_id: (item.product_id as string) || undefined,
-      descricao: String(item.product_name || "Item"),
-      ncm: product?.ncm || undefined,
-      ean: product?.ean || undefined,
-      cfop: product?.cfop || undefined,
+      produto_id: item.product_id || undefined,
+      descricao,
+      ncm: (product?.ncm as string) || undefined,
+      ean: (product?.ean as string) || undefined,
+      cfop: (product?.cfop as string) || undefined,
       quantidade: qtd,
       valor_unitario: unit,
       valor_total: Number((qtd * unit).toFixed(2)),
-      csosn: product?.csosn || undefined,
-      cst_icms: product?.cst_icms || undefined,
-      origem_icms: product?.origem_icms || "0",
+      csosn: (product?.csosn as string) || undefined,
+      cst_icms: (product?.cst_icms as string) || undefined,
+      origem_icms: (product?.origem_icms as string) || "0",
     };
   });
 }
@@ -182,7 +205,19 @@ export async function emitirNotaFiscalPorPedido(
     loadOrder(supabase, orderId),
   ]);
 
-  const profile = order.user_id ? await loadProfile(supabase, order.user_id) : null;
+  if (order.empresa_id && order.empresa_id !== empresaId) {
+    throw new Error("Pedido não pertence à empresa informada.");
+  }
+
+  const [orderItems, profile] = await Promise.all([
+    loadOrderItems(supabase, orderId),
+    order.user_id ? loadProfile(supabase, order.user_id) : null,
+  ]);
+
+  const productIds = orderItems
+    .map((i) => i.product_id)
+    .filter((id): id is string => Boolean(id));
+  const productMap = await loadProducts(supabase, productIds);
 
   const isNfce = tipo === "NFCE";
   const serie = isNfce ? config.serie_nfce : config.serie_nfe;
@@ -195,7 +230,7 @@ export async function emitirNotaFiscalPorPedido(
     tipo,
     emitente: buildEmitente(empresa),
     destinatario: buildDestinatario(order, profile),
-    itens: buildItens(order),
+    itens: buildItens(orderItems, productMap),
     valor_total: Number(order.total ?? 0),
     serie,
     numero,
@@ -256,11 +291,17 @@ export async function emitirNotaFiscalPorPedido(
 
   // Incrementar contador apenas se autorizada
   if (res.sucesso && res.status === "autorizada") {
-    const col = isNfce ? "numero_nfce_proximo" : "numero_nfe_proximo";
-    await supabase
-      .from("config_fiscal")
-      .update({ [col]: numero + 1 })
-      .eq("id", config.id);
+    if (isNfce) {
+      await supabase
+        .from("config_fiscal")
+        .update({ numero_nfce_proximo: numero + 1 })
+        .eq("id", config.id);
+    } else {
+      await supabase
+        .from("config_fiscal")
+        .update({ numero_nfe_proximo: numero + 1 })
+        .eq("id", config.id);
+    }
   }
 
   return res;
