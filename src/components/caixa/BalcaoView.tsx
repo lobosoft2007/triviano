@@ -834,6 +834,7 @@ function BalcaoPaymentDialog({
   lines,
   estimatedTotal,
   userId,
+  empresaId,
   onPaid,
   afterFinalize,
 }: {
@@ -842,6 +843,7 @@ function BalcaoPaymentDialog({
   lines: BalcaoLine[];
   estimatedTotal: number;
   userId: string;
+  empresaId: string | undefined;
   onPaid: () => void;
   /** Runs after settlement (prints senha + production coupons / KDS routing). */
   afterFinalize: (orderId: string) => Promise<void>;
