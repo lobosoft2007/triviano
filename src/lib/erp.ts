@@ -518,6 +518,10 @@ export async function saveProductDetail(
       fornecedor_id: detail.manipulado ? null : detail.fornecedor_id,
       margem_revenda: detail.margem_revenda,
       custo_compra: detail.manipulado ? 0 : round2(detail.custo_compra),
+      preco_ifood:
+        detail.preco_ifood != null && detail.preco_ifood > 0
+          ? round2(detail.preco_ifood)
+          : null,
     })
     .eq("id", productId);
   if (prodErr) throw prodErr;
@@ -539,6 +543,8 @@ export async function saveProductDetail(
         produto_id: productId,
         tamanho: p.tamanho.trim(),
         preco: round2(p.preco),
+        preco_ifood:
+          p.preco_ifood != null && p.preco_ifood > 0 ? round2(p.preco_ifood) : null,
         sort_order: idx,
       };
     });
@@ -557,6 +563,8 @@ export async function saveProductDetail(
       produto_id: productId,
       nome: a.nome.trim(),
       preco: round2(a.preco),
+      preco_ifood:
+        a.preco_ifood != null && a.preco_ifood > 0 ? round2(a.preco_ifood) : null,
       sort_order: idx,
     }));
   if (addRows.length) {
