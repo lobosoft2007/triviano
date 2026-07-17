@@ -463,6 +463,102 @@ export function FiscalConfigTab() {
         </Button>
       </div>
 
+      {form.ambiente === "homologacao" && form.provider === "tecnospeed" && (
+        <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Beaker className="h-5 w-5 text-primary" />
+            <h3 className="font-display text-base font-bold">
+              Sandbox PlugNotas — checklist de homologação
+            </h3>
+          </div>
+          <ol className="mb-4 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+            <li>Salve a configuração com API Key do sandbox e certificado A1 + senha.</li>
+            <li>Clique em <b>Ping</b> para verificar conectividade.</li>
+            <li>Clique em <b>Sincronizar empresa</b> para cadastrar o emitente no PlugNotas.</li>
+            <li>Clique em <b>Sincronizar certificado</b> para enviar o .pfx ao provedor.</li>
+            <li>Clique em <b>Emitir NFC-e de teste</b> (R$ 0,01) e valide status "autorizada".</li>
+          </ol>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button
+              variant="outline"
+              disabled={busy !== null || !form.empresa_id}
+              onClick={() =>
+                runAction("ping", () => pingFn({ data: { empresa_id: form.empresa_id! } }), (r) =>
+                  `Ping OK · HTTP ${r.status} · ${r.latency_ms}ms`,
+                )
+              }
+            >
+              {busy === "ping" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <PlugZap className="mr-2 h-4 w-4" />
+              )}
+              Ping provedor
+            </Button>
+            <Button
+              variant="outline"
+              disabled={busy !== null || !form.empresa_id}
+              onClick={() =>
+                runAction(
+                  "empresa",
+                  () => syncEmpresaFn({ data: { empresa_id: form.empresa_id! } }),
+                  () => "Empresa sincronizada com o provedor.",
+                )
+              }
+            >
+              {busy === "empresa" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Building2 className="mr-2 h-4 w-4" />
+              )}
+              Sincronizar empresa
+            </Button>
+            <Button
+              variant="outline"
+              disabled={busy !== null || !form.empresa_id || !form.certificado_a1_path}
+              onClick={() =>
+                runAction(
+                  "cert",
+                  () => syncCertFn({ data: { empresa_id: form.empresa_id! } }),
+                  () => "Certificado A1 enviado ao provedor.",
+                )
+              }
+            >
+              {busy === "cert" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="mr-2 h-4 w-4" />
+              )}
+              Sincronizar certificado
+            </Button>
+            <Button
+              disabled={busy !== null || !form.empresa_id}
+              onClick={() =>
+                runAction(
+                  "teste",
+                  () => testeFn({ data: { empresa_id: form.empresa_id! } }),
+                  (r) =>
+                    r?.status === "autorizada"
+                      ? `NFC-e autorizada! Chave ${r.chave_acesso?.slice(-8) ?? ""}`
+                      : `Retorno: ${r?.status ?? "sem status"}${r?.mensagem ? " · " + r.mensagem : ""}`,
+                )
+              }
+            >
+              {busy === "teste" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FlaskConical className="mr-2 h-4 w-4" />
+              )}
+              Emitir NFC-e de teste
+            </Button>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Emissões de teste ficam registradas em Notas Fiscais com
+            ambiente=homologação e não geram numeração de produção.
+          </p>
+        </div>
+      )}
+
       <ManifestacaoView />
     </section>
   );
