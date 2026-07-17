@@ -2106,11 +2106,13 @@ function ConfigTab() {
         <header className="mb-3">
           <h2 className="font-display text-lg font-bold">Setores de impressão</h2>
           <p className="text-sm text-muted-foreground">
-            Conexão de cada impressora (USB ou IP de rede).
+            A impressão usa a fila do sistema operacional. Configure cada
+            impressora como padrão na estação correspondente (cozinha, bar,
+            caixa) — o Triviano envia o cupom certo para cada setor
+            automaticamente.
           </p>
         </header>
         <div className="space-y-3">
-          <ThermalDirectPrintCard />
           {printers.map((p) => (
             <PrinterCard key={p.id} printer={p} />
           ))}
