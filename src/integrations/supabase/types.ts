@@ -399,8 +399,11 @@ export type Database = {
           certificado_a1_path: string | null
           certificado_a1_senha_criptografada: string | null
           certificado_a1_validade: string | null
+          certificado_provider_id: string | null
+          certificado_sincronizado_em: string | null
           created_at: string
           credenciais: Json
+          emitente_sincronizado_em: string | null
           empresa_id: string
           id: string
           numero_nfce_proximo: number
@@ -418,8 +421,11 @@ export type Database = {
           certificado_a1_path?: string | null
           certificado_a1_senha_criptografada?: string | null
           certificado_a1_validade?: string | null
+          certificado_provider_id?: string | null
+          certificado_sincronizado_em?: string | null
           created_at?: string
           credenciais?: Json
+          emitente_sincronizado_em?: string | null
           empresa_id: string
           id?: string
           numero_nfce_proximo?: number
@@ -437,8 +443,11 @@ export type Database = {
           certificado_a1_path?: string | null
           certificado_a1_senha_criptografada?: string | null
           certificado_a1_validade?: string | null
+          certificado_provider_id?: string | null
+          certificado_sincronizado_em?: string | null
           created_at?: string
           credenciais?: Json
+          emitente_sincronizado_em?: string | null
           empresa_id?: string
           id?: string
           numero_nfce_proximo?: number
