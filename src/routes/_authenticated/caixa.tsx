@@ -932,8 +932,6 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         }
       >
         {tab !== "config" &&
-          tab !== "pagamento" &&
-          tab !== "fiscal" &&
           tab !== "fiado" &&
           tab !== "clientes" &&
           tab !== "balcao" &&
@@ -973,8 +971,6 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
 
         {tab === "balcao" && <BalcaoView />}
         {tab === "config" && <ConfigTab />}
-        {tab === "pagamento" && <PaymentConfigTab />}
-        {tab === "fiscal" && <FiscalConfigTab />}
         {tab === "fiado" && <ContaCorrenteTab mode="caixa" />}
         {tab === "clientes" && <ClientesView canBlock={false} />}
       </ShellBody>
