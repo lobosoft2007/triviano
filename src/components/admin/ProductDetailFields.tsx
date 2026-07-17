@@ -395,6 +395,29 @@ export function ProductDetailFields({
         </div>
       </div>
 
+      {/* Preço iFood — canal externo */}
+      <div className="rounded-xl border border-red-500/30 bg-red-50/40 p-3 dark:bg-red-900/10">
+        <div className="mb-1 flex items-center justify-between">
+          <Label htmlFor="prod-preco-ifood" className="text-sm font-semibold">
+            Preço iFood
+          </Label>
+          <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-500">
+            iFood
+          </span>
+        </div>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Preço praticado no iFood (para absorver a comissão do marketplace).
+          Deixe em branco para usar o preço interno.
+        </p>
+        <Input
+          id="prod-preco-ifood"
+          inputMode="decimal"
+          value={value.preco_ifood}
+          onChange={(e) => patch({ preco_ifood: e.target.value })}
+          placeholder="= preço interno"
+        />
+      </div>
+
       {/* Setor / Fornecedor for revenda items */}
       {!value.manipulado && (
         <div className="grid grid-cols-2 gap-3">
