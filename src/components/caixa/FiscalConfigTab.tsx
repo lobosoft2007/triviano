@@ -249,7 +249,7 @@ export function FiscalConfigTab() {
               <button
                 key={opt.v}
                 onClick={() =>
-                  setForm({ ...form, ambiente: opt.v as "homologacao" | "producao" })
+                  setAmbiente(opt.v as "homologacao" | "producao")
                 }
                 className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
                   form.ambiente === opt.v
