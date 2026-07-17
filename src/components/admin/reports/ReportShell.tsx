@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Printer, Download, Columns3, Type, Loader2 } from "lucide-react";
+import { Printer, Download, Columns3, Type, Loader2, RectangleVertical, RectangleHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
