@@ -20,10 +20,13 @@ export interface ReportColumn<T> {
   defaultHidden?: boolean;
 }
 
+export type ReportOrientation = "portrait" | "landscape";
+
 export interface ReportPrefs {
   visible: string[]; // ordered list of visible column keys
   fontFamily: string;
   fontSize: number;
+  orientation: ReportOrientation;
 }
 
 export const REPORT_FONTS: { label: string; value: string }[] = [
