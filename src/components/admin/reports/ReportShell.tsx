@@ -281,6 +281,34 @@ export function ReportShell<T>({
             fontSize={prefs.fontSize}
             onChange={updatePrefs}
           />
+          <div className="inline-flex rounded-md border border-border bg-background p-0.5">
+            <button
+              type="button"
+              onClick={() => updatePrefs({ orientation: "portrait" })}
+              className={
+                "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition " +
+                (prefs.orientation === "portrait"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary")
+              }
+              title="Retrato"
+            >
+              <RectangleVertical className="h-3.5 w-3.5" /> Retrato
+            </button>
+            <button
+              type="button"
+              onClick={() => updatePrefs({ orientation: "landscape" })}
+              className={
+                "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition " +
+                (prefs.orientation === "landscape"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary")
+              }
+              title="Paisagem"
+            >
+              <RectangleHorizontal className="h-3.5 w-3.5" /> Paisagem
+            </button>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -295,7 +323,7 @@ export function ReportShell<T>({
           <Button
             size="sm"
             className="gap-1.5"
-            onClick={printReport}
+            onClick={() => printReport(prefs.orientation)}
             disabled={rows.length === 0}
           >
             <Printer className="h-4 w-4" /> Imprimir / PDF
@@ -305,10 +333,11 @@ export function ReportShell<T>({
 
       {/* Report body (also target of window.print()) */}
       <div
-        className="report-a4 rounded-xl border border-border bg-white p-6 text-neutral-900 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none"
+        className="report-a4 mx-auto rounded-xl border border-border bg-white p-6 text-neutral-900 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none"
         style={{
           fontFamily: prefs.fontFamily,
           fontSize: `${prefs.fontSize}pt`,
+          maxWidth: prefs.orientation === "landscape" ? "297mm" : "210mm",
         }}
       >
         <ReportHeader empresa={empresa} title={title} />
