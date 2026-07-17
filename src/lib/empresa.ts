@@ -102,8 +102,12 @@ export interface Empresa {
   monitor_cozinha: boolean;
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
-  /** AI model used by the Reports Assistant (Lovable AI Gateway). */
+  /** AI model used by the Reports Assistant. */
   ai_report_model: string;
+  /** AI provider used by the Reports Assistant: 'lovable' | 'openai' | 'google'. */
+  ai_report_provider: "lovable" | "openai" | "google";
+  /** True when this empresa has a BYO API key stored (raw key never sent to the browser). */
+  ai_report_has_key: boolean;
   /** iFood pricing markup percentage (per-channel pricing). */
   markup_ifood_percentual: number;
 }
@@ -166,6 +170,8 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         monitor_bar: false,
         monitor_pizzaria: false,
         ai_report_model: "openai/gpt-5.5",
+        ai_report_provider: "lovable",
+        ai_report_has_key: false,
         markup_ifood_percentual: 0,
       }
     : {
@@ -197,6 +203,8 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         monitor_bar: false,
         monitor_pizzaria: false,
         ai_report_model: "openai/gpt-5.5",
+        ai_report_provider: "lovable",
+        ai_report_has_key: false,
         markup_ifood_percentual: 0,
       };
 
@@ -258,6 +266,8 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     monitor_bar: false,
     monitor_pizzaria: false,
     ai_report_model: "openai/gpt-5.5",
+    ai_report_provider: "lovable",
+    ai_report_has_key: false,
     markup_ifood_percentual: 0,
   };
 
@@ -313,6 +323,11 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     monitor_bar: row?.monitor_bar ?? false,
     monitor_pizzaria: row?.monitor_pizzaria ?? false,
     ai_report_model: row?.ai_report_model ?? "openai/gpt-5.5",
+    ai_report_provider:
+      (row as { ai_report_provider?: "lovable" | "openai" | "google" } | undefined)
+        ?.ai_report_provider ?? "lovable",
+    ai_report_has_key:
+      Boolean((row as { ai_report_has_key?: boolean } | undefined)?.ai_report_has_key),
     markup_ifood_percentual: Number(row?.markup_ifood_percentual ?? 0),
   };
 
