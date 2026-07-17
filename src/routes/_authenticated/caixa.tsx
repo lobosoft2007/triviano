@@ -140,8 +140,6 @@ const CAIXA_TAB_TITLES: Record<CaixaTab, string> = {
   fiado: "Conta Corrente",
   clientes: "Clientes",
   config: "Impressão",
-  pagamento: "Pagamento",
-  fiscal: "Fiscal",
 };
 
 /* ------------------------------------------------------------------ */
