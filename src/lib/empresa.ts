@@ -142,6 +142,9 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
 
         dominio_customizado: data.dominio_customizado ?? null,
         subdominio: data.subdominio ?? null,
+        cnpj: "",
+        inscricao_estadual: "",
+        regime_tributario: "simples_nacional",
         cep: "",
         logradouro: "",
         numero: "",
