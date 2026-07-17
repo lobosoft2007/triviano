@@ -102,8 +102,12 @@ export interface Empresa {
   monitor_cozinha: boolean;
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
-  /** AI model used by the Reports Assistant (Lovable AI Gateway). */
+  /** AI model used by the Reports Assistant. */
   ai_report_model: string;
+  /** AI provider used by the Reports Assistant: 'lovable' | 'openai' | 'google'. */
+  ai_report_provider: "lovable" | "openai" | "google";
+  /** True when this empresa has a BYO API key stored (raw key never sent to the browser). */
+  ai_report_has_key: boolean;
   /** iFood pricing markup percentage (per-channel pricing). */
   markup_ifood_percentual: number;
 }
