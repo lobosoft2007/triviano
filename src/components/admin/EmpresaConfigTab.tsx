@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, ImagePlus, Building2, Save } from "lucide-react";
+import { Loader2, ImagePlus, Building2, Save, Bike } from "lucide-react";
 import { toast } from "sonner";
 import {
   empresaAdminConfigQueryOptions,
@@ -10,6 +10,8 @@ import {
 import { uploadEmpresaLogo } from "@/lib/storage";
 import { compressImage } from "@/lib/imageCompression";
 import { parseNumberInput } from "@/lib/erp";
+import { applyIfoodMarkup } from "@/lib/ifood";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,9 +36,10 @@ interface FormState {
   monitor_cozinha: boolean;
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
+  markup_ifood_percentual: string;
 }
 
-function empresaToForm(e: EmpresaBranding): FormState {
+function empresaToForm(e: EmpresaBranding, markup: number): FormState {
   return {
     nome_fantasia: e.nome_fantasia,
     taxa_servico_mesa: String(e.taxa_servico_mesa).replace(".", ","),
@@ -56,6 +59,7 @@ function empresaToForm(e: EmpresaBranding): FormState {
     monitor_cozinha: e.monitor_cozinha,
     monitor_bar: e.monitor_bar,
     monitor_pizzaria: e.monitor_pizzaria,
+    markup_ifood_percentual: String(markup).replace(".", ","),
   };
 }
 
@@ -63,19 +67,33 @@ function empresaToForm(e: EmpresaBranding): FormState {
 export function EmpresaConfigTab() {
   const queryClient = useQueryClient();
   const { data: empresa, isLoading } = useQuery(empresaAdminConfigQueryOptions);
+  const { data: markupData } = useQuery({
+    queryKey: ["empresa-markup-ifood", empresa?.id],
+    enabled: !!empresa?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("markup_ifood_percentual")
+        .eq("id", empresa!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return Number(data?.markup_ifood_percentual ?? 0);
+    },
+  });
 
   const [form, setForm] = useState<FormState | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [applyingMarkup, setApplyingMarkup] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (empresa && !form) {
-      setForm(empresaToForm(empresa));
+    if (empresa && !form && markupData !== undefined) {
+      setForm(empresaToForm(empresa, markupData ?? 0));
       setPreview(empresa.logo_display_url);
     }
-  }, [empresa, form]);
+  }, [empresa, form, markupData]);
 
   useEffect(() => {
     if (!file) return;
@@ -139,16 +157,54 @@ export function EmpresaConfigTab() {
         monitor_pizzaria: form.monitor_pizzaria,
       });
 
+      // Markup iFood: persistido em coluna separada (não está no RPC do admin).
+      const markupPct = parseNumberInput(form.markup_ifood_percentual);
+      await supabase
+        .from("empresas")
+        .update({ markup_ifood_percentual: markupPct })
+        .eq("id", empresa.id);
 
       toast.success("Configurações da empresa salvas!");
       setFile(null);
       await queryClient.invalidateQueries({ queryKey: ["empresa-ativa"] });
       await queryClient.invalidateQueries({ queryKey: ["empresa-config"] });
       await queryClient.invalidateQueries({ queryKey: ["empresa-admin-config"] });
+      await queryClient.invalidateQueries({ queryKey: ["empresa-markup-ifood"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível salvar.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleApplyMarkup = async (overwrite: boolean) => {
+    if (!empresa || !form) return;
+    const pct = parseNumberInput(form.markup_ifood_percentual);
+    if (pct <= 0) {
+      toast.error("Defina um percentual de markup maior que zero antes.");
+      return;
+    }
+    const msg = overwrite
+      ? `Aplicar +${pct}% em TODOS os produtos (inclui os que já têm preço iFood definido)?`
+      : `Aplicar +${pct}% apenas nos produtos SEM preço iFood definido?`;
+    if (!confirm(msg)) return;
+
+    setApplyingMarkup(true);
+    try {
+      // Grava o markup antes de aplicar para garantir consistência.
+      await supabase
+        .from("empresas")
+        .update({ markup_ifood_percentual: pct })
+        .eq("id", empresa.id);
+      const count = await applyIfoodMarkup(empresa.id, overwrite);
+      toast.success(
+        `Markup aplicado. ${count} produto(s) atualizado(s) no nível principal (variações e adicionais também recalculados).`,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["admin-menu"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao aplicar markup.");
+    } finally {
+      setApplyingMarkup(false);
     }
   };
 
@@ -319,6 +375,58 @@ export function EmpresaConfigTab() {
               Cashback {form.cashback_ativo ? "ativado" : "desativado"}
             </span>
           </label>
+        </div>
+      </section>
+
+      {/* Markup iFood — precificação por canal */}
+      <section className="rounded-2xl border border-red-500/30 bg-red-50/40 p-4 dark:bg-red-900/10">
+        <div className="mb-3 flex items-center gap-2">
+          <Bike className="h-4 w-4 text-red-500" />
+          <h3 className="font-display text-sm font-bold">Precificação iFood</h3>
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Percentual aplicado sobre o preço interno para compor o preço no iFood
+          (absorve a comissão do marketplace). Use os botões abaixo para aplicar
+          em massa no cardápio.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3 sm:items-end">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="markup_ifood">Markup iFood (%)</Label>
+            <Input
+              id="markup_ifood"
+              inputMode="decimal"
+              value={form.markup_ifood_percentual}
+              onChange={(e) => set("markup_ifood_percentual", e.target.value)}
+              placeholder="Ex: 30"
+              className="h-11 rounded-xl"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => handleApplyMarkup(false)}
+            disabled={applyingMarkup}
+            className="h-11 rounded-xl"
+          >
+            {applyingMarkup ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Aplicar aos vazios"
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => handleApplyMarkup(true)}
+            disabled={applyingMarkup}
+            className="h-11 rounded-xl"
+          >
+            {applyingMarkup ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Sobrescrever todos"
+            )}
+          </Button>
         </div>
       </section>
 

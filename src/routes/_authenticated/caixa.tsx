@@ -32,6 +32,7 @@ import { ClientesView } from "@/components/admin/ClientesView";
 import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { PartialReportDialog } from "@/components/caixa/PartialReportDialog";
 import { BalcaoView } from "@/components/caixa/BalcaoView";
+import { EntregasKanban } from "@/components/caixa/EntregasKanban";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 import {
   SidebarProvider,
@@ -138,6 +139,7 @@ const CAIXA_TAB_TITLES: Record<CaixaTab, string> = {
   fiado: "Conta Corrente",
   clientes: "Clientes",
   config: "Impressão",
+  entregas: "Entregas",
 };
 
 /* ------------------------------------------------------------------ */
@@ -933,6 +935,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
           tab !== "fiado" &&
           tab !== "clientes" &&
           tab !== "balcao" &&
+          tab !== "entregas" &&
           !orders && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -971,6 +974,7 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         {tab === "config" && <ConfigTab />}
         {tab === "fiado" && <ContaCorrenteTab mode="caixa" />}
         {tab === "clientes" && <ClientesView canBlock={false} />}
+        {tab === "entregas" && <EntregasKanban />}
       </ShellBody>
 
       {/* Partial cash report (X de caixa) */}

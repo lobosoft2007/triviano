@@ -190,6 +190,14 @@ export function CaixaSidebar({
         active: activeTab === "balcao",
         onClick: () => onSelectTab("balcao"),
       },
+      {
+        key: "entregas",
+        label: "Entregas",
+        icon: <Bike className={iconCls} />,
+        show: canDelivery,
+        active: activeTab === "entregas",
+        onClick: () => onSelectTab("entregas"),
+      },
     ],
   };
 

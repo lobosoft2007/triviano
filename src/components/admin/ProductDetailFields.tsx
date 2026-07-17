@@ -16,6 +16,8 @@ export const NONE = "__none__";
 export interface RelRow {
   label: string;
   preco: string;
+  /** Preço praticado no iFood (string vazia = usa preco interno). */
+  preco_ifood?: string;
 }
 
 /** A price option (variação) can carry its own ficha técnica. */
@@ -33,6 +35,8 @@ export interface ProductDetailForm {
   margem_revenda: string;
   /** Purchase cost (as text) for revenda (non-manipulado) items. */
   custo_compra: string;
+  /** Preço iFood do produto (vazio = usa preco interno). */
+  preco_ifood: string;
   price_options: PriceOptionRow[];
   addons: RelRow[];
   free_addons: RelRow[];
@@ -47,6 +51,7 @@ export const EMPTY_DETAIL: ProductDetailForm = {
   fornecedor_id: NONE,
   margem_revenda: "100",
   custo_compra: "",
+  preco_ifood: "",
   price_options: [],
   addons: [],
   free_addons: [],
@@ -388,6 +393,29 @@ export function ProductDetailFields({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Preço iFood — canal externo */}
+      <div className="rounded-xl border border-red-500/30 bg-red-50/40 p-3 dark:bg-red-900/10">
+        <div className="mb-1 flex items-center justify-between">
+          <Label htmlFor="prod-preco-ifood" className="text-sm font-semibold">
+            Preço iFood
+          </Label>
+          <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-500">
+            iFood
+          </span>
+        </div>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Preço praticado no iFood (para absorver a comissão do marketplace).
+          Deixe em branco para usar o preço interno.
+        </p>
+        <Input
+          id="prod-preco-ifood"
+          inputMode="decimal"
+          value={value.preco_ifood}
+          onChange={(e) => patch({ preco_ifood: e.target.value })}
+          placeholder="= preço interno"
+        />
       </div>
 
       {/* Setor / Fornecedor for revenda items */}
