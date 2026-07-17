@@ -142,12 +142,32 @@ export function PaymentDialog({
     }
   }
 
+  async function emitirNFCeBestEffort() {
+    if (!empresa?.id) return;
+    try {
+      const res = await emitirNFCePorPedido({
+        data: { empresa_id: empresa.id, order_id: order.id },
+      });
+      if (res.sucesso && res.status === "autorizada") {
+        toast.success(`NFC-e ${res.chave_acesso?.slice(-8) ?? ""} autorizada.`);
+      } else if (res.mensagem) {
+        toast.warning(`NFC-e: ${res.mensagem}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Não quebra o fluxo de finalização; apenas alerta o operador.
+      toast.error(`NFC-e não emitida: ${msg}`, { duration: 6000 });
+    }
+  }
+
   async function handleFinalize() {
     if (!matches) return;
     const usouFiado = (pagamentos ?? []).some((p) => p.meio_nome === "Fiado");
     setFinalizing(true);
     try {
       const saldoDevedor = await finalizeOrderPaid(order.id);
+      // Emissão fiscal assíncrona e não-bloqueante.
+      await emitirNFCeBestEffort();
       // Fiado purchase -> instant push notification to the customer.
       if (usouFiado && order.user_id) {
         const valorFiado = (pagamentos ?? [])
