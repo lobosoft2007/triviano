@@ -122,7 +122,39 @@ export function FiscalConfigTab() {
         </p>
       </header>
 
+      {!form.ativo && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div className="text-sm">
+            <p className="font-semibold">Emissão fiscal desativada</p>
+            <p className="opacity-90">
+              Nenhuma nota fiscal está sendo gerada nas vendas desta empresa.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-card">
+        {/* Interruptor mestre de emissão */}
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-border bg-background p-4">
+          <div className="min-w-0">
+            <Label htmlFor="emissao-ativa" className="text-sm font-semibold">
+              Emitir Nota Fiscal automaticamente em todas as vendas
+            </Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Recomendado. Desative apenas se a sua empresa optou temporariamente
+              por operar sem emissão fiscal. As credenciais e o certificado
+              permanecem salvos.
+            </p>
+          </div>
+          <Switch
+            id="emissao-ativa"
+            checked={form.ativo}
+            onCheckedChange={(v) => setForm({ ...form, ativo: v })}
+          />
+        </div>
+
+
         {/* Provedor */}
         <div className="space-y-2">
           <Label>Provedor fiscal</Label>
