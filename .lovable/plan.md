@@ -1,48 +1,44 @@
 ## Objetivo
-Adicionar um **interruptor global de emissão fiscal** por empresa: quando ligado, todas as vendas geram NF automaticamente (comportamento correto/padrão); quando desligado, a empresa opera normalmente sem emitir nenhuma nota, por decisão do próprio admin.
 
-Não é escolha por pedido. É uma chave única, no nível da empresa.
+Mover para o **/admin** dois módulos que hoje vivem no **/caixa**, por serem responsabilidade típica do administrador:
 
-## Como vai funcionar
+1. **Fiscal** (config NFC-e/NF-e, certificado A1, ativar/desativar emissão) — hoje em `Caixa`.
+2. **Pagamento** (`PaymentConfigTab`: Mercado Pago, PIX estático, cashback, etc.) — hoje em `Caixa > Configurações`. Já existe uma aba "Pagamentos" em `/admin` renderizando o mesmo `PaymentConfigTab`, então na prática o Caixa mantinha uma cópia duplicada.
 
-A tabela `config_fiscal` já tem a coluna `ativo` (boolean). Vamos usá-la exatamente como esse interruptor mestre:
+Nada de lógica de negócio muda — apenas onde as abas aparecem e quem consegue abri-las.
 
-- `ativo = true` → toda venda finalizada dispara emissão de NFC-e automaticamente (padrão correto).
-- `ativo = false` → nenhuma nota é emitida, em lugar nenhum do sistema. O restante do fluxo (pagamento, estoque, comanda) segue normal.
+## Mudanças
 
-Não precisa criar coluna nova — só passar a respeitar o `ativo` de verdade nos pontos de emissão.
+### 1. `/admin` — passa a hospedar as abas
 
-## Onde aparece na tela
+`src/routes/_authenticated/admin.tsx` e `src/components/admin/AdminSidebar.tsx`:
 
-Na **aba Fiscal** (`/caixa?tab=fiscal`), no topo do card de configuração, um único switch bem visível:
+- Adicionar nova aba **`fiscal`** na tipagem `AdminTab`, no menu lateral (ícone `Receipt` ou `FileText`, grupo "Configurações") e no switch de conteúdo, renderizando `<FiscalConfigTab />` (importado de `@/components/caixa/FiscalConfigTab`, mesmo componente já existente — não vamos duplicar arquivo).
+- A aba **`pagamentos`** já existe em `/admin`, não precisa mexer.
+- Ambas continuam gated como `"master"` (só master admin / manager local), igual ao padrão atual do /admin.
 
-**"Emitir Nota Fiscal automaticamente em todas as vendas"**  
-Texto de apoio: *"Recomendado. Desative apenas se a sua empresa optou temporariamente por operar sem emissão fiscal."*
+### 2. `/caixa` — remove as abas
 
-Quando desligado, aparece um aviso amarelo no topo da aba: *"Emissão fiscal desativada. Nenhuma nota está sendo gerada."* — para que fique óbvio ao operador e ao admin sempre que abrirem a tela.
+`src/routes/_authenticated/caixa.tsx`:
 
-Credenciais, certificado A1, séries e numeração continuam preservados — desligar não apaga nada, só suspende a emissão.
+- Remover `fiscal` e `pagamento` de `CAIXA_TAB_TITLES` e dos `tab === ...` render blocks.
+- Remover o import de `FiscalConfigTab`.
+- Remover a exceção `tab !== "fiscal" && tab !== "pagamento"` na área de conteúdo (fica só o filtro para `config`).
 
-## Onde o motor respeita o switch
+`src/components/caixa/CaixaSidebar.tsx`:
 
-Adicionar um único guard `isEmissaoAtiva(empresa_id)` em `src/lib/fiscal/engine.ts` que lê `config_fiscal.ativo`. Antes de qualquer chamada real ao adapter, o engine consulta esse guard:
+- Remover o item "Fiscal" (bloco master direto) e o item "Pagamento" do grupo Configurações.
 
-- Se `ativo = false` → retorna silenciosamente sem chamar o provedor (log local, sem toast de erro, sem gravar `notas_fiscais`).
-- Se `ativo = true` → segue o fluxo atual.
+`src/lib/permissions.ts`:
 
-Como o guard vive dentro do próprio `emitirNotaFiscalPorPedido`, os call sites atuais (`PaymentDialog`, `BalcaoView` e futuros pontos como `finalizeComandaSplit`) não precisam mudar — o comportamento correto é automático.
+- Remover `"pagamento"` e `"fiscal"` do tipo `CaixaTab`, do mapa `CAIXA_TAB_FLAG` e da lista `CAIXA_TAB_ORDER`. Isso garante typecheck para os call sites acima.
 
-Manifestação de NF-e de entrada (consulta DFe) continua funcionando independentemente, pois é leitura, não emissão.
+### 3. Nada mais muda
 
-## O que NÃO muda
+- `FiscalConfigTab`, `PaymentConfigTab`, engine fiscal, RLS, motor financeiro, Mercado Pago, cashback: **intocados**.
+- Sem migração de banco.
+- Sem alteração em `PaymentDialog`, `BalcaoView`, fluxo de pagamento no PDV.
 
-- Motor financeiro, RLS, triggers, `finalize_order_paid`: intocados.
-- Estrutura de `notas_fiscais`, adapters, tipos fiscais: sem alteração.
-- Nenhuma nova coluna, nenhuma migração de dados.
+## Observação
 
-## Detalhes técnicos
-
-- **Sem migração de schema.** A coluna `ativo` já existe e já é lida em `fetchFiscalConfig`.
-- **`src/lib/fiscal/engine.ts`**: adicionar `isEmissaoAtiva(empresaId)` (SELECT `ativo` em `config_fiscal`) e chamar no início de `emitirNotaFiscalPorPedido`. Retorno padronizado `{ sucesso: true, status: "pendente", mensagem: "Emissão fiscal desativada pela empresa" }` para não quebrar tipagem dos call sites.
-- **`src/components/caixa/FiscalConfigTab.tsx`**: substituir a ausência de UI para `ativo` por um `<Switch>` shadcn no topo do card, com label e helper text descritos acima, e o banner amarelo condicional.
-- **Sem mudança em `PaymentDialog` / `BalcaoView`** — o guard fica no engine.
+O nome do arquivo `src/components/caixa/FiscalConfigTab.tsx` fica onde está (movê-lo geraria diff maior sem valor). Se preferir mover para `src/components/admin/FiscalConfigTab.tsx` por organização, sinaliza que eu incluo o rename no mesmo passo.
