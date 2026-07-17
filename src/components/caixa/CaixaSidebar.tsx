@@ -5,7 +5,6 @@ import {
   ScanBarcode,
   Users,
   Wallet,
-  ReceiptText,
   FileBarChart,
   TrendingUp,
   TrendingDown,
@@ -13,7 +12,6 @@ import {
   Power,
   PackagePlus,
   Settings,
-  CreditCard,
   ChevronDown,
   LifeBuoy,
   Lock,
@@ -290,14 +288,6 @@ export function CaixaSidebar({
         active: activeTab === "config",
         onClick: () => onSelectTab("config"),
       },
-      {
-        key: "pagamento",
-        label: "Pagamento",
-        icon: <CreditCard className={iconCls} />,
-        show: isMaster,
-        active: activeTab === "pagamento",
-        onClick: () => onSelectTab("pagamento"),
-      },
     ],
   };
 
@@ -320,26 +310,13 @@ export function CaixaSidebar({
             <SidebarAccordionGroup group={operacional} defaultOpen />
             <SidebarAccordionGroup group={clientes} defaultOpen={false} />
 
-            {/* Fiscal — acesso direto (master) */}
-            {isMaster && (
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={activeTab === "fiscal"}
-                  onClick={() => onSelectTab("fiscal")}
-                  className="font-semibold"
-                >
-                  <ReceiptText className={iconCls} />
-                  <span>Fiscal</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
-
             <SidebarAccordionGroup group={caixaGroup} defaultOpen={false} />
             <SidebarAccordionGroup group={estoque} defaultOpen={false} />
             <SidebarAccordionGroup group={config} defaultOpen={false} />
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+
 
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>

@@ -123,8 +123,6 @@ export type CaixaTab =
   | "mesas"
   | "balcao"
   | "config"
-  | "pagamento"
-  | "fiscal"
   | "fiado"
   | "clientes";
 
@@ -133,8 +131,6 @@ export const CAIXA_TAB_FLAG: Record<CaixaTab, PermissionFlag | "master"> = {
   mesas: "acesso_mesas",
   balcao: "acesso_atendimento_balcao",
   config: "master",
-  pagamento: "master",
-  fiscal: "master",
   fiado: "acesso_financeiro",
   clientes: "master",
 };
@@ -146,8 +142,6 @@ export const CAIXA_TAB_ORDER: CaixaTab[] = [
   "balcao",
   "fiado",
   "config",
-  "pagamento",
-  "fiscal",
   "clientes",
 ];
 

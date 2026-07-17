@@ -20,13 +20,11 @@ import {
   X,
   Wallet,
 } from "lucide-react";
-import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 
 import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
 import { CloseCaixaDialog } from "@/components/caixa/CloseCaixaDialog";
 import { PaymentDialog } from "@/components/caixa/PaymentDialog";
 import { ComandaPaymentDialog } from "@/components/caixa/ComandaPaymentDialog";
-import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { NotifyClient } from "@/components/caixa/NotifyClient";
 import { WhatsAppStatusButton } from "@/components/caixa/WhatsAppStatusButton";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
@@ -140,8 +138,6 @@ const CAIXA_TAB_TITLES: Record<CaixaTab, string> = {
   fiado: "Conta Corrente",
   clientes: "Clientes",
   config: "Impressão",
-  pagamento: "Pagamento",
-  fiscal: "Fiscal",
 };
 
 /* ------------------------------------------------------------------ */
@@ -934,8 +930,6 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
         }
       >
         {tab !== "config" &&
-          tab !== "pagamento" &&
-          tab !== "fiscal" &&
           tab !== "fiado" &&
           tab !== "clientes" &&
           tab !== "balcao" &&
@@ -975,8 +969,6 @@ function OperationalPanel({ caixaId, perms }: { caixaId: string; perms: MyPermis
 
         {tab === "balcao" && <BalcaoView />}
         {tab === "config" && <ConfigTab />}
-        {tab === "pagamento" && <PaymentConfigTab />}
-        {tab === "fiscal" && <FiscalConfigTab />}
         {tab === "fiado" && <ContaCorrenteTab mode="caixa" />}
         {tab === "clientes" && <ClientesView canBlock={false} />}
       </ShellBody>
