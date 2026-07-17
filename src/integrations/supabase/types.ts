@@ -395,8 +395,10 @@ export type Database = {
         Row: {
           ambiente: string
           ativo: boolean
+          certificado_a1_nome: string | null
           certificado_a1_path: string | null
           certificado_a1_senha_criptografada: string | null
+          certificado_a1_validade: string | null
           created_at: string
           credenciais: Json
           empresa_id: string
@@ -412,8 +414,10 @@ export type Database = {
         Insert: {
           ambiente?: string
           ativo?: boolean
+          certificado_a1_nome?: string | null
           certificado_a1_path?: string | null
           certificado_a1_senha_criptografada?: string | null
+          certificado_a1_validade?: string | null
           created_at?: string
           credenciais?: Json
           empresa_id: string
@@ -429,8 +433,10 @@ export type Database = {
         Update: {
           ambiente?: string
           ativo?: boolean
+          certificado_a1_nome?: string | null
           certificado_a1_path?: string | null
           certificado_a1_senha_criptografada?: string | null
+          certificado_a1_validade?: string | null
           created_at?: string
           credenciais?: Json
           empresa_id?: string
