@@ -269,7 +269,7 @@ export const updateRelatorioSalvo = createServerFn({ method: "POST" })
     if (data.spec != null) patch.spec = data.spec;
     const { error } = await context.supabase
       .from("relatorios_salvos")
-      .update(patch)
+      .update(patch as any)
       .eq("id", data.id);
     if (error) throw error;
     return { ok: true };
