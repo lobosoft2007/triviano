@@ -39,6 +39,9 @@ export async function listAllEmpresas(): Promise<EmpresaRow[]> {
 
     dominio_customizado: d.dominio_customizado ?? null,
     subdominio: (d as { subdominio?: string | null }).subdominio ?? null,
+    cnpj: d.cnpj ?? "",
+    inscricao_estadual: d.inscricao_estadual ?? "",
+    regime_tributario: d.regime_tributario ?? "simples_nacional",
     cep: d.cep ?? "",
     logradouro: d.logradouro ?? "",
     numero: d.numero ?? "",
