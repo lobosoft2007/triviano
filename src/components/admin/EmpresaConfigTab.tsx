@@ -36,6 +36,7 @@ interface FormState {
   monitor_cozinha: boolean;
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
+  ai_report_model: string;
   markup_ifood_percentual: string;
 }
 
@@ -155,6 +156,7 @@ export function EmpresaConfigTab() {
         monitor_cozinha: form.monitor_cozinha,
         monitor_bar: form.monitor_bar,
         monitor_pizzaria: form.monitor_pizzaria,
+        ai_report_model: form.ai_report_model,
       });
 
       // Markup iFood: persistido em coluna separada (não está no RPC do admin).
