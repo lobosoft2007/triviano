@@ -348,32 +348,35 @@ export function FiscalConfigTab() {
               id="cred-base-url"
               value={form.credenciais.base_url || ""}
               onChange={(e) => updateCredenciais({ base_url: e.target.value })}
-              placeholder="https://api.tecnospeed.com.br"
+              placeholder={form.ambiente === "producao" ? PROD_URL : SANDBOX_URL}
             />
+            <p className="text-xs text-muted-foreground">
+              PlugNotas (Tecnospeed): sandbox {SANDBOX_URL} · produção {PROD_URL}.
+              A URL é ajustada automaticamente ao trocar o ambiente.
+            </p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="cred-api-key">API Key</Label>
+              <Label htmlFor="cred-api-key">API Key (header x-api-key)</Label>
               <Input
                 id="cred-api-key"
                 value={form.credenciais.api_key || ""}
                 onChange={(e) => updateCredenciais({ api_key: e.target.value })}
-                placeholder="••••••••"
+                placeholder="cole aqui a chave do PlugNotas"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cred-bearer">Bearer Token</Label>
+              <Label htmlFor="cred-bearer">Bearer Token (opcional / legado)</Label>
               <Input
                 id="cred-bearer"
                 value={form.credenciais.bearer_token || ""}
                 onChange={(e) => updateCredenciais({ bearer_token: e.target.value })}
-                placeholder="••••••••"
+                placeholder="não usado pelo PlugNotas"
               />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            As credenciais também podem ser configuradas via variáveis de ambiente
-            TECNOSPEED_BASE_URL, TECNOSPEED_API_KEY e TECNOSPEED_BEARER_TOKEN.
+            Alternativa: defina TECNOSPEED_BASE_URL / TECNOSPEED_API_KEY no ambiente do servidor.
           </p>
         </div>
 
