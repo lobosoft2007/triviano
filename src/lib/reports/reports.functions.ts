@@ -10,7 +10,7 @@ import { getDataSource, getField } from "./datasources";
 /* ------------------------------------------------------------------ */
 
 export interface RunReportResult {
-  rows: Record<string, unknown>[];
+  rows: Record<string, any>[];
   totals: Record<string, number>;
   spec: ReportSpec;
 }
@@ -129,7 +129,7 @@ async function runVendas(supabase: SB, spec: ReportSpec) {
   q = applyOrderLimit(q, spec);
   const { data, error } = await q;
   if (error) throw error;
-  return (data ?? []) as Record<string, unknown>[];
+  return ((data ?? []) as unknown) as Record<string, any>[];
 }
 
 async function runProdutos(supabase: SB, spec: ReportSpec) {
@@ -141,7 +141,7 @@ async function runProdutos(supabase: SB, spec: ReportSpec) {
   q = applyOrderLimit(q, spec);
   const { data, error } = await q;
   if (error) throw error;
-  return (data ?? []) as Record<string, unknown>[];
+  return ((data ?? []) as unknown) as Record<string, any>[];
 }
 
 /* ------------------------------------------------------------------ */
