@@ -258,6 +258,7 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     monitor_bar: false,
     monitor_pizzaria: false,
     ai_report_model: "openai/gpt-5.5",
+    markup_ifood_percentual: 0,
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
