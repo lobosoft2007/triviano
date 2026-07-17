@@ -19,6 +19,9 @@ interface FormState {
   nome_fantasia: string;
   taxa_servico_mesa: string;
   taxa_entrega_valor: string;
+  cnpj: string;
+  inscricao_estadual: string;
+  regime_tributario: string;
   cep: string;
   logradouro: string;
   numero: string;
@@ -38,6 +41,9 @@ function empresaToForm(e: EmpresaBranding): FormState {
     nome_fantasia: e.nome_fantasia,
     taxa_servico_mesa: String(e.taxa_servico_mesa).replace(".", ","),
     taxa_entrega_valor: String(e.taxa_entrega_valor).replace(".", ","),
+    cnpj: e.cnpj ?? "",
+    inscricao_estadual: e.inscricao_estadual ?? "",
+    regime_tributario: e.regime_tributario ?? "simples_nacional",
     cep: e.cep,
     logradouro: e.logradouro,
     numero: e.numero,
@@ -116,6 +122,9 @@ export function EmpresaConfigTab() {
         logotipo_url: logoRef,
         taxa_servico_mesa: taxa,
         taxa_entrega_valor: taxaEntrega,
+        cnpj: form.cnpj.trim().replace(/\D/g, ""),
+        inscricao_estadual: form.inscricao_estadual.trim(),
+        regime_tributario: form.regime_tributario,
         cep: form.cep.trim(),
         logradouro: form.logradouro.trim(),
         numero: form.numero.trim(),
@@ -240,6 +249,45 @@ export function EmpresaConfigTab() {
         </div>
       </section>
 
+      {/* Dados fiscais */}
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <h3 className="mb-3 font-display text-sm font-bold">Dados Fiscais</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="cnpj">CNPJ</Label>
+            <Input
+              id="cnpj"
+              value={form.cnpj}
+              onChange={(e) => set("cnpj", e.target.value)}
+              placeholder="00.000.000/0000-00"
+              className="h-11 rounded-xl"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ie">Inscrição Estadual</Label>
+            <Input
+              id="ie"
+              value={form.inscricao_estadual}
+              onChange={(e) => set("inscricao_estadual", e.target.value)}
+              placeholder="ISENTO"
+              className="h-11 rounded-xl"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="regime_tributario">Regime Tributário</Label>
+            <select
+              id="regime_tributario"
+              value={form.regime_tributario}
+              onChange={(e) => set("regime_tributario", e.target.value)}
+              className="h-11 rounded-xl border border-border bg-background px-3 text-sm"
+            >
+              <option value="simples_nacional">Simples Nacional</option>
+              <option value="lucro_presumido">Lucro Presumido</option>
+              <option value="lucro_real">Lucro Real</option>
+            </select>
+          </div>
+        </div>
+      </section>
 
       {/* Cashback */}
       <section className="rounded-2xl border border-border bg-card p-4">

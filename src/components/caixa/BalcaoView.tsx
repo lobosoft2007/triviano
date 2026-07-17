@@ -37,6 +37,7 @@ import {
   type ResolvedSector,
 } from "@/lib/printers";
 import { empresaAdminConfigQueryOptions } from "@/lib/empresa";
+import { emitirNFCePorPedido } from "@/lib/fiscal";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductCustomizer } from "@/components/ProductCustomizer";
 import { usePixPayment } from "@/hooks/usePixPayment";
@@ -644,6 +645,7 @@ export function BalcaoView() {
           lines={lines}
           estimatedTotal={total}
           userId={user?.id ?? ""}
+          empresaId={empresa?.id}
           afterFinalize={afterFinalize}
           onPaid={() => {
             clearCart();
@@ -833,6 +835,7 @@ function BalcaoPaymentDialog({
   lines,
   estimatedTotal,
   userId,
+  empresaId,
   onPaid,
   afterFinalize,
 }: {
@@ -841,6 +844,7 @@ function BalcaoPaymentDialog({
   lines: BalcaoLine[];
   estimatedTotal: number;
   userId: string;
+  empresaId: string | undefined;
   onPaid: () => void;
   /** Runs after settlement (prints senha + production coupons / KDS routing). */
   afterFinalize: (orderId: string) => Promise<void>;
@@ -1030,6 +1034,26 @@ function BalcaoPaymentDialog({
   }
 
   /**
+   * Emite NFC-e de forma não-bloqueante após a finalização do pedido.
+   */
+  async function emitirNFCeBestEffort(orderId: string) {
+    if (!empresaId) return;
+    try {
+      const res = await emitirNFCePorPedido({
+        data: { empresa_id: empresaId, order_id: orderId },
+      });
+      if (res.sucesso && res.status === "autorizada") {
+        toast.success(`NFC-e ${res.chave_acesso?.slice(-8) ?? ""} autorizada.`);
+      } else if (res.mensagem) {
+        toast.warning(`NFC-e: ${res.mensagem}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`NFC-e não emitida: ${msg}`, { duration: 6000 });
+    }
+  }
+
+  /**
    * Records every payment against the order (reconciling any rounding drift so
    * the sum matches the authoritative server total exactly), finalizes the sale
    * and routes the pickup password / production coupons.
@@ -1052,6 +1076,9 @@ function BalcaoPaymentDialog({
       await addPagamento({ orderId, meioId: p.meioId, valor: p.valor });
     }
     await finalizeOrderPaid(orderId);
+
+    // Emissão fiscal assíncrona e não-bloqueante.
+    await emitirNFCeBestEffort(orderId);
 
     await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
     await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });

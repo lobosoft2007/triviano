@@ -75,6 +75,10 @@ export interface Empresa {
   dominio_customizado: string | null;
   /** Tenant subdomain slug registered for this company (multi-tenant guard). */
   subdominio: string | null;
+  /** Dados fiscais da empresa. */
+  cnpj: string;
+  inscricao_estadual: string;
+  regime_tributario: string;
   cep: string;
   logradouro: string;
   numero: string;
@@ -138,6 +142,9 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
 
         dominio_customizado: data.dominio_customizado ?? null,
         subdominio: data.subdominio ?? null,
+        cnpj: "",
+        inscricao_estadual: "",
+        regime_tributario: "simples_nacional",
         cep: "",
         logradouro: "",
         numero: "",
@@ -164,6 +171,9 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
 
         dominio_customizado: null,
         subdominio: null,
+        cnpj: "",
+        inscricao_estadual: "",
+        regime_tributario: "simples_nacional",
         cep: "",
         logradouro: "",
         numero: "",
@@ -218,6 +228,10 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
 
     dominio_customizado: row?.dominio_customizado ?? null,
     subdominio: null,
+    // Fiscal data is not exposed to regular customers.
+    cnpj: "",
+    inscricao_estadual: "",
+    regime_tributario: "simples_nacional",
     // Address & cashback columns are not readable by regular customers.
     cep: "",
     logradouro: "",
@@ -269,6 +283,9 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
 
     dominio_customizado: row?.dominio_customizado ?? null,
     subdominio: null,
+    cnpj: row?.cnpj ?? "",
+    inscricao_estadual: row?.inscricao_estadual ?? "",
+    regime_tributario: row?.regime_tributario ?? "simples_nacional",
     cep: row?.cep ?? "",
     logradouro: row?.logradouro ?? "",
     numero: row?.numero ?? "",
@@ -305,6 +322,9 @@ export interface EmpresaUpdate {
   logotipo_url: string;
   taxa_servico_mesa: number;
   taxa_entrega_valor: number;
+  cnpj: string;
+  inscricao_estadual: string;
+  regime_tributario: string;
   cep: string;
   logradouro: string;
   numero: string;

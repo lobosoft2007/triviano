@@ -1,55 +1,86 @@
+# Plano Fiscal — Motor Abstrato de Emissão e Recepção
 
 ## Objetivo
+Tornar o sistema capaz de emitir NFC-e/NF-e, receber/manifestar NF-es de fornecedores e integrar entrada de estoque, usando um provedor SaaS fiscal agora, mas com arquitetura que permita trocar para ACBr ou solução nativa depois da Reforma Tributária sem refatorar o Caixa/Admin.
 
-Você está certo: impressora térmica moderna já é gerenciada pela fila do SO (Windows/Linux). Basta o navegador mandar o cupom pra impressora correta — a fila entrega, empilha, avisa se acabou o papel, etc. Toda a camada de "impressão direta" (WebUSB / Web Serial / ESC-POS / pareamento Zadig / Elgin Virtual COM) é complexidade desnecessária e é a origem dos "acesso negado" que você viu.
+## Por que não nativo no Worker
+A SEFAZ exige integração com 27 UFs + DF, cada uma com endpoints, schemas e regras próprios. A assinatura XML com certificado A1 depende de bibliotecas criptográficas que não rodam de forma confiável no runtime Cloudflare Worker atual. Além disso, é preciso implementar: contingências (FS-DA, SVC-RS/SP, EPEC), motor tributário (ICMS, CST/CSOSN, PIS/COFINS, IPI, FCP, DIFAL, ICMS-ST), geração de DANFE/DANFCe, manifestação do destinatário e manutenção contínua de schemas. Estimativa realista: 6+ meses de trabalho dedicado.
 
-Este plano remove essa camada e deixa o fluxo com uma única forma de impressão: **`window.print()` roteado por setor**, exatamente como já funciona para os cupons de preparo (cozinha/bar/pizzaria).
+## Arquitetura proposta: motor fiscal interno + adapters
+```text
+Caixa/Admin/Perfil
+        │
+        ▼
+┌───────────────────────┐
+│  Motor Fiscal Interno │  ← domínio próprio: emitirNFCe, emitirNFe,
+│  (server functions)   │    consultarDFe, manifestarNFe, obterDanfe
+└───────────────────────┘
+        │
+        ▼
+┌───────────────────────┐
+│      Adapter Ativo    │  ← configurado por empresa
+│  (SaaS / ACBr / Nativo)│
+└───────────────────────┘
+        │
+        ▼
+      SEFAZ
+```
+- O app chama apenas funções do **motor fiscal interno**.
+- O motor chama o **adapter ativo** da empresa (SaaS hoje, ACBr/nativo amanhã).
+- Cada adapter traduz os dados internos para o formato do provedor e vice-versa.
+- Telas e regras de negócio não conhecem o provedor.
 
-## O que muda para o operador
+## Opções de adapter
 
-- **Cozinha / Bar / Pizzaria:** continua igual — 1 cupom por setor, cada um sai na impressora certa (a "impressora padrão" configurada na fila do SO daquele setor).
-- **Conta da mesa / conferência:** passa a usar o mesmo mecanismo dos setores (diálogo do navegador → fila do SO). No Chrome/Edge dá pra marcar "sempre imprimir sem perguntar" e a experiência fica silenciosa, sem WebUSB.
-- **Cadastro de impressoras (Admin):** mantém nome, cor e vínculo com categoria (para roteamento visual e agrupamento de itens). Deixa de exibir campos irrelevantes para a fila do SO.
+### 1. Provedor SaaS fiscal (Tecnospeed, Focus NFe, PlugNotas, WebmaniaBR)
+- Rápido de implementar, suportado pelo Worker (apenas HTTPS fetch).
+- Custo por nota ou mensalidade fixa.
+- Menor manutenção interna.
+- Ideal para entrar no ar rápido.
 
-## O que remover
+### 2. ACBr próprio + servidor dedicado
+- Open source, sem custo por nota.
+- Requer servidor Windows/Linux com API HTTP própria.
+- Maior controle, mas maior infraestrutura.
 
-1. `src/lib/thermal-printer.ts` — WebUSB / Web Serial / ESC-POS / preferência local (`getThermalPref` / `setThermalPref` / `clearThermalPref` / `isThermalSupported` / `printThermalBytes` / `requestThermalUsb` / `requestThermalSerial` / `buildTestCoupon`).
-2. `src/lib/thermal-receipts.ts` — `buildMesaBillEscPos` (bytes ESC/POS da conta).
-3. `src/routes/_authenticated/caixa.tsx`:
-   - imports de `thermal-printer` e `thermal-receipts`;
-   - passos **3) Impressão direta na térmica** dentro de `printBill` (linhas ~723–759) — deixa só o passo 4 (diálogo do navegador → fila do SO);
-   - componente `ThermalDirectPrintCard` inteiro (linhas ~2176–2423) e sua renderização na aba Config;
-   - toasts / imports órfãos (`Usb`, `Network`, `Check`, `X`, `Printer` — só os que sobrarem sem uso).
+### 3. Nativo no Worker
+- Invável hoje por limitações de runtime.
+- Poderia ser reavaliado no futuro se o runtime suportar crypto PKCS#12.
 
-## O que mantém intacto
+## Por que essa abstração facilita a Reforma Tributária
+- A reforma vai mudar cálculos, campos do XML e possivelmente criar novos documentos.
+- Com adapters, as mudanças ficam isoladas na camada de tradução.
+- Se o provedor SaaS atualizar a API, trocamos só o adapter.
+- Se você decidir ir para ACBr ou nativo, trocamos só o adapter.
+- O Caixa, o Admin e o estoque permanecem inalterados.
 
-- `dispatchPreparation` e `SectorReceipt` (roteamento por setor, 1 cupom por impressora) — é exatamente o modelo "manda pra fila certa" que você quer.
-- `BillReceipt` + `printAndRun` (`window.print`) para a conta da mesa, com QR do MP ou PIX estático embutido — só passa a ser o único caminho.
-- `printers.ts`, `config_impressoras`, `makeSectorResolver`, tags coloridas no /caixa, vínculo categoria→impressora no Admin.
-- `MesasQrTab.tsx` e `BalcaoView.tsx` (já usam `window.print`).
+## Dados que devem ficar no nosso banco (independência do provedor)
+- XML de envio e de autorização.
+- Chave de acesso, número, série, status.
+- PDF/DANFE/DANFCe (ou link + cópia).
+- Eventos: cancelamento, carta de correção, manifestação.
+- Configuração tributária por produto e por empresa.
 
-## Ajustes menores no cadastro de impressoras (Admin)
+## Escopo de documentos
+- **NFC-e**: emissão automática no finalize_order_paid, DANFCe A4/térmica, QR code, contingência.
+- **NF-e**: emissão manual/condicional para CNPJ, devoluções e notas de entrada, DANFE A4.
+- **Manifestação do Destinatário**: polling de NSU, painel de Ciência/Confirmação/Desconhecimento/OPNR, download do XML.
+- **Entrada automática no estoque**: ao confirmar NF de fornecedor, itens entram no estoque com mapeamento produto do fornecedor → insumo/subproduto cadastrado.
 
-O cadastro atual tem campos que só faziam sentido para impressão direta. Manter só o que a fila do SO precisa:
+## Modelo tributário
+- **Simples Nacional**: CSOSN, PIS/COFINS geralmente não destacados.
+- **Lucro Presumido/Real**: CST completo, ICMS, PIS, COFINS, IPI, ICMS-ST quando aplicável.
+- **Multi-tenant**: cada empresa/franquia define regime e regras tributárias nas configurações.
 
-- **Manter:** `nome`, `cor`, `is_default`, `ativo`, vínculo com categorias.
-- **Ocultar da UI (sem migração):** `tipo_conexao`, `endereco_ip`, `porta`, `caminho_usb`. As colunas continuam no banco (para não quebrar tipos), só somem do formulário (`PrinterCard`). O motor de roteamento não usa esses campos.
+## Entregas sugeridas
+1. Criar a camada de motor fiscal interno e a interface de adapter.
+2. Implementar adapter para o provedor SaaS escolhido.
+3. Configuração fiscal por empresa (regime, credenciais do provedor, certificado A1 se necessário).
+4. Emissão de NFC-e no fluxo do Caixa.
+5. Consulta e manifestação de NF-es de entrada.
+6. Entrada automática no estoque a partir da NF confirmada.
+7. Emissão de NF-e avulsa (B2B/devolução).
+8. Documentação para troca futura de adapter.
 
-Nenhuma migração SQL é necessária.
-
-## Documentação curta na UI
-
-Nota discreta no card "Impressoras" do Admin:
-
-> A impressão usa a fila do sistema operacional. Configure cada impressora como padrão na estação correspondente (cozinha, bar, caixa) — o Triviano envia o cupom certo para cada setor automaticamente.
-
-## Arquivos afetados
-
-- **Excluir:** `src/lib/thermal-printer.ts`, `src/lib/thermal-receipts.ts`.
-- **Editar:** `src/routes/_authenticated/caixa.tsx` (remover imports, passo 3 do `printBill`, componente `ThermalDirectPrintCard`, campos ocultos no `PrinterCard`).
-- **Sem alterações:** banco de dados, RLS, motor financeiro, `printers.ts`, `MesasQrTab.tsx`, `BalcaoView.tsx`, `ContaCorrenteTab.tsx`.
-
-## Fora de escopo
-
-- Servidor de impressão local (CUPS/IPP), agentes desktop, drivers customizados, integração com PrintNode/Google Cloud Print. Se um dia precisar de impressão 100% silenciosa multi-estação, isso vira um projeto próprio.
-- Motor financeiro / webhook MP / PIX (protegidos por `mem://constraints/motor-financeiro-protegido`) — não são tocados.
+## Pergunta para prosseguir
+Você confirma o provedor **Tecnospeed** como o adapter inicial, com escopo **NFC-e + manifestação de NF-e de entrada + entrada automática no estoque**, mantendo a arquitetura de adapters para troca futura após a Reforma Tributária?
