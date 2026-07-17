@@ -248,6 +248,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
   { key: "identidade", label: "Identidade Visual", icon: Palette },
   { key: "pagamentos", label: "Pagamentos", icon: CreditCard },
+  { key: "fiscal", label: "Fiscal", icon: ReceiptText },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "conta", label: "Conta Corrente", icon: Wallet },
   { key: "financeiro", label: "Financeiro", icon: TrendingUp },
