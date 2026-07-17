@@ -364,12 +364,16 @@ export interface RelOption {
   id?: string;
   tamanho: string;
   preco: number;
+  /** Preço praticado no iFood (null/0 = usa preco interno). */
+  preco_ifood?: number | null;
   /** Ficha técnica específica desta variação (opcional). */
   ficha?: FichaLine[];
 }
 export interface RelAddon {
   nome: string;
   preco: number;
+  /** Preço iFood do adicional (null/0 = usa preco interno). */
+  preco_ifood?: number | null;
 }
 
 export interface FichaLine {
@@ -393,6 +397,8 @@ export interface ProductDetail {
   margem_revenda: number;
   /** Purchase/acquisition cost for revenda (non-manipulado) items. */
   custo_compra: number;
+  /** Preço iFood do produto (null/0 = usa price interno). */
+  preco_ifood: number | null;
   price_options: RelOption[];
   addons: RelAddon[];
   free_addons: RelAddon[];
