@@ -30,6 +30,7 @@ import {
   Armchair,
   Clock,
   Bike,
+  FileBarChart,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
@@ -78,7 +79,8 @@ export type AdminTab =
   | "permissoes"
   | "mesas"
   | "entregadores"
-  | "ifood";
+  | "ifood"
+  | "rel-clientes";
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -311,6 +313,18 @@ export function AdminSidebar({ activeTab, isSuperAdmin, tabAllowed, onSelectTab,
       children: [
         { key: "entregadores", label: "Entregadores", icon: <Bike className={iconCls} /> },
         { key: "ifood", label: "iFood", icon: <UtensilsCrossed className={iconCls} /> },
+      ],
+    },
+    {
+      id: "relatorios",
+      label: "Relatórios",
+      icon: <FileBarChart className={iconCls} />,
+      children: [
+        {
+          key: "rel-clientes",
+          label: "Clientes cadastrados",
+          icon: <Users className={iconCls} />,
+        },
       ],
     },
   ];
