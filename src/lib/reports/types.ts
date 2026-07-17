@@ -51,6 +51,8 @@ export function loadPrefs(slug: string, defaults: ReportPrefs): ReportPrefs {
       visible: Array.isArray(parsed.visible) ? parsed.visible : defaults.visible,
       fontFamily: parsed.fontFamily || defaults.fontFamily,
       fontSize: Number(parsed.fontSize) || defaults.fontSize,
+      orientation:
+        parsed.orientation === "landscape" ? "landscape" : defaults.orientation,
     };
   } catch {
     return defaults;
