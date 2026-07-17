@@ -225,6 +225,7 @@ type AdminTab =
   | "empresa"
   | "identidade"
   | "pagamentos"
+  | "fiscal"
   | "clientes"
   | "conta"
   | "financeiro"
