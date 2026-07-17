@@ -322,6 +322,9 @@ export interface EmpresaUpdate {
   logotipo_url: string;
   taxa_servico_mesa: number;
   taxa_entrega_valor: number;
+  cnpj: string;
+  inscricao_estadual: string;
+  regime_tributario: string;
   cep: string;
   logradouro: string;
   numero: string;
