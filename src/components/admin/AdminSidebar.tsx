@@ -80,7 +80,8 @@ export type AdminTab =
   | "mesas"
   | "entregadores"
   | "ifood"
-  | "rel-clientes";
+  | "rel-clientes"
+  | "rel-chat";
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -320,6 +321,11 @@ export function AdminSidebar({ activeTab, isSuperAdmin, tabAllowed, onSelectTab,
       label: "Relatórios",
       icon: <FileBarChart className={iconCls} />,
       children: [
+        {
+          key: "rel-chat",
+          label: "Assistente IA (Novo relatório)",
+          icon: <FileBarChart className={iconCls} />,
+        },
         {
           key: "rel-clientes",
           label: "Clientes cadastrados",
