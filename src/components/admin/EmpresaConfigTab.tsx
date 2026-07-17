@@ -249,6 +249,45 @@ export function EmpresaConfigTab() {
         </div>
       </section>
 
+      {/* Dados fiscais */}
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <h3 className="mb-3 font-display text-sm font-bold">Dados Fiscais</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="cnpj">CNPJ</Label>
+            <Input
+              id="cnpj"
+              value={form.cnpj}
+              onChange={(e) => set("cnpj", e.target.value)}
+              placeholder="00.000.000/0000-00"
+              className="h-11 rounded-xl"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ie">Inscrição Estadual</Label>
+            <Input
+              id="ie"
+              value={form.inscricao_estadual}
+              onChange={(e) => set("inscricao_estadual", e.target.value)}
+              placeholder="ISENTO"
+              className="h-11 rounded-xl"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="regime_tributario">Regime Tributário</Label>
+            <select
+              id="regime_tributario"
+              value={form.regime_tributario}
+              onChange={(e) => set("regime_tributario", e.target.value)}
+              className="h-11 rounded-xl border border-border bg-background px-3 text-sm"
+            >
+              <option value="simples_nacional">Simples Nacional</option>
+              <option value="lucro_presumido">Lucro Presumido</option>
+              <option value="lucro_real">Lucro Real</option>
+            </select>
+          </div>
+        </div>
+      </section>
 
       {/* Cashback */}
       <section className="rounded-2xl border border-border bg-card p-4">
