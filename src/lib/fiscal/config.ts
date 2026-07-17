@@ -92,8 +92,13 @@ export async function fetchFiscalConfig(): Promise<FiscalConfig> {
 }
 
 export async function saveFiscalConfig(input: FiscalConfig): Promise<void> {
+  const empresaId = input.empresa_id || (await currentEmpresaId());
+  if (!empresaId) {
+    throw new Error("Empresa não identificada para salvar configuração fiscal.");
+  }
+
   const payload = {
-    empresa_id: input.empresa_id,
+    empresa_id: empresaId,
     provider: input.provider,
     ambiente: input.ambiente,
     regime_tributario: input.regime_tributario,
@@ -103,6 +108,8 @@ export async function saveFiscalConfig(input: FiscalConfig): Promise<void> {
     numero_nfe_proximo: input.numero_nfe_proximo,
     credenciais: input.credenciais,
     certificado_a1_path: input.certificado_a1_path || null,
+    certificado_a1_nome: input.certificado_a1_nome || null,
+    certificado_a1_validade: input.certificado_a1_validade || null,
     certificado_a1_senha_criptografada: encodeSenha(input.certificado_a1_senha),
     ativo: input.ativo,
   };
