@@ -391,6 +391,75 @@ export type Database = {
           },
         ]
       }
+      config_fiscal: {
+        Row: {
+          ambiente: string
+          ativo: boolean
+          certificado_a1_path: string | null
+          certificado_a1_senha_criptografada: string | null
+          created_at: string
+          credenciais: Json
+          empresa_id: string
+          id: string
+          numero_nfce_proximo: number
+          numero_nfe_proximo: number
+          provider: string
+          regime_tributario: string
+          serie_nfce: string
+          serie_nfe: string
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string
+          ativo?: boolean
+          certificado_a1_path?: string | null
+          certificado_a1_senha_criptografada?: string | null
+          created_at?: string
+          credenciais?: Json
+          empresa_id: string
+          id?: string
+          numero_nfce_proximo?: number
+          numero_nfe_proximo?: number
+          provider?: string
+          regime_tributario?: string
+          serie_nfce?: string
+          serie_nfe?: string
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string
+          ativo?: boolean
+          certificado_a1_path?: string | null
+          certificado_a1_senha_criptografada?: string | null
+          created_at?: string
+          credenciais?: Json
+          empresa_id?: string
+          id?: string
+          numero_nfce_proximo?: number
+          numero_nfe_proximo?: number
+          provider?: string
+          regime_tributario?: string
+          serie_nfce?: string
+          serie_nfe?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_fiscal_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "config_fiscal_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       config_impressoras: {
         Row: {
           ativo: boolean
@@ -741,6 +810,7 @@ export type Database = {
           cashback_ativo: boolean
           cep: string
           cidade: string
+          cnpj: string
           complemento: string
           cor_primaria: string
           cor_secundaria: string
@@ -749,6 +819,7 @@ export type Database = {
           estado: string
           geofence_raio_m: number
           id: string
+          inscricao_estadual: string
           latitude: number | null
           logotipo_url: string
           logradouro: string
@@ -762,6 +833,7 @@ export type Database = {
           nome_fantasia: string
           numero: string
           percentual_cashback: number
+          regime_tributario: string
           subdominio: string | null
           taxa_entrega_valor: number
           taxa_servico_mesa: number
@@ -773,6 +845,7 @@ export type Database = {
           cashback_ativo?: boolean
           cep?: string
           cidade?: string
+          cnpj?: string
           complemento?: string
           cor_primaria?: string
           cor_secundaria?: string
@@ -781,6 +854,7 @@ export type Database = {
           estado?: string
           geofence_raio_m?: number
           id?: string
+          inscricao_estadual?: string
           latitude?: number | null
           logotipo_url?: string
           logradouro?: string
@@ -794,6 +868,7 @@ export type Database = {
           nome_fantasia?: string
           numero?: string
           percentual_cashback?: number
+          regime_tributario?: string
           subdominio?: string | null
           taxa_entrega_valor?: number
           taxa_servico_mesa?: number
@@ -805,6 +880,7 @@ export type Database = {
           cashback_ativo?: boolean
           cep?: string
           cidade?: string
+          cnpj?: string
           complemento?: string
           cor_primaria?: string
           cor_secundaria?: string
@@ -813,6 +889,7 @@ export type Database = {
           estado?: string
           geofence_raio_m?: number
           id?: string
+          inscricao_estadual?: string
           latitude?: number | null
           logotipo_url?: string
           logradouro?: string
@@ -826,6 +903,7 @@ export type Database = {
           nome_fantasia?: string
           numero?: string
           percentual_cashback?: number
+          regime_tributario?: string
           subdominio?: string | null
           taxa_entrega_valor?: number
           taxa_servico_mesa?: number
@@ -1595,6 +1673,72 @@ export type Database = {
           },
         ]
       }
+      manifestacoes_destinatario: {
+        Row: {
+          chave_acesso: string
+          cnpj_emitente: string | null
+          created_at: string
+          data_emissao: string | null
+          data_manifestacao: string | null
+          empresa_id: string
+          id: string
+          nome_emitente: string | null
+          nsu: string | null
+          status: string
+          tipo_evento: string | null
+          updated_at: string
+          valor: number | null
+          xml_path: string | null
+        }
+        Insert: {
+          chave_acesso: string
+          cnpj_emitente?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          data_manifestacao?: string | null
+          empresa_id: string
+          id?: string
+          nome_emitente?: string | null
+          nsu?: string | null
+          status?: string
+          tipo_evento?: string | null
+          updated_at?: string
+          valor?: number | null
+          xml_path?: string | null
+        }
+        Update: {
+          chave_acesso?: string
+          cnpj_emitente?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          data_manifestacao?: string | null
+          empresa_id?: string
+          id?: string
+          nome_emitente?: string | null
+          nsu?: string | null
+          status?: string
+          tipo_evento?: string | null
+          updated_at?: string
+          valor?: number | null
+          xml_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manifestacoes_destinatario_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manifestacoes_destinatario_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meios_pagamento: {
         Row: {
           ativo: boolean
@@ -1717,6 +1861,157 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      notas_fiscais: {
+        Row: {
+          ambiente: string
+          chave_acesso: string | null
+          created_at: string
+          data_emissao: string | null
+          empresa_id: string
+          id: string
+          mensagem_retorno: string | null
+          numero: string | null
+          pdf_path: string | null
+          pdf_url: string | null
+          pedido_id: string | null
+          protocolo: string | null
+          serie: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          valor_total: number
+          xml_autorizacao: string | null
+          xml_envio: string | null
+        }
+        Insert: {
+          ambiente?: string
+          chave_acesso?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          empresa_id: string
+          id?: string
+          mensagem_retorno?: string | null
+          numero?: string | null
+          pdf_path?: string | null
+          pdf_url?: string | null
+          pedido_id?: string | null
+          protocolo?: string | null
+          serie?: string | null
+          status?: string
+          tipo: string
+          updated_at?: string
+          valor_total?: number
+          xml_autorizacao?: string | null
+          xml_envio?: string | null
+        }
+        Update: {
+          ambiente?: string
+          chave_acesso?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          empresa_id?: string
+          id?: string
+          mensagem_retorno?: string | null
+          numero?: string | null
+          pdf_path?: string | null
+          pdf_url?: string | null
+          pedido_id?: string | null
+          protocolo?: string | null
+          serie?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor_total?: number
+          xml_autorizacao?: string | null
+          xml_envio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_fiscais_itens: {
+        Row: {
+          cfop: string | null
+          created_at: string
+          csosn: string | null
+          cst_icms: string | null
+          descricao: string
+          id: string
+          ncm: string | null
+          nota_fiscal_id: string
+          origem_icms: string | null
+          produto_id: string | null
+          quantidade: number
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          cfop?: string | null
+          created_at?: string
+          csosn?: string | null
+          cst_icms?: string | null
+          descricao: string
+          id?: string
+          ncm?: string | null
+          nota_fiscal_id: string
+          origem_icms?: string | null
+          produto_id?: string | null
+          quantidade?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Update: {
+          cfop?: string | null
+          created_at?: string
+          csosn?: string | null
+          cst_icms?: string | null
+          descricao?: string
+          id?: string
+          ncm?: string | null
+          nota_fiscal_id?: string
+          origem_icms?: string | null
+          produto_id?: string | null
+          quantidade?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_itens_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notificacoes_cliente: {
         Row: {
@@ -2100,12 +2395,16 @@ export type Database = {
         Row: {
           available: boolean
           category_id: string
+          cfop: string | null
           created_at: string
+          csosn: string | null
+          cst_icms: string | null
           custo_anterior: number | null
           custo_anterior_at: string | null
           custo_compra: number
           custo_total: number | null
           description: string
+          ean: string | null
           eixo_variacao: string
           empresa_id: string
           estoque_maximo: number
@@ -2117,6 +2416,8 @@ export type Database = {
           manipulado: boolean
           margem_revenda: number
           name: string
+          ncm: string | null
+          origem_icms: string | null
           preco_ideal_revenda: number | null
           price: number
           saldo_estoque: number
@@ -2126,12 +2427,16 @@ export type Database = {
         Insert: {
           available?: boolean
           category_id: string
+          cfop?: string | null
           created_at?: string
+          csosn?: string | null
+          cst_icms?: string | null
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           custo_compra?: number
           custo_total?: number | null
           description?: string
+          ean?: string | null
           eixo_variacao?: string
           empresa_id?: string
           estoque_maximo?: number
@@ -2143,6 +2448,8 @@ export type Database = {
           manipulado?: boolean
           margem_revenda?: number
           name: string
+          ncm?: string | null
+          origem_icms?: string | null
           preco_ideal_revenda?: number | null
           price: number
           saldo_estoque?: number
@@ -2152,12 +2459,16 @@ export type Database = {
         Update: {
           available?: boolean
           category_id?: string
+          cfop?: string | null
           created_at?: string
+          csosn?: string | null
+          cst_icms?: string | null
           custo_anterior?: number | null
           custo_anterior_at?: string | null
           custo_compra?: number
           custo_total?: number | null
           description?: string
+          ean?: string | null
           eixo_variacao?: string
           empresa_id?: string
           estoque_maximo?: number
@@ -2169,6 +2480,8 @@ export type Database = {
           manipulado?: boolean
           margem_revenda?: number
           name?: string
+          ncm?: string | null
+          origem_icms?: string | null
           preco_ideal_revenda?: number | null
           price?: number
           saldo_estoque?: number
@@ -2260,6 +2573,77 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos_fornecedor: {
+        Row: {
+          ativo: boolean
+          codigo_fornecedor: string | null
+          created_at: string
+          descricao_fornecedor: string | null
+          fator_conversao: number
+          fornecedor_id: string
+          id: string
+          insumo_id: string | null
+          produto_id: string | null
+          subproduto_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_fornecedor?: string | null
+          created_at?: string
+          descricao_fornecedor?: string | null
+          fator_conversao?: number
+          fornecedor_id: string
+          id?: string
+          insumo_id?: string | null
+          produto_id?: string | null
+          subproduto_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo_fornecedor?: string | null
+          created_at?: string
+          descricao_fornecedor?: string | null
+          fator_conversao?: number
+          fornecedor_id?: string
+          id?: string
+          insumo_id?: string | null
+          produto_id?: string | null
+          subproduto_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_fornecedor_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_fornecedor_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_fornecedor_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_fornecedor_subproduto_id_fkey"
+            columns: ["subproduto_id"]
+            isOneToOne: false
+            referencedRelation: "subprodutos"
             referencedColumns: ["id"]
           },
         ]
