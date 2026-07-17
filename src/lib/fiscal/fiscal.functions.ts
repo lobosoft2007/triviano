@@ -88,3 +88,47 @@ export const manifestarNFe = createServerFn({ method: "POST" })
       data.justificativa,
     );
   });
+
+async function ensureAdmin(context: { supabase: any; userId: string }) {
+  const { data: isAdmin } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (!isAdmin) throw new Error("Acesso restrito a administradores.");
+}
+
+export const pingProvedorFiscal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { empresa_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { pingProvedor } = await import("@/lib/fiscal/engine");
+    return pingProvedor(data.empresa_id);
+  });
+
+export const sincronizarEmpresaFiscal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { empresa_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { sincronizarEmpresaFiscal: run } = await import("@/lib/fiscal/engine");
+    return run(data.empresa_id);
+  });
+
+export const sincronizarCertificadoFiscal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { empresa_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { sincronizarCertificadoFiscal: run } = await import("@/lib/fiscal/engine");
+    return run(data.empresa_id);
+  });
+
+export const emitirNFCeTeste = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { empresa_id: string }) => input)
+  .handler(async ({ data, context }): Promise<RespostaEmissao> => {
+    await ensureAdmin(context);
+    const { emitirNFCeTeste: run } = await import("@/lib/fiscal/engine");
+    return run(data.empresa_id);
+  });

@@ -1,37 +1,68 @@
-## Problema
 
-A aba **Admin → Empresa → Configurações** fica em spinner infinito porque o componente `EmpresaConfigTab` depende de DUAS queries em paralelo, e só monta o formulário quando ambas resolvem:
+# Sandbox Tecnospeed / PlugNotas — o que falta
 
-1. `empresaAdminConfigQueryOptions` → RPC `admin_get_empresa_config` (OK, já traz tudo com role check)
-2. `empresa-markup-ifood` → SELECT direto em `public.empresas` pedindo `markup_ifood_percentual`
+Hoje o adapter `TecnospeedAdapter` é um esqueleto: ele chama endpoints inventados (`POST /nfce`, `POST /nfe`, `GET /dfe`, `POST /manifestacao`) com um payload genérico. O PlugNotas usa endpoints e um schema JSON completamente diferentes, e exige que o certificado A1 esteja **cadastrado na conta deles**, não só no nosso bucket. Enviar como está hoje = 100% de erro de sandbox.
 
-O guard é:
-```ts
-if (empresa && !form && markupData !== undefined) setForm(...)
-```
-e o render é `if (isLoading || !form) return <Spinner/>`.
+O plano abaixo deixa o sandbox operacional sem tocar em nada de venda/caixa.
 
-Se a query 2 falhar ou ficar pendente (bloqueio de RLS/coluna via PostgREST, retry silencioso), `markupData` nunca sai de `undefined` → o `setForm` nunca roda → **spinner eterno, sem mensagem de erro**. É o mesmo padrão de bug que já corrigimos antes para a query principal, mas essa segunda query ficou de fora.
+## Escopo
 
-## Correção
+1. **Reescrever o adapter para o PlugNotas real**
+   - `base_url` sandbox: `https://api.sandbox.plugnotas.com.br`; produção: `https://api.plugnotas.com.br`. A UI já tem esse campo; só vou colocar defaults corretos por ambiente.
+   - Autenticação por header `x-api-key` (PlugNotas não usa Bearer). Manter `bearer_token` no schema por retrocompatibilidade, mas priorizar `api_key`.
+   - Endpoints reais:
+     - NFC-e: `POST /nfce`, consulta `GET /nfce/consultar/{id}`, PDF `GET /nfce/pdf/{chave}`, XML `GET /nfce/xml/{chave}`, cancelamento `POST /nfce/cancelamento`.
+     - NF-e: `POST /nfe`, mesmos padrões de consulta/PDF/XML/cancelamento.
+     - MDe (documentos destinados): `GET /nfe/mde` com `cnpj` + `nsu`.
+     - Manifestação: `POST /nfe/manifestacao`.
+     - Certificado: `POST /certificado` (multipart, `.pfx` + senha + CNPJ) e `GET /certificado/{cnpj}`.
+     - Empresa/emitente: `POST /empresa` no primeiro save (o PlugNotas guarda os dados do emitente pelo CNPJ; requisições de emissão passam a referenciar só o CNPJ).
+   - Payload de emissão no schema real do PlugNotas (`idIntegracao`, `natureza`, `serie`, `numero`, `presenca`, `pagamento[]`, `produto[]` com `item.codigo/descricao/ncm/cest/cfop/unidade/quantidade/valorUnitario/valorTotal`, `imposto.icms{origem,csosn|cst}`, etc.). Mapear a partir do que o `engine.ts` já monta.
 
-Consolidar tudo em uma única fonte de dados (a RPC), que já é role-guarded e imune ao problema:
+2. **Upload automático do certificado para o PlugNotas**
+   - Novo server fn `uploadCertificadoFiscal({ empresa_id })`: baixa o `.pfx` do bucket `certificados-fiscais` (via `supabaseAdmin`), lê a senha de `config_fiscal.certificado_a1_senha_criptografada`, envia multipart para `POST /certificado` do PlugNotas com o CNPJ da empresa, e grava `config_fiscal.certificado_provider_id` + `certificado_sincronizado_em`.
+   - Migration: adicionar essas duas colunas em `config_fiscal` (sem mexer em nada existente).
+   - Botão “Sincronizar certificado com o provedor” na aba Fiscal do Admin. Salvamento do certificado passa a **sugerir** sincronizar. Só admin da empresa executa.
+   - Igual sincroniza `POST /empresa` com dados do emitente (CNPJ, IE, endereço, regime) para não precisar mandar tudo em cada NFC-e.
 
-1. **Migração SQL** — atualizar `public.admin_get_empresa_config()` para incluir `markup_ifood_percentual numeric` no retorno (adicionar à assinatura `RETURNS TABLE(...)` e ao `SELECT`). Nada mais muda no SQL — mantém `SECURITY DEFINER`, mesmo role check, mesmo GRANT.
+3. **Painel de sandbox / diagnóstico**
+   - Novo card “Testes de Sandbox” em Admin → Fiscal, só visível quando `ambiente = homologacao`:
+     - Botão **Ping**: chama `GET /status` do PlugNotas via server fn, mostra status HTTP + tempo.
+     - Botão **Emitir NFC-e de teste**: cria em memória (não persiste em `orders`) um pedido fictício de R$ 0,01 com um item “PRODUTO TESTE HOMOLOGACAO” e roda a mesma pipeline; mostra chave, protocolo, link do PDF e link do XML retornados. Grava o resultado em `notas_fiscais` marcando `ambiente='homologacao'` para o log ficar rastreável.
+     - Botão **Consultar última**: recupera status pela chave.
+   - Zero risco de contaminar a numeração de produção: em `homologacao` a numeração é isolada (já é hoje pelos campos `numero_nfce_proximo`; nada muda).
 
-2. **`src/lib/empresa.ts`** — adicionar `markup_ifood_percentual: number` na interface `Empresa`, mapear no `fetchEmpresaAdminConfig` (`Number(row?.markup_ifood_percentual ?? 0)`) e nos demais mappers/fallbacks já existentes (`fetchActiveEmpresa`, `fetchEmpresaConfig` com default 0).
+4. **Erros e logs**
+   - Padronizar retorno de erro: quando o PlugNotas devolver `{ error: [{ mensagem, campo }] }` (é o formato deles), concatenar em `RespostaEmissao.mensagem` e logar `console.error("[plugnotas]", status, body)` no server para aparecer em `server-function-logs`.
+   - Nunca retornar a chave da API na resposta.
 
-3. **`src/lib/superadmin.ts`** — incluir `markup_ifood_percentual: 0` no mapeamento (já tem defaults para monitores).
+5. **Documentação curta na tela**
+   - Texto na aba Fiscal indicando: (a) URL sandbox × produção; (b) que o header é `x-api-key`; (c) checklist de sandbox (empresa sincronizada ✓, certificado sincronizado ✓, ambiente = homologação ✓, ping ✓, NFC-e teste autorizada ✓).
 
-4. **`src/components/admin/EmpresaConfigTab.tsx`**:
-   - Remover o `useQuery(["empresa-markup-ifood", ...])` e o parâmetro `markupData` do `useEffect`.
-   - Ler `empresa.markup_ifood_percentual` direto ao montar o form.
-   - Manter o `UPDATE` direto em `empresas` no `handleSave` e no `handleApplyMarkup` (writes já funcionam — o que falha é o SELECT direto).
-   - Remover a invalidação da queryKey obsoleta.
+## O que **não** entra nesse plano
 
-## Resultado
+- Cancelamento e carta de correção pela UI (fica para o próximo ciclo — o adapter já vai expor os métodos).
+- Impressão do DANFE simplificado direto no cupom do Caixa (hoje já abre PDF em nova aba; suficiente para o sandbox).
+- Job automático de polling de MDe (por enquanto continua manual via botão “Consultar DF-e” já existente).
+- Troca de provedor (ACBr/Nativo): a arquitetura de adapters já isola isso; nada muda.
 
-- Uma única RPC alimenta o formulário → não há mais race condition entre queries.
-- A tela deixa de travar em branco para qualquer papel (admin, super_admin, master).
-- Se por acaso a RPC ainda falhar (ex.: usuário sem role), o `error` já é tratado e exibe a caixa vermelha "Não foi possível carregar…" que adicionamos no turno anterior.
-- Zero mudança em regras de negócio, RLS, ou motor financeiro.
+## Detalhes técnicos
+
+- Arquivos alterados:
+  - `src/lib/fiscal/adapters/tecnospeed.ts` → reescrito para PlugNotas (mantém o nome de classe para não quebrar `getAdapter`; opcionalmente renomear para `PlugNotasAdapter` e apontar o case `"tecnospeed"` para ele).
+  - `src/lib/fiscal/engine.ts` → adicionar `sincronizarEmitente()` e `sincronizarCertificado()`; ajustar mapeamento de item para incluir `unidade`, `cest`, `pagamento[]` (a partir de `pagamentos_pedido`).
+  - `src/lib/fiscal/fiscal.functions.ts` → novos server fns `pingProvedorFiscal`, `emitirNfceTeste`, `sincronizarCertificadoFiscal`, `sincronizarEmpresaFiscal` (todos com `requireSupabaseAuth` + checagem `has_role admin`).
+  - `src/components/caixa/FiscalConfigTab.tsx` (usado hoje no Admin) → seção “Testes de Sandbox” + botões de sincronização + defaults de URL por ambiente.
+  - `src/integrations/supabase/client.server.ts` já existe; usado dentro dos handlers para baixar o `.pfx`.
+- Migration SQL:
+  - `alter table public.config_fiscal add column certificado_provider_id text, add column certificado_sincronizado_em timestamptz, add column emitente_sincronizado_em timestamptz;`
+  - Nenhuma mudança de RLS/GRANT (colunas herdam as políticas existentes de `config_fiscal`, já restritas por `can_manage_empresa`).
+- Segredos: nenhum novo. A chave do PlugNotas continua sendo digitada em Admin → Fiscal (`config_fiscal.credenciais.api_key`) — cada empresa tem a própria (multi-tenant). Nada vai para `.env`.
+- Testes manuais que farei ao final:
+  1. `pingProvedorFiscal` → 200 em sandbox.
+  2. Sincronizar empresa → 200/201.
+  3. Sincronizar certificado A1 → 200 + `certificado_provider_id` gravado.
+  4. Emitir NFC-e de teste → status `autorizada`, chave + PDF acessível.
+  5. Consultar por chave → mesmo status.
+
+Ao aprovar, executo em uma migration + uma rodada de edits e te devolvo pronto para colar a `api_key` do sandbox e clicar em “Emitir NFC-e de teste”.

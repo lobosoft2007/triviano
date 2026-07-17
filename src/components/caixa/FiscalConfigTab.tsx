@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Loader2,
   Save,
@@ -9,6 +10,10 @@ import {
   FlaskConical,
   Rocket,
   AlertTriangle,
+  PlugZap,
+  Building2,
+  KeyRound,
+  Beaker,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -18,10 +23,19 @@ import {
 } from "@/lib/fiscal/config";
 import { uploadCertificate } from "@/lib/storage";
 import { ManifestacaoView } from "@/components/caixa/ManifestacaoView";
+import {
+  pingProvedorFiscal,
+  sincronizarEmpresaFiscal,
+  sincronizarCertificadoFiscal,
+  emitirNFCeTeste,
+} from "@/lib/fiscal/fiscal.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+
+const SANDBOX_URL = "https://api.sandbox.plugnotas.com.br";
+const PROD_URL = "https://api.plugnotas.com.br";
 
 
 const PROVIDERS = [
@@ -46,11 +60,60 @@ export function FiscalConfigTab() {
   const [form, setForm] = useState<FiscalConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [busy, setBusy] = useState<null | "ping" | "empresa" | "cert" | "teste">(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const pingFn = useServerFn(pingProvedorFiscal);
+  const syncEmpresaFn = useServerFn(sincronizarEmpresaFiscal);
+  const syncCertFn = useServerFn(sincronizarCertificadoFiscal);
+  const testeFn = useServerFn(emitirNFCeTeste);
 
   useEffect(() => {
     if (data) setForm(data);
   }, [data]);
+
+  function setAmbiente(v: "homologacao" | "producao") {
+    if (!form) return;
+    const currentUrl = form.credenciais.base_url || "";
+    const isDefaultUrl =
+      !currentUrl || currentUrl === SANDBOX_URL || currentUrl === PROD_URL;
+    setForm({
+      ...form,
+      ambiente: v,
+      credenciais: {
+        ...form.credenciais,
+        base_url: isDefaultUrl
+          ? v === "producao"
+            ? PROD_URL
+            : SANDBOX_URL
+          : currentUrl,
+      },
+    });
+  }
+
+  async function runAction(
+    key: "ping" | "empresa" | "cert" | "teste",
+    fn: () => Promise<unknown>,
+    successMsg: (r: any) => string,
+  ) {
+    if (!form?.empresa_id) return;
+    setBusy(key);
+    try {
+      const r: any = await fn();
+      if (r && r.sucesso === false) {
+        toast.error(r.mensagem || "Falha na operação.");
+      } else if (r && r.ok === false) {
+        toast.error(`Provedor respondeu HTTP ${r.status}.`);
+      } else {
+        toast.success(successMsg(r));
+      }
+      await queryClient.invalidateQueries({ queryKey: ["fiscal-config"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro inesperado.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -186,7 +249,7 @@ export function FiscalConfigTab() {
               <button
                 key={opt.v}
                 onClick={() =>
-                  setForm({ ...form, ambiente: opt.v as "homologacao" | "producao" })
+                  setAmbiente(opt.v as "homologacao" | "producao")
                 }
                 className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
                   form.ambiente === opt.v
@@ -285,32 +348,35 @@ export function FiscalConfigTab() {
               id="cred-base-url"
               value={form.credenciais.base_url || ""}
               onChange={(e) => updateCredenciais({ base_url: e.target.value })}
-              placeholder="https://api.tecnospeed.com.br"
+              placeholder={form.ambiente === "producao" ? PROD_URL : SANDBOX_URL}
             />
+            <p className="text-xs text-muted-foreground">
+              PlugNotas (Tecnospeed): sandbox {SANDBOX_URL} · produção {PROD_URL}.
+              A URL é ajustada automaticamente ao trocar o ambiente.
+            </p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="cred-api-key">API Key</Label>
+              <Label htmlFor="cred-api-key">API Key (header x-api-key)</Label>
               <Input
                 id="cred-api-key"
                 value={form.credenciais.api_key || ""}
                 onChange={(e) => updateCredenciais({ api_key: e.target.value })}
-                placeholder="••••••••"
+                placeholder="cole aqui a chave do PlugNotas"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cred-bearer">Bearer Token</Label>
+              <Label htmlFor="cred-bearer">Bearer Token (opcional / legado)</Label>
               <Input
                 id="cred-bearer"
                 value={form.credenciais.bearer_token || ""}
                 onChange={(e) => updateCredenciais({ bearer_token: e.target.value })}
-                placeholder="••••••••"
+                placeholder="não usado pelo PlugNotas"
               />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            As credenciais também podem ser configuradas via variáveis de ambiente
-            TECNOSPEED_BASE_URL, TECNOSPEED_API_KEY e TECNOSPEED_BEARER_TOKEN.
+            Alternativa: defina TECNOSPEED_BASE_URL / TECNOSPEED_API_KEY no ambiente do servidor.
           </p>
         </div>
 
@@ -396,6 +462,102 @@ export function FiscalConfigTab() {
           Salvar configuração fiscal
         </Button>
       </div>
+
+      {form.ambiente === "homologacao" && form.provider === "tecnospeed" && (
+        <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Beaker className="h-5 w-5 text-primary" />
+            <h3 className="font-display text-base font-bold">
+              Sandbox PlugNotas — checklist de homologação
+            </h3>
+          </div>
+          <ol className="mb-4 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+            <li>Salve a configuração com API Key do sandbox e certificado A1 + senha.</li>
+            <li>Clique em <b>Ping</b> para verificar conectividade.</li>
+            <li>Clique em <b>Sincronizar empresa</b> para cadastrar o emitente no PlugNotas.</li>
+            <li>Clique em <b>Sincronizar certificado</b> para enviar o .pfx ao provedor.</li>
+            <li>Clique em <b>Emitir NFC-e de teste</b> (R$ 0,01) e valide status "autorizada".</li>
+          </ol>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button
+              variant="outline"
+              disabled={busy !== null || !form.empresa_id}
+              onClick={() =>
+                runAction("ping", () => pingFn({ data: { empresa_id: form.empresa_id! } }), (r) =>
+                  `Ping OK · HTTP ${r.status} · ${r.latency_ms}ms`,
+                )
+              }
+            >
+              {busy === "ping" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <PlugZap className="mr-2 h-4 w-4" />
+              )}
+              Ping provedor
+            </Button>
+            <Button
+              variant="outline"
+              disabled={busy !== null || !form.empresa_id}
+              onClick={() =>
+                runAction(
+                  "empresa",
+                  () => syncEmpresaFn({ data: { empresa_id: form.empresa_id! } }),
+                  () => "Empresa sincronizada com o provedor.",
+                )
+              }
+            >
+              {busy === "empresa" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Building2 className="mr-2 h-4 w-4" />
+              )}
+              Sincronizar empresa
+            </Button>
+            <Button
+              variant="outline"
+              disabled={busy !== null || !form.empresa_id || !form.certificado_a1_path}
+              onClick={() =>
+                runAction(
+                  "cert",
+                  () => syncCertFn({ data: { empresa_id: form.empresa_id! } }),
+                  () => "Certificado A1 enviado ao provedor.",
+                )
+              }
+            >
+              {busy === "cert" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="mr-2 h-4 w-4" />
+              )}
+              Sincronizar certificado
+            </Button>
+            <Button
+              disabled={busy !== null || !form.empresa_id}
+              onClick={() =>
+                runAction(
+                  "teste",
+                  () => testeFn({ data: { empresa_id: form.empresa_id! } }),
+                  (r) =>
+                    r?.status === "autorizada"
+                      ? `NFC-e autorizada! Chave ${r.chave_acesso?.slice(-8) ?? ""}`
+                      : `Retorno: ${r?.status ?? "sem status"}${r?.mensagem ? " · " + r.mensagem : ""}`,
+                )
+              }
+            >
+              {busy === "teste" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FlaskConical className="mr-2 h-4 w-4" />
+              )}
+              Emitir NFC-e de teste
+            </Button>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Emissões de teste ficam registradas em Notas Fiscais com
+            ambiente=homologação e não geram numeração de produção.
+          </p>
+        </div>
+      )}
 
       <ManifestacaoView />
     </section>
