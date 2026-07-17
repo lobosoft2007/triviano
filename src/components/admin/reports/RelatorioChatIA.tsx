@@ -18,6 +18,7 @@ import {
   deleteRelatorioSalvo,
   listRelatoriosSalvos,
 } from "@/lib/reports/reports.functions";
+import { empresaAdminConfigQueryOptions } from "@/lib/empresa";
 import type { ReportSpec } from "@/lib/reports/spec";
 import { ReportSpecRunner } from "./ReportSpecRunner";
 
