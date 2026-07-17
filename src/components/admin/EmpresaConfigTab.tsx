@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, ImagePlus, Building2, Save } from "lucide-react";
+import { Loader2, ImagePlus, Building2, Save, Bike } from "lucide-react";
 import { toast } from "sonner";
 import {
   empresaAdminConfigQueryOptions,
@@ -10,6 +10,8 @@ import {
 import { uploadEmpresaLogo } from "@/lib/storage";
 import { compressImage } from "@/lib/imageCompression";
 import { parseNumberInput } from "@/lib/erp";
+import { applyIfoodMarkup } from "@/lib/ifood";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +36,7 @@ interface FormState {
   monitor_cozinha: boolean;
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
+  markup_ifood_percentual: string;
 }
 
 function empresaToForm(e: EmpresaBranding): FormState {
