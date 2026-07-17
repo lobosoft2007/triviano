@@ -811,7 +811,9 @@ export type Database = {
       }
       empresas: {
         Row: {
+          ai_report_api_key: string | null
           ai_report_model: string | null
+          ai_report_provider: string
           ativo: boolean
           bairro: string
           cashback_ativo: boolean
@@ -848,7 +850,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_report_api_key?: string | null
           ai_report_model?: string | null
+          ai_report_provider?: string
           ativo?: boolean
           bairro?: string
           cashback_ativo?: boolean
@@ -885,7 +889,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_report_api_key?: string | null
           ai_report_model?: string | null
+          ai_report_provider?: string
           ativo?: boolean
           bairro?: string
           cashback_ativo?: boolean
@@ -3667,7 +3673,9 @@ export type Database = {
       admin_get_empresa_config: {
         Args: never
         Returns: {
+          ai_report_has_key: boolean
           ai_report_model: string
+          ai_report_provider: string
           ativo: boolean
           bairro: string
           cashback_ativo: boolean
@@ -3788,6 +3796,15 @@ export type Database = {
         Args: { p_nivel_id: string; p_user_id: string }
         Returns: undefined
       }
+      admin_update_ai_report_config: {
+        Args: {
+          p_api_key?: string
+          p_clear_key?: boolean
+          p_model: string
+          p_provider: string
+        }
+        Returns: undefined
+      }
       admin_update_cliente: {
         Args: {
           p_bairro: string
@@ -3897,6 +3914,14 @@ export type Database = {
           cidade_recebedor: string
           gateway_banco: string
           nome_recebedor: string
+        }[]
+      }
+      get_ai_report_credentials: {
+        Args: never
+        Returns: {
+          api_key: string
+          model: string
+          provider: string
         }[]
       }
       get_empresa_checkout_config: {
