@@ -72,19 +72,6 @@ export function EmpresaConfigTab() {
     ...empresaAdminConfigQueryOptions,
     retry: false,
   });
-  const { data: markupData } = useQuery({
-    queryKey: ["empresa-markup-ifood", empresa?.id],
-    enabled: !!empresa?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("empresas")
-        .select("markup_ifood_percentual")
-        .eq("id", empresa!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return Number(data?.markup_ifood_percentual ?? 0);
-    },
-  });
 
   const [form, setForm] = useState<FormState | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -94,11 +81,11 @@ export function EmpresaConfigTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (empresa && !form && markupData !== undefined) {
-      setForm(empresaToForm(empresa, markupData ?? 0));
+    if (empresa && !form) {
+      setForm(empresaToForm(empresa, empresa.markup_ifood_percentual ?? 0));
       setPreview(empresa.logo_display_url);
     }
-  }, [empresa, form, markupData]);
+  }, [empresa, form]);
 
   useEffect(() => {
     if (!file) return;
