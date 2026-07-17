@@ -104,6 +104,8 @@ export interface Empresa {
   monitor_pizzaria: boolean;
   /** AI model used by the Reports Assistant (Lovable AI Gateway). */
   ai_report_model: string;
+  /** iFood pricing markup percentage (per-channel pricing). */
+  markup_ifood_percentual: number;
 }
 
 
