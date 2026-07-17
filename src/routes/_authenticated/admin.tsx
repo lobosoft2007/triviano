@@ -274,6 +274,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   empresa: "master",
   identidade: "master",
   pagamentos: "master",
+  fiscal: "master",
   clientes: "master",
   conta: "acesso_financeiro",
   financeiro: "acesso_financeiro",
