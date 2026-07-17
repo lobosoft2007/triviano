@@ -283,6 +283,9 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
 
     dominio_customizado: row?.dominio_customizado ?? null,
     subdominio: null,
+    cnpj: row?.cnpj ?? "",
+    inscricao_estadual: row?.inscricao_estadual ?? "",
+    regime_tributario: row?.regime_tributario ?? "simples_nacional",
     cep: row?.cep ?? "",
     logradouro: row?.logradouro ?? "",
     numero: row?.numero ?? "",
