@@ -170,6 +170,8 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         monitor_bar: false,
         monitor_pizzaria: false,
         ai_report_model: "openai/gpt-5.5",
+        ai_report_provider: "lovable",
+        ai_report_has_key: false,
         markup_ifood_percentual: 0,
       }
     : {
