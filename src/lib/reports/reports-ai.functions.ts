@@ -50,24 +50,43 @@ REGRAS:
 Devolva SEMPRE o JSON completo, mesmo em caso de "clarify".`;
 }
 
+const VALID_AI_MODELS = [
+  "openai/gpt-5.5",
+  "openai/gpt-5.4",
+  "openai/gpt-5.4-mini",
+  "openai/gpt-5.4-nano",
+  "google/gemini-3.1-pro-preview",
+  "google/gemini-3.5-flash",
+  "google/gemini-3.1-flash-lite",
+];
+
+const DEFAULT_AI_MODEL = "openai/gpt-5.5";
+
 export const generateReportSpec = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => {
-    const i = input as { prompt: string; history?: ChatMessage[] };
+    const i = input as { prompt: string; history?: ChatMessage[]; model?: string };
+    const model = VALID_AI_MODELS.includes(i.model ?? "")
+      ? (i.model as string)
+      : DEFAULT_AI_MODEL;
     return {
       prompt: String(i.prompt).slice(0, 4000),
       history: (i.history ?? []).slice(-10).map((m) => ({
         role: m.role === "user" ? ("user" as const) : ("assistant" as const),
         content: String(m.content).slice(0, 4000),
       })),
+      model,
     };
   })
   .handler(async ({ data }): Promise<GenerateReportSpecResult> => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("LOVABLE_API_KEY ausente no servidor.");
 
-    const gateway = createLovableAiGatewayProvider(key, { structuredOutputs: true });
-    const model = gateway("openai/gpt-5.5");
+    const isOpenAi = data.model.startsWith("openai/");
+    const gateway = createLovableAiGatewayProvider(key, {
+      structuredOutputs: isOpenAi,
+    });
+    const model = gateway(data.model);
 
     const messages = [
       { role: "system" as const, content: systemPrompt() },

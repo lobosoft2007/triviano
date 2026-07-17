@@ -102,6 +102,8 @@ export interface Empresa {
   monitor_cozinha: boolean;
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
+  /** AI model used by the Reports Assistant (Lovable AI Gateway). */
+  ai_report_model: string;
 }
 
 
@@ -161,6 +163,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         monitor_cozinha: false,
         monitor_bar: false,
         monitor_pizzaria: false,
+        ai_report_model: "openai/gpt-5.5",
       }
     : {
         id: DEFAULT_EMPRESA_ID,
@@ -190,6 +193,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         monitor_cozinha: false,
         monitor_bar: false,
         monitor_pizzaria: false,
+        ai_report_model: "openai/gpt-5.5",
       };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -249,6 +253,7 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     monitor_cozinha: false,
     monitor_bar: false,
     monitor_pizzaria: false,
+    ai_report_model: "openai/gpt-5.5",
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -302,6 +307,7 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     monitor_cozinha: row?.monitor_cozinha ?? false,
     monitor_bar: row?.monitor_bar ?? false,
     monitor_pizzaria: row?.monitor_pizzaria ?? false,
+    ai_report_model: row?.ai_report_model ?? "openai/gpt-5.5",
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -338,6 +344,8 @@ export interface EmpresaUpdate {
   monitor_cozinha: boolean;
   monitor_bar: boolean;
   monitor_pizzaria: boolean;
+  /** AI model used by the Reports Assistant (Lovable AI Gateway). */
+  ai_report_model: string;
 }
 
 
