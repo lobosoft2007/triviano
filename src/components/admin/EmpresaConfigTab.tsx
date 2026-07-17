@@ -129,7 +129,7 @@ export function EmpresaConfigTab() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const set = (k: keyof FormState, v: string) =>
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => (f ? { ...f, [k]: v } : f));
 
   const handleSave = async () => {
