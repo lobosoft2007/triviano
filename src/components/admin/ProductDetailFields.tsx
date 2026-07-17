@@ -16,6 +16,8 @@ export const NONE = "__none__";
 export interface RelRow {
   label: string;
   preco: string;
+  /** Preço praticado no iFood (string vazia = usa preco interno). */
+  preco_ifood?: string;
 }
 
 /** A price option (variação) can carry its own ficha técnica. */
@@ -33,6 +35,8 @@ export interface ProductDetailForm {
   margem_revenda: string;
   /** Purchase cost (as text) for revenda (non-manipulado) items. */
   custo_compra: string;
+  /** Preço iFood do produto (vazio = usa preco interno). */
+  preco_ifood: string;
   price_options: PriceOptionRow[];
   addons: RelRow[];
   free_addons: RelRow[];
@@ -47,6 +51,7 @@ export const EMPTY_DETAIL: ProductDetailForm = {
   fornecedor_id: NONE,
   margem_revenda: "100",
   custo_compra: "",
+  preco_ifood: "",
   price_options: [],
   addons: [],
   free_addons: [],
