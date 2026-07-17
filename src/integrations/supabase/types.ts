@@ -1372,6 +1372,7 @@ export type Database = {
           created_at: string
           data_hora_abertura: string
           data_hora_fechamento: string | null
+          empresa_id: string
           id: string
           id_usuario: string
           metadados_abertura: Json | null
@@ -1385,6 +1386,7 @@ export type Database = {
           created_at?: string
           data_hora_abertura?: string
           data_hora_fechamento?: string | null
+          empresa_id?: string
           id?: string
           id_usuario: string
           metadados_abertura?: Json | null
@@ -1398,6 +1400,7 @@ export type Database = {
           created_at?: string
           data_hora_abertura?: string
           data_hora_fechamento?: string | null
+          empresa_id?: string
           id?: string
           id_usuario?: string
           metadados_abertura?: Json | null
@@ -2190,6 +2193,7 @@ export type Database = {
       movimentacoes_caixa: {
         Row: {
           created_at: string
+          empresa_id: string
           id: string
           id_caixa: string
           id_meio_pagamento: string | null
@@ -2199,6 +2203,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          empresa_id?: string
           id?: string
           id_caixa: string
           id_meio_pagamento?: string | null
@@ -2208,6 +2213,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          empresa_id?: string
           id?: string
           id_caixa?: string
           id_meio_pagamento?: string | null
