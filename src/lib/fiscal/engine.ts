@@ -1,0 +1,295 @@
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+import { getAdapter } from "@/lib/fiscal/adapters";
+import type {
+  DestinatarioFiscal,
+  EmitenteFiscal,
+  EnderecoFiscal,
+  FiscalAmbiente,
+  ItemNotaFiscal,
+  RequisicaoEmissao,
+  RequisicaoManifestacao,
+  RespostaEmissao,
+  TipoDocumentoFiscal,
+} from "@/lib/fiscal/types";
+
+function createAdminClient() {
+  const url = process.env.SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createClient<Database>(url, key, {
+    auth: { persistSession: false },
+  });
+}
+
+function parseAmbiente(v: string | null | undefined): FiscalAmbiente {
+  return v === "producao" ? "producao" : "homologacao";
+}
+
+async function loadEmpresa(supabase: ReturnType<typeof createAdminClient>, empresaId: string) {
+  const { data, error } = await supabase
+    .from("empresas")
+    .select(
+      "id, nome_fantasia, cnpj, inscricao_estadual, regime_tributario, logradouro, numero, complemento, bairro, cidade, estado, cep",
+    )
+    .eq("id", empresaId)
+    .single();
+  if (error || !data) throw new Error(`Empresa não encontrada: ${error?.message}`);
+  return data;
+}
+
+async function loadConfigFiscal(
+  supabase: ReturnType<typeof createAdminClient>,
+  empresaId: string,
+) {
+  const { data, error } = await supabase
+    .from("config_fiscal")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .eq("ativo", true)
+    .single();
+  if (error || !data) {
+    throw new Error(
+      `Configuração fiscal não encontrada para a empresa. Cadastre-a em /caixa?tab=fiscal`,
+    );
+  }
+  return data;
+}
+
+async function loadOrder(
+  supabase: ReturnType<typeof createAdminClient>,
+  orderId: string,
+) {
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      "id, user_id, customer_name, total, delivery_address, phone, status_pedido, order_items:order_items(*, product:product_id(ncm, ean, cfop, csosn, cst_icms, origem_icms))",
+    )
+    .eq("id", orderId)
+    .single();
+  if (error || !data) throw new Error(`Pedido não encontrado: ${error?.message}`);
+  return data;
+}
+
+async function loadProfile(
+  supabase: ReturnType<typeof createAdminClient>,
+  userId: string,
+) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, cpf, cnpj, address, address_number, complement, neighborhood, city, state, zip_code")
+    .eq("id", userId)
+    .single();
+  if (error) return null;
+  return data;
+}
+
+function buildEnderecoEmpresa(empresa: Awaited<ReturnType<typeof loadEmpresa>>): EnderecoFiscal {
+  return {
+    logradouro: empresa.logradouro || "",
+    numero: empresa.numero || "",
+    complemento: empresa.complemento || undefined,
+    bairro: empresa.bairro || "",
+    cidade: empresa.cidade || "",
+    estado: empresa.estado || "",
+    cep: empresa.cep || "",
+  };
+}
+
+function buildEmitente(empresa: Awaited<ReturnType<typeof loadEmpresa>>): EmitenteFiscal {
+  return {
+    cnpj: empresa.cnpj || "",
+    inscricao_estadual: empresa.inscricao_estadual || undefined,
+    razao_social: empresa.nome_fantasia || "",
+    nome_fantasia: empresa.nome_fantasia || "",
+    endereco: buildEnderecoEmpresa(empresa),
+    regime_tributario:
+      (empresa.regime_tributario as EmitenteFiscal["regime_tributario"]) ||
+      "simples_nacional",
+  };
+}
+
+function buildDestinatario(
+  order: Awaited<ReturnType<typeof loadOrder>>,
+  profile: Awaited<ReturnType<typeof loadProfile>> | null,
+): DestinatarioFiscal | undefined {
+  const nome = order.customer_name || profile?.full_name || "Consumidor";
+  const cpf = profile?.cpf;
+  const cnpj = profile?.cnpj;
+
+  const endereco: EnderecoFiscal | undefined = profile
+    ? {
+        logradouro: profile.address || "",
+        numero: profile.address_number || "",
+        complemento: profile.complement || undefined,
+        bairro: profile.neighborhood || "",
+        cidade: profile.city || "",
+        estado: profile.state || "",
+        cep: profile.zip_code || "",
+      }
+    : undefined;
+
+  return {
+    nome,
+    cpf,
+    cnpj,
+    endereco,
+  };
+}
+
+function buildItens(
+  order: Awaited<ReturnType<typeof loadOrder>>,
+): ItemNotaFiscal[] {
+  const items = Array.isArray(order.order_items) ? order.order_items : [];
+  return items.map((item: Record<string, unknown>) => {
+    const product = item.product as
+      | {
+          ncm: string | null;
+          ean: string | null;
+          cfop: string | null;
+          csosn: string | null;
+          cst_icms: string | null;
+          origem_icms: string | null;
+        }
+      | null;
+    const qtd = Number(item.quantity ?? 1);
+    const unit = Number(item.unit_price ?? 0);
+    return {
+      produto_id: (item.product_id as string) || undefined,
+      descricao: String(item.product_name || "Item"),
+      ncm: product?.ncm || undefined,
+      ean: product?.ean || undefined,
+      cfop: product?.cfop || undefined,
+      quantidade: qtd,
+      valor_unitario: unit,
+      valor_total: Number((qtd * unit).toFixed(2)),
+      csosn: product?.csosn || undefined,
+      cst_icms: product?.cst_icms || undefined,
+      origem_icms: product?.origem_icms || "0",
+    };
+  });
+}
+
+export async function emitirNotaFiscalPorPedido(
+  empresaId: string,
+  orderId: string,
+  tipo: TipoDocumentoFiscal,
+): Promise<RespostaEmissao> {
+  const supabase = createAdminClient();
+
+  const [empresa, config, order] = await Promise.all([
+    loadEmpresa(supabase, empresaId),
+    loadConfigFiscal(supabase, empresaId),
+    loadOrder(supabase, orderId),
+  ]);
+
+  const profile = order.user_id ? await loadProfile(supabase, order.user_id) : null;
+
+  const isNfce = tipo === "NFCE";
+  const serie = isNfce ? config.serie_nfce : config.serie_nfe;
+  const numero = isNfce ? config.numero_nfce_proximo : config.numero_nfe_proximo;
+  const ambiente = parseAmbiente(config.ambiente);
+
+  const req: RequisicaoEmissao = {
+    empresa_id: empresaId,
+    pedido_id: orderId,
+    tipo,
+    emitente: buildEmitente(empresa),
+    destinatario: buildDestinatario(order, profile),
+    itens: buildItens(order),
+    valor_total: Number(order.total ?? 0),
+    serie,
+    numero,
+    ambiente,
+  };
+
+  const adapter = getAdapter(config.provider as "tecnospeed");
+  const res = isNfce
+    ? await adapter.emitirNFCe(req)
+    : await adapter.emitirNFe(req);
+
+  // Persistir resultado
+  const { data: nota, error: insertError } = await supabase
+    .from("notas_fiscais")
+    .insert({
+      empresa_id: empresaId,
+      pedido_id: orderId,
+      tipo,
+      chave_acesso: res.chave_acesso,
+      numero: res.numero || String(numero),
+      serie: res.serie || serie,
+      status: res.status,
+      xml_envio: res.xml_envio,
+      xml_autorizacao: res.xml_autorizacao,
+      pdf_url: res.pdf_url,
+      valor_total: req.valor_total,
+      data_emissao: new Date().toISOString(),
+      protocolo: res.protocolo,
+      mensagem_retorno: res.mensagem,
+      ambiente: config.ambiente,
+    })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    console.error("[fiscal] Falha ao persistir nota fiscal:", insertError);
+  } else if (nota) {
+    const itens = req.itens.map((item) => ({
+      nota_fiscal_id: nota.id,
+      produto_id: item.produto_id,
+      descricao: item.descricao,
+      ncm: item.ncm,
+      cfop: item.cfop,
+      quantidade: item.quantidade,
+      valor_unitario: item.valor_unitario,
+      valor_total: item.valor_total,
+      csosn: item.csosn,
+      cst_icms: item.cst_icms,
+      origem_icms: item.origem_icms,
+    }));
+    const { error: itensError } = await supabase
+      .from("notas_fiscais_itens")
+      .insert(itens);
+    if (itensError) {
+      console.error("[fiscal] Falha ao persistir itens da nota:", itensError);
+    }
+  }
+
+  // Incrementar contador apenas se autorizada
+  if (res.sucesso && res.status === "autorizada") {
+    const col = isNfce ? "numero_nfce_proximo" : "numero_nfe_proximo";
+    await supabase
+      .from("config_fiscal")
+      .update({ [col]: numero + 1 })
+      .eq("id", config.id);
+  }
+
+  return res;
+}
+
+export async function consultarDFe(
+  empresaId: string,
+  cnpj: string,
+  ultimoNsu?: string,
+) {
+  const supabase = createAdminClient();
+  const config = await loadConfigFiscal(supabase, empresaId);
+  const adapter = getAdapter(config.provider as "tecnospeed");
+  return adapter.consultarDFe({ empresa_id: empresaId, cnpj, ultimo_nsu: ultimoNsu });
+}
+
+export async function manifestarNFe(
+  empresaId: string,
+  chaveAcesso: string,
+  tipoEvento: RequisicaoManifestacao["tipo_evento"],
+  justificativa?: string,
+) {
+  const supabase = createAdminClient();
+  const config = await loadConfigFiscal(supabase, empresaId);
+  const adapter = getAdapter(config.provider as "tecnospeed");
+  return adapter.manifestarNFe({
+    empresa_id: empresaId,
+    chave_acesso: chaveAcesso,
+    tipo_evento: tipoEvento,
+    justificativa,
+  });
+}
