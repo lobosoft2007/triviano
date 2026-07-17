@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, Output, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
 
@@ -50,46 +51,87 @@ REGRAS:
 Devolva SEMPRE o JSON completo, mesmo em caso de "clarify".`;
 }
 
-const VALID_AI_MODELS = [
-  "openai/gpt-5.5",
-  "openai/gpt-5.4",
-  "openai/gpt-5.4-mini",
-  "openai/gpt-5.4-nano",
-  "google/gemini-3.1-pro-preview",
-  "google/gemini-3.5-flash",
-  "google/gemini-3.1-flash-lite",
-];
+type Provider = "lovable" | "openai" | "google";
 
-const DEFAULT_AI_MODEL = "openai/gpt-5.5";
+interface AiCreds {
+  provider: Provider;
+  model: string;
+  apiKey: string | null;
+}
+
+function buildModel(creds: AiCreds) {
+  const isOpenAi = creds.provider === "openai" || (creds.provider === "lovable" && creds.model.startsWith("openai/"));
+
+  if (creds.provider === "lovable") {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("LOVABLE_API_KEY ausente no servidor.");
+    const gateway = createLovableAiGatewayProvider(key, undefined, {
+      structuredOutputs: isOpenAi,
+    });
+    return { model: gateway(creds.model), structuredOutputs: isOpenAi };
+  }
+
+  if (!creds.apiKey) {
+    throw new Error(
+      `A empresa selecionou o provedor "${creds.provider}" mas ainda não cadastrou uma chave de API. Vá em Admin → Configurações da Empresa → "Modelo de IA dos Relatórios".`,
+    );
+  }
+
+  if (creds.provider === "openai") {
+    const provider = createOpenAICompatible({
+      name: "byo-openai",
+      baseURL: "https://api.openai.com/v1",
+      apiKey: creds.apiKey,
+      supportsStructuredOutputs: true,
+    });
+    // OpenAI expects a bare model id (no "openai/" prefix).
+    const modelId = creds.model.replace(/^openai\//, "");
+    return { model: provider(modelId), structuredOutputs: true };
+  }
+
+  // Google Gemini via OpenAI-compatible endpoint.
+  const provider = createOpenAICompatible({
+    name: "byo-google",
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+    apiKey: creds.apiKey,
+    supportsStructuredOutputs: false,
+  });
+  const modelId = creds.model.replace(/^google\//, "");
+  return { model: provider(modelId), structuredOutputs: false };
+}
 
 export const generateReportSpec = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => {
-    const i = input as { prompt: string; history?: ChatMessage[]; model?: string };
-    const model = VALID_AI_MODELS.includes(i.model ?? "")
-      ? (i.model as string)
-      : DEFAULT_AI_MODEL;
+    const i = input as { prompt: string; history?: ChatMessage[] };
     return {
       prompt: String(i.prompt).slice(0, 4000),
       history: (i.history ?? []).slice(-10).map((m) => ({
         role: m.role === "user" ? ("user" as const) : ("assistant" as const),
         content: String(m.content).slice(0, 4000),
       })),
-      model,
     };
   })
-  .handler(async ({ data }): Promise<GenerateReportSpecResult> => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("LOVABLE_API_KEY ausente no servidor.");
+  .handler(async ({ data, context }): Promise<GenerateReportSpecResult> => {
+    // Load per-empresa AI credentials (never exposed to the browser).
+    const { data: credsRows, error: credsErr } = await context.supabase.rpc(
+      "get_ai_report_credentials",
+    );
+    if (credsErr) throw new Error(`Falha ao ler credenciais de IA: ${credsErr.message}`);
+    const credsRow = (credsRows ?? [])[0] ?? {
+      provider: "lovable",
+      model: "openai/gpt-5.5",
+      api_key: null,
+    };
+    const creds: AiCreds = {
+      provider: (credsRow.provider as Provider) ?? "lovable",
+      model: credsRow.model ?? "openai/gpt-5.5",
+      apiKey: credsRow.api_key ?? null,
+    };
 
-    const isOpenAi = data.model.startsWith("openai/");
-    const gateway = createLovableAiGatewayProvider(key, {
-      structuredOutputs: isOpenAi,
-    });
-    const model = gateway(data.model);
+    const { model } = buildModel(creds);
 
     const messages = [
-      { role: "system" as const, content: systemPrompt() },
       ...data.history.map((m) => ({ role: m.role, content: m.content })),
       { role: "user" as const, content: data.prompt },
     ];
@@ -97,9 +139,12 @@ export const generateReportSpec = createServerFn({ method: "POST" })
     try {
       const { output } = await generateText({
         model,
+        system: systemPrompt(),
         messages,
         output: Output.object({ schema: ReportSpecSchema }),
-        providerOptions: { lovable: { reasoningEffort: "none" } },
+        ...(creds.provider === "lovable"
+          ? { providerOptions: { lovable: { reasoningEffort: "none" } } }
+          : {}),
       });
       return { spec: output as ReportSpec, clarify: (output as ReportSpec).clarify ?? null, raw: null };
     } catch (error) {
