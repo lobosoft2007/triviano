@@ -89,7 +89,7 @@ export const manifestarNFe = createServerFn({ method: "POST" })
     );
   });
 
-async function ensureAdmin(context: { supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> }; userId: string }) {
+async function ensureAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
