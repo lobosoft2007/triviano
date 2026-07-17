@@ -197,9 +197,9 @@ export function EmpresaConfigTab() {
       const aiRpc = await supabase.rpc("admin_update_ai_report_config", {
         p_provider: form.ai_report_provider,
         p_model: form.ai_report_model,
-        p_api_key: form.ai_report_api_key.trim() || null,
+        p_api_key: form.ai_report_api_key.trim() || undefined,
         p_clear_key: form.ai_report_clear_key,
-      });
+      } as never);
       if (aiRpc.error) throw aiRpc.error;
 
       toast.success("Configurações da empresa salvas!");
