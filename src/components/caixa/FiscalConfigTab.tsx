@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Loader2,
   Save,
@@ -9,6 +10,10 @@ import {
   FlaskConical,
   Rocket,
   AlertTriangle,
+  PlugZap,
+  Building2,
+  KeyRound,
+  Beaker,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -18,10 +23,19 @@ import {
 } from "@/lib/fiscal/config";
 import { uploadCertificate } from "@/lib/storage";
 import { ManifestacaoView } from "@/components/caixa/ManifestacaoView";
+import {
+  pingProvedorFiscal,
+  sincronizarEmpresaFiscal,
+  sincronizarCertificadoFiscal,
+  emitirNFCeTeste,
+} from "@/lib/fiscal/fiscal.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+
+const SANDBOX_URL = "https://api.sandbox.plugnotas.com.br";
+const PROD_URL = "https://api.plugnotas.com.br";
 
 
 const PROVIDERS = [
