@@ -356,3 +356,201 @@ export async function manifestarNFe(
     justificativa,
   });
 }
+
+// ============================================================
+// Sincronização com o provedor (PlugNotas): empresa + certificado
+// e utilitários de sandbox
+// ============================================================
+
+import { TecnospeedAdapter } from "@/lib/fiscal/adapters/tecnospeed";
+
+function getTecnospeedAdapter(config: Awaited<ReturnType<typeof loadConfigFiscal>>) {
+  return new TecnospeedAdapter(
+    (config.credenciais as Record<string, string>) || {},
+  );
+}
+
+function decodeSenhaB64(v: string | null | undefined): string {
+  if (!v) return "";
+  try {
+    return Buffer.from(v, "base64").toString("utf-8");
+  } catch {
+    return "";
+  }
+}
+
+export async function pingProvedor(empresaId: string) {
+  const supabase = createAdminClient();
+  const config = await loadConfigFiscal(supabase, empresaId);
+  if (config.provider !== "tecnospeed") {
+    return { ok: false, status: 0, latency_ms: 0, mensagem: "Provedor sem ping implementado." };
+  }
+  const adapter = getTecnospeedAdapter(config);
+  const r = await adapter.ping();
+  return { ok: r.ok, status: r.status, latency_ms: r.latency_ms };
+}
+
+export async function sincronizarEmpresaFiscal(empresaId: string) {
+  const supabase = createAdminClient();
+  const [empresa, config] = await Promise.all([
+    loadEmpresa(supabase, empresaId),
+    loadConfigFiscal(supabase, empresaId),
+  ]);
+
+  if (config.provider !== "tecnospeed") {
+    throw new Error("Sincronização disponível apenas para o provedor Tecnospeed/PlugNotas.");
+  }
+  if (!empresa.cnpj) throw new Error("CNPJ da empresa não cadastrado.");
+
+  const adapter = getTecnospeedAdapter(config);
+  const payload = {
+    cpfCnpj: empresa.cnpj.replace(/\D/g, ""),
+    inscricaoEstadual: empresa.inscricao_estadual || undefined,
+    razaoSocial: empresa.nome_fantasia,
+    nomeFantasia: empresa.nome_fantasia,
+    regimeTributario:
+      empresa.regime_tributario === "simples_nacional" ? 1 : 3,
+    endereco: {
+      logradouro: empresa.logradouro || "",
+      numero: empresa.numero || "",
+      complemento: empresa.complemento || undefined,
+      bairro: empresa.bairro || "",
+      municipio: empresa.cidade || "",
+      uf: empresa.estado || "",
+      cep: (empresa.cep || "").replace(/\D/g, ""),
+    },
+    nfce: {
+      ativo: true,
+      config: {
+        producaoIntegracao: false,
+      },
+    },
+  };
+
+  const r = await adapter.sincronizarEmpresa(payload);
+  if (r.sucesso) {
+    await supabase
+      .from("config_fiscal")
+      .update({ emitente_sincronizado_em: new Date().toISOString() })
+      .eq("id", config.id);
+  }
+  return r;
+}
+
+export async function sincronizarCertificadoFiscal(empresaId: string) {
+  const supabase = createAdminClient();
+  const [empresa, config] = await Promise.all([
+    loadEmpresa(supabase, empresaId),
+    loadConfigFiscal(supabase, empresaId),
+  ]);
+
+  if (config.provider !== "tecnospeed") {
+    throw new Error("Sincronização de certificado disponível apenas para Tecnospeed/PlugNotas.");
+  }
+  if (!empresa.cnpj) throw new Error("CNPJ da empresa não cadastrado.");
+  if (!config.certificado_a1_path) throw new Error("Envie o certificado A1 (.pfx) primeiro.");
+  const senha = decodeSenhaB64(config.certificado_a1_senha_criptografada);
+  if (!senha) throw new Error("Informe a senha do certificado A1 e salve antes de sincronizar.");
+
+  // Baixa o .pfx do bucket privado
+  const { data: file, error: dlErr } = await supabase
+    .storage
+    .from("certificados-fiscais")
+    .download(config.certificado_a1_path);
+  if (dlErr || !file) {
+    throw new Error(`Falha ao baixar certificado: ${dlErr?.message || "arquivo não encontrado"}`);
+  }
+
+  const adapter = getTecnospeedAdapter(config);
+  const r = await adapter.sincronizarCertificado({
+    cnpj: empresa.cnpj.replace(/\D/g, ""),
+    pfx: file,
+    senha,
+    filename: config.certificado_a1_nome || "certificado.pfx",
+  });
+
+  if (r.sucesso) {
+    await supabase
+      .from("config_fiscal")
+      .update({
+        certificado_provider_id: r.id || null,
+        certificado_sincronizado_em: new Date().toISOString(),
+      })
+      .eq("id", config.id);
+  }
+  return r;
+}
+
+export async function emitirNFCeTeste(empresaId: string): Promise<RespostaEmissao> {
+  const supabase = createAdminClient();
+  const [empresa, config] = await Promise.all([
+    loadEmpresa(supabase, empresaId),
+    loadConfigFiscal(supabase, empresaId),
+  ]);
+
+  if (config.ambiente !== "homologacao") {
+    throw new Error(
+      "Emissão de teste só é permitida com ambiente em 'homologacao'.",
+    );
+  }
+  if (config.provider !== "tecnospeed") {
+    throw new Error("Emissão de teste disponível apenas para Tecnospeed/PlugNotas.");
+  }
+
+  const numero = config.numero_nfce_proximo;
+  const serie = config.serie_nfce;
+
+  const req: RequisicaoEmissao = {
+    empresa_id: empresaId,
+    pedido_id: `TESTE-${Date.now()}`,
+    tipo: "NFCE",
+    emitente: buildEmitente(empresa),
+    destinatario: undefined,
+    itens: [
+      {
+        descricao: "NOTA FISCAL EMITIDA EM AMBIENTE DE HOMOLOGACAO",
+        ncm: "22021000",
+        cfop: "5102",
+        quantidade: 1,
+        valor_unitario: 0.01,
+        valor_total: 0.01,
+        csosn: "102",
+        origem_icms: "0",
+      },
+    ],
+    valor_total: 0.01,
+    serie,
+    numero,
+    ambiente: "homologacao",
+  };
+
+  const adapter = getTecnospeedAdapter(config);
+  const res = await adapter.emitirNFCe(req);
+
+  await supabase.from("notas_fiscais").insert({
+    empresa_id: empresaId,
+    pedido_id: null,
+    tipo: "NFCE",
+    chave_acesso: res.chave_acesso,
+    numero: res.numero || String(numero),
+    serie: res.serie || serie,
+    status: res.status,
+    xml_envio: res.xml_envio,
+    xml_autorizacao: res.xml_autorizacao,
+    pdf_url: res.pdf_url,
+    valor_total: 0.01,
+    data_emissao: new Date().toISOString(),
+    protocolo: res.protocolo,
+    mensagem_retorno: res.mensagem || "Emissão de teste (sandbox)",
+    ambiente: "homologacao",
+  });
+
+  if (res.sucesso && res.status === "autorizada") {
+    await supabase
+      .from("config_fiscal")
+      .update({ numero_nfce_proximo: numero + 1 })
+      .eq("id", config.id);
+  }
+
+  return res;
+}
