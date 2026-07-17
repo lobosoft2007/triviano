@@ -192,6 +192,16 @@ function buildItens(
   });
 }
 
+export async function isEmissaoAtiva(empresaId: string): Promise<boolean> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("config_fiscal")
+    .select("ativo")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+  return Boolean(data?.ativo);
+}
+
 export async function emitirNotaFiscalPorPedido(
   empresaId: string,
   orderId: string,
@@ -205,9 +215,21 @@ export async function emitirNotaFiscalPorPedido(
     loadOrder(supabase, orderId),
   ]);
 
+  if (!config.ativo) {
+    console.log(
+      `[fiscal] Emissão desativada para empresa ${empresaId}; pedido ${orderId} não gerou nota.`,
+    );
+    return {
+      sucesso: true,
+      status: "pendente",
+      mensagem: "Emissão fiscal desativada pela empresa",
+    };
+  }
+
   if (order.empresa_id && order.empresa_id !== empresaId) {
     throw new Error("Pedido não pertence à empresa informada.");
   }
+
 
   const [orderItems, profile] = await Promise.all([
     loadOrderItems(supabase, orderId),
