@@ -68,7 +68,10 @@ function empresaToForm(e: EmpresaBranding, markup: number): FormState {
 
 export function EmpresaConfigTab() {
   const queryClient = useQueryClient();
-  const { data: empresa, isLoading } = useQuery(empresaAdminConfigQueryOptions);
+  const { data: empresa, isLoading, error } = useQuery({
+    ...empresaAdminConfigQueryOptions,
+    retry: false,
+  });
   const { data: markupData } = useQuery({
     queryKey: ["empresa-markup-ifood", empresa?.id],
     enabled: !!empresa?.id,
