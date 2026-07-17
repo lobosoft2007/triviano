@@ -707,6 +707,7 @@ function AdminPage() {
           {tab === "empresa" && <EmpresaConfigTab />}
           {tab === "identidade" && <IdentidadeVisualTab />}
           {tab === "pagamentos" && <PaymentConfigTab />}
+          {tab === "fiscal" && <FiscalConfigTab />}
           {tab === "clientes" && <ClientesView canBlock />}
           {tab === "conta" && <ContaCorrenteTab mode="admin" />}
           {tab === "insumos" && <InsumosCrud />}
