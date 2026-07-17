@@ -37,6 +37,7 @@ import {
   type ResolvedSector,
 } from "@/lib/printers";
 import { empresaAdminConfigQueryOptions } from "@/lib/empresa";
+import { emitirNFCePorPedido } from "@/lib/fiscal";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductCustomizer } from "@/components/ProductCustomizer";
 import { usePixPayment } from "@/hooks/usePixPayment";
