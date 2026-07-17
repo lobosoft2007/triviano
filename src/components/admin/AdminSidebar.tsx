@@ -18,6 +18,7 @@ import {
   Building2,
   Palette,
   CreditCard,
+  ReceiptText,
   ChevronDown,
   ClipboardList,
   Banknote,
