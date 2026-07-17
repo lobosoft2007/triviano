@@ -20,13 +20,11 @@ import {
   X,
   Wallet,
 } from "lucide-react";
-import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
 
 import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
 import { CloseCaixaDialog } from "@/components/caixa/CloseCaixaDialog";
 import { PaymentDialog } from "@/components/caixa/PaymentDialog";
 import { ComandaPaymentDialog } from "@/components/caixa/ComandaPaymentDialog";
-import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { NotifyClient } from "@/components/caixa/NotifyClient";
 import { WhatsAppStatusButton } from "@/components/caixa/WhatsAppStatusButton";
 import { ContaCorrenteTab } from "@/components/caixa/ContaCorrenteTab";
