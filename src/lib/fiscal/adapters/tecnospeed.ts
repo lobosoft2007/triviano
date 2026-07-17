@@ -8,26 +8,10 @@ import type {
   RequisicaoManifestacao,
 } from "@/lib/fiscal/types";
 
-interface TecnospeedCredentials {
+export interface TecnospeedCredentials {
   base_url?: string;
   api_key?: string;
   bearer_token?: string;
-}
-
-function getCredentials(): TecnospeedCredentials {
-  const raw = process.env.TECNOSPEED_CREDENTIALS;
-  if (raw) {
-    try {
-      return JSON.parse(raw) as TecnospeedCredentials;
-    } catch {
-      // fall through
-    }
-  }
-  return {
-    base_url: process.env.TECNOSPEED_BASE_URL,
-    api_key: process.env.TECNOSPEED_API_KEY,
-    bearer_token: process.env.TECNOSPEED_BEARER_TOKEN,
-  };
 }
 
 function getAuthHeaders(cred: TecnospeedCredentials): Record<string, string> {
@@ -61,8 +45,34 @@ function mapStatus(status?: string): RespostaEmissao["status"] {
   return "erro";
 }
 
+function resolveCredentials(
+  provided?: TecnospeedCredentials,
+): TecnospeedCredentials {
+  if (provided && (provided.base_url || provided.api_key || provided.bearer_token)) {
+    return provided;
+  }
+  const raw = process.env.TECNOSPEED_CREDENTIALS;
+  if (raw) {
+    try {
+      return JSON.parse(raw) as TecnospeedCredentials;
+    } catch {
+      // fall through
+    }
+  }
+  return {
+    base_url: process.env.TECNOSPEED_BASE_URL,
+    api_key: process.env.TECNOSPEED_API_KEY,
+    bearer_token: process.env.TECNOSPEED_BEARER_TOKEN,
+  };
+}
+
 export class TecnospeedAdapter implements FiscalAdapter {
   readonly name: FiscalProvider = "tecnospeed";
+  private cred: TecnospeedCredentials;
+
+  constructor(cred?: TecnospeedCredentials) {
+    this.cred = resolveCredentials(cred);
+  }
 
   async emitirNFCe(req: RequisicaoEmissao): Promise<RespostaEmissao> {
     return this.emitirDocumento(req, "nfce");
@@ -76,14 +86,13 @@ export class TecnospeedAdapter implements FiscalAdapter {
     req: RequisicaoEmissao,
     path: "nfce" | "nfe",
   ): Promise<RespostaEmissao> {
-    const cred = getCredentials();
-    const url = `${baseUrl(cred)}/${path}`;
+    const url = `${baseUrl(this.cred)}/${path}`;
 
     const body = this.buildPayload(req, path);
 
     const res = await fetch(url, {
       method: "POST",
-      headers: getAuthHeaders(cred),
+      headers: getAuthHeaders(this.cred),
       body: JSON.stringify(body),
     });
 
@@ -171,14 +180,13 @@ export class TecnospeedAdapter implements FiscalAdapter {
   }
 
   async consultarDFe(req: RequisicaoConsultaDFe): Promise<DocumentoDFe[]> {
-    const cred = getCredentials();
-    const url = new URL(`${baseUrl(cred)}/dfe`);
+    const url = new URL(`${baseUrl(this.cred)}/dfe`);
     url.searchParams.set("cnpj", req.cnpj);
     if (req.ultimo_nsu) url.searchParams.set("ultimoNsu", req.ultimo_nsu);
 
     const res = await fetch(url.toString(), {
       method: "GET",
-      headers: getAuthHeaders(cred),
+      headers: getAuthHeaders(this.cred),
     });
 
     if (!res.ok) {
@@ -202,8 +210,7 @@ export class TecnospeedAdapter implements FiscalAdapter {
   async manifestarNFe(
     req: RequisicaoManifestacao,
   ): Promise<{ sucesso: boolean; mensagem?: string }> {
-    const cred = getCredentials();
-    const url = `${baseUrl(cred)}/manifestacao`;
+    const url = `${baseUrl(this.cred)}/manifestacao`;
 
     const body = {
       chave_acesso: req.chave_acesso,
@@ -213,7 +220,7 @@ export class TecnospeedAdapter implements FiscalAdapter {
 
     const res = await fetch(url, {
       method: "POST",
-      headers: getAuthHeaders(cred),
+      headers: getAuthHeaders(this.cred),
       body: JSON.stringify(body),
     });
 
