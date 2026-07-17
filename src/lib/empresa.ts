@@ -104,6 +104,8 @@ export interface Empresa {
   monitor_pizzaria: boolean;
   /** AI model used by the Reports Assistant (Lovable AI Gateway). */
   ai_report_model: string;
+  /** iFood pricing markup percentage (per-channel pricing). */
+  markup_ifood_percentual: number;
 }
 
 
@@ -164,6 +166,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         monitor_bar: false,
         monitor_pizzaria: false,
         ai_report_model: "openai/gpt-5.5",
+        markup_ifood_percentual: 0,
       }
     : {
         id: DEFAULT_EMPRESA_ID,
@@ -194,6 +197,7 @@ export async function fetchActiveEmpresa(): Promise<EmpresaBranding> {
         monitor_bar: false,
         monitor_pizzaria: false,
         ai_report_model: "openai/gpt-5.5",
+        markup_ifood_percentual: 0,
       };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -254,6 +258,7 @@ export async function fetchEmpresaConfig(): Promise<EmpresaBranding> {
     monitor_bar: false,
     monitor_pizzaria: false,
     ai_report_model: "openai/gpt-5.5",
+    markup_ifood_percentual: 0,
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);
@@ -308,6 +313,7 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     monitor_bar: row?.monitor_bar ?? false,
     monitor_pizzaria: row?.monitor_pizzaria ?? false,
     ai_report_model: row?.ai_report_model ?? "openai/gpt-5.5",
+    markup_ifood_percentual: Number(row?.markup_ifood_percentual ?? 0),
   };
 
   const urlMap = await resolveImageUrls([empresa.logotipo_url]);

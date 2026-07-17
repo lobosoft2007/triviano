@@ -3677,6 +3677,7 @@ export type Database = {
           inscricao_estadual: string
           logotipo_url: string
           logradouro: string
+          markup_ifood_percentual: number
           modo_fundo: string
           monitor_bar: boolean
           monitor_cozinha: boolean
