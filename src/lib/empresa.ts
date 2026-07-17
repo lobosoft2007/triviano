@@ -323,6 +323,11 @@ export async function fetchEmpresaAdminConfig(): Promise<EmpresaBranding> {
     monitor_bar: row?.monitor_bar ?? false,
     monitor_pizzaria: row?.monitor_pizzaria ?? false,
     ai_report_model: row?.ai_report_model ?? "openai/gpt-5.5",
+    ai_report_provider:
+      (row as { ai_report_provider?: "lovable" | "openai" | "google" } | undefined)
+        ?.ai_report_provider ?? "lovable",
+    ai_report_has_key:
+      Boolean((row as { ai_report_has_key?: boolean } | undefined)?.ai_report_has_key),
     markup_ifood_percentual: Number(row?.markup_ifood_percentual ?? 0),
   };
 
