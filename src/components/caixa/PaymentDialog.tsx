@@ -227,6 +227,8 @@ export function PaymentDialog({
         valor: totalConta,
       });
       await finalizeOrderPaid(order.id);
+      // Emissão fiscal assíncrona e não-bloqueante.
+      await emitirNFCeBestEffort();
       await queryClient.invalidateQueries({ queryKey: ["pagamentos", order.id] });
       await queryClient.invalidateQueries({ queryKey: ["caixa-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["caixa-movs"] });
