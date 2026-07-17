@@ -49,17 +49,17 @@ export const DATA_SOURCES_CATALOG: DataSourceDef[] = [
   {
     key: "vendas",
     label: "Vendas / Pedidos",
-    description: "Pedidos (orders): total, canal, status, cidade/bairro de entrega, meio de pagamento agregado.",
+    description: "Pedidos (orders): total, canal, status, tipo de atendimento, endereço de entrega.",
     fields: [
       { key: "id", label: "Pedido", type: "text", ops: TEXT_OPS },
       { key: "created_at", label: "Data", type: "date", ops: DATE_OPS, groupable: true },
-      { key: "canal", label: "Canal", type: "text", ops: TEXT_OPS, groupable: true },
-      { key: "status", label: "Status", type: "text", ops: TEXT_OPS, groupable: true },
+      { key: "canal_venda", label: "Canal", type: "text", ops: TEXT_OPS, groupable: true },
+      { key: "status", label: "Status (pagamento)", type: "text", ops: TEXT_OPS, groupable: true },
+      { key: "status_pedido", label: "Status (pedido)", type: "text", ops: TEXT_OPS, groupable: true },
       { key: "tipo_atendimento", label: "Tipo de atendimento", type: "text", ops: TEXT_OPS, groupable: true },
       { key: "total", label: "Total (R$)", type: "money", ops: NUM_OPS, aggs: NUM_AGGS },
-      { key: "cidade_entrega", label: "Cidade (entrega)", type: "text", ops: TEXT_OPS, groupable: true },
-      { key: "bairro_entrega", label: "Bairro (entrega)", type: "text", ops: TEXT_OPS, groupable: true },
-      { key: "cliente_nome", label: "Cliente", type: "text", ops: TEXT_OPS, groupable: true },
+      { key: "delivery_address", label: "Endereço de entrega", type: "text", ops: TEXT_OPS, groupable: true },
+      { key: "tipo_pagamento", label: "Tipo de pagamento", type: "text", ops: TEXT_OPS, groupable: true },
     ],
   },
   {
