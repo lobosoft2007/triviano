@@ -378,6 +378,58 @@ export function EmpresaConfigTab() {
         </div>
       </section>
 
+      {/* Markup iFood — precificação por canal */}
+      <section className="rounded-2xl border border-red-500/30 bg-red-50/40 p-4 dark:bg-red-900/10">
+        <div className="mb-3 flex items-center gap-2">
+          <Bike className="h-4 w-4 text-red-500" />
+          <h3 className="font-display text-sm font-bold">Precificação iFood</h3>
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Percentual aplicado sobre o preço interno para compor o preço no iFood
+          (absorve a comissão do marketplace). Use os botões abaixo para aplicar
+          em massa no cardápio.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3 sm:items-end">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="markup_ifood">Markup iFood (%)</Label>
+            <Input
+              id="markup_ifood"
+              inputMode="decimal"
+              value={form.markup_ifood_percentual}
+              onChange={(e) => set("markup_ifood_percentual", e.target.value)}
+              placeholder="Ex: 30"
+              className="h-11 rounded-xl"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => handleApplyMarkup(false)}
+            disabled={applyingMarkup}
+            className="h-11 rounded-xl"
+          >
+            {applyingMarkup ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Aplicar aos vazios"
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => handleApplyMarkup(true)}
+            disabled={applyingMarkup}
+            className="h-11 rounded-xl"
+          >
+            {applyingMarkup ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Sobrescrever todos"
+            )}
+          </Button>
+        </div>
+      </section>
+
       {/* Monitores (KDS) x Impressão por setor */}
       <section className="rounded-2xl border border-border bg-card p-4">
         <h3 className="mb-1 font-display text-sm font-bold">
