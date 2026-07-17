@@ -830,6 +830,7 @@ export type Database = {
           logotipo_url: string
           logradouro: string
           longitude: number | null
+          markup_ifood_percentual: number
           mesa_exige_geofence: boolean
           mesa_qr_secret: string
           modo_fundo: string
@@ -865,6 +866,7 @@ export type Database = {
           logotipo_url?: string
           logradouro?: string
           longitude?: number | null
+          markup_ifood_percentual?: number
           mesa_exige_geofence?: boolean
           mesa_qr_secret?: string
           modo_fundo?: string
@@ -900,6 +902,7 @@ export type Database = {
           logotipo_url?: string
           logradouro?: string
           longitude?: number | null
+          markup_ifood_percentual?: number
           mesa_exige_geofence?: boolean
           mesa_qr_secret?: string
           modo_fundo?: string
@@ -965,6 +968,213 @@ export type Database = {
             columns: ["id_fornecedor"]
             isOneToOne: false
             referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entregador_sessoes: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          entregador_id: string
+          fim: string | null
+          id: string
+          inicio: string
+          total_comissao: number
+          total_entregas: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          entregador_id: string
+          fim?: string | null
+          id?: string
+          inicio?: string
+          total_comissao?: number
+          total_entregas?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          entregador_id?: string
+          fim?: string | null
+          id?: string
+          inicio?: string
+          total_comissao?: number
+          total_entregas?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregador_sessoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregador_sessoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregador_sessoes_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "entregadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entregadores: {
+        Row: {
+          ativo: boolean
+          comissao_fixa_por_entrega: number
+          comissao_percentual: number
+          cpf: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          placa_veiculo: string | null
+          telefone: string | null
+          tipo_veiculo: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          comissao_fixa_por_entrega?: number
+          comissao_percentual?: number
+          cpf?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          placa_veiculo?: string | null
+          telefone?: string | null
+          tipo_veiculo?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          comissao_fixa_por_entrega?: number
+          comissao_percentual?: number
+          cpf?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          placa_veiculo?: string | null
+          telefone?: string | null
+          tipo_veiculo?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregadores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregadores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entregas: {
+        Row: {
+          canal: string
+          coord_destino: Json | null
+          coord_origem: Json | null
+          created_at: string
+          distancia_km: number | null
+          empresa_id: string
+          entregador_id: string | null
+          entregue_em: string | null
+          id: string
+          observacao: string | null
+          order_id: string
+          saiu_para_entrega_em: string | null
+          status: string
+          taxa_entrega: number
+          updated_at: string
+          valor_comissao: number
+        }
+        Insert: {
+          canal?: string
+          coord_destino?: Json | null
+          coord_origem?: Json | null
+          created_at?: string
+          distancia_km?: number | null
+          empresa_id: string
+          entregador_id?: string | null
+          entregue_em?: string | null
+          id?: string
+          observacao?: string | null
+          order_id: string
+          saiu_para_entrega_em?: string | null
+          status?: string
+          taxa_entrega?: number
+          updated_at?: string
+          valor_comissao?: number
+        }
+        Update: {
+          canal?: string
+          coord_destino?: Json | null
+          coord_origem?: Json | null
+          created_at?: string
+          distancia_km?: number | null
+          empresa_id?: string
+          entregador_id?: string | null
+          entregue_em?: string | null
+          id?: string
+          observacao?: string | null
+          order_id?: string
+          saiu_para_entrega_em?: string | null
+          status?: string
+          taxa_entrega?: number
+          updated_at?: string
+          valor_comissao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "entregadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -1313,6 +1523,184 @@ export type Database = {
             columns: ["id_pedido"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ifood_event_log: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          erro: string | null
+          event_id: string | null
+          event_type: string | null
+          id: string
+          merchant_id: string
+          order_id_ifood: string | null
+          payload: Json | null
+          processado_em: string | null
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          erro?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          merchant_id: string
+          order_id_ifood?: string | null
+          payload?: Json | null
+          processado_em?: string | null
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          erro?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          merchant_id?: string
+          order_id_ifood?: string | null
+          payload?: Json | null
+          processado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ifood_event_log_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ifood_event_log_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ifood_merchants: {
+        Row: {
+          access_token: string | null
+          client_id: string | null
+          client_secret: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          merchant_id: string
+          nome: string
+          polling_enabled: boolean
+          refresh_token: string | null
+          status_loja: string
+          token_expires_at: string | null
+          ultima_sincronizacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          client_id?: string | null
+          client_secret?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          merchant_id: string
+          nome: string
+          polling_enabled?: boolean
+          refresh_token?: string | null
+          status_loja?: string
+          token_expires_at?: string | null
+          ultima_sincronizacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          client_id?: string | null
+          client_secret?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          merchant_id?: string
+          nome?: string
+          polling_enabled?: boolean
+          refresh_token?: string | null
+          status_loja?: string
+          token_expires_at?: string | null
+          ultima_sincronizacao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ifood_merchants_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ifood_merchants_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ifood_produto_map: {
+        Row: {
+          created_at: string
+          disponivel: boolean
+          empresa_id: string
+          id: string
+          ifood_category_id: string | null
+          ifood_item_id: string
+          product_id: string
+          ultimo_sync: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          disponivel?: boolean
+          empresa_id: string
+          id?: string
+          ifood_category_id?: string | null
+          ifood_item_id: string
+          product_id: string
+          ultimo_sync?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          disponivel?: boolean
+          empresa_id?: string
+          id?: string
+          ifood_category_id?: string | null
+          ifood_item_id?: string
+          product_id?: string
+          ultimo_sync?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ifood_produto_map_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ifood_produto_map_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ifood_produto_map_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -2178,6 +2566,7 @@ export type Database = {
       orders: {
         Row: {
           aguardando_pagamento: boolean
+          canal_venda: Database["public"]["Enums"]["canal_venda_enum"]
           cashback_usado: number
           comanda_id: string | null
           created_at: string
@@ -2185,6 +2574,8 @@ export type Database = {
           desconto_manual: number
           discount: number
           empresa_id: string
+          entrega_id: string | null
+          entregador_id: string | null
           estoque_baixado: boolean
           id: string
           impresso_conta: boolean
@@ -2196,6 +2587,7 @@ export type Database = {
           numero_mesa: number | null
           observacoes_operador: string
           pago_online: boolean
+          pedido_externo_id: string | null
           phone: string
           senha: string | null
           senha_diaria: number | null
@@ -2208,6 +2600,7 @@ export type Database = {
         }
         Insert: {
           aguardando_pagamento?: boolean
+          canal_venda?: Database["public"]["Enums"]["canal_venda_enum"]
           cashback_usado?: number
           comanda_id?: string | null
           created_at?: string
@@ -2215,6 +2608,8 @@ export type Database = {
           desconto_manual?: number
           discount?: number
           empresa_id?: string
+          entrega_id?: string | null
+          entregador_id?: string | null
           estoque_baixado?: boolean
           id?: string
           impresso_conta?: boolean
@@ -2226,6 +2621,7 @@ export type Database = {
           numero_mesa?: number | null
           observacoes_operador?: string
           pago_online?: boolean
+          pedido_externo_id?: string | null
           phone?: string
           senha?: string | null
           senha_diaria?: number | null
@@ -2238,6 +2634,7 @@ export type Database = {
         }
         Update: {
           aguardando_pagamento?: boolean
+          canal_venda?: Database["public"]["Enums"]["canal_venda_enum"]
           cashback_usado?: number
           comanda_id?: string | null
           created_at?: string
@@ -2245,6 +2642,8 @@ export type Database = {
           desconto_manual?: number
           discount?: number
           empresa_id?: string
+          entrega_id?: string | null
+          entregador_id?: string | null
           estoque_baixado?: boolean
           id?: string
           impresso_conta?: boolean
@@ -2256,6 +2655,7 @@ export type Database = {
           numero_mesa?: number | null
           observacoes_operador?: string
           pago_online?: boolean
+          pedido_externo_id?: string | null
           phone?: string
           senha?: string | null
           senha_diaria?: number | null
@@ -2286,6 +2686,20 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_entrega_fk"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_entregador_fk"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "entregadores"
             referencedColumns: ["id"]
           },
         ]
@@ -2425,6 +2839,7 @@ export type Database = {
           ncm: string | null
           origem_icms: string | null
           preco_ideal_revenda: number | null
+          preco_ifood: number | null
           price: number
           saldo_estoque: number
           setor_id: string | null
@@ -2457,6 +2872,7 @@ export type Database = {
           ncm?: string | null
           origem_icms?: string | null
           preco_ideal_revenda?: number | null
+          preco_ifood?: number | null
           price: number
           saldo_estoque?: number
           setor_id?: string | null
@@ -2489,6 +2905,7 @@ export type Database = {
           ncm?: string | null
           origem_icms?: string | null
           preco_ideal_revenda?: number | null
+          preco_ifood?: number | null
           price?: number
           saldo_estoque?: number
           setor_id?: string | null
@@ -2539,6 +2956,7 @@ export type Database = {
           insumo_id: string | null
           nome: string
           preco: number
+          preco_ifood: number | null
           produto_id: string
           quantidade: number
           sort_order: number
@@ -2550,6 +2968,7 @@ export type Database = {
           insumo_id?: string | null
           nome: string
           preco?: number
+          preco_ifood?: number | null
           produto_id: string
           quantidade?: number
           sort_order?: number
@@ -2561,6 +2980,7 @@ export type Database = {
           insumo_id?: string | null
           nome?: string
           preco?: number
+          preco_ifood?: number | null
           produto_id?: string
           quantidade?: number
           sort_order?: number
@@ -2710,6 +3130,7 @@ export type Database = {
           created_at: string
           id: string
           preco: number
+          preco_ifood: number | null
           produto_id: string
           sort_order: number
           tamanho: string
@@ -2719,6 +3140,7 @@ export type Database = {
           created_at?: string
           id?: string
           preco?: number
+          preco_ifood?: number | null
           produto_id: string
           sort_order?: number
           tamanho: string
@@ -2728,6 +3150,7 @@ export type Database = {
           created_at?: string
           id?: string
           preco?: number
+          preco_ifood?: number | null
           produto_id?: string
           sort_order?: number
           tamanho?: string
@@ -3332,6 +3755,10 @@ export type Database = {
         }
         Returns: number
       }
+      apply_ifood_markup: {
+        Args: { p_empresa_id: string; p_overwrite?: boolean }
+        Returns: number
+      }
       can_manage_empresa: { Args: { _empresa_id: string }; Returns: boolean }
       cancel_order: { Args: { p_order_id: string }; Returns: undefined }
       claim_tenant_by_host: { Args: { p_host: string }; Returns: string }
@@ -3724,6 +4151,7 @@ export type Database = {
       ambiente_emissao_tipo: "Homologação/Testes" | "Produção"
       app_role: "admin" | "user" | "super_admin"
       attendance_type: "Delivery" | "Presencial"
+      canal_venda_enum: "PWA" | "CAIXA" | "MESA" | "IFOOD" | "TELEFONE"
       cashback_mov_tipo:
         | "credito_ganho"
         | "debito_uso"
@@ -3874,6 +4302,7 @@ export const Constants = {
       ambiente_emissao_tipo: ["Homologação/Testes", "Produção"],
       app_role: ["admin", "user", "super_admin"],
       attendance_type: ["Delivery", "Presencial"],
+      canal_venda_enum: ["PWA", "CAIXA", "MESA", "IFOOD", "TELEFONE"],
       cashback_mov_tipo: [
         "credito_ganho",
         "debito_uso",
