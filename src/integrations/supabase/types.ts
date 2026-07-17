@@ -811,6 +811,7 @@ export type Database = {
       }
       empresas: {
         Row: {
+          ai_report_model: string | null
           ativo: boolean
           bairro: string
           cashback_ativo: boolean
@@ -847,6 +848,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_report_model?: string | null
           ativo?: boolean
           bairro?: string
           cashback_ativo?: boolean
@@ -883,6 +885,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_report_model?: string | null
           ativo?: boolean
           bairro?: string
           cashback_ativo?: boolean
@@ -3658,6 +3661,7 @@ export type Database = {
       admin_get_empresa_config: {
         Args: never
         Returns: {
+          ai_report_model: string
           ativo: boolean
           bairro: string
           cashback_ativo: boolean
