@@ -472,8 +472,36 @@ export function EmpresaConfigTab() {
         </div>
       </section>
 
-
-
+      {/* Modelo de IA — Assistente de Relatórios */}
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Bot className="h-4 w-4 text-primary" />
+          <h3 className="font-display text-sm font-bold">Modelo de IA dos Relatórios</h3>
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Modelo usado pelo Assistente IA em <strong>Relatórios</strong>. Modelos OpenAI
+          costumam seguir schemas mais rigorousamente; Gemini pode ser mais econômico.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ai_report_model">Provedor / Modelo</Label>
+            <select
+              id="ai_report_model"
+              value={form.ai_report_model}
+              onChange={(e) => set("ai_report_model", e.target.value)}
+              className="h-11 rounded-xl border border-border bg-background px-3 text-sm"
+            >
+              <option value="openai/gpt-5.5">OpenAI GPT-5.5 (padrão)</option>
+              <option value="openai/gpt-5.4">OpenAI GPT-5.4</option>
+              <option value="openai/gpt-5.4-mini">OpenAI GPT-5.4 Mini</option>
+              <option value="openai/gpt-5.4-nano">OpenAI GPT-5.4 Nano</option>
+              <option value="google/gemini-3.1-pro-preview">Google Gemini 3.1 Pro</option>
+              <option value="google/gemini-3.5-flash">Google Gemini 3.5 Flash</option>
+              <option value="google/gemini-3.1-flash-lite">Google Gemini 3.1 Flash Lite</option>
+            </select>
+          </div>
+        </div>
+      </section>
 
       {/* Endereço */}
       <section className="rounded-2xl border border-border bg-card p-4">
