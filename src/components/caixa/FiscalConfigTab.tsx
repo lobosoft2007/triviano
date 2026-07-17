@@ -361,6 +361,8 @@ export function FiscalConfigTab() {
           Salvar configuração fiscal
         </Button>
       </div>
+
+      <ManifestacaoView />
     </section>
   );
 }
