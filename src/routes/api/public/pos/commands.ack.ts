@@ -31,7 +31,7 @@ export const Route = createFileRoute("/api/public/pos/commands/ack")({
 
           await supabaseAdmin
             .from("pos_device_commands")
-            .update({ status: body.status, ack_at: new Date().toISOString(), result: body.result ?? {} })
+            .update({ status: body.status, ack_at: new Date().toISOString(), result: (body.result ?? {}) as never })
             .eq("id", body.command_id)
             .eq("device_id", deviceId);
 
