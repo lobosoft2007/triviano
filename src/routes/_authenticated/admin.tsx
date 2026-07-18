@@ -33,6 +33,7 @@ import {
   Armchair,
   Clock,
   Bike,
+  Smartphone,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -88,6 +89,7 @@ import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { IdentidadeVisualTab } from "@/components/admin/IdentidadeVisualTab";
 import { EntregadoresCrud } from "@/components/admin/EntregadoresCrud";
 import { IfoodMerchantsCrud } from "@/components/admin/IfoodMerchantsCrud";
+import { PosDevicesTab } from "@/components/admin/PosDevicesTab";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
@@ -246,6 +248,7 @@ type AdminTab =
   | "mesas"
   | "entregadores"
   | "ifood"
+  | "pos"
   | "rel-clientes"
   | "rel-chat";
 
@@ -274,6 +277,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "mesas", label: "Mesas (QR-Codes)", icon: Armchair },
   { key: "entregadores", label: "Entregadores", icon: Bike },
   { key: "ifood", label: "iFood", icon: UtensilsCrossed },
+  { key: "pos", label: "Maquininhas (POS)", icon: Smartphone },
   { key: "rel-clientes", label: "Relatório · Clientes cadastrados", icon: Users },
   { key: "rel-chat", label: "Assistente IA de Relatórios", icon: Users },
 ];
@@ -303,6 +307,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   mesas: "master",
   entregadores: "master",
   ifood: "master",
+  pos: "master",
   "rel-clientes": "master",
   "rel-chat": "master",
 };
@@ -756,6 +761,7 @@ function AdminPage() {
           {tab === "mesas" && <MesasQrTab />}
           {tab === "entregadores" && <EntregadoresCrud />}
           {tab === "ifood" && <IfoodMerchantsCrud />}
+          {tab === "pos" && <PosDevicesTab />}
           {tab === "rel-clientes" && <RelatorioClientes />}
           {tab === "rel-chat" && <RelatorioChatIA />}
 

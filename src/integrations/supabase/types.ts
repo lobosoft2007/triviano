@@ -2835,6 +2835,111 @@ export type Database = {
           },
         ]
       }
+      pos_devices: {
+        Row: {
+          created_at: string
+          device_fingerprint: string | null
+          empresa_id: string
+          flavor: string
+          id: string
+          last_seen_at: string | null
+          nome: string
+          revogado_em: string | null
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprint?: string | null
+          empresa_id: string
+          flavor: string
+          id?: string
+          last_seen_at?: string | null
+          nome: string
+          revogado_em?: string | null
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprint?: string | null
+          empresa_id?: string
+          flavor?: string
+          id?: string
+          last_seen_at?: string | null
+          nome?: string
+          revogado_em?: string | null
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_devices_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_devices_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_pair_codes: {
+        Row: {
+          code: string
+          created_at: string
+          criado_por: string | null
+          empresa_id: string
+          expira_em: string
+          flavor: string
+          id: string
+          nome: string
+          usado_em: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          criado_por?: string | null
+          empresa_id: string
+          expira_em?: string
+          flavor: string
+          id?: string
+          nome: string
+          usado_em?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          criado_por?: string | null
+          empresa_id?: string
+          expira_em?: string
+          flavor?: string
+          id?: string
+          nome?: string
+          usado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_pair_codes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_pair_codes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           available: boolean
@@ -3212,6 +3317,7 @@ export type Database = {
           nivel_id: string | null
           numero: string
           phone: string
+          pin_pos_hash: string | null
           push_token: string | null
           saldo_cashback: number
           saldo_devedor_fiado: number
@@ -3240,6 +3346,7 @@ export type Database = {
           nivel_id?: string | null
           numero?: string
           phone?: string
+          pin_pos_hash?: string | null
           push_token?: string | null
           saldo_cashback?: number
           saldo_devedor_fiado?: number
@@ -3268,6 +3375,7 @@ export type Database = {
           nivel_id?: string | null
           numero?: string
           phone?: string
+          pin_pos_hash?: string | null
           push_token?: string | null
           saldo_cashback?: number
           saldo_devedor_fiado?: number
@@ -4173,6 +4281,23 @@ export type Database = {
           p_valor: number
         }
         Returns: number
+      }
+      pos_generate_pair_code: {
+        Args: { p_empresa: string; p_flavor: string; p_nome: string }
+        Returns: string
+      }
+      pos_login_pin: {
+        Args: { p_device: string; p_pin: string; p_token: string }
+        Returns: Json
+      }
+      pos_pair_device: {
+        Args: { p_code: string; p_fingerprint: string }
+        Returns: Json
+      }
+      pos_revoke_device: { Args: { p_device: string }; Returns: undefined }
+      pos_set_pin: {
+        Args: { p_pin: string; p_user: string }
+        Returns: undefined
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
