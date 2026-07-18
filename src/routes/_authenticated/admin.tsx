@@ -767,6 +767,7 @@ function AdminPage() {
           {tab === "entregadores" && <EntregadoresCrud />}
           {tab === "ifood" && <IfoodMerchantsCrud />}
           {tab === "pos" && <PosDevicesTab />}
+          {tab === "tap" && <TapProviderTab />}
           {tab === "rel-clientes" && <RelatorioClientes />}
           {tab === "rel-chat" && <RelatorioChatIA />}
 
