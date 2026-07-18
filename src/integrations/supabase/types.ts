@@ -3680,6 +3680,84 @@ export type Database = {
         }
         Relationships: []
       }
+      tap_pix_charges: {
+        Row: {
+          ambiente: string
+          copia_e_cola: string | null
+          created_at: string
+          descricao: string | null
+          empresa_id: string
+          expires_at: string | null
+          external_id: string | null
+          id: string
+          order_id: string | null
+          paid_at: string | null
+          pos_device_id: string | null
+          provider: string
+          qr_code: string | null
+          qr_code_base64: string | null
+          raw_response: Json | null
+          status: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ambiente: string
+          copia_e_cola?: string | null
+          created_at?: string
+          descricao?: string | null
+          empresa_id: string
+          expires_at?: string | null
+          external_id?: string | null
+          id?: string
+          order_id?: string | null
+          paid_at?: string | null
+          pos_device_id?: string | null
+          provider: string
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          ambiente?: string
+          copia_e_cola?: string | null
+          created_at?: string
+          descricao?: string | null
+          empresa_id?: string
+          expires_at?: string | null
+          external_id?: string | null
+          id?: string
+          order_id?: string | null
+          paid_at?: string | null
+          pos_device_id?: string | null
+          provider?: string
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tap_pix_charges_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tap_pix_charges_pos_device_id_fkey"
+            columns: ["pos_device_id"]
+            isOneToOne: false
+            referencedRelation: "pos_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tap_provider_config: {
         Row: {
           ambiente: string
@@ -4352,6 +4430,15 @@ export type Database = {
         Args: { p_ids: string[] }
         Returns: undefined
       }
+      record_tap_pix_paid: {
+        Args: {
+          p_charge_id: string
+          p_external_id: string
+          p_raw: Json
+          p_valor: number
+        }
+        Returns: undefined
+      }
       recusar_solicitacao_mesa: {
         Args: { p_solicitacao_id: string }
         Returns: undefined
@@ -4415,6 +4502,13 @@ export type Database = {
       }
       subproduto_unit_cost: { Args: { p_sub_id: string }; Returns: number }
       user_empresa_id: { Args: { _user_id: string }; Returns: string }
+      verify_pos_device: {
+        Args: { p_device: string; p_token: string }
+        Returns: {
+          empresa_id: string
+          flavor: string
+        }[]
+      }
     }
     Enums: {
       ambiente_emissao_tipo: "Homologação/Testes" | "Produção"

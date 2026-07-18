@@ -28,6 +28,9 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicTapPixCreateRouteImport } from './routes/api/public/tap/pix/create'
+import { Route as ApiPublicTapPixWebhookProviderRouteImport } from './routes/api/public/tap/pix/webhook.$provider'
+import { Route as ApiPublicTapPixStatusIdRouteImport } from './routes/api/public/tap/pix/status.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -125,6 +128,22 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTapPixCreateRoute = ApiPublicTapPixCreateRouteImport.update({
+  id: '/api/public/tap/pix/create',
+  path: '/api/public/tap/pix/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTapPixWebhookProviderRoute =
+  ApiPublicTapPixWebhookProviderRouteImport.update({
+    id: '/api/public/tap/pix/webhook/$provider',
+    path: '/api/public/tap/pix/webhook/$provider',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicTapPixStatusIdRoute = ApiPublicTapPixStatusIdRouteImport.update({
+  id: '/api/public/tap/pix/status/$id',
+  path: '/api/public/tap/pix/status/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -145,6 +164,9 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/tap/pix/create': typeof ApiPublicTapPixCreateRoute
+  '/api/public/tap/pix/status/$id': typeof ApiPublicTapPixStatusIdRoute
+  '/api/public/tap/pix/webhook/$provider': typeof ApiPublicTapPixWebhookProviderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -165,6 +187,9 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/tap/pix/create': typeof ApiPublicTapPixCreateRoute
+  '/api/public/tap/pix/status/$id': typeof ApiPublicTapPixStatusIdRoute
+  '/api/public/tap/pix/webhook/$provider': typeof ApiPublicTapPixWebhookProviderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -187,6 +212,9 @@ export interface FileRoutesById {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/tap/pix/create': typeof ApiPublicTapPixCreateRoute
+  '/api/public/tap/pix/status/$id': typeof ApiPublicTapPixStatusIdRoute
+  '/api/public/tap/pix/webhook/$provider': typeof ApiPublicTapPixWebhookProviderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -209,6 +237,9 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/tap/pix/create'
+    | '/api/public/tap/pix/status/$id'
+    | '/api/public/tap/pix/webhook/$provider'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -229,6 +260,9 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/tap/pix/create'
+    | '/api/public/tap/pix/status/$id'
+    | '/api/public/tap/pix/webhook/$provider'
   id:
     | '__root__'
     | '/'
@@ -250,6 +284,9 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/tap/pix/create'
+    | '/api/public/tap/pix/status/$id'
+    | '/api/public/tap/pix/webhook/$provider'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -265,6 +302,9 @@ export interface RootRouteChildren {
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  ApiPublicTapPixCreateRoute: typeof ApiPublicTapPixCreateRoute
+  ApiPublicTapPixStatusIdRoute: typeof ApiPublicTapPixStatusIdRoute
+  ApiPublicTapPixWebhookProviderRoute: typeof ApiPublicTapPixWebhookProviderRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -402,6 +442,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/tap/pix/create': {
+      id: '/api/public/tap/pix/create'
+      path: '/api/public/tap/pix/create'
+      fullPath: '/api/public/tap/pix/create'
+      preLoaderRoute: typeof ApiPublicTapPixCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/tap/pix/webhook/$provider': {
+      id: '/api/public/tap/pix/webhook/$provider'
+      path: '/api/public/tap/pix/webhook/$provider'
+      fullPath: '/api/public/tap/pix/webhook/$provider'
+      preLoaderRoute: typeof ApiPublicTapPixWebhookProviderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/tap/pix/status/$id': {
+      id: '/api/public/tap/pix/status/$id'
+      path: '/api/public/tap/pix/status/$id'
+      fullPath: '/api/public/tap/pix/status/$id'
+      preLoaderRoute: typeof ApiPublicTapPixStatusIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -441,17 +502,10 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  ApiPublicTapPixCreateRoute: ApiPublicTapPixCreateRoute,
+  ApiPublicTapPixStatusIdRoute: ApiPublicTapPixStatusIdRoute,
+  ApiPublicTapPixWebhookProviderRoute: ApiPublicTapPixWebhookProviderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
