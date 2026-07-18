@@ -3680,6 +3680,72 @@ export type Database = {
         }
         Relationships: []
       }
+      tap_card_charges: {
+        Row: {
+          ambiente: string
+          autorizacao: string | null
+          bandeira: string | null
+          created_at: string
+          empresa_id: string
+          external_id: string | null
+          id: string
+          modalidade: string | null
+          nsu: string | null
+          order_id: string | null
+          paid_at: string | null
+          parcelas: number | null
+          pos_device_id: string | null
+          provider: string
+          raw_response: Json | null
+          status: string
+          updated_at: string
+          valor: number
+          valor_reembolsado: number
+        }
+        Insert: {
+          ambiente?: string
+          autorizacao?: string | null
+          bandeira?: string | null
+          created_at?: string
+          empresa_id: string
+          external_id?: string | null
+          id?: string
+          modalidade?: string | null
+          nsu?: string | null
+          order_id?: string | null
+          paid_at?: string | null
+          parcelas?: number | null
+          pos_device_id?: string | null
+          provider: string
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string
+          valor: number
+          valor_reembolsado?: number
+        }
+        Update: {
+          ambiente?: string
+          autorizacao?: string | null
+          bandeira?: string | null
+          created_at?: string
+          empresa_id?: string
+          external_id?: string | null
+          id?: string
+          modalidade?: string | null
+          nsu?: string | null
+          order_id?: string | null
+          paid_at?: string | null
+          parcelas?: number | null
+          pos_device_id?: string | null
+          provider?: string
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string
+          valor?: number
+          valor_reembolsado?: number
+        }
+        Relationships: []
+      }
       tap_pix_charges: {
         Row: {
           ambiente: string
@@ -4430,6 +4496,32 @@ export type Database = {
         Args: { p_ids: string[] }
         Returns: undefined
       }
+      record_tap_card_paid: {
+        Args: {
+          _ambiente: string
+          _autorizacao: string
+          _bandeira: string
+          _empresa_id: string
+          _external_id: string
+          _modalidade: string
+          _nsu: string
+          _order_id: string
+          _parcelas: number
+          _pos_device_id: string
+          _provider: string
+          _raw: Json
+          _valor: number
+        }
+        Returns: string
+      }
+      record_tap_card_refund: {
+        Args: { _charge_id: string; _raw: Json; _valor: number }
+        Returns: {
+          id: string
+          status: string
+          valor_reembolsado: number
+        }[]
+      }
       record_tap_pix_paid: {
         Args: {
           p_charge_id: string
@@ -4501,6 +4593,18 @@ export type Database = {
         Returns: boolean
       }
       subproduto_unit_cost: { Args: { p_sub_id: string }; Returns: number }
+      tap_daily_reconciliation: {
+        Args: { _dia: string; _empresa_id: string }
+        Returns: {
+          bruto: number
+          liquido: number
+          modalidade: string
+          provider: string
+          qtd: number
+          reembolsado: number
+          tipo: string
+        }[]
+      }
       user_empresa_id: { Args: { _user_id: string }; Returns: string }
       verify_pos_device: {
         Args: { p_device: string; p_token: string }
