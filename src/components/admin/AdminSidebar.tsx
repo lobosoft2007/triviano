@@ -31,6 +31,7 @@ import {
   Clock,
   Bike,
   FileBarChart,
+  Smartphone,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
