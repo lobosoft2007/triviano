@@ -312,6 +312,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   entregadores: "master",
   ifood: "master",
   pos: "master",
+  tap: "master",
   "rel-clientes": "master",
   "rel-chat": "master",
 };
