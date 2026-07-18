@@ -1,68 +1,121 @@
 
-# Sandbox Tecnospeed / PlugNotas — o que falta
+# Triviano Garçom POS — App Android para Smart POS
 
-Hoje o adapter `TecnospeedAdapter` é um esqueleto: ele chama endpoints inventados (`POST /nfce`, `POST /nfe`, `GET /dfe`, `POST /manifestacao`) com um payload genérico. O PlugNotas usa endpoints e um schema JSON completamente diferentes, e exige que o certificado A1 esteja **cadastrado na conta deles**, não só no nosso bucket. Enviar como está hoje = 100% de erro de sandbox.
+Aplicativo Android nativo dedicado ao garçom, rodando **dentro** das maquininhas Rede Smart, PagSeguro Moderninha Smart e InfinitePay Smart. Reaproveita toda a lógica multi-tenant, banco e RPCs já existentes do Triviano — o app é uma casca Android que consome as mesmas APIs do PWA e integra os SDKs de pagamento e impressão de cada fabricante.
 
-O plano abaixo deixa o sandbox operacional sem tocar em nada de venda/caixa.
+## Estratégia técnica
 
-## Escopo
+**Não** é PWA embarcado. As lojas de apps das adquirentes exigem APK Android nativo assinado, com uso dos SDKs oficiais para cobrança e impressão. Optar por PWA/WebView reprova homologação e impede acesso aos periféricos.
 
-1. **Reescrever o adapter para o PlugNotas real**
-   - `base_url` sandbox: `https://api.sandbox.plugnotas.com.br`; produção: `https://api.plugnotas.com.br`. A UI já tem esse campo; só vou colocar defaults corretos por ambiente.
-   - Autenticação por header `x-api-key` (PlugNotas não usa Bearer). Manter `bearer_token` no schema por retrocompatibilidade, mas priorizar `api_key`.
-   - Endpoints reais:
-     - NFC-e: `POST /nfce`, consulta `GET /nfce/consultar/{id}`, PDF `GET /nfce/pdf/{chave}`, XML `GET /nfce/xml/{chave}`, cancelamento `POST /nfce/cancelamento`.
-     - NF-e: `POST /nfe`, mesmos padrões de consulta/PDF/XML/cancelamento.
-     - MDe (documentos destinados): `GET /nfe/mde` com `cnpj` + `nsu`.
-     - Manifestação: `POST /nfe/manifestacao`.
-     - Certificado: `POST /certificado` (multipart, `.pfx` + senha + CNPJ) e `GET /certificado/{cnpj}`.
-     - Empresa/emitente: `POST /empresa` no primeiro save (o PlugNotas guarda os dados do emitente pelo CNPJ; requisições de emissão passam a referenciar só o CNPJ).
-   - Payload de emissão no schema real do PlugNotas (`idIntegracao`, `natureza`, `serie`, `numero`, `presenca`, `pagamento[]`, `produto[]` com `item.codigo/descricao/ncm/cest/cfop/unidade/quantidade/valorUnitario/valorTotal`, `imposto.icms{origem,csosn|cst}`, etc.). Mapear a partir do que o `engine.ts` já monta.
+Stack escolhida: **React Native (bare workflow)** com módulos nativos Java/Kotlin para cada SDK de adquirente. Motivo:
+- Reaproveita ~80% dos componentes JS/TS existentes (telas, tipos, chamadas Supabase).
+- Compartilha `src/lib/*` (mesa, cart, notifications, empresa, permissions) via monorepo.
+- Um único APK com **flavors** por adquirente (`rede`, `pagseguro`, `infinitepay`) — cada flavor empacota só o SDK daquela loja, evitando conflitos e reduzindo tamanho.
 
-2. **Upload automático do certificado para o PlugNotas**
-   - Novo server fn `uploadCertificadoFiscal({ empresa_id })`: baixa o `.pfx` do bucket `certificados-fiscais` (via `supabaseAdmin`), lê a senha de `config_fiscal.certificado_a1_senha_criptografada`, envia multipart para `POST /certificado` do PlugNotas com o CNPJ da empresa, e grava `config_fiscal.certificado_provider_id` + `certificado_sincronizado_em`.
-   - Migration: adicionar essas duas colunas em `config_fiscal` (sem mexer em nada existente).
-   - Botão “Sincronizar certificado com o provedor” na aba Fiscal do Admin. Salvamento do certificado passa a **sugerir** sincronizar. Só admin da empresa executa.
-   - Igual sincroniza `POST /empresa` com dados do emitente (CNPJ, IE, endereço, regime) para não precisar mandar tudo em cada NFC-e.
+Projeto vive em novo diretório irmão do PWA (`triviano-pos/`), compartilhando código via workspace.
 
-3. **Painel de sandbox / diagnóstico**
-   - Novo card “Testes de Sandbox” em Admin → Fiscal, só visível quando `ambiente = homologacao`:
-     - Botão **Ping**: chama `GET /status` do PlugNotas via server fn, mostra status HTTP + tempo.
-     - Botão **Emitir NFC-e de teste**: cria em memória (não persiste em `orders`) um pedido fictício de R$ 0,01 com um item “PRODUTO TESTE HOMOLOGACAO” e roda a mesma pipeline; mostra chave, protocolo, link do PDF e link do XML retornados. Grava o resultado em `notas_fiscais` marcando `ambiente='homologacao'` para o log ficar rastreável.
-     - Botão **Consultar última**: recupera status pela chave.
-   - Zero risco de contaminar a numeração de produção: em `homologacao` a numeração é isolada (já é hoje pelos campos `numero_nfce_proximo`; nada muda).
+## Escopo funcional (v1)
 
-4. **Erros e logs**
-   - Padronizar retorno de erro: quando o PlugNotas devolver `{ error: [{ mensagem, campo }] }` (é o formato deles), concatenar em `RespostaEmissao.mensagem` e logar `console.error("[plugnotas]", status, body)` no server para aparecer em `server-function-logs`.
-   - Nunca retornar a chave da API na resposta.
+1. **Login pareado por device + PIN por garçom**
+   - Primeiro uso: master admin gera "código de pareamento" no `/admin` que amarra o device a uma `empresa_id`. Salva token de longa duração seguro no Android Keystore.
+   - Uso diário: garçom digita PIN de 4-6 dígitos (novo campo `profiles.pin_pos_hash`, apenas para funcionários com nivel_id). PIN valida via nova server function `pos_login_pin`.
 
-5. **Documentação curta na tela**
-   - Texto na aba Fiscal indicando: (a) URL sandbox × produção; (b) que o header é `x-api-key`; (c) checklist de sandbox (empresa sincronizada ✓, certificado sincronizado ✓, ambiente = homologação ✓, ping ✓, NFC-e teste autorizada ✓).
+2. **Abrir mesa e lançar pedidos**
+   - Reaproveita `abrir_solicitacao_mesa`/`liberar_mesa` — garçom age no papel de operador (auto-visto) OU escaneia QR da mesa via câmera da maquininha.
+   - Tela de cardápio compacta (grid touch de setor→produto), com customizações e adicionais já existentes.
+   - Envia com `enviar_pedido_mesa` (mesma RPC do PWA).
 
-## O que **não** entra nesse plano
+3. **Ver comanda e fechar conta**
+   - Reusa `fetchComandaById`, `fetchComandaPedidos`, `fechar_comanda`.
 
-- Cancelamento e carta de correção pela UI (fica para o próximo ciclo — o adapter já vai expor os métodos).
-- Impressão do DANFE simplificado direto no cupom do Caixa (hoje já abre PDF em nova aba; suficiente para o sandbox).
-- Job automático de polling de MDe (por enquanto continua manual via botão “Consultar DF-e” já existente).
-- Troca de provedor (ACBr/Nativo): a arquitetura de adapters já isola isso; nada muda.
+4. **Cobrança de cartão na maquininha**
+   - Módulo nativo unificado `PaymentBridge` com interface JS única (`charge({ amount, method })`).
+   - Implementações por flavor:
+     - **Rede Smart**: SDK Userede/Rede Pay.
+     - **PagSeguro**: PlugPag SDK.
+     - **InfinitePay**: SDK Cloud (`br.com.infinitepay.pos`).
+   - Fluxo: garçom escolhe "Cobrar mesa", seleciona split se quiser, escolhe crédito/débito → SDK abre tela nativa → app recebe comprovante → grava em `pagamentos_pedido` e chama `finalize_comanda_split` existente, com um novo meio de pagamento `CARTAO_POS_<flavor>`.
 
-## Detalhes técnicos
+5. **Impressão de comanda/cupom na própria maquininha**
+   - Módulo nativo `PrinterBridge` com `printText(commands)`; implementação por flavor usando a impressora térmica embutida (todas expõem API própria).
+   - Reaproveita layouts `SectorReceipt`/`BillReceipt` — porta o texto para ESC/POS simples.
 
-- Arquivos alterados:
-  - `src/lib/fiscal/adapters/tecnospeed.ts` → reescrito para PlugNotas (mantém o nome de classe para não quebrar `getAdapter`; opcionalmente renomear para `PlugNotasAdapter` e apontar o case `"tecnospeed"` para ele).
-  - `src/lib/fiscal/engine.ts` → adicionar `sincronizarEmitente()` e `sincronizarCertificado()`; ajustar mapeamento de item para incluir `unidade`, `cest`, `pagamento[]` (a partir de `pagamentos_pedido`).
-  - `src/lib/fiscal/fiscal.functions.ts` → novos server fns `pingProvedorFiscal`, `emitirNfceTeste`, `sincronizarCertificadoFiscal`, `sincronizarEmpresaFiscal` (todos com `requireSupabaseAuth` + checagem `has_role admin`).
-  - `src/components/caixa/FiscalConfigTab.tsx` (usado hoje no Admin) → seção “Testes de Sandbox” + botões de sincronização + defaults de URL por ambiente.
-  - `src/integrations/supabase/client.server.ts` já existe; usado dentro dos handlers para baixar o `.pfx`.
-- Migration SQL:
-  - `alter table public.config_fiscal add column certificado_provider_id text, add column certificado_sincronizado_em timestamptz, add column emitente_sincronizado_em timestamptz;`
-  - Nenhuma mudança de RLS/GRANT (colunas herdam as políticas existentes de `config_fiscal`, já restritas por `can_manage_empresa`).
-- Segredos: nenhum novo. A chave do PlugNotas continua sendo digitada em Admin → Fiscal (`config_fiscal.credenciais.api_key`) — cada empresa tem a própria (multi-tenant). Nada vai para `.env`.
-- Testes manuais que farei ao final:
-  1. `pingProvedorFiscal` → 200 em sandbox.
-  2. Sincronizar empresa → 200/201.
-  3. Sincronizar certificado A1 → 200 + `certificado_provider_id` gravado.
-  4. Emitir NFC-e de teste → status `autorizada`, chave + PDF acessível.
-  5. Consultar por chave → mesmo status.
+6. **Notificações**
+   - Realtime Supabase (via lib JS já existente) para novos pedidos, chamadas de mesa e status.
+   - Sem push nativo na v1 — o app fica em foreground durante o turno.
 
-Ao aprovar, executo em uma migration + uma rodada de edits e te devolvo pronto para colar a `api_key` do sandbox e clicar em “Emitir NFC-e de teste”.
+## Backend (mudanças mínimas)
+
+Migração única:
+
+- `profiles.pin_pos_hash TEXT` (hash bcrypt) — só operadores com `nivel_id`.
+- `pos_devices` — pareamento device↔empresa: `id`, `empresa_id`, `nome`, `token_hash`, `flavor` (rede/pagseguro/infinitepay), `last_seen_at`, `revogado_em`. RLS via `can_manage_empresa`. GRANT authenticated/service_role.
+- Novos meios de pagamento seed: `CARTAO_CREDITO_POS`, `CARTAO_DEBITO_POS` (por empresa, com `is_sistema=true` e `percentual_cashback` configurável).
+- Server functions:
+  - `pos_pair_device(codigo)` — chamada pelo app com código do admin, retorna token.
+  - `pos_login_pin(pin)` — valida PIN do garçom no contexto do device, retorna claims curtas.
+  - `pos_register_payment(pedido_id, meio_id, valor, nsu, autorizacao, bandeira)` — grava split e chama `finalize_comanda_paid`/`_split` conforme o caso.
+- No `/admin` (aba Configurações da Empresa): nova seção **Maquininhas (POS)** — gera código de pareamento, lista devices, permite revogar.
+
+## Estrutura do repositório
+
+```text
+triviano/                (PWA atual — inalterado)
+triviano-pos/            (novo)
+├── android/
+│   ├── app/
+│   │   ├── src/rede/         (flavor Rede + SDK)
+│   │   ├── src/pagseguro/    (flavor PagSeguro + PlugPag)
+│   │   └── src/infinitepay/  (flavor InfinitePay)
+│   └── build.gradle          (productFlavors)
+├── src/
+│   ├── screens/ (Login, PinPad, Mesas, Cardapio, Comanda, Cobrar, Config)
+│   ├── native/  (PaymentBridge.ts, PrinterBridge.ts — TS types)
+│   └── lib/     (symlink/reexport de triviano/src/lib compartilhado)
+└── package.json
+```
+
+## Homologação e distribuição
+
+Cada adquirente exige processo próprio (formulário técnico, APK assinado, testes com maquininha física, revisão de segurança). Cronograma real:
+
+1. **Rede Smart** — Portal Rede Developer, prazo típico 2-4 semanas.
+2. **PagSeguro** — Portal PagBank Dev, 3-6 semanas.
+3. **InfinitePay** — Marketplace CloudWalk, 2-3 semanas.
+
+Cada uma tem seu próprio pipeline de build (`assembleRedeRelease`, etc.). Precisamos abrir contas developer nas três antes de gerar APKs de homologação.
+
+## Fora do escopo desta v1
+
+- Modo offline com fila (adiciona ~2 semanas — proposta v2).
+- NFC-e emitida direto da maquininha (fica no PWA/Caixa por enquanto).
+- Push nativo FCM.
+- App para gerente com relatórios.
+
+## Fases de entrega
+
+**Fase 0 — Fundação backend (1 sprint)**
+- Migração `pos_devices` + `pin_pos_hash` + meios de pagamento POS.
+- Server functions `pos_pair_device`, `pos_login_pin`, `pos_register_payment`.
+- Aba "Maquininhas (POS)" no `/admin` com CRUD de códigos e devices.
+
+**Fase 1 — App base (1 sprint)**
+- Scaffold RN bare + monorepo compartilhando `src/lib`.
+- Fluxo de pareamento + PIN + navegação.
+- Telas Mesas / Cardápio / Comanda (sem SDK ainda).
+
+**Fase 2 — Bridges nativos (2 sprints, um flavor por vez)**
+- Flavor **InfinitePay** primeiro (SDK mais simples, homologação mais rápida) — `PaymentBridge` + `PrinterBridge`.
+- Depois **Rede Smart**.
+- Depois **PagSeguro**.
+
+**Fase 3 — Homologação (paralelo, gerido pelo usuário)**
+- Submissão nos três portais.
+
+## Ponto de decisão antes de codar
+
+Preciso confirmar duas coisas antes de abrir a Fase 0:
+
+1. **Onde mora o repositório do app**: crio `triviano-pos/` dentro deste mesmo projeto Lovable (Lovable não builda Android, então seria apenas o código-fonte versionado aqui) OU você abre repositório separado no GitHub e eu entrego só os patches de backend + instruções? Recomendo **repositório separado** — Lovable é focado em web; o CI Android roda melhor em GitHub Actions/Bitrise.
+
+2. **Fase 0 imediata**: começo agora só pela **fundação backend** (migração + server functions + tela de pareamento no /admin), que já é útil e é 100% no escopo do Lovable, e o app RN entra num repo à parte?
