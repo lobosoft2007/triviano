@@ -34,6 +34,7 @@ import {
   Clock,
   Bike,
   Smartphone,
+  Nfc,
 } from "lucide-react";
 
 import { toast } from "sonner";
