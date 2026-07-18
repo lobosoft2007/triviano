@@ -251,6 +251,7 @@ type AdminTab =
   | "entregadores"
   | "ifood"
   | "pos"
+  | "frota"
   | "tap"
   | "rel-clientes"
   | "rel-chat";
@@ -281,6 +282,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "entregadores", label: "Entregadores", icon: Bike },
   { key: "ifood", label: "iFood", icon: UtensilsCrossed },
   { key: "pos", label: "Maquininhas (POS)", icon: Smartphone },
+  { key: "frota", label: "Frota POS/Tap", icon: Smartphone },
   { key: "tap", label: "Tap on Phone", icon: Nfc },
   { key: "rel-clientes", label: "Relatório · Clientes cadastrados", icon: Users },
   { key: "rel-chat", label: "Assistente IA de Relatórios", icon: Users },
@@ -312,6 +314,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   entregadores: "master",
   ifood: "master",
   pos: "master",
+  frota: "master",
   tap: "master",
   "rel-clientes": "master",
   "rel-chat": "master",
@@ -767,6 +770,7 @@ function AdminPage() {
           {tab === "entregadores" && <EntregadoresCrud />}
           {tab === "ifood" && <IfoodMerchantsCrud />}
           {tab === "pos" && <PosDevicesTab />}
+          {tab === "frota" && <FrotaTab />}
           {tab === "tap" && <TapProviderTab />}
           {tab === "rel-clientes" && <RelatorioClientes />}
           {tab === "rel-chat" && <RelatorioChatIA />}
