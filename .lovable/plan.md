@@ -1,121 +1,51 @@
+# Triviano Tap — Provedores configuráveis pelo Admin
 
-# Triviano Garçom POS — App Android para Smart POS
+Sim, é totalmente viável e é o desenho certo para SaaS multi-tenant: cada dono de restaurante escolhe no `/admin` qual provedor Tap on Phone / PIX quer usar e coloca as próprias credenciais. O app garçom lê essa configuração do backend a cada login — nada fica hardcoded no APK. Primeiros provedores homologados: **Mercado Pago Point Tap** e **PagBank Tap to Pay**.
 
-Aplicativo Android nativo dedicado ao garçom, rodando **dentro** das maquininhas Rede Smart, PagSeguro Moderninha Smart e InfinitePay Smart. Reaproveita toda a lógica multi-tenant, banco e RPCs já existentes do Triviano — o app é uma casca Android que consome as mesmas APIs do PWA e integra os SDKs de pagamento e impressão de cada fabricante.
+## Como fica no Admin
 
-## Estratégia técnica
+Nova aba **"Tap on Phone"** dentro de **Admin → Empresa → Pagamentos** (ao lado do PIX estático e do Mercado Pago Checkout que já existem):
 
-**Não** é PWA embarcado. As lojas de apps das adquirentes exigem APK Android nativo assinado, com uso dos SDKs oficiais para cobrança e impressão. Optar por PWA/WebView reprova homologação e impede acesso aos periféricos.
+- Dropdown "Provedor ativo": `Mercado Pago` | `PagBank` | `Desativado`.
+- Campos dinâmicos por provedor (o form troca conforme a escolha):
+  - **Mercado Pago**: `access_token`, `user_id`, `store_id`, `pos_id`, `application_id`, ambiente (produção/homologação).
+  - **PagBank / PagSeguro**: `client_id`, `client_secret`, `token_aplicacao`, `codigo_ativacao_maquininha`, ambiente.
+- Botão "Testar credenciais" → chama o provedor e devolve OK/erro.
+- Lista de dispositivos pareados (reaproveita `pos_devices`, filtrando `tipo='tap_phone'`) com status online/offline.
 
-Stack escolhida: **React Native (bare workflow)** com módulos nativos Java/Kotlin para cada SDK de adquirente. Motivo:
-- Reaproveita ~80% dos componentes JS/TS existentes (telas, tipos, chamadas Supabase).
-- Compartilha `src/lib/*` (mesa, cart, notifications, empresa, permissions) via monorepo.
-- Um único APK com **flavors** por adquirente (`rede`, `pagseguro`, `infinitepay`) — cada flavor empacota só o SDK daquela loja, evitando conflitos e reduzindo tamanho.
+Tudo isolado por `empresa_id` via RLS — Empresa A jamais lê credenciais da Empresa B.
 
-Projeto vive em novo diretório irmão do PWA (`triviano-pos/`), compartilhando código via workspace.
+## Modelo de dados (mínimo, tudo em uma migração)
 
-## Escopo funcional (v1)
+Uma tabela nova `tap_provider_config` (não misturamos com `config_pagamentos` para manter o motor financeiro protegido intacto):
 
-1. **Login pareado por device + PIN por garçom**
-   - Primeiro uso: master admin gera "código de pareamento" no `/admin` que amarra o device a uma `empresa_id`. Salva token de longa duração seguro no Android Keystore.
-   - Uso diário: garçom digita PIN de 4-6 dígitos (novo campo `profiles.pin_pos_hash`, apenas para funcionários com nivel_id). PIN valida via nova server function `pos_login_pin`.
+- `id`, `empresa_id` (default `current_empresa_id()`), `provider` (`mercadopago` | `pagbank`), `ativo` (bool), `ambiente` (`prod`|`sandbox`), `credentials` (JSONB **criptografado** via `pgsodium`/`vault`, mesmo padrão do `ai_report_api_key`), `created_at`, `updated_at`.
+- Índice único parcial: uma linha ATIVA por empresa.
+- Grants: `authenticated` só via RPC (nunca lê a coluna crua); `service_role` full.
+- RLS: `SELECT/INSERT/UPDATE` restrito a `can_manage_empresa(empresa_id)`.
+- RPCs:
+  - `get_tap_config_public()` → devolve para o app garçom só o mínimo necessário para o SDK (provider, ambiente, tokens públicos), **nunca** o secret bruto — quando o SDK precisa de secret, a cobrança é intermediada por uma server function.
+  - `save_tap_config(provider, ambiente, credentials jsonb)` → grava criptografado.
+  - `tap_charge(pedido_id, valor, tipo)` (server function) → assina a chamada ao provedor server-side quando ele exigir secret; devolve NSU/autorização; grava em `pagamentos_pedido` e chama `finalize_comanda_split`, exatamente como o fluxo já existente.
 
-2. **Abrir mesa e lançar pedidos**
-   - Reaproveita `abrir_solicitacao_mesa`/`liberar_mesa` — garçom age no papel de operador (auto-visto) OU escaneia QR da mesa via câmera da maquininha.
-   - Tela de cardápio compacta (grid touch de setor→produto), com customizações e adicionais já existentes.
-   - Envia com `enviar_pedido_mesa` (mesma RPC do PWA).
+Nada muda em `meios_pagamento`, `pos_devices` (só usamos `tipo='tap_phone'`), triggers financeiros, ou RLS de `orders/comanda_ativa`.
 
-3. **Ver comanda e fechar conta**
-   - Reusa `fetchComandaById`, `fetchComandaPedidos`, `fechar_comanda`.
+## Como o app garçom consome
 
-4. **Cobrança de cartão na maquininha**
-   - Módulo nativo unificado `PaymentBridge` com interface JS única (`charge({ amount, method })`).
-   - Implementações por flavor:
-     - **Rede Smart**: SDK Userede/Rede Pay.
-     - **PagSeguro**: PlugPag SDK.
-     - **InfinitePay**: SDK Cloud (`br.com.infinitepay.pos`).
-   - Fluxo: garçom escolhe "Cobrar mesa", seleciona split se quiser, escolhe crédito/débito → SDK abre tela nativa → app recebe comprovante → grava em `pagamentos_pedido` e chama `finalize_comanda_split` existente, com um novo meio de pagamento `CARTAO_POS_<flavor>`.
+No login, o app chama `get_tap_config_public()` → sabe qual SDK carregar. Os SDKs de Mercado Pago Point Tap e PagBank Tap são incluídos no **mesmo APK** (não precisamos de flavor por provedor — os dois SDKs coexistem; só um é inicializado em runtime conforme a config da empresa). Isso simplifica publicação: **um único APK** por versão, sem `productFlavors`.
 
-5. **Impressão de comanda/cupom na própria maquininha**
-   - Módulo nativo `PrinterBridge` com `printText(commands)`; implementação por flavor usando a impressora térmica embutida (todas expõem API própria).
-   - Reaproveita layouts `SectorReceipt`/`BillReceipt` — porta o texto para ESC/POS simples.
+Vantagem prática: se o dono do restaurante trocar de Mercado Pago para PagBank, ele muda no Admin e o app garçom carrega o outro provedor no próximo login — sem reinstalar APK.
 
-6. **Notificações**
-   - Realtime Supabase (via lib JS já existente) para novos pedidos, chamadas de mesa e status.
-   - Sem push nativo na v1 — o app fica em foreground durante o turno.
+## Fases (revisadas com sua decisão)
 
-## Backend (mudanças mínimas)
+- **T0 — Migração + Admin (backend)**: tabela `tap_provider_config`, RLS, RPCs, aba "Tap on Phone" no Admin com Mercado Pago e PagBank. **Testável imediatamente** com "Testar credenciais".
+- **T1 — App base Tap** (RN, sem SDK): telas Login/Mesas/Cardápio/Comanda/Cobrar (simulador).
+- **T2 — PIX dinâmico** (funciona nos dois provedores via Mercado Pago Checkout já plugado + endpoint PIX do PagBank): entrega valor antes da homologação Tap.
+- **T3 — SDK Mercado Pago Point Tap**: bridge Android + tela Diagnóstico.
+- **T4 — SDK PagBank Tap to Pay**: bridge Android + Diagnóstico.
+- **T5 — Homologação nos dois** e publicação.
 
-Migração única:
+## Perguntas antes de abrir a T0
 
-- `profiles.pin_pos_hash TEXT` (hash bcrypt) — só operadores com `nivel_id`.
-- `pos_devices` — pareamento device↔empresa: `id`, `empresa_id`, `nome`, `token_hash`, `flavor` (rede/pagseguro/infinitepay), `last_seen_at`, `revogado_em`. RLS via `can_manage_empresa`. GRANT authenticated/service_role.
-- Novos meios de pagamento seed: `CARTAO_CREDITO_POS`, `CARTAO_DEBITO_POS` (por empresa, com `is_sistema=true` e `percentual_cashback` configurável).
-- Server functions:
-  - `pos_pair_device(codigo)` — chamada pelo app com código do admin, retorna token.
-  - `pos_login_pin(pin)` — valida PIN do garçom no contexto do device, retorna claims curtas.
-  - `pos_register_payment(pedido_id, meio_id, valor, nsu, autorizacao, bandeira)` — grava split e chama `finalize_comanda_paid`/`_split` conforme o caso.
-- No `/admin` (aba Configurações da Empresa): nova seção **Maquininhas (POS)** — gera código de pareamento, lista devices, permite revogar.
-
-## Estrutura do repositório
-
-```text
-triviano/                (PWA atual — inalterado)
-triviano-pos/            (novo)
-├── android/
-│   ├── app/
-│   │   ├── src/rede/         (flavor Rede + SDK)
-│   │   ├── src/pagseguro/    (flavor PagSeguro + PlugPag)
-│   │   └── src/infinitepay/  (flavor InfinitePay)
-│   └── build.gradle          (productFlavors)
-├── src/
-│   ├── screens/ (Login, PinPad, Mesas, Cardapio, Comanda, Cobrar, Config)
-│   ├── native/  (PaymentBridge.ts, PrinterBridge.ts — TS types)
-│   └── lib/     (symlink/reexport de triviano/src/lib compartilhado)
-└── package.json
-```
-
-## Homologação e distribuição
-
-Cada adquirente exige processo próprio (formulário técnico, APK assinado, testes com maquininha física, revisão de segurança). Cronograma real:
-
-1. **Rede Smart** — Portal Rede Developer, prazo típico 2-4 semanas.
-2. **PagSeguro** — Portal PagBank Dev, 3-6 semanas.
-3. **InfinitePay** — Marketplace CloudWalk, 2-3 semanas.
-
-Cada uma tem seu próprio pipeline de build (`assembleRedeRelease`, etc.). Precisamos abrir contas developer nas três antes de gerar APKs de homologação.
-
-## Fora do escopo desta v1
-
-- Modo offline com fila (adiciona ~2 semanas — proposta v2).
-- NFC-e emitida direto da maquininha (fica no PWA/Caixa por enquanto).
-- Push nativo FCM.
-- App para gerente com relatórios.
-
-## Fases de entrega
-
-**Fase 0 — Fundação backend (1 sprint)**
-- Migração `pos_devices` + `pin_pos_hash` + meios de pagamento POS.
-- Server functions `pos_pair_device`, `pos_login_pin`, `pos_register_payment`.
-- Aba "Maquininhas (POS)" no `/admin` com CRUD de códigos e devices.
-
-**Fase 1 — App base (1 sprint)**
-- Scaffold RN bare + monorepo compartilhando `src/lib`.
-- Fluxo de pareamento + PIN + navegação.
-- Telas Mesas / Cardápio / Comanda (sem SDK ainda).
-
-**Fase 2 — Bridges nativos (2 sprints, um flavor por vez)**
-- Flavor **InfinitePay** primeiro (SDK mais simples, homologação mais rápida) — `PaymentBridge` + `PrinterBridge`.
-- Depois **Rede Smart**.
-- Depois **PagSeguro**.
-
-**Fase 3 — Homologação (paralelo, gerido pelo usuário)**
-- Submissão nos três portais.
-
-## Ponto de decisão antes de codar
-
-Preciso confirmar duas coisas antes de abrir a Fase 0:
-
-1. **Onde mora o repositório do app**: crio `triviano-pos/` dentro deste mesmo projeto Lovable (Lovable não builda Android, então seria apenas o código-fonte versionado aqui) OU você abre repositório separado no GitHub e eu entrego só os patches de backend + instruções? Recomendo **repositório separado** — Lovable é focado em web; o CI Android roda melhor em GitHub Actions/Bitrise.
-
-2. **Fase 0 imediata**: começo agora só pela **fundação backend** (migração + server functions + tela de pareamento no /admin), que já é útil e é 100% no escopo do Lovable, e o app RN entra num repo à parte?
+1. Confirma **um único APK com os dois SDKs**, escolhendo em runtime pela config da empresa? (Recomendo sim — menos atrito para o cliente.)
+2. Já tem contas developer no **Mercado Pago Point** e no **PagBank Tap** (precisamos do access token para testar), ou começo pela T0 usando apenas ambiente sandbox de ambos?
