@@ -3680,6 +3680,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tap_provider_config: {
+        Row: {
+          ambiente: string
+          ativo: boolean
+          created_at: string
+          credentials: Json
+          empresa_id: string
+          id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string
+          ativo?: boolean
+          created_at?: string
+          credentials?: Json
+          empresa_id?: string
+          id?: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string
+          ativo?: boolean
+          created_at?: string
+          credentials?: Json
+          empresa_id?: string
+          id?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -4094,6 +4127,14 @@ export type Database = {
           is_manager: boolean
         }[]
       }
+      get_my_tap_provider: {
+        Args: never
+        Returns: {
+          ambiente: string
+          ativo: boolean
+          provider: string
+        }[]
+      }
       get_next_opening: {
         Args: { p_empresa_id: string }
         Returns: {
@@ -4343,6 +4384,15 @@ export type Database = {
       }
       resolve_empresa_id_by_host: { Args: { p_host: string }; Returns: string }
       reverse_order_stock: { Args: { p_order_id: string }; Returns: undefined }
+      save_tap_provider_config: {
+        Args: {
+          p_ambiente: string
+          p_ativo: boolean
+          p_credentials: Json
+          p_provider: string
+        }
+        Returns: string
+      }
       set_cliente_bloqueado: {
         Args: { p_bloqueado: boolean; p_user_id: string }
         Returns: undefined
