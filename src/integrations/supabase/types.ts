@@ -2835,40 +2835,219 @@ export type Database = {
           },
         ]
       }
-      pos_devices: {
+      pos_app_releases: {
+        Row: {
+          apk_url: string | null
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          notas: string | null
+          versao: string
+          versao_minima_obrigatoria: string
+        }
+        Insert: {
+          apk_url?: string | null
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notas?: string | null
+          versao: string
+          versao_minima_obrigatoria: string
+        }
+        Update: {
+          apk_url?: string | null
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notas?: string | null
+          versao?: string
+          versao_minima_obrigatoria?: string
+        }
+        Relationships: []
+      }
+      pos_device_commands: {
+        Row: {
+          ack_at: string | null
+          comando: string
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          device_id: string
+          empresa_id: string
+          id: string
+          payload: Json
+          result: Json | null
+          status: string
+        }
+        Insert: {
+          ack_at?: string | null
+          comando: string
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          device_id: string
+          empresa_id: string
+          id?: string
+          payload?: Json
+          result?: Json | null
+          status?: string
+        }
+        Update: {
+          ack_at?: string | null
+          comando?: string
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          device_id?: string
+          empresa_id?: string
+          id?: string
+          payload?: Json
+          result?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "pos_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_device_commands_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_device_commands_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_device_events: {
         Row: {
           created_at: string
+          device_id: string
+          empresa_id: string
+          id: string
+          payload: Json
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          empresa_id: string
+          id?: string
+          payload?: Json
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          empresa_id?: string
+          id?: string
+          payload?: Json
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "pos_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_device_events_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_device_events_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_devices: {
+        Row: {
+          app_version: string | null
+          ativo: boolean
+          battery_pct: number | null
+          created_at: string
+          current_operator_id: string | null
           device_fingerprint: string | null
           empresa_id: string
           flavor: string
           id: string
+          last_error: string | null
+          last_error_at: string | null
           last_seen_at: string | null
+          network_type: string | null
+          nfc_ok: boolean | null
           nome: string
+          os_version: string | null
+          printer_ok: boolean | null
           revogado_em: string | null
+          sdk_provider_ativo: string | null
           token_hash: string
           updated_at: string
         }
         Insert: {
+          app_version?: string | null
+          ativo?: boolean
+          battery_pct?: number | null
           created_at?: string
+          current_operator_id?: string | null
           device_fingerprint?: string | null
           empresa_id: string
           flavor: string
           id?: string
+          last_error?: string | null
+          last_error_at?: string | null
           last_seen_at?: string | null
+          network_type?: string | null
+          nfc_ok?: boolean | null
           nome: string
+          os_version?: string | null
+          printer_ok?: boolean | null
           revogado_em?: string | null
+          sdk_provider_ativo?: string | null
           token_hash: string
           updated_at?: string
         }
         Update: {
+          app_version?: string | null
+          ativo?: boolean
+          battery_pct?: number | null
           created_at?: string
+          current_operator_id?: string | null
           device_fingerprint?: string | null
           empresa_id?: string
           flavor?: string
           id?: string
+          last_error?: string | null
+          last_error_at?: string | null
           last_seen_at?: string | null
+          network_type?: string | null
+          nfc_ok?: boolean | null
           nome?: string
+          os_version?: string | null
+          printer_ok?: boolean | null
           revogado_em?: string | null
+          sdk_provider_ativo?: string | null
           token_hash?: string
           updated_at?: string
         }
@@ -3916,6 +4095,20 @@ export type Database = {
         }
         Relationships: []
       }
+      v_tap_transactions_daily: {
+        Row: {
+          bruto: number | null
+          device_id: string | null
+          dia: string | null
+          empresa_id: string | null
+          estornado: number | null
+          liquido: number | null
+          modalidade: string | null
+          provider: string | null
+          qtd: number | null
+        }
+        Relationships: []
+      }
       view_products_public: {
         Row: {
           available: boolean | null
@@ -4413,6 +4606,7 @@ export type Database = {
       is_local_admin: { Args: never; Returns: boolean }
       is_master_admin: { Args: never; Returns: boolean }
       is_produto_publico: { Args: { _produto_id: string }; Returns: boolean }
+      is_superadmin: { Args: never; Returns: boolean }
       liberar_mesa: {
         Args: { p_forcar?: boolean; p_solicitacao_id: string }
         Returns: string
@@ -4467,6 +4661,7 @@ export type Database = {
         }
         Returns: number
       }
+      pos_fleet_kpis: { Args: never; Returns: Json }
       pos_generate_pair_code: {
         Args: { p_empresa: string; p_flavor: string; p_nome: string }
         Returns: string
@@ -4480,6 +4675,10 @@ export type Database = {
         Returns: Json
       }
       pos_revoke_device: { Args: { p_device: string }; Returns: undefined }
+      pos_send_command: {
+        Args: { p_comando: string; p_device: string; p_payload?: Json }
+        Returns: string
+      }
       pos_set_pin: {
         Args: { p_pin: string; p_user: string }
         Returns: undefined
