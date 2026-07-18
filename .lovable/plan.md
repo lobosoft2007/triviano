@@ -1,51 +1,66 @@
-# Triviano Tap — Provedores configuráveis pelo Admin
+# Fase T-Ops — Operação, Observabilidade e Suporte do parque Triviano Tap
 
-Sim, é totalmente viável e é o desenho certo para SaaS multi-tenant: cada dono de restaurante escolhe no `/admin` qual provedor Tap on Phone / PIX quer usar e coloca as próprias credenciais. O app garçom lê essa configuração do backend a cada login — nada fica hardcoded no APK. Primeiros provedores homologados: **Mercado Pago Point Tap** e **PagBank Tap to Pay**.
+Objetivo: dar ao dono da empresa (e ao suporte Triviano) as ferramentas para **operar centenas de maquininhas/celulares Tap em produção** sem depender do desenvolvedor. Foco em telemetria, alertas, ações remotas seguras e runbooks.
 
-## Como fica no Admin
+## 1. Telemetria dos devices (heartbeat + eventos)
 
-Nova aba **"Tap on Phone"** dentro de **Admin → Empresa → Pagamentos** (ao lado do PIX estático e do Mercado Pago Checkout que já existem):
+Ampliar `pos_devices` com colunas de saúde: `last_seen_at`, `app_version`, `os_version`, `battery_pct`, `network_type` (wifi/4g), `printer_ok`, `nfc_ok`, `sdk_provider_ativo`, `last_error`, `last_error_at`.
 
-- Dropdown "Provedor ativo": `Mercado Pago` | `PagBank` | `Desativado`.
-- Campos dinâmicos por provedor (o form troca conforme a escolha):
-  - **Mercado Pago**: `access_token`, `user_id`, `store_id`, `pos_id`, `application_id`, ambiente (produção/homologação).
-  - **PagBank / PagSeguro**: `client_id`, `client_secret`, `token_aplicacao`, `codigo_ativacao_maquininha`, ambiente.
-- Botão "Testar credenciais" → chama o provedor e devolve OK/erro.
-- Lista de dispositivos pareados (reaproveita `pos_devices`, filtrando `tipo='tap_phone'`) com status online/offline.
+Nova tabela `pos_device_events` (append-only): `device_id`, `tipo` (`heartbeat`|`login`|`erro_sdk`|`erro_pix`|`erro_impressao`|`ota_aplicada`|`config_alterada`), `payload jsonb`, `created_at`. RLS por empresa, particionamento lógico por dia via índice.
 
-Tudo isolado por `empresa_id` via RLS — Empresa A jamais lê credenciais da Empresa B.
+Endpoint público autenticado `POST /api/public/pos/heartbeat` (assinado com `device_token`) recebe payload a cada 60s quando app está aberto.
 
-## Modelo de dados (mínimo, tudo em uma migração)
+## 2. Ações remotas seguras
 
-Uma tabela nova `tap_provider_config` (não misturamos com `config_pagamentos` para manter o motor financeiro protegido intacto):
+Nova tabela `pos_device_commands`: `device_id`, `comando` (`bloquear`|`desbloquear`|`forcar_logout`|`reimprimir_ultimo`|`limpar_fila_offline`|`ping`|`atualizar_config`), `payload`, `status` (`pendente`|`entregue`|`executado`|`falhou`), `created_by`, timestamps.
 
-- `id`, `empresa_id` (default `current_empresa_id()`), `provider` (`mercadopago` | `pagbank`), `ativo` (bool), `ambiente` (`prod`|`sandbox`), `credentials` (JSONB **criptografado** via `pgsodium`/`vault`, mesmo padrão do `ai_report_api_key`), `created_at`, `updated_at`.
-- Índice único parcial: uma linha ATIVA por empresa.
-- Grants: `authenticated` só via RPC (nunca lê a coluna crua); `service_role` full.
-- RLS: `SELECT/INSERT/UPDATE` restrito a `can_manage_empresa(empresa_id)`.
-- RPCs:
-  - `get_tap_config_public()` → devolve para o app garçom só o mínimo necessário para o SDK (provider, ambiente, tokens públicos), **nunca** o secret bruto — quando o SDK precisa de secret, a cobrança é intermediada por uma server function.
-  - `save_tap_config(provider, ambiente, credentials jsonb)` → grava criptografado.
-  - `tap_charge(pedido_id, valor, tipo)` (server function) → assina a chamada ao provedor server-side quando ele exigir secret; devolve NSU/autorização; grava em `pagamentos_pedido` e chama `finalize_comanda_split`, exatamente como o fluxo já existente.
+O app faz long-poll leve (`GET /api/public/pos/commands`) junto com o heartbeat; ao executar retorna `ACK` via `POST /api/public/pos/commands/:id/ack`. Bloqueio remoto invalida `pos_devices.ativo=false` e o app cai para tela de "device bloqueado pelo admin".
 
-Nada muda em `meios_pagamento`, `pos_devices` (só usamos `tipo='tap_phone'`), triggers financeiros, ou RLS de `orders/comanda_ativa`.
+## 3. Painel Admin → Frota (POS/Tap)
 
-## Como o app garçom consome
+Nova aba `Admin → Empresa → Frota` (renomeia/estende "Maquininhas POS"):
+- Grid com um card por device: apelido, garçom logado, versão, bateria, rede, últimos erros, "online há Xs".
+- Filtros: só offline > 5min, com erro nas últimas 24h, versão desatualizada.
+- Ações por card: **Ping**, **Reimprimir último cupom**, **Limpar fila offline**, **Forçar logout**, **Bloquear/Desbloquear**, **Ver histórico** (drawer com `pos_device_events`).
+- KPIs no topo: devices online agora, % com bateria <20%, erros nas últimas 24h, valor transacionado hoje (PIX+Cartão via `tap_pix_charges`+`tap_card_charges`).
 
-No login, o app chama `get_tap_config_public()` → sabe qual SDK carregar. Os SDKs de Mercado Pago Point Tap e PagBank Tap são incluídos no **mesmo APK** (não precisamos de flavor por provedor — os dois SDKs coexistem; só um é inicializado em runtime conforme a config da empresa). Isso simplifica publicação: **um único APK** por versão, sem `productFlavors`.
+Guard: só `admin master` da empresa. Superadmin Triviano tem visão cross-tenant read-only em `/superadmin/frota`.
 
-Vantagem prática: se o dono do restaurante trocar de Mercado Pago para PagBank, ele muda no Admin e o app garçom carrega o outro provedor no próximo login — sem reinstalar APK.
+## 4. Alertas
 
-## Fases (revisadas com sua decisão)
+Job `pg_cron` a cada 5 min (`/api/public/hooks/pos-health-check`):
+- Device sem heartbeat > 10min em horário comercial da empresa → cria `notificacoes_cliente` para admins e opcionalmente WhatsApp (usa integração existente).
+- Falhas repetidas de PIX/cartão (>3 em 15 min mesmo device) → mesmo alerta.
+- Bateria < 15% em device ativo → alerta suave (apenas painel).
 
-- **T0 — Migração + Admin (backend)**: tabela `tap_provider_config`, RLS, RPCs, aba "Tap on Phone" no Admin com Mercado Pago e PagBank. **Testável imediatamente** com "Testar credenciais".
-- **T1 — App base Tap** (RN, sem SDK): telas Login/Mesas/Cardápio/Comanda/Cobrar (simulador).
-- **T2 — PIX dinâmico** (funciona nos dois provedores via Mercado Pago Checkout já plugado + endpoint PIX do PagBank): entrega valor antes da homologação Tap.
-- **T3 — SDK Mercado Pago Point Tap**: bridge Android + tela Diagnóstico.
-- **T4 — SDK PagBank Tap to Pay**: bridge Android + Diagnóstico.
-- **T5 — Homologação nos dois** e publicação.
+## 5. Logs financeiros consolidados
 
-## Perguntas antes de abrir a T0
+View `v_tap_transactions_daily` unindo `tap_pix_charges` + `tap_card_charges` por dia/empresa/device/garçom. Relatório A4 novo no framework `ReportShell`: **"Operação Tap — Fechamento por device"** com filtro por data/loja/garçom, totais e gráfico de barras (via `ChartRenderer`).
 
-1. Confirma **um único APK com os dois SDKs**, escolhendo em runtime pela config da empresa? (Recomendo sim — menos atrito para o cliente.)
-2. Já tem contas developer no **Mercado Pago Point** e no **PagBank Tap** (precisamos do access token para testar), ou começo pela T0 usando apenas ambiente sandbox de ambos?
+## 6. OTA & versão mínima
+
+Tabela `pos_app_releases` (`versao`, `versao_minima_obrigatoria`, `notas`, `ativo`). Endpoint `GET /api/public/pos/version-check` retorna se o device precisa atualizar. App bloqueia uso abaixo da mínima e mostra QR/URL do APK/loja. Superadmin gerencia releases em `/superadmin/tap-releases`.
+
+## 7. Runbooks e suporte
+
+Arquivos entregues no zip da fase:
+- `docs/RUNBOOK-SUPORTE.md`: fluxos "device sumiu", "PIX não confirma", "impressora travada", "estorno negado", "trocar garçom no turno".
+- `docs/SLA-OPERACAO.md`: janelas de manutenção, política de retenção de eventos (90 dias), plano de escalonamento.
+
+## Detalhes técnicos
+
+- Migrations: `pos_devices` (novas colunas), `pos_device_events`, `pos_device_commands`, `pos_app_releases`, view `v_tap_transactions_daily`. Sempre `GRANT` + RLS por `empresa_id` via `current_empresa_id()`; superadmin via `is_superadmin()`.
+- Endpoints em `src/routes/api/public/pos/*` com verificação de assinatura HMAC(`device_token`, body) — segue padrão já usado em `/api/public/tap/*`. Sem PII no payload.
+- Frontend Admin: `src/pages/admin/tabs/FrotaTab.tsx`, componentes `DeviceCard`, `DeviceHistoryDrawer`, hook `useDeviceCommands`. Realtime via canal Postgres em `pos_device_events` para atualização ao vivo.
+- App RN (`triviano-tap`): módulo `lib/telemetry.ts` (heartbeat + fila de eventos com retry), `lib/remoteCommands.ts` (poll + ACK), tela `DeviceBlockedScreen`, integração com `lib/tapApi.ts` para reportar erros de SDK/PIX/impressora. Persistência via `AsyncStorage`.
+- Sem alterações no motor financeiro protegido (`_finalize_order_financials`, triggers de fiado/cashback, webhook MP) — apenas leituras/inserts em novas tabelas.
+- Bump para versão **1.9.0**.
+
+## Entregáveis
+
+1. Migrations aplicadas + endpoints públicos + guard/superadmin.
+2. Aba **Frota** no Admin com ações remotas e histórico.
+3. Job pg_cron de health-check + alertas.
+4. Relatório "Operação Tap — Fechamento por device".
+5. OTA/version gate + tela superadmin de releases.
+6. Zip `triviano-tap-fase-t-ops.zip` com módulos RN de telemetria/comandos + runbooks.
