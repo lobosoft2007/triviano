@@ -32,6 +32,7 @@ import {
   Bike,
   FileBarChart,
   Smartphone,
+  Nfc,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
@@ -82,6 +83,7 @@ export type AdminTab =
   | "entregadores"
   | "ifood"
   | "pos"
+  | "tap"
   | "rel-clientes"
   | "rel-chat";
 
@@ -308,6 +310,7 @@ export function AdminSidebar({ activeTab, isSuperAdmin, tabAllowed, onSelectTab,
         { key: "fiscal", label: "Fiscal", icon: <ReceiptText className={iconCls} /> },
         { key: "mesas", label: "Mesas (QR-Codes)", icon: <Armchair className={iconCls} /> },
         { key: "pos", label: "Maquininhas (POS)", icon: <Smartphone className={iconCls} /> },
+        { key: "tap", label: "Tap on Phone", icon: <Nfc className={iconCls} /> },
       ],
     },
     {
