@@ -68,7 +68,7 @@ export const Route = createFileRoute("/api/public/pos/heartbeat")({
               .slice(0, 20)
               .map((e) => ({ empresa_id: empresaId, device_id: deviceId, tipo: e.tipo, payload: e.payload ?? {} })),
           ];
-          await supabaseAdmin.from("pos_device_events").insert(rows);
+          await supabaseAdmin.from("pos_device_events").insert(rows as never);
 
           // Deliver pending commands (mark as entregue)
           const { data: pending } = await supabaseAdmin

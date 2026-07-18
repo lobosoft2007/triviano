@@ -86,7 +86,7 @@ export async function sendPosCommand(
   const { data, error } = await supabase.rpc("pos_send_command", {
     p_device: deviceId,
     p_comando: comando,
-    p_payload: payload,
+    p_payload: payload as never,
   });
   if (error) throw error;
   return data as string;
