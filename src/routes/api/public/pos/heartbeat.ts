@@ -53,7 +53,7 @@ export const Route = createFileRoute("/api/public/pos/heartbeat")({
 
           const { data: devRow } = await supabaseAdmin
             .from("pos_devices")
-            .update(patch)
+            .update(patch as never)
             .eq("id", deviceId)
             .select("ativo, revogado_em")
             .maybeSingle();
