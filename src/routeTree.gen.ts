@@ -28,7 +28,10 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicTapReconcileRouteImport } from './routes/api/public/tap/reconcile'
 import { Route as ApiPublicTapPixCreateRouteImport } from './routes/api/public/tap/pix/create'
+import { Route as ApiPublicTapCardSettleRouteImport } from './routes/api/public/tap/card/settle'
+import { Route as ApiPublicTapCardRefundRouteImport } from './routes/api/public/tap/card/refund'
 import { Route as ApiPublicTapPixWebhookProviderRouteImport } from './routes/api/public/tap/pix/webhook.$provider'
 import { Route as ApiPublicTapPixStatusIdRouteImport } from './routes/api/public/tap/pix/status.$id'
 
@@ -128,9 +131,24 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTapReconcileRoute = ApiPublicTapReconcileRouteImport.update({
+  id: '/api/public/tap/reconcile',
+  path: '/api/public/tap/reconcile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTapPixCreateRoute = ApiPublicTapPixCreateRouteImport.update({
   id: '/api/public/tap/pix/create',
   path: '/api/public/tap/pix/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTapCardSettleRoute = ApiPublicTapCardSettleRouteImport.update({
+  id: '/api/public/tap/card/settle',
+  path: '/api/public/tap/card/settle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTapCardRefundRoute = ApiPublicTapCardRefundRouteImport.update({
+  id: '/api/public/tap/card/refund',
+  path: '/api/public/tap/card/refund',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicTapPixWebhookProviderRoute =
@@ -161,9 +179,12 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
   '/auth/update-password': typeof AuthUpdatePasswordRoute
+  '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/tap/card/refund': typeof ApiPublicTapCardRefundRoute
+  '/api/public/tap/card/settle': typeof ApiPublicTapCardSettleRoute
   '/api/public/tap/pix/create': typeof ApiPublicTapPixCreateRoute
   '/api/public/tap/pix/status/$id': typeof ApiPublicTapPixStatusIdRoute
   '/api/public/tap/pix/webhook/$provider': typeof ApiPublicTapPixWebhookProviderRoute
@@ -184,9 +205,12 @@ export interface FileRoutesByTo {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
   '/auth/update-password': typeof AuthUpdatePasswordRoute
+  '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/tap/card/refund': typeof ApiPublicTapCardRefundRoute
+  '/api/public/tap/card/settle': typeof ApiPublicTapCardSettleRoute
   '/api/public/tap/pix/create': typeof ApiPublicTapPixCreateRoute
   '/api/public/tap/pix/status/$id': typeof ApiPublicTapPixStatusIdRoute
   '/api/public/tap/pix/webhook/$provider': typeof ApiPublicTapPixWebhookProviderRoute
@@ -209,9 +233,12 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRoute
   '/auth_/update-password': typeof AuthUpdatePasswordRoute
+  '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/tap/card/refund': typeof ApiPublicTapCardRefundRoute
+  '/api/public/tap/card/settle': typeof ApiPublicTapCardSettleRoute
   '/api/public/tap/pix/create': typeof ApiPublicTapPixCreateRoute
   '/api/public/tap/pix/status/$id': typeof ApiPublicTapPixStatusIdRoute
   '/api/public/tap/pix/webhook/$provider': typeof ApiPublicTapPixWebhookProviderRoute
@@ -234,9 +261,12 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/superadmin'
     | '/auth/update-password'
+    | '/api/public/tap/reconcile'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/tap/card/refund'
+    | '/api/public/tap/card/settle'
     | '/api/public/tap/pix/create'
     | '/api/public/tap/pix/status/$id'
     | '/api/public/tap/pix/webhook/$provider'
@@ -257,9 +287,12 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/superadmin'
     | '/auth/update-password'
+    | '/api/public/tap/reconcile'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/tap/card/refund'
+    | '/api/public/tap/card/settle'
     | '/api/public/tap/pix/create'
     | '/api/public/tap/pix/status/$id'
     | '/api/public/tap/pix/webhook/$provider'
@@ -281,9 +314,12 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/superadmin'
     | '/auth_/update-password'
+    | '/api/public/tap/reconcile'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/tap/card/refund'
+    | '/api/public/tap/card/settle'
     | '/api/public/tap/pix/create'
     | '/api/public/tap/pix/status/$id'
     | '/api/public/tap/pix/webhook/$provider'
@@ -299,9 +335,12 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AuthUpdatePasswordRoute: typeof AuthUpdatePasswordRoute
+  ApiPublicTapReconcileRoute: typeof ApiPublicTapReconcileRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  ApiPublicTapCardRefundRoute: typeof ApiPublicTapCardRefundRoute
+  ApiPublicTapCardSettleRoute: typeof ApiPublicTapCardSettleRoute
   ApiPublicTapPixCreateRoute: typeof ApiPublicTapPixCreateRoute
   ApiPublicTapPixStatusIdRoute: typeof ApiPublicTapPixStatusIdRoute
   ApiPublicTapPixWebhookProviderRoute: typeof ApiPublicTapPixWebhookProviderRoute
@@ -442,11 +481,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/tap/reconcile': {
+      id: '/api/public/tap/reconcile'
+      path: '/api/public/tap/reconcile'
+      fullPath: '/api/public/tap/reconcile'
+      preLoaderRoute: typeof ApiPublicTapReconcileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/tap/pix/create': {
       id: '/api/public/tap/pix/create'
       path: '/api/public/tap/pix/create'
       fullPath: '/api/public/tap/pix/create'
       preLoaderRoute: typeof ApiPublicTapPixCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/tap/card/settle': {
+      id: '/api/public/tap/card/settle'
+      path: '/api/public/tap/card/settle'
+      fullPath: '/api/public/tap/card/settle'
+      preLoaderRoute: typeof ApiPublicTapCardSettleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/tap/card/refund': {
+      id: '/api/public/tap/card/refund'
+      path: '/api/public/tap/card/refund'
+      fullPath: '/api/public/tap/card/refund'
+      preLoaderRoute: typeof ApiPublicTapCardRefundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/tap/pix/webhook/$provider': {
@@ -499,9 +559,12 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AuthUpdatePasswordRoute: AuthUpdatePasswordRoute,
+  ApiPublicTapReconcileRoute: ApiPublicTapReconcileRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  ApiPublicTapCardRefundRoute: ApiPublicTapCardRefundRoute,
+  ApiPublicTapCardSettleRoute: ApiPublicTapCardSettleRoute,
   ApiPublicTapPixCreateRoute: ApiPublicTapPixCreateRoute,
   ApiPublicTapPixStatusIdRoute: ApiPublicTapPixStatusIdRoute,
   ApiPublicTapPixWebhookProviderRoute: ApiPublicTapPixWebhookProviderRoute,
