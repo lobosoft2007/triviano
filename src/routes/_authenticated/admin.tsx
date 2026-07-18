@@ -251,6 +251,7 @@ type AdminTab =
   | "entregadores"
   | "ifood"
   | "pos"
+  | "tap"
   | "rel-clientes"
   | "rel-chat";
 
