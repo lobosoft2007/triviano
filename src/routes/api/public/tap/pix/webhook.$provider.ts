@@ -55,7 +55,7 @@ export const Route = createFileRoute("/api/public/tap/pix/webhook/$provider")({
           .eq("empresa_id", charge.empresa_id)
           .eq("provider", provider)
           .maybeSingle();
-        const creds = ((cfg?.credentials ?? {}) as Record<string, string>) ?? {};
+        const creds = (cfg?.credentials ?? {}) as Record<string, string>;
 
         let approved = false;
         let paidValue = Number(charge.valor);
