@@ -91,6 +91,7 @@ import { IdentidadeVisualTab } from "@/components/admin/IdentidadeVisualTab";
 import { EntregadoresCrud } from "@/components/admin/EntregadoresCrud";
 import { IfoodMerchantsCrud } from "@/components/admin/IfoodMerchantsCrud";
 import { PosDevicesTab } from "@/components/admin/PosDevicesTab";
+import { TapProviderTab } from "@/components/admin/TapProviderTab";
 import {
   ProductDetailFields,
   EMPTY_DETAIL,
