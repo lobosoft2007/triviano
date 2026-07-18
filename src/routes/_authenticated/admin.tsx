@@ -276,6 +276,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "mesas", label: "Mesas (QR-Codes)", icon: Armchair },
   { key: "entregadores", label: "Entregadores", icon: Bike },
   { key: "ifood", label: "iFood", icon: UtensilsCrossed },
+  { key: "pos", label: "Maquininhas (POS)", icon: Smartphone },
   { key: "rel-clientes", label: "Relatório · Clientes cadastrados", icon: Users },
   { key: "rel-chat", label: "Assistente IA de Relatórios", icon: Users },
 ];
