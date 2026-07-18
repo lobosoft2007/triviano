@@ -33,6 +33,7 @@ import {
   Armchair,
   Clock,
   Bike,
+  Smartphone,
 } from "lucide-react";
 
 import { toast } from "sonner";
