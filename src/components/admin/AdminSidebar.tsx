@@ -307,6 +307,7 @@ export function AdminSidebar({ activeTab, isSuperAdmin, tabAllowed, onSelectTab,
         { key: "pagamentos", label: "Pagamentos", icon: <CreditCard className={iconCls} /> },
         { key: "fiscal", label: "Fiscal", icon: <ReceiptText className={iconCls} /> },
         { key: "mesas", label: "Mesas (QR-Codes)", icon: <Armchair className={iconCls} /> },
+        { key: "pos", label: "Maquininhas (POS)", icon: <Smartphone className={iconCls} /> },
       ],
     },
     {
