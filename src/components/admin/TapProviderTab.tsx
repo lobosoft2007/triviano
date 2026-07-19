@@ -568,6 +568,11 @@ function PagBankHelpDialog() {
                 (sandbox) e salve. Isso já libera cobrança PIX no Tap.
               </li>
               <li>
+                <b>Formato do token:</b> o campo deve começar com{" "}
+                <span className="font-mono">Bearer </span>. Se o portal entregou
+                só o token, acrescente o prefixo manualmente antes de salvar.
+              </li>
+              <li>
                 <b>Cartão NFC:</b> abra chamado comercial no PagBank pedindo
                 credenciais <b>PlugPag Tap to Pay</b>. Quando chegarem, cole em{" "}
                 <span className="font-mono">Código de Ativação</span>.
