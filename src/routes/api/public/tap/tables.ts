@@ -32,7 +32,7 @@ export const Route = createFileRoute("/api/public/tap/tables")({
             .from("comanda_ativa")
             .select("id, numero_mesa, status, total_parcial")
             .eq("empresa_id", row.empresa_id)
-            .neq("status", "fechada")
+            .eq("status", "aberta")
             .order("numero_mesa", { ascending: true });
           if (error) return json({ error: error.message }, 500);
 
