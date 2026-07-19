@@ -36,6 +36,7 @@ import {
   type PosFlavor,
 } from "@/lib/pos";
 import { fetchFuncionarios } from "@/lib/niveis";
+import { PosAppBrandingSection } from "@/components/admin/PosAppBrandingSection";
 
 const FLAVORS: { value: PosFlavor; label: string }[] = [
   { value: "rede", label: "Rede Smart" },
