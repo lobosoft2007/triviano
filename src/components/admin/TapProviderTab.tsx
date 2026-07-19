@@ -325,30 +325,21 @@ export function TapProviderTab() {
               </div>
             ) : (
               <div className="space-y-3">
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-foreground">
+                  <div className="mb-1 flex items-center gap-1.5 font-semibold text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Só o <span className="font-mono">Token do Aplicativo</span> é obrigatório
+                  </div>
+                  Sem <b>Código de Ativação</b> o Tap funciona apenas em modo{" "}
+                  <b>PIX (QR Code dinâmico)</b>. Para cobrar cartão por aproximação,
+                  peça as credenciais <b>PlugPag Tap to Pay</b> ao comercial do PagBank.
+                  Toque em <HelpCircle className="inline h-3 w-3 -mt-0.5" /> no topo para o guia completo.
+                </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="pb_cid">Client ID</Label>
-                    <Input
-                      id="pb_cid"
-                      value={form.pb_client_id}
-                      onChange={(e) =>
-                        setForm({ ...form, pb_client_id: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="pb_sec">Client Secret</Label>
-                    <Input
-                      id="pb_sec"
-                      type="password"
-                      value={form.pb_client_secret}
-                      onChange={(e) =>
-                        setForm({ ...form, pb_client_secret: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="pb_tok">Token do Aplicativo</Label>
+                    <Label htmlFor="pb_tok">
+                      Token do Aplicativo <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="pb_tok"
                       type="password"
@@ -359,10 +350,17 @@ export function TapProviderTab() {
                           pb_token_aplicacao: e.target.value,
                         })
                       }
+                      placeholder="Bearer ... (do portal do desenvolvedor)"
                     />
+                    <p className="text-[11px] text-muted-foreground">
+                      Token de sandbox/produção da API REST PagBank Connect.
+                    </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pb_cod">Código de Ativação</Label>
+                    <Label htmlFor="pb_cod">
+                      Código de Ativação{" "}
+                      <span className="text-muted-foreground">(opcional)</span>
+                    </Label>
                     <Input
                       id="pb_cod"
                       value={form.pb_codigo_ativacao}
@@ -372,13 +370,46 @@ export function TapProviderTab() {
                           pb_codigo_ativacao: e.target.value,
                         })
                       }
+                      placeholder="Enviado pelo comercial PagBank"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Necessário só para cartão por aproximação (PlugPag).
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pb_cid">
+                      Client ID <span className="text-muted-foreground">(opcional)</span>
+                    </Label>
+                    <Input
+                      id="pb_cid"
+                      value={form.pb_client_id}
+                      onChange={(e) =>
+                        setForm({ ...form, pb_client_id: e.target.value })
+                      }
+                      placeholder="OAuth — deixe em branco se não usa"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pb_sec">
+                      Client Secret{" "}
+                      <span className="text-muted-foreground">(opcional)</span>
+                    </Label>
+                    <Input
+                      id="pb_sec"
+                      type="password"
+                      value={form.pb_client_secret}
+                      onChange={(e) =>
+                        setForm({ ...form, pb_client_secret: e.target.value })
+                      }
+                      placeholder="OAuth — deixe em branco se não usa"
                     />
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Cadastre em{" "}
                   <span className="font-mono">dev.pagbank.uol.com.br</span> →
-                  PlugPag Tap to Pay.
+                  PlugPag Tap to Pay. Não sabe onde acha cada campo? Toque em{" "}
+                  <HelpCircle className="inline h-3 w-3" /> no topo desta seção.
                 </p>
               </div>
             )}
