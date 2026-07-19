@@ -28,6 +28,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicTapTablesRouteImport } from './routes/api/public/tap/tables'
 import { Route as ApiPublicTapReconcileRouteImport } from './routes/api/public/tap/reconcile'
 import { Route as ApiPublicPosVersionCheckRouteImport } from './routes/api/public/pos/version-check'
 import { Route as ApiPublicPosPairRouteImport } from './routes/api/public/pos/pair'
@@ -137,6 +138,11 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTapTablesRoute = ApiPublicTapTablesRouteImport.update({
+  id: '/api/public/tap/tables',
+  path: '/api/public/tap/tables',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTapReconcileRoute = ApiPublicTapReconcileRouteImport.update({
   id: '/api/public/tap/reconcile',
   path: '/api/public/tap/reconcile',
@@ -223,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/api/public/pos/pair': typeof ApiPublicPosPairRoute
   '/api/public/pos/version-check': typeof ApiPublicPosVersionCheckRoute
   '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
+  '/api/public/tap/tables': typeof ApiPublicTapTablesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -255,6 +262,7 @@ export interface FileRoutesByTo {
   '/api/public/pos/pair': typeof ApiPublicPosPairRoute
   '/api/public/pos/version-check': typeof ApiPublicPosVersionCheckRoute
   '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
+  '/api/public/tap/tables': typeof ApiPublicTapTablesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -289,6 +297,7 @@ export interface FileRoutesById {
   '/api/public/pos/pair': typeof ApiPublicPosPairRoute
   '/api/public/pos/version-check': typeof ApiPublicPosVersionCheckRoute
   '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
+  '/api/public/tap/tables': typeof ApiPublicTapTablesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -323,6 +332,7 @@ export interface FileRouteTypes {
     | '/api/public/pos/pair'
     | '/api/public/pos/version-check'
     | '/api/public/tap/reconcile'
+    | '/api/public/tap/tables'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -355,6 +365,7 @@ export interface FileRouteTypes {
     | '/api/public/pos/pair'
     | '/api/public/pos/version-check'
     | '/api/public/tap/reconcile'
+    | '/api/public/tap/tables'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -388,6 +399,7 @@ export interface FileRouteTypes {
     | '/api/public/pos/pair'
     | '/api/public/pos/version-check'
     | '/api/public/tap/reconcile'
+    | '/api/public/tap/tables'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -415,6 +427,7 @@ export interface RootRouteChildren {
   ApiPublicPosPairRoute: typeof ApiPublicPosPairRoute
   ApiPublicPosVersionCheckRoute: typeof ApiPublicPosVersionCheckRoute
   ApiPublicTapReconcileRoute: typeof ApiPublicTapReconcileRoute
+  ApiPublicTapTablesRoute: typeof ApiPublicTapTablesRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -561,6 +574,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/tap/tables': {
+      id: '/api/public/tap/tables'
+      path: '/api/public/tap/tables'
+      fullPath: '/api/public/tap/tables'
+      preLoaderRoute: typeof ApiPublicTapTablesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/tap/reconcile': {
       id: '/api/public/tap/reconcile'
       path: '/api/public/tap/reconcile'
@@ -687,6 +707,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPosPairRoute: ApiPublicPosPairRoute,
   ApiPublicPosVersionCheckRoute: ApiPublicPosVersionCheckRoute,
   ApiPublicTapReconcileRoute: ApiPublicTapReconcileRoute,
+  ApiPublicTapTablesRoute: ApiPublicTapTablesRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
