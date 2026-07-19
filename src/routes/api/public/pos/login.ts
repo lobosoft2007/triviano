@@ -45,7 +45,7 @@ export const Route = createFileRoute("/api/public/pos/login")({
             p_device: deviceId,
             p_token: deviceToken,
             p_pin: pin,
-          });
+          } as never);
           if (error) return json({ error: error.message }, 401);
 
           const d = data as {
@@ -59,7 +59,7 @@ export const Route = createFileRoute("/api/public/pos/login")({
             userId: d.user_id,
             nome: d.full_name,
             sessionToken: deviceToken,
-            deviceId: d.device_id ?? deviceId,
+            deviceId: d.device_id ?? deviceId ?? null,
             empresaId: d.empresa_id,
             flavor: d.flavor,
           });
