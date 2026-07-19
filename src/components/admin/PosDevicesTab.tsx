@@ -115,6 +115,9 @@ export function PosDevicesTab() {
 
   return (
     <div className="space-y-8">
+      {/* ==================== APP BRANDING ==================== */}
+      <PosAppBrandingSection />
+
       {/* ==================== MAQUININHAS ==================== */}
       <section>
         <div className="mb-4 flex items-center justify-between gap-3">
