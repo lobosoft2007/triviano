@@ -1,60 +1,46 @@
-## Objetivo
+## Problema
 
-Corrigir o erro `Could not find method autolinkLibrariesWithApp()` alinhando o React Native e o pacote `@react-native/gradle-plugin` na versão 0.75.4, em que essa API existe. O `app/build.gradle` já está no padrão 0.75, então só o JS/TS side precisa subir de versão.
+O RPC `pos_generate_pair_code` usa `gen_random_bytes(6)` (extensão `pgcrypto`), mas o `SET search_path TO 'public'` esconde a extensão (que fica em `extensions`), então o Postgres retorna `function gen_random_bytes(integer) does not exist` quando o admin clica em "Gerar código".
+
+## Correção
+
+Migração única que recria o RPC gerando o código sem depender de `pgcrypto` — usando `gen_random_uuid()` (nativo do Postgres 13+, sempre disponível) como fonte de entropia:
+
+```sql
+CREATE OR REPLACE FUNCTION public.pos_generate_pair_code(
+  p_empresa uuid, p_nome text, p_flavor text
+) RETURNS text
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
+AS $$
+DECLARE v_code TEXT;
+BEGIN
+  IF NOT public.can_manage_empresa(p_empresa) THEN
+    RAISE EXCEPTION 'Sem permissão para esta empresa';
+  END IF;
+  IF p_flavor NOT IN ('rede','pagseguro','infinitepay') THEN
+    RAISE EXCEPTION 'Flavor inválido';
+  END IF;
+
+  -- 8 chars A-Z/0-9 a partir de UUIDs (não requer pgcrypto)
+  v_code := upper(
+    substr(replace(gen_random_uuid()::text, '-', ''), 1, 4) ||
+    substr(replace(gen_random_uuid()::text, '-', ''), 1, 4)
+  );
+
+  INSERT INTO public.pos_pair_codes (empresa_id, code, flavor, nome, criado_por)
+  VALUES (p_empresa, v_code, p_flavor, p_nome, auth.uid());
+
+  RETURN v_code;
+END;
+$$;
+```
 
 ## Escopo
 
-Regenerar o zip `triviano-tap-fase-t-ops-v3.zip` com o `package.json` ajustado. Nenhum código do app (bridges, telas, backend) muda.
+- Só a função `pos_generate_pair_code` muda.
+- Nenhum código front-end / bridge / esquema de tabela é tocado.
+- Flavors continuam `rede | pagseguro | infinitepay` (PagSeguro já é aceito — o erro não era sobre flavor).
 
-## Alterações
+## Observação
 
-**`package.json`** — bump para RN 0.75.4 e pares oficiais:
-
-```json
-"dependencies": {
-  "react": "18.3.1",
-  "react-native": "0.75.4"
-},
-"devDependencies": {
-  "@react-native/babel-preset": "0.75.4",
-  "@react-native/eslint-config": "0.75.4",
-  "@react-native/metro-config": "0.75.4",
-  "@react-native/typescript-config": "0.75.4",
-  "@react-native/gradle-plugin": "0.75.4"
-}
-```
-
-Demais dependências (`@react-navigation/*`, `async-storage`, `camera-kit`, `safe-area-context`) permanecem — todas compatíveis com RN 0.75.
-
-**`android/gradle.properties`** — garantir `reactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64` (RN 0.75 exige as 4 ABIs listadas explicitamente para o autolink funcionar).
-
-**Nenhum outro arquivo muda.** Bridges Kotlin, `MainApplication.kt`, `AndroidManifest.xml`, telas e lógica JS ficam idênticos.
-
-## Passos do usuário após receber o v3
-
-Na pasta raiz do zip novo:
-
-```powershell
-# 1. Limpar instalação anterior (o node_modules do v2 é incompatível)
-Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue
-Remove-Item -Recurse -Force android\.gradle, android\app\build, android\build -ErrorAction SilentlyContinue
-
-# 2. Reinstalar
-npm install
-
-# 3. Build
-cd android
-.\gradlew :app:assembleRelease
-```
-
-APK final em `android\app\build\outputs\apk\release\app-release.apk`.
-
-## Riscos
-
-- Nenhum código de aplicação muda, só versões — risco baixo.
-- Primeira build depois do bump baixa dependências novas (~3-5 min extras).
-- Se aparecer erro de peer dependency no `npm install`, resolver com `npm install --legacy-peer-deps` (fluxo padrão em RN).
-
-## Entregável
-
-`triviano-tap-fase-t-ops-v3.zip` disponível para download no painel de arquivos, com instruções acima no `README.md`.
+Se preferirmos manter `gen_random_bytes`, a alternativa seria trocar `SET search_path TO 'public'` por `SET search_path TO 'public, extensions'`. Escolho o `gen_random_uuid()` porque elimina a dependência da extensão e casa com o padrão dos outros RPCs do projeto.
