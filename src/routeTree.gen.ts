@@ -30,6 +30,8 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicTapReconcileRouteImport } from './routes/api/public/tap/reconcile'
 import { Route as ApiPublicPosVersionCheckRouteImport } from './routes/api/public/pos/version-check'
+import { Route as ApiPublicPosPairRouteImport } from './routes/api/public/pos/pair'
+import { Route as ApiPublicPosLoginRouteImport } from './routes/api/public/pos/login'
 import { Route as ApiPublicPosHeartbeatRouteImport } from './routes/api/public/pos/heartbeat'
 import { Route as ApiPublicHooksPosHealthCheckRouteImport } from './routes/api/public/hooks/pos-health-check'
 import { Route as ApiPublicTapPixCreateRouteImport } from './routes/api/public/tap/pix/create'
@@ -146,6 +148,16 @@ const ApiPublicPosVersionCheckRoute =
     path: '/api/public/pos/version-check',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPosPairRoute = ApiPublicPosPairRouteImport.update({
+  id: '/api/public/pos/pair',
+  path: '/api/public/pos/pair',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPosLoginRoute = ApiPublicPosLoginRouteImport.update({
+  id: '/api/public/pos/login',
+  path: '/api/public/pos/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPosHeartbeatRoute = ApiPublicPosHeartbeatRouteImport.update({
   id: '/api/public/pos/heartbeat',
   path: '/api/public/pos/heartbeat',
@@ -207,6 +219,8 @@ export interface FileRoutesByFullPath {
   '/auth/update-password': typeof AuthUpdatePasswordRoute
   '/api/public/hooks/pos-health-check': typeof ApiPublicHooksPosHealthCheckRoute
   '/api/public/pos/heartbeat': typeof ApiPublicPosHeartbeatRoute
+  '/api/public/pos/login': typeof ApiPublicPosLoginRoute
+  '/api/public/pos/pair': typeof ApiPublicPosPairRoute
   '/api/public/pos/version-check': typeof ApiPublicPosVersionCheckRoute
   '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -237,6 +251,8 @@ export interface FileRoutesByTo {
   '/auth/update-password': typeof AuthUpdatePasswordRoute
   '/api/public/hooks/pos-health-check': typeof ApiPublicHooksPosHealthCheckRoute
   '/api/public/pos/heartbeat': typeof ApiPublicPosHeartbeatRoute
+  '/api/public/pos/login': typeof ApiPublicPosLoginRoute
+  '/api/public/pos/pair': typeof ApiPublicPosPairRoute
   '/api/public/pos/version-check': typeof ApiPublicPosVersionCheckRoute
   '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -269,6 +285,8 @@ export interface FileRoutesById {
   '/auth_/update-password': typeof AuthUpdatePasswordRoute
   '/api/public/hooks/pos-health-check': typeof ApiPublicHooksPosHealthCheckRoute
   '/api/public/pos/heartbeat': typeof ApiPublicPosHeartbeatRoute
+  '/api/public/pos/login': typeof ApiPublicPosLoginRoute
+  '/api/public/pos/pair': typeof ApiPublicPosPairRoute
   '/api/public/pos/version-check': typeof ApiPublicPosVersionCheckRoute
   '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -301,6 +319,8 @@ export interface FileRouteTypes {
     | '/auth/update-password'
     | '/api/public/hooks/pos-health-check'
     | '/api/public/pos/heartbeat'
+    | '/api/public/pos/login'
+    | '/api/public/pos/pair'
     | '/api/public/pos/version-check'
     | '/api/public/tap/reconcile'
     | '/lovable/email/auth/preview'
@@ -331,6 +351,8 @@ export interface FileRouteTypes {
     | '/auth/update-password'
     | '/api/public/hooks/pos-health-check'
     | '/api/public/pos/heartbeat'
+    | '/api/public/pos/login'
+    | '/api/public/pos/pair'
     | '/api/public/pos/version-check'
     | '/api/public/tap/reconcile'
     | '/lovable/email/auth/preview'
@@ -362,6 +384,8 @@ export interface FileRouteTypes {
     | '/auth_/update-password'
     | '/api/public/hooks/pos-health-check'
     | '/api/public/pos/heartbeat'
+    | '/api/public/pos/login'
+    | '/api/public/pos/pair'
     | '/api/public/pos/version-check'
     | '/api/public/tap/reconcile'
     | '/lovable/email/auth/preview'
@@ -387,6 +411,8 @@ export interface RootRouteChildren {
   AuthUpdatePasswordRoute: typeof AuthUpdatePasswordRoute
   ApiPublicHooksPosHealthCheckRoute: typeof ApiPublicHooksPosHealthCheckRoute
   ApiPublicPosHeartbeatRoute: typeof ApiPublicPosHeartbeatRoute
+  ApiPublicPosLoginRoute: typeof ApiPublicPosLoginRoute
+  ApiPublicPosPairRoute: typeof ApiPublicPosPairRoute
   ApiPublicPosVersionCheckRoute: typeof ApiPublicPosVersionCheckRoute
   ApiPublicTapReconcileRoute: typeof ApiPublicTapReconcileRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -549,6 +575,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPosVersionCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/pos/pair': {
+      id: '/api/public/pos/pair'
+      path: '/api/public/pos/pair'
+      fullPath: '/api/public/pos/pair'
+      preLoaderRoute: typeof ApiPublicPosPairRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/pos/login': {
+      id: '/api/public/pos/login'
+      path: '/api/public/pos/login'
+      fullPath: '/api/public/pos/login'
+      preLoaderRoute: typeof ApiPublicPosLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/pos/heartbeat': {
       id: '/api/public/pos/heartbeat'
       path: '/api/public/pos/heartbeat'
@@ -643,6 +683,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthUpdatePasswordRoute: AuthUpdatePasswordRoute,
   ApiPublicHooksPosHealthCheckRoute: ApiPublicHooksPosHealthCheckRoute,
   ApiPublicPosHeartbeatRoute: ApiPublicPosHeartbeatRoute,
+  ApiPublicPosLoginRoute: ApiPublicPosLoginRoute,
+  ApiPublicPosPairRoute: ApiPublicPosPairRoute,
   ApiPublicPosVersionCheckRoute: ApiPublicPosVersionCheckRoute,
   ApiPublicTapReconcileRoute: ApiPublicTapReconcileRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,

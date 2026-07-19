@@ -22,7 +22,7 @@ export const Route = createFileRoute("/api/public/pos/pair")({
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { data, error } = await supabaseAdmin.rpc("pos_pair_device", {
             p_code: code,
-            p_fingerprint: body.fingerprint ?? body.deviceLabel ?? null,
+            p_fingerprint: body.fingerprint ?? body.deviceLabel ?? "",
           });
           if (error) return json({ error: error.message }, 400);
 
