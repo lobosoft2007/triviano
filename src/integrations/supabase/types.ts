@@ -2835,6 +2835,45 @@ export type Database = {
           },
         ]
       }
+      pos_app_branding: {
+        Row: {
+          app_label: string
+          created_at: string
+          empresa_id: string
+          icon_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          app_label: string
+          created_at?: string
+          empresa_id: string
+          icon_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          app_label?: string
+          created_at?: string
+          empresa_id?: string
+          icon_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_app_branding_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_app_branding_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_app_releases: {
         Row: {
           apk_url: string | null
@@ -4203,6 +4242,15 @@ export type Database = {
           quantidade: number
           sort_order: number
           subproduto_id: string
+        }[]
+      }
+      admin_get_pos_branding: {
+        Args: never
+        Returns: {
+          app_label: string
+          empresa_id: string
+          icon_path: string
+          updated_at: string
         }[]
       }
       admin_get_products: {

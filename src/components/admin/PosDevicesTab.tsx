@@ -36,6 +36,7 @@ import {
   type PosFlavor,
 } from "@/lib/pos";
 import { fetchFuncionarios } from "@/lib/niveis";
+import { PosAppBrandingSection } from "@/components/admin/PosAppBrandingSection";
 
 const FLAVORS: { value: PosFlavor; label: string }[] = [
   { value: "rede", label: "Rede Smart" },
@@ -114,6 +115,9 @@ export function PosDevicesTab() {
 
   return (
     <div className="space-y-8">
+      {/* ==================== APP BRANDING ==================== */}
+      <PosAppBrandingSection />
+
       {/* ==================== MAQUININHAS ==================== */}
       <section>
         <div className="mb-4 flex items-center justify-between gap-3">
