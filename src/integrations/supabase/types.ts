@@ -4674,6 +4674,14 @@ export type Database = {
         Args: { p_code: string; p_fingerprint: string }
         Returns: Json
       }
+      pos_resolve_device: {
+        Args: { p_device: string; p_token: string }
+        Returns: {
+          device_id: string
+          empresa_id: string
+          flavor: string
+        }[]
+      }
       pos_revoke_device: { Args: { p_device: string }; Returns: undefined }
       pos_send_command: {
         Args: { p_comando: string; p_device: string; p_payload?: Json }
