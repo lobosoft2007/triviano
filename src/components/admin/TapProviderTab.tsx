@@ -518,7 +518,11 @@ function PagBankHelpDialog() {
                     <td className="p-2 font-mono">Token do Aplicativo *</td>
                     <td className="p-2 text-muted-foreground">
                       Portal do desenvolvedor PagBank (token de sandbox ou
-                      produção).
+                      produção). <b>Se o portal já entregou com o prefixo</b>{" "}
+                      <span className="font-mono">Bearer</span>, cole aqui
+                      completo (ex: <span className="font-mono">Bearer abc123...</span>).
+                      Se entregou só o token cru, acrescente você mesmo{" "}
+                      <span className="font-mono">Bearer </span> na frente.
                     </td>
                     <td className="p-2 text-muted-foreground">
                       Chamar a API REST — <b>PIX dinâmico</b>, consultar
