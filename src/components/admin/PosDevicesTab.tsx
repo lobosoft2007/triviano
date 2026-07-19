@@ -52,7 +52,10 @@ export function PosDevicesTab() {
   const devicesQ = useQuery({
     queryKey: ["pos-devices"],
     queryFn: listPosDevices,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
+
 
   const funcsQ = useQuery({
     queryKey: ["funcionarios-pin"],
