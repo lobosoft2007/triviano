@@ -446,3 +446,146 @@ export function TapProviderTab() {
     </section>
   );
 }
+
+function PagBankHelpDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 rounded-full text-muted-foreground hover:text-primary"
+          aria-label="Ajuda sobre as credenciais PagBank"
+          title="Como preencher as credenciais PagBank"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <HelpCircle className="h-5 w-5 text-primary" />
+            Como preencher as credenciais do PagBank
+          </DialogTitle>
+          <DialogDescription>
+            O PagBank tem <b>dois "mundos"</b> diferentes de API. O portal do
+            desenvolvedor entrega credenciais só de um deles — o outro
+            (cartão por aproximação) vem por contrato comercial.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-5 text-sm">
+          <section className="rounded-xl border border-border bg-muted/30 p-4">
+            <h3 className="mb-2 flex items-center gap-2 font-semibold">
+              <QrCode className="h-4 w-4 text-primary" />
+              Mundo 1 — PagBank Connect (API REST) → PIX
+            </h3>
+            <p className="text-muted-foreground">
+              É o que você já tem se recebeu <b>e-mail + token</b> em{" "}
+              <span className="font-mono">dev.pagbank.uol.com.br</span>. Serve
+              para gerar cobranças PIX dinâmicas (QR Code), consultar e
+              estornar. É o mínimo pra o Tap funcionar.
+            </p>
+          </section>
+
+          <section className="rounded-xl border border-border bg-muted/30 p-4">
+            <h3 className="mb-2 flex items-center gap-2 font-semibold">
+              <CreditCard className="h-4 w-4 text-primary" />
+              Mundo 2 — PlugPag Tap to Pay → Cartão por aproximação
+            </h3>
+            <p className="text-muted-foreground">
+              É o SDK nativo do PagBank que faz o celular do garçom virar
+              maquininha NFC. As credenciais <b>não</b> saem do portal do dev:
+              o comercial do PagBank envia por e-mail após o credenciamento
+              do CNPJ.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="mb-2 font-semibold">O que cada campo significa</h3>
+            <div className="overflow-hidden rounded-xl border border-border">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="p-2 font-semibold">Campo</th>
+                    <th className="p-2 font-semibold">De onde vem</th>
+                    <th className="p-2 font-semibold">Pra que serve</th>
+                  </tr>
+                </thead>
+                <tbody className="[&>tr]:border-t [&>tr]:border-border">
+                  <tr>
+                    <td className="p-2 font-mono">Token do Aplicativo *</td>
+                    <td className="p-2 text-muted-foreground">
+                      Portal do desenvolvedor PagBank (token de sandbox ou
+                      produção).
+                    </td>
+                    <td className="p-2 text-muted-foreground">
+                      Chamar a API REST — <b>PIX dinâmico</b>, consultar
+                      status, estornar.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-mono">Código de Ativação</td>
+                    <td className="p-2 text-muted-foreground">
+                      Comercial PagBank (junto do credenciamento do CNPJ).
+                    </td>
+                    <td className="p-2 text-muted-foreground">
+                      Ativar <b>PlugPag Tap to Pay</b> no aparelho — cartão
+                      por aproximação.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-mono">Client ID / Client Secret</td>
+                    <td className="p-2 text-muted-foreground">
+                      Portal → <i>Minhas aplicações</i> → <b>Criar aplicação</b>{" "}
+                      (OAuth). Só existem depois de criar a aplicação.
+                    </td>
+                    <td className="p-2 text-muted-foreground">
+                      OAuth de terceiros — deixe em branco se você usa a
+                      própria conta.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p className="border-t border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
+                * único campo realmente obrigatório
+              </p>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
+            <h3 className="mb-2 font-semibold text-emerald-700 dark:text-emerald-400">
+              Recomendação prática
+            </h3>
+            <ol className="ml-5 list-decimal space-y-1 text-muted-foreground">
+              <li>
+                <b>Agora:</b> cole apenas o <span className="font-mono">Token do Aplicativo</span>{" "}
+                (sandbox) e salve. Isso já libera cobrança PIX no Tap.
+              </li>
+              <li>
+                <b>Cartão NFC:</b> abra chamado comercial no PagBank pedindo
+                credenciais <b>PlugPag Tap to Pay</b>. Quando chegarem, cole em{" "}
+                <span className="font-mono">Código de Ativação</span>.
+              </li>
+              <li>
+                <b>Quer testar cartão hoje?</b> Use <b>Mercado Pago (Point Tap)</b>
+                — o sandbox libera tudo direto no portal, sem espera comercial.
+              </li>
+            </ol>
+          </section>
+
+          <section className="rounded-xl border border-border p-4">
+            <h3 className="mb-2 font-semibold">Segurança</h3>
+            <p className="text-muted-foreground">
+              As credenciais ficam isoladas por empresa (RLS) e o app garçom
+              nunca as recebe em texto puro. As chamadas de cobrança/estorno
+              passam pelos endpoints do Triviano, que assinam a requisição
+              com o token do seu tenant.
+            </p>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
