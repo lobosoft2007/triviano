@@ -12,13 +12,20 @@ export const Route = createFileRoute("/api/public/pos/login")({
       OPTIONS: async () => new Response(null, { status: 204, headers: corsHeaders() }),
       POST: async ({ request }) => {
         try {
-          const deviceId = request.headers.get("x-device-id");
-          const deviceToken = request.headers.get("x-device-token");
+          const body = (await request.json().catch(() => ({}))) as {
+            pin?: string;
+            deviceId?: string;
+            deviceToken?: string;
+          };
+          const deviceId =
+            request.headers.get("x-device-id") ?? body.deviceId ?? null;
+          const deviceToken =
+            request.headers.get("x-device-token") ?? body.deviceToken ?? null;
           if (!deviceId || !deviceToken) return json({ error: "missing device credentials" }, 401);
 
-          const body = (await request.json().catch(() => ({}))) as { pin?: string };
           const pin = String(body.pin ?? "").trim();
           if (!pin) return json({ error: "pin obrigatório" }, 400);
+
 
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { data, error } = await supabaseAdmin.rpc("pos_login_pin", {
