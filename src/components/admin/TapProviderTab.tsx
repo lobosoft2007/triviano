@@ -169,6 +169,7 @@ export function TapProviderTab() {
           <h2 className="font-display text-lg font-bold">
             Tap on Phone (App Garçom)
           </h2>
+          <PagBankHelpDialog />
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Escolha o provedor que o app garçom Tap usará para cobrar por
