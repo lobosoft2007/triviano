@@ -278,9 +278,10 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
           className="report-footer"
           style={{
             borderTop: `1px solid ${C.line}`,
-            paddingTop: "6px",
-            fontSize: "10px",
-            lineHeight: 1.25,
+            paddingTop: "8px",
+            paddingBottom: "4px",
+            fontSize: "11px",
+            lineHeight: 1.55,
             color: C.muted,
             marginTop: "24px",
           }}
