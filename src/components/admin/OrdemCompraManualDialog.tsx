@@ -212,6 +212,9 @@ export function OrdemCompraManualDialog({
   const [freeItems, setFreeItems] = useState<FreeItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [busyAction, setBusyAction] = useState<"print" | "share" | null>(null);
+  const [orientation, setOrientation] = useState<"portrait" | "landscape">(
+    "landscape",
+  );
 
   // Reset when reopening.
   useEffect(() => {
