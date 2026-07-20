@@ -217,9 +217,19 @@ export function SugestaoComprasView() {
             Sugestão de Compras por Demanda
           </h2>
         </div>
-        <Button size="sm" onClick={openManual}>
-          <Plus className="mr-1 h-4 w-4" /> Gerar Ordem de Compra Manual / Avulsa
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={gerarOrdemUnica}
+            disabled={(sugestao?.length ?? 0) === 0}
+          >
+            <Send className="mr-1 h-4 w-4" /> Gerar Ordem Única (todos fornecedores)
+          </Button>
+          <Button size="sm" onClick={openManual}>
+            <Plus className="mr-1 h-4 w-4" /> Gerar Ordem de Compra Manual / Avulsa
+          </Button>
+        </div>
       </header>
 
       {/* Cards */}
