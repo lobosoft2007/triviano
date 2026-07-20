@@ -1,31 +1,34 @@
 ## O que muda
 
-### 1. Sugestão de Compras — botão "Ordem Única"
-No `SugestaoComprasView` já existe um botão **Gerar ordem** por fornecedor. Vou adicionar, no cabeçalho da lista, um botão **"Gerar Ordem Única (todos fornecedores)"** que consolida todos os itens sugeridos em **uma única Ordem de Compra**, com `id_fornecedor = null` e observação `"Reposição automática — consolidada"`. O comportamento por fornecedor continua igual.
+Adicionar um **terceiro botão** no cabeçalho da Sugestão de Compras: **"Gerar Ordem Consolidada por Setor"**. Ele funcionará como o "Gerar Ordem Manual/Avulsa" (abre o mesmo diálogo, com os itens já pré-carregados vindos da sugestão), mas ao salvar gera **UMA única ordem de compra** (sem quebrar por fornecedor), com os itens **ordenados por setor** e, dentro de cada setor, **por fornecedor**.
 
-### 2. Escolha da orientação (Retrato / Paisagem) na impressão
-Hoje `Imprimir` chama `printReport("portrait")` fixo. Vou:
-- Adicionar um pequeno seletor **Retrato/Paisagem** ao lado do botão **Imprimir** nos dois diálogos de ordem (`OrdemCompraDetailDialog` e `OrdemCompraManualDialog`), com padrão **Paisagem** (cabe melhor).
-- Passar a orientação escolhida para `printReport(...)`, `downloadNodeAsPdf(...)` e `shareNodeAsPdfWhatsapp(...)`.
-- Ajustar o CSS `.report-content` (`src/styles.css`) para `padding-top: 22mm` (hoje 16mm), o que elimina os "pontinhos" que aparecem por causa da primeira linha do `<thead>` ficando escondida sob o cabeçalho fixo (`report-header` com logo de 40px + borda + padding ocupa ~20mm, maior que os 16mm reservados). Também vou reduzir o padding do próprio `.report-header` para diminuir o desperdício.
+## Comportamento
 
-### 3. Correção do erro "unsupported color function 'oklch'" em Baixar PDF / WhatsApp
-Causa raiz: o `html2canvas` (usado pelo `html2pdf.js`) lê os estilos computados de **todos** os descendentes. A preflight do Tailwind v4 aplica `border-color: var(--border)` em `*, *::before, *::after`, e `--border` está definido como `oklch(...)` em `:root` (`src/styles.css`). Mesmo o relatório usando cores hex inline, qualquer elemento sem `border-color` explícito herda `oklch(...)` e o parser do html2canvas quebra.
-
-Correção em duas camadas:
-
-- **Escopo CSS no relatório** (`src/styles.css`): declarar overrides seguros em `.report-a4, .report-a4 *`, mapeando os custom-properties usados pela preflight para valores hex (`--background:#fff; --foreground:#111; --border:#ccc; --ring:transparent; --primary:#111; --muted:#eee; --muted-foreground:#555; --card:#fff; --card-foreground:#111; --secondary:#f2f2f2; --secondary-foreground:#111; --destructive:#c0392b; --accent:#eee;`) e forçando `border-color: #ccc !important; box-shadow: none !important; background-image: none !important;`. Isso resolve tanto o `oklch` quanto qualquer resíduo de `color-mix`/`shadow`.
-- **Blindagem na geração do PDF** (`src/lib/pdf-share.ts`): antes de chamar o `html2canvas`, clonar o nó dentro de um wrapper temporário anexado ao `<body>` com `all: initial; color:#111; background:#fff` no wrapper — assim mesmo que apareça algum novo custom-property no futuro, ele não vaza para dentro do relatório.
+- Botão fica ao lado dos outros dois:
+  1. "Gerar Ordem Única (todos fornecedores)" (já existe)
+  2. **"Gerar Ordem Consolidada por Setor"** (novo)
+  3. "Gerar Ordem de Compra Manual / Avulsa" (já existe)
+- Ao clicar, abre o `OrdemCompraManualDialog` já existente, em modo **pré-preenchido**:
+  - Recebe uma nova prop opcional `preloadedItems` (montada a partir de `sugestao`).
+  - O usuário pode revisar/ajustar quantidades e custos antes de confirmar.
+- Ao salvar:
+  - Gera **uma única** `ordens_compra` com `id_fornecedor = null` e `observacao = "Reposição consolidada — ordenada por setor"`.
+  - Antes de mandar para `criarOrdemCompra`, os `itens` são **ordenados por `setor.ordem_exibicao` → `fornecedor.nome` → `nome`**, para que a impressão saia nessa ordem.
+- No relatório impresso (`OrdemCompraReport`), a ordem dos itens vem naturalmente do array persistido — não precisa alterar o componente do relatório; apenas a coluna Setor e Fornecedor já existentes exibem a agregação.
 
 ## Arquivos alterados
 
-- `src/components/admin/SugestaoComprasView.tsx` — botão Ordem Única + handler que agrega todos os itens em uma chamada `criarOrdemCompra`.
-- `src/components/admin/OrdemCompraDetailDialog.tsx` — seletor de orientação; usar orientação escolhida em `printReport`, `downloadNodeAsPdf`, `shareNodeAsPdfWhatsapp`.
-- `src/components/admin/OrdemCompraManualDialog.tsx` — mesmo seletor de orientação + repassar orientação nas 3 chamadas.
-- `src/styles.css` — reset de custom-properties dentro de `.report-a4` (fix oklch) e ajuste de `padding-top` do `.report-content` para eliminar sobreposição do cabeçalho.
-- `src/lib/pdf-share.ts` — wrapper temporário de isolamento em torno do nó a ser renderizado.
+- `src/components/admin/SugestaoComprasView.tsx`
+  - Adicionar o novo botão no `header`.
+  - Novo state `preloaded` + handler `abrirConsolidadaPorSetor()` que monta `preloadedItems` a partir de `sugestao` (com `setor_id`, `fornecedor_id`, `nome`, `unidade`, `custo_unitario`, `quantidade`, `tipo`, `ref_id`) já ordenados por setor→fornecedor→nome.
+  - Passar `preloadedItems` para `<OrdemCompraManualDialog />`.
+- `src/components/admin/OrdemCompraManualDialog.tsx`
+  - Aceitar prop opcional `preloadedItems?: OrdemCompraItemInput[]` (com metadados de setor/fornecedor).
+  - Ao abrir com preloaded, popular o carrinho inicial com esses itens (usando as linhas livres do próprio diálogo) e travar `id_fornecedor = null` na chamada de `criarOrdemCompra`.
+  - Garantir que a ordenação por setor→fornecedor→nome seja preservada ao enviar.
 
-## Fora do escopo (não mexo)
-- Motor financeiro, RLS, RPCs de custo/ordem.
-- Layout geral dos relatórios (só ajustes de espaçamento/impressão).
-- Nenhuma migração de banco.
+## Fora do escopo
+
+- Não altero o motor financeiro, RLS, RPCs de custo, `criarOrdemCompra`, nem `OrdemCompraReport`.
+- Não mexo nos outros dois botões existentes.
+- Sem migrações de banco.
