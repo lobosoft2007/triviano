@@ -20,6 +20,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthUpdatePasswordRouteImport } from './routes/auth_.update-password'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
+import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedOrdersRouteImport } from './routes/_authenticated/orders'
 import { Route as AuthenticatedMenuRouteImport } from './routes/_authenticated/menu'
@@ -96,6 +97,11 @@ const AuthUpdatePasswordRoute = AuthUpdatePasswordRouteImport.update({
 const AuthenticatedSuperadminRoute = AuthenticatedSuperadminRouteImport.update({
   id: '/superadmin',
   path: '/superadmin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecepcaoRoute = AuthenticatedRecepcaoRouteImport.update({
+  id: '/recepcao',
+  path: '/recepcao',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
@@ -235,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/menu': typeof AuthenticatedMenuRoute
   '/orders': typeof AuthenticatedOrdersRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
   '/auth/update-password': typeof AuthUpdatePasswordRoute
   '/api/public/hooks/pos-health-check': typeof ApiPublicHooksPosHealthCheckRoute
@@ -270,6 +277,7 @@ export interface FileRoutesByTo {
   '/menu': typeof AuthenticatedMenuRoute
   '/orders': typeof AuthenticatedOrdersRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
   '/auth/update-password': typeof AuthUpdatePasswordRoute
   '/api/public/hooks/pos-health-check': typeof ApiPublicHooksPosHealthCheckRoute
@@ -307,6 +315,7 @@ export interface FileRoutesById {
   '/_authenticated/menu': typeof AuthenticatedMenuRoute
   '/_authenticated/orders': typeof AuthenticatedOrdersRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRoute
   '/auth_/update-password': typeof AuthUpdatePasswordRoute
   '/api/public/hooks/pos-health-check': typeof ApiPublicHooksPosHealthCheckRoute
@@ -344,6 +353,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/orders'
     | '/perfil'
+    | '/recepcao'
     | '/superadmin'
     | '/auth/update-password'
     | '/api/public/hooks/pos-health-check'
@@ -379,6 +389,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/orders'
     | '/perfil'
+    | '/recepcao'
     | '/superadmin'
     | '/auth/update-password'
     | '/api/public/hooks/pos-health-check'
@@ -415,6 +426,7 @@ export interface FileRouteTypes {
     | '/_authenticated/menu'
     | '/_authenticated/orders'
     | '/_authenticated/perfil'
+    | '/_authenticated/recepcao'
     | '/_authenticated/superadmin'
     | '/auth_/update-password'
     | '/api/public/hooks/pos-health-check'
@@ -543,6 +555,13 @@ declare module '@tanstack/react-router' {
       path: '/superadmin'
       fullPath: '/superadmin'
       preLoaderRoute: typeof AuthenticatedSuperadminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recepcao': {
+      id: '/_authenticated/recepcao'
+      path: '/recepcao'
+      fullPath: '/recepcao'
+      preLoaderRoute: typeof AuthenticatedRecepcaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/perfil': {
@@ -716,6 +735,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMenuRoute: typeof AuthenticatedMenuRoute
   AuthenticatedOrdersRoute: typeof AuthenticatedOrdersRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
+  AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
   AuthenticatedSuperadminRoute: typeof AuthenticatedSuperadminRoute
 }
 
@@ -726,6 +746,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMenuRoute: AuthenticatedMenuRoute,
   AuthenticatedOrdersRoute: AuthenticatedOrdersRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
+  AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
   AuthenticatedSuperadminRoute: AuthenticatedSuperadminRoute,
 }
 
