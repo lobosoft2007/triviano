@@ -19,6 +19,11 @@ interface ModalActionBarProps {
   saveForm?: string;
   /** Hide the confirm button entirely (read-only modals). */
   hideSave?: boolean;
+  /** Optional secondary save action rendered to the left of the primary save. */
+  onSecondarySave?: () => void;
+  secondarySaveLabel?: string;
+  secondarySaveDisabled?: boolean;
+  secondarySaving?: boolean;
   className?: string;
 }
 
