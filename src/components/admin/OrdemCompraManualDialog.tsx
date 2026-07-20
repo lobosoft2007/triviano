@@ -759,9 +759,10 @@ export function OrdemCompraManualDialog({
                                   {forn.fornecedor}
                                 </SelectItem>
                               ))}
-                            </SelectContent>
-                          </Select>
+                          </SelectContent>
+                        </Select>
                         </td>
+                        <td className="px-2 py-1.5 text-right text-xs text-muted-foreground">—</td>
                         <td className="px-2 py-1.5">
                           <Input
                             className="ml-auto h-8 w-24 text-right"
