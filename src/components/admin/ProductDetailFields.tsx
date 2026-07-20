@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FichaTecnicaEditor, computeFichaCMV, type FichaRow } from "@/components/admin/FichaTecnicaEditor";
@@ -241,6 +241,7 @@ function PriceOptionsEditor({
 
       <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent hideClose className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogTitle className="sr-only">Ficha técnica da variação</DialogTitle>
           <ModalActionBar
             title={
               <span className="flex items-center justify-center gap-2">
