@@ -29,15 +29,40 @@ function baseOptions(filename: string, orientation: "portrait" | "landscape") {
   };
 }
 
+/**
+ * Render the report inside a temporary, isolated wrapper so no CSS custom
+ * properties from the app (`--border: oklch(...)`, `color-mix(...)`, etc.)
+ * leak into html2canvas and crash the PDF generation.
+ */
+async function withIsolatedClone<T>(
+  node: HTMLElement,
+  fn: (clone: HTMLElement) => Promise<T>,
+): Promise<T> {
+  const wrapper = document.createElement("div");
+  wrapper.setAttribute("data-report-capture", "true");
+  wrapper.style.cssText =
+    "position:fixed;left:-10000px;top:0;width:auto;color:#111;background:#fff;";
+  const clone = node.cloneNode(true) as HTMLElement;
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+  try {
+    return await fn(clone);
+  } finally {
+    wrapper.remove();
+  }
+}
+
 export async function renderNodeToPdfBlob(
   node: HTMLElement,
   filename: string,
   orientation: "portrait" | "landscape" = "portrait",
 ): Promise<Blob> {
-  return makeInstance()
-    .set(baseOptions(filename, orientation))
-    .from(node)
-    .outputPdf("blob");
+  return withIsolatedClone(node, (clone) =>
+    makeInstance()
+      .set(baseOptions(filename, orientation))
+      .from(clone)
+      .outputPdf("blob"),
+  );
 }
 
 export async function downloadNodeAsPdf(
@@ -45,11 +70,14 @@ export async function downloadNodeAsPdf(
   filename: string,
   orientation: "portrait" | "landscape" = "portrait",
 ): Promise<void> {
-  await makeInstance()
-    .set(baseOptions(filename, orientation))
-    .from(node)
-    .save(filename);
+  await withIsolatedClone(node, (clone) =>
+    makeInstance()
+      .set(baseOptions(filename, orientation))
+      .from(clone)
+      .save(filename),
+  );
 }
+
 
 /**
  * Try to share the generated PDF via the OS/native share sheet (works on

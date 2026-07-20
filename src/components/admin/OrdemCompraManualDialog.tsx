@@ -212,6 +212,9 @@ export function OrdemCompraManualDialog({
   const [freeItems, setFreeItems] = useState<FreeItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [busyAction, setBusyAction] = useState<"print" | "share" | null>(null);
+  const [orientation, setOrientation] = useState<"portrait" | "landscape">(
+    "landscape",
+  );
 
   // Reset when reopening.
   useEffect(() => {
@@ -443,11 +446,9 @@ export function OrdemCompraManualDialog({
       return;
     }
     setBusyAction("print");
-    // Give React one tick to render the (already mounted) report with the
-    // current data before firing the print dialog.
     setTimeout(() => {
       try {
-        printReport("portrait");
+        printReport(orientation);
       } finally {
         setBusyAction(null);
       }
@@ -467,7 +468,7 @@ export function OrdemCompraManualDialog({
       const result = await shareNodeAsPdfWhatsapp(
         reportRef.current,
         filename,
-        "portrait",
+        orientation,
         "Segue a Ordem de Compra em anexo.",
       );
       toast.success(
@@ -514,6 +515,18 @@ export function OrdemCompraManualDialog({
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={orientation}
+                  onValueChange={(v) => setOrientation(v as "portrait" | "landscape")}
+                >
+                  <SelectTrigger className="h-9 w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="landscape">Paisagem</SelectItem>
+                    <SelectItem value="portrait">Retrato</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
                   variant="outline"
                   size="sm"

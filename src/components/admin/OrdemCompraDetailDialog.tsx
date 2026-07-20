@@ -82,6 +82,9 @@ export function OrdemCompraDetailDialog({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState<"print" | "share" | "download" | null>(null);
+  const [orientation, setOrientation] = useState<"portrait" | "landscape">(
+    "landscape",
+  );
 
   const editavel = (ordem?.status ?? "Aberta") === "Aberta";
 
@@ -209,7 +212,7 @@ export function OrdemCompraDetailDialog({
     setBusy("print");
     setTimeout(() => {
       try {
-        printReport("portrait");
+        printReport(orientation);
       } finally {
         setBusy(null);
       }
@@ -221,7 +224,7 @@ export function OrdemCompraDetailDialog({
     setBusy("download");
     try {
       const filename = `ordem-de-compra-${ordem?.numero ?? "s-numero"}.pdf`;
-      await downloadNodeAsPdf(reportRef.current, filename, "portrait");
+      await downloadNodeAsPdf(reportRef.current, filename, orientation);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
     } finally {
@@ -237,7 +240,7 @@ export function OrdemCompraDetailDialog({
       const result = await shareNodeAsPdfWhatsapp(
         reportRef.current,
         filename,
-        "portrait",
+        orientation,
         `Ordem de Compra nº ${ordem?.numero ?? ""} em anexo.`,
         fornEfetivo?.telefone ?? null,
       );
@@ -292,6 +295,18 @@ export function OrdemCompraDetailDialog({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <Select
+                      value={orientation}
+                      onValueChange={(v) => setOrientation(v as "portrait" | "landscape")}
+                    >
+                      <SelectTrigger className="h-9 w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="landscape">Paisagem</SelectItem>
+                        <SelectItem value="portrait">Retrato</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Button
                       variant="outline"
                       size="sm"

@@ -169,6 +169,40 @@ export function SugestaoComprasView() {
     }
   }
 
+  /* ---------------- Gerar UMA ordem consolidada (todos fornecedores) ---- */
+  async function gerarOrdemUnica() {
+    if (!sugestao || sugestao.length === 0) {
+      toast.error("Nada a comprar no momento.");
+      return;
+    }
+    if (
+      !confirm(
+        `Gerar UMA única ordem com ${sugestao.length} item(ns), somando todos os fornecedores?`,
+      )
+    )
+      return;
+    try {
+      const itens: OrdemCompraItemInput[] = sugestao.map((i) => ({
+        tipo: i.tipo,
+        ref_id: i.ref_id,
+        nome: i.nome,
+        quantidade: i.quantidade_comprar,
+        custo_unitario: i.custo_unitario,
+      }));
+      const numero = await criarOrdemCompra({
+        id_fornecedor: null,
+        observacao: "Reposição automática — consolidada (todos fornecedores)",
+        origem: "Sugestão",
+        itens,
+      });
+      toast.success(`Ordem única nº ${numero} gerada!`);
+      await queryClient.invalidateQueries({ queryKey: ["ordens-compra"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar ordem.");
+    }
+  }
+
+
   /* ---------------- Manual order dialog ----------------------------- */
   const [open, setOpen] = useState(false);
   const openManual = () => setOpen(true);
@@ -183,9 +217,19 @@ export function SugestaoComprasView() {
             Sugestão de Compras por Demanda
           </h2>
         </div>
-        <Button size="sm" onClick={openManual}>
-          <Plus className="mr-1 h-4 w-4" /> Gerar Ordem de Compra Manual / Avulsa
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={gerarOrdemUnica}
+            disabled={(sugestao?.length ?? 0) === 0}
+          >
+            <Send className="mr-1 h-4 w-4" /> Gerar Ordem Única (todos fornecedores)
+          </Button>
+          <Button size="sm" onClick={openManual}>
+            <Plus className="mr-1 h-4 w-4" /> Gerar Ordem de Compra Manual / Avulsa
+          </Button>
+        </div>
       </header>
 
       {/* Cards */}
