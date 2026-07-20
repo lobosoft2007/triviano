@@ -940,7 +940,7 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
   // Multi-tenant: escopa a listagem à empresa do operador. A RLS já garante o
   // isolamento no banco; este filtro é defesa em profundidade no cliente.
   const empresaId = await currentEmpresaId();
-  const [catRes, prodRes] = await Promise.all([
+  const [catRes, countRes] = await Promise.all([
     supabase
       .from("categories")
       .select(
@@ -948,15 +948,23 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
       )
       .eq("empresa_id", empresaId)
       .order("sort_order"),
-    supabase.from("products").select("category_id").eq("empresa_id", empresaId),
+    (supabase.rpc as (
+      fn: string,
+      args?: Record<string, unknown>,
+    ) => PromiseLike<{ data: unknown; error: unknown }>)(
+      "admin_product_category_counts",
+    ),
   ]);
   if (catRes.error) throw catRes.error;
-  if (prodRes.error) throw prodRes.error;
+  if (countRes.error) throw countRes.error;
 
   const counts = new Map<string, number>();
-  for (const p of prodRes.data ?? []) {
+  for (const p of (countRes.data ?? []) as Array<{
+    category_id?: string | null;
+    product_count?: number | string | null;
+  }>) {
     if (!p.category_id) continue;
-    counts.set(p.category_id, (counts.get(p.category_id) ?? 0) + 1);
+    counts.set(p.category_id, Number(p.product_count ?? 0));
   }
 
   return (catRes.data ?? []).map((c) => ({
@@ -1019,12 +1027,18 @@ export async function saveCategory(input: {
 
 export async function deleteCategory(id: string): Promise<void> {
   // Safety lock: block deletion when any product is linked to the category.
-  const { count, error: countErr } = await supabase
-    .from("products")
-    .select("id", { count: "exact", head: true })
-    .eq("category_id", id);
+  const { data, error: countErr } = await (supabase.rpc as (
+    fn: string,
+    args?: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: unknown }>)(
+    "admin_product_category_counts",
+  );
   if (countErr) throw countErr;
-  if ((count ?? 0) > 0) {
+  const count = ((data ?? []) as Array<{
+    category_id?: string | null;
+    product_count?: number | string | null;
+  }>).find((row) => row.category_id === id)?.product_count;
+  if (Number(count ?? 0) > 0) {
     throw new Error(
       "Não é possível excluir: existem produtos vinculados a esta categoria.",
     );
@@ -1214,16 +1228,17 @@ export async function quickAdjustProduct(input: {
   saldo_estoque: number;
   custo_compra?: number;
 }): Promise<void> {
-  const payload: { saldo_estoque: number; custo_compra?: number } = {
-    saldo_estoque: round2(input.saldo_estoque),
-  };
-  if (!input.manipulado && input.custo_compra !== undefined) {
-    payload.custo_compra = round2(input.custo_compra);
-  }
-  const { error } = await supabase
-    .from("products")
-    .update(payload)
-    .eq("id", input.id);
+  const { error } = await (supabase.rpc as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: unknown }>)("admin_quick_adjust_product", {
+    p_id: input.id,
+    p_saldo_estoque: round2(input.saldo_estoque),
+    p_custo_compra:
+      !input.manipulado && input.custo_compra !== undefined
+        ? round2(input.custo_compra)
+        : null,
+  });
   if (error) throw error;
 }
 
