@@ -4,7 +4,6 @@ import {
   Loader2,
   ShoppingCart,
   Plus,
-  X,
   Wallet,
   AlertTriangle,
   FileText,
@@ -19,17 +18,13 @@ import {
   criarOrdemCompra,
   listOrdensCompra,
   type SugestaoItem,
-  type ItemTipo,
   type OrdemCompraItemInput,
 } from "@/lib/estoque";
 import {
   listSetores,
   listFornecedores,
-  listInsumos,
-  parseNumberInput,
 } from "@/lib/erp";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -37,26 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ModalActionBar } from "@/components/ui/modal-action-bar";
-import { Field } from "./FornecedoresCrud";
+import { OrdemCompraManualDialog } from "./OrdemCompraManualDialog";
 
 const NONE = "__none__";
 
-/** Row model for the manual purchase order editor. */
-interface ManualRow {
-  tipo: ItemTipo;
-  ref_id: string;
-  nome: string;
-  quantidade: string;
-  custo_unitario: string;
-}
 
 export function SugestaoComprasView() {
   const queryClient = useQueryClient();
