@@ -276,6 +276,7 @@ export function OrdemCompraManualDialog({
           nome: it.nome,
           setor_id: it.setor_id,
           fornecedor_id: it.fornecedor_id,
+          unidade: it.unidade || "un",
           custo_unitario: String(it.custo_unitario).replace(".", ","),
           quantidade: String(it.quantidade).replace(".", ","),
         });
