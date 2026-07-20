@@ -236,9 +236,12 @@
     right: 0;
     background: #fff;
   }
-  /* Leave space for the fixed header/footer inside the flowing content. */
+  /* Leave space for the fixed header/footer inside the flowing content.
+     The header shows a 40px logo + border + padding (~20mm), so 16mm was
+     too tight and clipped the first table header row. 22mm keeps content
+     clear. */
   body.printing-report .report-content {
-    padding-top: 16mm;
+    padding-top: 22mm;
     padding-bottom: 14mm;
   }
   /* Live page counter (Chrome/Edge): hide the on-screen placeholder text
