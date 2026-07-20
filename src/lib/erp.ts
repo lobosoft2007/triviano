@@ -408,53 +408,63 @@ export interface ProductDetail {
   ficha: FichaLine[];
 }
 
+type AdminProductDetailPayload = {
+  product?: {
+    manipulado?: boolean | null;
+    setor_id?: string | null;
+    fornecedor_id?: string | null;
+    margem_revenda?: number | string | null;
+    custo_compra?: number | string | null;
+    preco_ifood?: number | string | null;
+  } | null;
+  dados_fiscais?: {
+    ncm?: unknown;
+    ean?: unknown;
+  } | null;
+  price_options?: Array<{
+    id?: string | null;
+    tamanho?: string | null;
+    preco?: number | string | null;
+    preco_ifood?: number | string | null;
+  }> | null;
+  addons?: Array<{
+    nome?: string | null;
+    preco?: number | string | null;
+    preco_ifood?: number | string | null;
+  }> | null;
+  free_addons?: Array<{
+    nome?: string | null;
+    preco?: number | string | null;
+  }> | null;
+  ingredientes?: Array<{
+    tipo?: string | null;
+    ref_id?: string | null;
+    nome?: string | null;
+    quantidade?: number | string | null;
+    permitir_exclusao?: boolean | null;
+    price_option_id?: string | null;
+  }> | null;
+};
+
 export async function fetchProductDetail(
   productId: string,
 ): Promise<ProductDetail> {
-  const [poRes, addRes, freeRes, fichaRes, prodRes, ingRes, prodMetaRes] = await Promise.all([
-    supabase
-      .from("produtos_price_options")
-      .select("id, tamanho, preco, preco_ifood, sort_order")
-      .eq("produto_id", productId)
-      .order("sort_order"),
-    supabase
-      .from("produtos_addons")
-      .select("nome, preco, preco_ifood, sort_order")
-      .eq("produto_id", productId)
-      .order("sort_order"),
-    supabase
-      .from("produtos_free_addons")
-      .select("nome, preco, sort_order")
-      .eq("produto_id", productId)
-      .order("sort_order"),
-    supabase
-      .from("fichas_tecnicas")
-      .select("dados_fiscais")
-      .eq("product_id", productId)
-      .maybeSingle(),
-    supabase.rpc("admin_get_products", { p_id: productId }),
+  const { data, error } = await (supabase.rpc as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: unknown }>)("admin_get_product_detail", {
+    p_id: productId,
+  });
+  if (error) throw error;
 
-    // Internal recipe columns (insumo/subproduto/quantidade) are no longer
-    // readable directly from the table — fetched via a role-guarded function.
-    supabase.rpc("admin_get_ingredientes", { p_product_id: productId }),
-
-    supabase.rpc("admin_get_product_detail_meta", { p_id: productId }),
-  ]);
-  if (poRes.error) throw poRes.error;
-  if (addRes.error) throw addRes.error;
-  if (freeRes.error) throw freeRes.error;
-  if (fichaRes.error) throw fichaRes.error;
-  if (prodRes.error) throw prodRes.error;
-  if (ingRes.error) throw ingRes.error;
-  if (prodMetaRes.error) throw prodMetaRes.error;
-
-  const fiscais = (fichaRes.data?.dados_fiscais ?? {}) as Record<string, unknown>;
-  const prodMeta = (prodMetaRes.data ?? [])[0] ?? (prodRes.data ?? [])[0];
+  const payload = (data ?? {}) as AdminProductDetailPayload;
+  const fiscais = payload.dados_fiscais ?? {};
+  const prodMeta = payload.product ?? {};
 
   // All ficha lines with their (optional) price_option_id link.
-  const allFicha: FichaLine[] = (ingRes.data ?? []).map((r) => ({
-    tipo: (r.subproduto_id ? "subproduto" : "insumo") as "insumo" | "subproduto",
-    ref_id: (r.subproduto_id ?? r.insumo_id ?? "") as string,
+  const allFicha: FichaLine[] = (payload.ingredientes ?? []).map((r) => ({
+    tipo: r.tipo === "subproduto" ? "subproduto" : "insumo",
+    ref_id: String(r.ref_id ?? ""),
     nome: String(r.nome ?? ""),
     quantidade: Number(r.quantidade ?? 0),
     permitir_exclusao: Boolean(r.permitir_exclusao),
@@ -465,36 +475,36 @@ export async function fetchProductDetail(
   const baseFicha = allFicha.filter((f) => !f.price_option_id);
 
   return {
-    manipulado: prodMeta?.manipulado ?? true,
-    setor_id: prodMeta?.setor_id ?? null,
-    fornecedor_id: prodMeta?.fornecedor_id ?? null,
+    manipulado: prodMeta.manipulado ?? true,
+    setor_id: prodMeta.setor_id ?? null,
+    fornecedor_id: prodMeta.fornecedor_id ?? null,
     margem_revenda: Number(
-      (prodMeta as { margem_revenda?: number })?.margem_revenda ?? 100,
+      prodMeta.margem_revenda ?? 100,
     ),
     custo_compra: Number(
-      (prodMeta as { custo_compra?: number })?.custo_compra ?? 0,
+      prodMeta.custo_compra ?? 0,
     ),
-    preco_ifood: prodMeta?.preco_ifood != null ? Number(prodMeta.preco_ifood) : null,
-    price_options: (poRes.data ?? []).map((p) => ({
-      id: String(p.id),
-      tamanho: String(p.tamanho),
+    preco_ifood: prodMeta.preco_ifood != null ? Number(prodMeta.preco_ifood) : null,
+    price_options: (payload.price_options ?? []).map((p) => ({
+      id: String(p.id ?? ""),
+      tamanho: String(p.tamanho ?? ""),
       preco: Number(p.preco),
       preco_ifood:
-        (p as { preco_ifood?: number | null }).preco_ifood != null
-          ? Number((p as { preco_ifood?: number | null }).preco_ifood)
+        p.preco_ifood != null
+          ? Number(p.preco_ifood)
           : null,
       ficha: allFicha.filter((f) => f.price_option_id === String(p.id)),
     })),
-    addons: (addRes.data ?? []).map((a) => ({
-      nome: String(a.nome),
+    addons: (payload.addons ?? []).map((a) => ({
+      nome: String(a.nome ?? ""),
       preco: Number(a.preco),
       preco_ifood:
-        (a as { preco_ifood?: number | null }).preco_ifood != null
-          ? Number((a as { preco_ifood?: number | null }).preco_ifood)
+        a.preco_ifood != null
+          ? Number(a.preco_ifood)
           : null,
     })),
-    free_addons: (freeRes.data ?? []).map((a) => ({
-      nome: String(a.nome),
+    free_addons: (payload.free_addons ?? []).map((a) => ({
+      nome: String(a.nome ?? ""),
       preco: Number(a.preco),
     })),
     ncm: String(fiscais.ncm ?? ""),
