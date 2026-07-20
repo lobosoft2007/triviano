@@ -103,7 +103,7 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
           boxSizing: "border-box",
           maxWidth: isLandscape ? "273mm" : "186mm",
           width: isLandscape ? "273mm" : "186mm",
-          minHeight: isLandscape ? "182mm" : "269mm",
+          minHeight: isLandscape ? "174mm" : "261mm",
           display: "flex",
           flexDirection: "column",
           background: "#ffffff",
