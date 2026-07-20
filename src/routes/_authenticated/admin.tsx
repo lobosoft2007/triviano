@@ -60,7 +60,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -881,6 +881,9 @@ function AdminPage() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent hideClose className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogTitle className="sr-only">
+            {form.id ? "Editar produto" : "Novo produto"}
+          </DialogTitle>
           <ModalActionBar
             title={form.id ? "Editar produto" : "Novo produto"}
             onBack={() => setOpen(false)}
