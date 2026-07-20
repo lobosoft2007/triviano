@@ -82,6 +82,9 @@ export function OrdemCompraDetailDialog({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState<"print" | "share" | "download" | null>(null);
+  const [orientation, setOrientation] = useState<"portrait" | "landscape">(
+    "landscape",
+  );
 
   const editavel = (ordem?.status ?? "Aberta") === "Aberta";
 
