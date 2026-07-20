@@ -446,11 +446,9 @@ export function OrdemCompraManualDialog({
       return;
     }
     setBusyAction("print");
-    // Give React one tick to render the (already mounted) report with the
-    // current data before firing the print dialog.
     setTimeout(() => {
       try {
-        printReport("portrait");
+        printReport(orientation);
       } finally {
         setBusyAction(null);
       }
@@ -470,7 +468,7 @@ export function OrdemCompraManualDialog({
       const result = await shareNodeAsPdfWhatsapp(
         reportRef.current,
         filename,
-        "portrait",
+        orientation,
         "Segue a Ordem de Compra em anexo.",
       );
       toast.success(
