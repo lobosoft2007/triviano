@@ -824,6 +824,7 @@ export function OrdemCompraManualDialog({
           dialog owns the visible layout. */}
       <div
         aria-hidden
+        className="report-print-host"
         style={{
           position: "fixed",
           left: "-10000px",
