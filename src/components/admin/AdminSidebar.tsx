@@ -28,6 +28,7 @@ import {
   Lock,
   Crown,
   Armchair,
+  CalendarClock,
   Clock,
   Bike,
   FileBarChart,
@@ -85,6 +86,7 @@ export type AdminTab =
   | "pos"
   | "frota"
   | "tap"
+  | "reservas"
   | "rel-clientes"
   | "rel-chat";
 
@@ -310,6 +312,7 @@ export function AdminSidebar({ activeTab, isSuperAdmin, tabAllowed, onSelectTab,
         { key: "pagamentos", label: "Pagamentos", icon: <CreditCard className={iconCls} /> },
         { key: "fiscal", label: "Fiscal", icon: <ReceiptText className={iconCls} /> },
         { key: "mesas", label: "Mesas (QR-Codes)", icon: <Armchair className={iconCls} /> },
+        { key: "reservas", label: "Reservas & Sala", icon: <CalendarClock className={iconCls} /> },
         { key: "pos", label: "Maquininhas (POS)", icon: <Smartphone className={iconCls} /> },
         { key: "frota", label: "Frota POS/Tap", icon: <Smartphone className={iconCls} /> },
         { key: "tap", label: "Tap on Phone", icon: <Nfc className={iconCls} /> },

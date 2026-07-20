@@ -35,6 +35,7 @@ import {
   Bike,
   Smartphone,
   Nfc,
+  CalendarClock,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -86,6 +87,7 @@ import { CombosCrud } from "@/components/admin/CombosCrud";
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
 import { MesasQrTab } from "@/components/admin/MesasQrTab";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
+import { ReservasConfigTab } from "@/components/admin/ReservasConfigTab";
 import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { IdentidadeVisualTab } from "@/components/admin/IdentidadeVisualTab";
 import { EntregadoresCrud } from "@/components/admin/EntregadoresCrud";
@@ -254,6 +256,7 @@ type AdminTab =
   | "pos"
   | "frota"
   | "tap"
+  | "reservas"
   | "rel-clientes"
   | "rel-chat";
 
@@ -280,6 +283,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "funcionarios", label: "Funcionários", icon: UserCog },
   { key: "permissoes", label: "Permissões", icon: ShieldCheck },
   { key: "mesas", label: "Mesas (QR-Codes)", icon: Armchair },
+  { key: "reservas", label: "Reservas & Sala", icon: CalendarClock },
   { key: "entregadores", label: "Entregadores", icon: Bike },
   { key: "ifood", label: "iFood", icon: UtensilsCrossed },
   { key: "pos", label: "Maquininhas (POS)", icon: Smartphone },
@@ -317,6 +321,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   pos: "master",
   frota: "master",
   tap: "master",
+  reservas: "master",
   "rel-clientes": "master",
   "rel-chat": "master",
 };
@@ -768,6 +773,7 @@ function AdminPage() {
           {tab === "funcionarios" && <FuncionariosTab />}
           {tab === "permissoes" && <PermissoesTab />}
           {tab === "mesas" && <MesasQrTab />}
+          {tab === "reservas" && <ReservasConfigTab />}
           {tab === "entregadores" && <EntregadoresCrud />}
           {tab === "ifood" && <IfoodMerchantsCrud />}
           {tab === "pos" && <PosDevicesTab />}

@@ -278,6 +278,7 @@ export type Database = {
           created_at: string
           empresa_id: string
           fechada_em: string | null
+          fila_id: string | null
           id: string
           motivo_cancelamento: string | null
           mp_order_id: string | null
@@ -286,6 +287,7 @@ export type Database = {
           nome_cliente: string
           numero_mesa: number
           pago_online: boolean
+          reserva_id: string | null
           solicitacao_id: string | null
           status: Database["public"]["Enums"]["comanda_status"]
           total_parcial: number
@@ -296,6 +298,7 @@ export type Database = {
           created_at?: string
           empresa_id: string
           fechada_em?: string | null
+          fila_id?: string | null
           id?: string
           motivo_cancelamento?: string | null
           mp_order_id?: string | null
@@ -304,6 +307,7 @@ export type Database = {
           nome_cliente?: string
           numero_mesa: number
           pago_online?: boolean
+          reserva_id?: string | null
           solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["comanda_status"]
           total_parcial?: number
@@ -314,6 +318,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string
           fechada_em?: string | null
+          fila_id?: string | null
           id?: string
           motivo_cancelamento?: string | null
           mp_order_id?: string | null
@@ -322,6 +327,7 @@ export type Database = {
           nome_cliente?: string
           numero_mesa?: number
           pago_online?: boolean
+          reserva_id?: string | null
           solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["comanda_status"]
           total_parcial?: number
@@ -341,6 +347,20 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comanda_ativa_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "fila_espera"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comanda_ativa_reserva_id_fkey"
+            columns: ["reserva_id"]
+            isOneToOne: false
+            referencedRelation: "reservas"
             referencedColumns: ["id"]
           },
           {
@@ -643,6 +663,51 @@ export type Database = {
           },
         ]
       }
+      config_reservas_slot: {
+        Row: {
+          assentos: number
+          created_at: string
+          dia_semana: number
+          empresa_id: string
+          hora: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          assentos?: number
+          created_at?: string
+          dia_semana: number
+          empresa_id?: string
+          hora: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          assentos?: number
+          created_at?: string
+          dia_semana?: number
+          empresa_id?: string
+          hora?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_reservas_slot_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "config_reservas_slot_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contadores_senha: {
         Row: {
           contador: number
@@ -851,8 +916,18 @@ export type Database = {
           monitor_pizzaria: boolean
           nome_fantasia: string
           numero: string
+          pedido_na_mesa_pelo_cliente: boolean
           percentual_cashback: number
           regime_tributario: string
+          reserva_antecedencia_max_dias: number
+          reserva_antecedencia_min_horas: number
+          reserva_ativa: boolean
+          reserva_duracao_min: number
+          reserva_grupo_max: number
+          reserva_grupo_min: number
+          reserva_sinal_ativo: boolean
+          reserva_sinal_por_pessoa: number
+          reserva_tolerancia_min: number
           subdominio: string | null
           taxa_entrega_valor: number
           taxa_servico_mesa: number
@@ -890,8 +965,18 @@ export type Database = {
           monitor_pizzaria?: boolean
           nome_fantasia?: string
           numero?: string
+          pedido_na_mesa_pelo_cliente?: boolean
           percentual_cashback?: number
           regime_tributario?: string
+          reserva_antecedencia_max_dias?: number
+          reserva_antecedencia_min_horas?: number
+          reserva_ativa?: boolean
+          reserva_duracao_min?: number
+          reserva_grupo_max?: number
+          reserva_grupo_min?: number
+          reserva_sinal_ativo?: boolean
+          reserva_sinal_por_pessoa?: number
+          reserva_tolerancia_min?: number
           subdominio?: string | null
           taxa_entrega_valor?: number
           taxa_servico_mesa?: number
@@ -929,8 +1014,18 @@ export type Database = {
           monitor_pizzaria?: boolean
           nome_fantasia?: string
           numero?: string
+          pedido_na_mesa_pelo_cliente?: boolean
           percentual_cashback?: number
           regime_tributario?: string
+          reserva_antecedencia_max_dias?: number
+          reserva_antecedencia_min_horas?: number
+          reserva_ativa?: boolean
+          reserva_duracao_min?: number
+          reserva_grupo_max?: number
+          reserva_grupo_min?: number
+          reserva_sinal_ativo?: boolean
+          reserva_sinal_por_pessoa?: number
+          reserva_tolerancia_min?: number
           subdominio?: string | null
           taxa_entrega_valor?: number
           taxa_servico_mesa?: number
@@ -1378,6 +1473,76 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: true
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fila_espera: {
+        Row: {
+          avisado_em: string | null
+          comanda_id: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          numero_mesa: number | null
+          pessoas: number
+          posicao: number
+          sentado_em: string | null
+          status: Database["public"]["Enums"]["fila_espera_status"]
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          avisado_em?: string | null
+          comanda_id?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome: string
+          numero_mesa?: number | null
+          pessoas: number
+          posicao?: number
+          sentado_em?: string | null
+          status?: Database["public"]["Enums"]["fila_espera_status"]
+          telefone?: string
+          updated_at?: string
+        }
+        Update: {
+          avisado_em?: string | null
+          comanda_id?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          numero_mesa?: number | null
+          pessoas?: number
+          posicao?: number
+          sentado_em?: string | null
+          status?: Database["public"]["Enums"]["fila_espera_status"]
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fila_espera_comanda_id_fkey"
+            columns: ["comanda_id"]
+            isOneToOne: false
+            referencedRelation: "comanda_ativa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fila_espera_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fila_espera_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
             referencedColumns: ["id"]
           },
         ]
@@ -2205,6 +2370,54 @@ export type Database = {
           },
         ]
       }
+      mesas_fisicas: {
+        Row: {
+          ativa: boolean
+          capacidade: number
+          created_at: string
+          empresa_id: string
+          id: string
+          numero: number
+          updated_at: string
+          zona: string
+        }
+        Insert: {
+          ativa?: boolean
+          capacidade?: number
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          numero: number
+          updated_at?: string
+          zona?: string
+        }
+        Update: {
+          ativa?: boolean
+          capacidade?: number
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          numero?: number
+          updated_at?: string
+          zona?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mesas_fisicas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mesas_fisicas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimentacoes_caixa: {
         Row: {
           created_at: string
@@ -2779,6 +2992,7 @@ export type Database = {
           acesso_financeiro: boolean
           acesso_kds_cozinha: boolean
           acesso_mesas: boolean
+          acesso_recepcao: boolean
           acesso_rh: boolean
           acesso_sangria_suprimento: boolean
           created_at: string
@@ -2798,6 +3012,7 @@ export type Database = {
           acesso_financeiro?: boolean
           acesso_kds_cozinha?: boolean
           acesso_mesas?: boolean
+          acesso_recepcao?: boolean
           acesso_rh?: boolean
           acesso_sangria_suprimento?: boolean
           created_at?: string
@@ -2817,6 +3032,7 @@ export type Database = {
           acesso_financeiro?: boolean
           acesso_kds_cozinha?: boolean
           acesso_mesas?: boolean
+          acesso_recepcao?: boolean
           acesso_rh?: boolean
           acesso_sangria_suprimento?: boolean
           created_at?: string
@@ -3757,6 +3973,88 @@ export type Database = {
           },
         ]
       }
+      reservas: {
+        Row: {
+          comanda_id: string | null
+          created_at: string
+          data: string
+          empresa_id: string
+          hora: string
+          id: string
+          mp_order_id: string | null
+          mp_payment_id: string | null
+          nome: string
+          numero_mesa: number | null
+          observacoes: string
+          pessoas: number
+          sinal_valor: number
+          status: Database["public"]["Enums"]["reserva_status"]
+          telefone: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          comanda_id?: string | null
+          created_at?: string
+          data: string
+          empresa_id?: string
+          hora: string
+          id?: string
+          mp_order_id?: string | null
+          mp_payment_id?: string | null
+          nome?: string
+          numero_mesa?: number | null
+          observacoes?: string
+          pessoas: number
+          sinal_valor?: number
+          status?: Database["public"]["Enums"]["reserva_status"]
+          telefone?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          comanda_id?: string | null
+          created_at?: string
+          data?: string
+          empresa_id?: string
+          hora?: string
+          id?: string
+          mp_order_id?: string | null
+          mp_payment_id?: string | null
+          nome?: string
+          numero_mesa?: number | null
+          observacoes?: string
+          pessoas?: number
+          sinal_valor?: number
+          status?: Database["public"]["Enums"]["reserva_status"]
+          telefone?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservas_comanda_id_fkey"
+            columns: ["comanda_id"]
+            isOneToOne: false
+            referencedRelation: "comanda_ativa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       setores: {
         Row: {
           created_at: string
@@ -4373,6 +4671,7 @@ export type Database = {
       }
       can_manage_empresa: { Args: { _empresa_id: string }; Returns: boolean }
       cancel_order: { Args: { p_order_id: string }; Returns: undefined }
+      cancelar_reserva: { Args: { p_reserva_id: string }; Returns: undefined }
       claim_tenant_by_host: { Args: { p_host: string }; Returns: string }
       compute_product_cmv: { Args: { p_product_id: string }; Returns: number }
       conciliar_ajuste_nf: {
@@ -4406,7 +4705,23 @@ export type Database = {
         }
         Returns: number
       }
+      criar_reserva: {
+        Args: {
+          p_data: string
+          p_hora: string
+          p_host: string
+          p_nome: string
+          p_observacoes?: string
+          p_pessoas: number
+          p_telefone: string
+        }
+        Returns: string
+      }
       current_empresa_id: { Args: never; Returns: string }
+      dar_entrada_reserva: {
+        Args: { p_numero_mesa: number; p_reserva_id: string }
+        Returns: string
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -4433,6 +4748,16 @@ export type Database = {
       }
       explode_order_stock: { Args: { p_order_id: string }; Returns: undefined }
       fechar_comanda: { Args: { p_comanda_id: string }; Returns: undefined }
+      fila_adicionar: {
+        Args: { p_nome: string; p_pessoas: number; p_telefone: string }
+        Returns: string
+      }
+      fila_avisar: { Args: { p_fila_id: string }; Returns: undefined }
+      fila_desistir: { Args: { p_fila_id: string }; Returns: undefined }
+      fila_sentar: {
+        Args: { p_fila_id: string; p_numero_mesa: number }
+        Returns: string
+      }
       finalize_comanda_paid: {
         Args: { p_comanda_id: string; p_meio_id: string }
         Returns: undefined
@@ -4505,6 +4830,7 @@ export type Database = {
           acesso_financeiro: boolean
           acesso_kds_cozinha: boolean
           acesso_mesas: boolean
+          acesso_recepcao: boolean
           acesso_rh: boolean
           acesso_sangria_suprimento: boolean
           is_admin: boolean
@@ -4826,6 +5152,13 @@ export type Database = {
         Args: { p_host?: string; p_order_id: string }
         Returns: Json
       }
+      reserva_disponibilidade: {
+        Args: { p_data: string; p_host: string; p_pessoas: number }
+        Returns: {
+          hora: string
+          vagas: number
+        }[]
+      }
       resolve_empresa_id_by_host: { Args: { p_host: string }; Returns: string }
       reverse_order_stock: { Args: { p_order_id: string }; Returns: undefined }
       save_tap_provider_config: {
@@ -4896,6 +5229,14 @@ export type Database = {
         | "fechada"
         | "cancelada"
       fiado_tipo: "Debito_Compra" | "Credito_Pagamento"
+      fila_espera_status: "aguardando" | "avisado" | "sentado" | "desistiu"
+      reserva_status:
+        | "pendente_pagamento"
+        | "confirmada"
+        | "cancelada"
+        | "no_show"
+        | "em_atendimento"
+        | "concluida"
       solicitacao_mesa_status:
         | "aguardando"
         | "liberada"
@@ -5049,6 +5390,15 @@ export const Constants = {
         "cancelada",
       ],
       fiado_tipo: ["Debito_Compra", "Credito_Pagamento"],
+      fila_espera_status: ["aguardando", "avisado", "sentado", "desistiu"],
+      reserva_status: [
+        "pendente_pagamento",
+        "confirmada",
+        "cancelada",
+        "no_show",
+        "em_atendimento",
+        "concluida",
+      ],
       solicitacao_mesa_status: [
         "aguardando",
         "liberada",

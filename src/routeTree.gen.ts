@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ReservarRouteImport } from './routes/reservar'
 import { Route as MinhaComandaRouteImport } from './routes/minha-comanda'
 import { Route as MesaRouteImport } from './routes/mesa'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -19,6 +20,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthUpdatePasswordRouteImport } from './routes/auth_.update-password'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
+import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedOrdersRouteImport } from './routes/_authenticated/orders'
 import { Route as AuthenticatedMenuRouteImport } from './routes/_authenticated/menu'
@@ -51,6 +53,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReservarRoute = ReservarRouteImport.update({
+  id: '/reservar',
+  path: '/reservar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MinhaComandaRoute = MinhaComandaRouteImport.update({
@@ -90,6 +97,11 @@ const AuthUpdatePasswordRoute = AuthUpdatePasswordRouteImport.update({
 const AuthenticatedSuperadminRoute = AuthenticatedSuperadminRouteImport.update({
   id: '/superadmin',
   path: '/superadmin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecepcaoRoute = AuthenticatedRecepcaoRouteImport.update({
+  id: '/recepcao',
+  path: '/recepcao',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
@@ -220,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/mesa': typeof MesaRoute
   '/minha-comanda': typeof MinhaComandaRoute
+  '/reservar': typeof ReservarRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -228,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/menu': typeof AuthenticatedMenuRoute
   '/orders': typeof AuthenticatedOrdersRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
   '/auth/update-password': typeof AuthUpdatePasswordRoute
   '/api/public/hooks/pos-health-check': typeof ApiPublicHooksPosHealthCheckRoute
@@ -254,6 +268,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/mesa': typeof MesaRoute
   '/minha-comanda': typeof MinhaComandaRoute
+  '/reservar': typeof ReservarRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -262,6 +277,7 @@ export interface FileRoutesByTo {
   '/menu': typeof AuthenticatedMenuRoute
   '/orders': typeof AuthenticatedOrdersRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
   '/auth/update-password': typeof AuthUpdatePasswordRoute
   '/api/public/hooks/pos-health-check': typeof ApiPublicHooksPosHealthCheckRoute
@@ -290,6 +306,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/mesa': typeof MesaRoute
   '/minha-comanda': typeof MinhaComandaRoute
+  '/reservar': typeof ReservarRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -298,6 +315,7 @@ export interface FileRoutesById {
   '/_authenticated/menu': typeof AuthenticatedMenuRoute
   '/_authenticated/orders': typeof AuthenticatedOrdersRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRoute
   '/auth_/update-password': typeof AuthUpdatePasswordRoute
   '/api/public/hooks/pos-health-check': typeof ApiPublicHooksPosHealthCheckRoute
@@ -326,6 +344,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/mesa'
     | '/minha-comanda'
+    | '/reservar'
     | '/reset-password'
     | '/sitemap.xml'
     | '/admin'
@@ -334,6 +353,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/orders'
     | '/perfil'
+    | '/recepcao'
     | '/superadmin'
     | '/auth/update-password'
     | '/api/public/hooks/pos-health-check'
@@ -360,6 +380,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/mesa'
     | '/minha-comanda'
+    | '/reservar'
     | '/reset-password'
     | '/sitemap.xml'
     | '/admin'
@@ -368,6 +389,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/orders'
     | '/perfil'
+    | '/recepcao'
     | '/superadmin'
     | '/auth/update-password'
     | '/api/public/hooks/pos-health-check'
@@ -395,6 +417,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/mesa'
     | '/minha-comanda'
+    | '/reservar'
     | '/reset-password'
     | '/sitemap.xml'
     | '/_authenticated/admin'
@@ -403,6 +426,7 @@ export interface FileRouteTypes {
     | '/_authenticated/menu'
     | '/_authenticated/orders'
     | '/_authenticated/perfil'
+    | '/_authenticated/recepcao'
     | '/_authenticated/superadmin'
     | '/auth_/update-password'
     | '/api/public/hooks/pos-health-check'
@@ -431,6 +455,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   MesaRoute: typeof MesaRoute
   MinhaComandaRoute: typeof MinhaComandaRoute
+  ReservarRoute: typeof ReservarRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AuthUpdatePasswordRoute: typeof AuthUpdatePasswordRoute
@@ -467,6 +492,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reservar': {
+      id: '/reservar'
+      path: '/reservar'
+      fullPath: '/reservar'
+      preLoaderRoute: typeof ReservarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/minha-comanda': {
@@ -523,6 +555,13 @@ declare module '@tanstack/react-router' {
       path: '/superadmin'
       fullPath: '/superadmin'
       preLoaderRoute: typeof AuthenticatedSuperadminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recepcao': {
+      id: '/_authenticated/recepcao'
+      path: '/recepcao'
+      fullPath: '/recepcao'
+      preLoaderRoute: typeof AuthenticatedRecepcaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/perfil': {
@@ -696,6 +735,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMenuRoute: typeof AuthenticatedMenuRoute
   AuthenticatedOrdersRoute: typeof AuthenticatedOrdersRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
+  AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
   AuthenticatedSuperadminRoute: typeof AuthenticatedSuperadminRoute
 }
 
@@ -706,6 +746,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMenuRoute: AuthenticatedMenuRoute,
   AuthenticatedOrdersRoute: AuthenticatedOrdersRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
+  AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
   AuthenticatedSuperadminRoute: AuthenticatedSuperadminRoute,
 }
 
@@ -719,6 +760,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   MesaRoute: MesaRoute,
   MinhaComandaRoute: MinhaComandaRoute,
+  ReservarRoute: ReservarRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AuthUpdatePasswordRoute: AuthUpdatePasswordRoute,
@@ -743,13 +785,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

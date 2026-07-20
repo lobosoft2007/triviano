@@ -15,7 +15,8 @@ export type PermissionFlag =
   | "acesso_cadastro_produtos"
   | "acesso_financeiro"
   | "acesso_rh"
-  | "acesso_abrir_fechar_caixa";
+  | "acesso_abrir_fechar_caixa"
+  | "acesso_recepcao";
 
 export interface MyPermissions extends Record<PermissionFlag, boolean> {
   is_admin: boolean;
@@ -40,6 +41,7 @@ const DENY_ALL: MyPermissions = {
   acesso_financeiro: false,
   acesso_rh: false,
   acesso_abrir_fechar_caixa: false,
+  acesso_recepcao: false,
 };
 
 export const PERMISSION_LABELS: { key: PermissionFlag; label: string }[] = [
@@ -55,6 +57,7 @@ export const PERMISSION_LABELS: { key: PermissionFlag; label: string }[] = [
   { key: "acesso_cadastro_produtos", label: "Cadastro de Produtos" },
   { key: "acesso_financeiro", label: "Financeiro" },
   { key: "acesso_rh", label: "RH / Gestão de Equipe" },
+  { key: "acesso_recepcao", label: "Recepção (Reservas / Fila)" },
 ];
 
 /** Effective permissions for the logged-in user. Admins bypass the matrix. */
