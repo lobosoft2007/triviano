@@ -65,6 +65,7 @@ export async function shareNodeAsPdfWhatsapp(
   filename: string,
   orientation: "portrait" | "landscape" = "portrait",
   message = "Segue a Ordem de Compra em anexo.",
+  phone?: string | null,
 ): Promise<"shared" | "fallback"> {
   const blob = await renderNodeToPdfBlob(node, filename, orientation);
   const file = new File([blob], filename, { type: "application/pdf" });
@@ -79,16 +80,12 @@ export async function shareNodeAsPdfWhatsapp(
       await nav.share({ title: filename, text: message, files: [file] });
       return "shared";
     } catch (err) {
-      // User cancelled the share sheet — don't fall back to download.
       if (err instanceof Error && err.name === "AbortError") {
         return "shared";
       }
-      // Any other failure falls through to the download+wa.me fallback.
     }
   }
 
-  // Fallback: download the file, then open WhatsApp Web with an instructional
-  // text so the user can attach it manually.
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -101,6 +98,8 @@ export async function shareNodeAsPdfWhatsapp(
   const text = encodeURIComponent(
     `${message}\n(Arquivo baixado: ${filename}. Anexe-o nesta conversa.)`,
   );
-  window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
+  const digits = (phone ?? "").replace(/\D/g, "");
+  const target = digits ? `https://wa.me/${digits}?text=${text}` : `https://wa.me/?text=${text}`;
+  window.open(target, "_blank", "noopener,noreferrer");
   return "fallback";
 }
