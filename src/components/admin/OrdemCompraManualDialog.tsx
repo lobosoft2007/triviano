@@ -396,7 +396,7 @@ export function OrdemCompraManualDialog({
           (defaultFornecedor !== NONE
             ? fornMap.get(defaultFornecedor)?.fornecedor ?? ""
             : ""),
-        unidade: "un",
+        unidade: f.unidade || "un",
         quantidade: q,
         custo_unitario: parseNumberInput(f.custo_unitario),
       });
