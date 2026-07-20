@@ -1,30 +1,38 @@
+## Problemas observados no PDF/print da Ordem de Compra
+
+1. **Coluna "Setor" em branco (todos "—")**  
+   Os itens vindos da Sugestão passam por `PreloadedOCItem → hidratação`. Quando o `ref_id` bate com o catálogo (`insumo:xxx` / `produto:xxx`), o item vai para `rowState` e o setor é lido de `r.source.setor_id`. Quando não bate, cai em `freeItems` e depende do `setor_id` que veio da sugestão. Em ambos os caminhos o relatório resolve o nome via `setorMap.get(...)?.setor ?? ""` — se o `setor_id` estiver `null` na origem (insumos/produtos sem setor cadastrado ou coluna não retornada) o relatório mostra "—".
+
+2. **Última linha ("Caixa de pizza c/ 25") aparece duplicada abaixo do TOTAL GERAL**  
+   Na verdade é a **página 2 do print**: quando o corpo da tabela transborda por uma linha, o navegador **repete o `<thead>` no topo da nova página** (comportamento padrão de `thead { display: table-header-group }`). Como o rótulo "Pág 1 / 1" está hard-coded no cabeçalho, o usuário vê o mesmo número em ambas as páginas e interpreta como duplicidade.
+
 ## O que muda
 
-Adicionar um **segundo botão de salvar** dentro do próprio diálogo `OrdemCompraManualDialog` — **"Gerar Ordem Única"** — posicionado ao lado do botão atual **"Gerar ordem"** na barra de ação (topo do modal). Esse novo botão gera **uma única** Ordem de Compra, com todos os itens em uma só ordem, **ordenados por Setor → Fornecedor → Nome**.
+### `src/styles.css` (bloco `@media print`)
+- Dentro de `body.printing-report`, forçar `.report-a4 thead { display: table-row-group; }` para **não repetir** o cabeçalho da tabela em cada página impressa. Isso elimina o "cabeçalho + 1 linha" no rodapé da página 2.
+- Reduzir `.report-content { padding-top }` de 22mm para 18mm — o cabeçalho fixo real é ~16mm; a folga extra estava empurrando conteúdo para a página seguinte.
 
-O botão atual "Gerar ordem" continua igual (uma ordem por fornecedor).
+### `src/components/admin/reports/OrdemCompraReport.tsx`
+- Substituir o texto estático `Pág 1 / 1` por paginação real via CSS: usar `<span class="report-pagenum-marker" />` cujo `::after` conteúdo em `@media print` seja `counter(page) " / " counter(pages)`. Fora do print, exibir apenas em branco (sem numeração fake).
+- Reduzir levemente o espaçamento vertical do bloco de totais (`marginTop 16px → 10px`) e do grupo (`marginBottom 16px → 10px`) para diminuir a probabilidade de overflow com listas médias.
+- Aceitar prop opcional `titulo` (default "Ordem de Compra — Sugestão") para permitir usos futuros; mudança compatível.
 
-## Comportamento
+### `src/components/admin/OrdemCompraManualDialog.tsx` (rows do relatório)
+- Fallback do setor: quando `setorMap.get(...)?.setor` for vazio para um item, tentar `fornMap`/nome de fornecedor não altera setor — em vez disso, exibir "—" apenas quando realmente não houver setor cadastrado, e adicionar um `title` no célula com aviso "Sem setor cadastrado no item".
+- Corrigir a fonte do setor no caminho `freeItems`: propagar `setor_id` de `PreloadedOCItem` (já feito) e **também** guardar `unidade` da origem (hoje o free item força `"un"`, o que gera a discrepância "5" × "5 un" na tabela, evidenciando que rows vieram de fontes diferentes).
 
-- Botão **"Gerar ordem"** (existente, verde): mantém a lógica atual — agrupa por fornecedor e cria N ordens.
-- Botão **"Gerar Ordem Única"** (novo, ao lado): reutiliza a rotina consolidada já existente no arquivo (bloco `if (consolidatedMode)` do `handleSave`) para criar **uma única** `ordens_compra` com `id_fornecedor = null`, itens ordenados por `setor.ordem_exibicao` → `fornecedor.nome` → `nome`, `origem = "Manual"` e observação padrão "Ordem única — ordenada por setor/fornecedor" quando o campo estiver vazio.
-- Ambos ficam desabilitados enquanto `totalItens === 0` ou `saving`.
-- O botão novo aparece em **todos os usos** do diálogo (Sugestão de Compras e Ordem Manual/Avulsa direta) — o usuário escolhe no momento de salvar.
-
-## Arquivos alterados
-
-- `src/components/ui/modal-action-bar.tsx`
-  - Adicionar props opcionais para uma **segunda ação de salvar** ao lado da principal: `onSecondarySave?: () => void`, `secondarySaveLabel?: string`, `secondarySaveDisabled?: boolean`, `secondarySaving?: boolean`.
-  - Renderizar esse botão secundário logo antes do botão principal (variant `outline`), sem alterar comportamento quando as props não são passadas.
-- `src/components/admin/OrdemCompraManualDialog.tsx`
-  - Extrair a lógica de "salvar consolidada" do `handleSave` atual para uma função `handleSaveUnica()` que reaproveita o mesmo bloco (ordenação por setor→fornecedor→nome + `criarOrdemCompra` único com `id_fornecedor: null`).
-  - Passar `onSecondarySave={handleSaveUnica}` e `secondarySaveLabel="Gerar Ordem Única"` ao `ModalActionBar`.
-  - Manter a prop `consolidatedMode` existente (compatibilidade): quando `true`, o botão principal já usa o caminho consolidado — nesse caso o botão secundário fica oculto para não duplicar.
-- `src/components/admin/SugestaoComprasView.tsx`
-  - Sem mudança funcional. (Os 3 botões atuais continuam.)
+### `src/lib/estoque.ts` (verificação da origem)
+- Garantir que `fetchSugestaoCompras` mantém `setor_id` real (já mantém para insumos e produtos). Nenhuma alteração se a query já retornar a coluna.
 
 ## Fora do escopo
-
-- Não altero `criarOrdemCompra`, RPCs, RLS, motor financeiro nem `OrdemCompraReport`.
-- Não mexo em impressão, PDF ou WhatsApp.
+- Não altero RPCs, RLS, motor financeiro nem `criar_ordem_compra`.
+- Não mexo em `pdf-share.ts` nem no fluxo de WhatsApp.
 - Sem migrações de banco.
+
+## Como validar
+1. Abrir Sugestão de Compras → "Gerar Ordem Única" (dentro do dialog).
+2. Clicar Imprimir e conferir na pré-visualização:
+   - Coluna Setor preenchida quando os itens tiverem setor cadastrado.
+   - Sem cabeçalho + linha "solta" após TOTAL GERAL.
+   - Numeração "Pág X / Y" refletindo o total real de páginas.
+3. Repetir para "Baixar PDF" — o mesmo relatório é usado, o resultado deve ser consistente.

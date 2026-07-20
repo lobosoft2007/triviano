@@ -237,16 +237,23 @@
     background: #fff;
   }
   /* Leave space for the fixed header/footer inside the flowing content.
-     The header shows a 40px logo + border + padding (~20mm), so 16mm was
-     too tight and clipped the first table header row. 22mm keeps content
-     clear. */
+     Fixed header is ~40px logo + border ≈ 16mm; 18mm gives a small safety
+     margin without pushing rows to the next page. */
   body.printing-report .report-content {
-    padding-top: 22mm;
-    padding-bottom: 14mm;
+    padding-top: 18mm;
+    padding-bottom: 12mm;
   }
+  /* Do NOT repeat the table thead on each printed page — that showed a
+     stray "header + last row" fragment below the totals when a table
+     overflowed by a single row. */
+  body.printing-report .report-a4 thead {
+    display: table-row-group;
+  }
+  /* Real page counter for the report header. */
   body.printing-report .report-pagenum::after {
-    content: none !important;
+    content: "Pág " counter(page) " / " counter(pages);
   }
+
   /* Neutralize off-screen host wrappers so the absolutely-positioned
      `.report-a4` anchors to the page (body), not to a wrapper parked at
      left:-10000px. Without this, print output is blank. */

@@ -145,9 +145,8 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
               fontVariantNumeric: "tabular-nums",
               color: C.muted,
             }}
-          >
-            Pág 1 / 1
-          </span>
+          />
+
         </div>
 
         <div className="report-content" style={{ paddingTop: "12px" }}>
@@ -202,7 +201,7 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
                 0,
               );
               return (
-                <div key={fornNome} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
+                <div key={fornNome} style={{ marginBottom: "10px" }}>
                   <div
                     style={{
                       display: "flex",
@@ -258,7 +257,7 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
 
           <div
             style={{
-              marginTop: "16px",
+              marginTop: "10px",
               display: "flex",
               alignItems: "center",
               justifyContent: "flex-end",

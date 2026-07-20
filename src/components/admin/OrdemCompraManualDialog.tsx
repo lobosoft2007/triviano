@@ -72,6 +72,7 @@ interface FreeItem {
   nome: string;
   setor_id: string | null;
   fornecedor_id: string | null;
+  unidade: string;
   custo_unitario: string;
   quantidade: string;
 }
@@ -275,6 +276,7 @@ export function OrdemCompraManualDialog({
           nome: it.nome,
           setor_id: it.setor_id,
           fornecedor_id: it.fornecedor_id,
+          unidade: it.unidade || "un",
           custo_unitario: String(it.custo_unitario).replace(".", ","),
           quantidade: String(it.quantidade).replace(".", ","),
         });
@@ -394,7 +396,7 @@ export function OrdemCompraManualDialog({
           (defaultFornecedor !== NONE
             ? fornMap.get(defaultFornecedor)?.fornecedor ?? ""
             : ""),
-        unidade: "un",
+        unidade: f.unidade || "un",
         quantidade: q,
         custo_unitario: parseNumberInput(f.custo_unitario),
       });
@@ -411,6 +413,7 @@ export function OrdemCompraManualDialog({
         nome: "",
         setor_id: null,
         fornecedor_id: null,
+        unidade: "un",
         custo_unitario: "",
         quantidade: "",
       },
