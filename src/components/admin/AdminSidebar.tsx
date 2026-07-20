@@ -28,6 +28,7 @@ import {
   Lock,
   Crown,
   Armchair,
+  CalendarClock,
   Clock,
   Bike,
   FileBarChart,
