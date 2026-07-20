@@ -205,8 +205,38 @@ export function SugestaoComprasView() {
 
   /* ---------------- Manual order dialog ----------------------------- */
   const [open, setOpen] = useState(false);
+  const [consolidatedOpen, setConsolidatedOpen] = useState(false);
+  const [preloaded, setPreloaded] = useState<PreloadedOCItem[]>([]);
   const openManual = () => setOpen(true);
   const [detailId, setDetailId] = useState<string | null>(null);
+
+  function abrirConsolidadaPorSetor() {
+    if (!sugestao || sugestao.length === 0) {
+      toast.error("Nada a comprar no momento.");
+      return;
+    }
+    const items: PreloadedOCItem[] = sugestao.map((i) => ({
+      tipo: i.tipo,
+      ref_id: i.ref_id,
+      nome: i.nome,
+      unidade: i.unidade,
+      setor_id: i.setor_id,
+      fornecedor_id: i.fornecedor_id,
+      custo_unitario: i.custo_unitario,
+      quantidade: i.quantidade_comprar,
+    }));
+    items.sort((a, b) => {
+      const oa = setorOrdem.get(a.setor_id ?? "") ?? 999;
+      const ob = setorOrdem.get(b.setor_id ?? "") ?? 999;
+      if (oa !== ob) return oa - ob;
+      const fa = fornMap.get(a.fornecedor_id ?? "") ?? "zzz";
+      const fb = fornMap.get(b.fornecedor_id ?? "") ?? "zzz";
+      if (fa !== fb) return fa.localeCompare(fb);
+      return a.nome.localeCompare(b.nome);
+    });
+    setPreloaded(items);
+    setConsolidatedOpen(true);
+  }
 
   return (
     <section className="space-y-6">
@@ -225,11 +255,19 @@ export function SugestaoComprasView() {
           >
             <Send className="mr-1 h-4 w-4" /> Gerar Ordem Única (todos fornecedores)
           </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={abrirConsolidadaPorSetor}
+          >
+            <Send className="mr-1 h-4 w-4" /> Gerar Ordem Consolidada por Setor
+          </Button>
           <Button size="sm" onClick={openManual}>
             <Plus className="mr-1 h-4 w-4" /> Gerar Ordem de Compra Manual / Avulsa
           </Button>
         </div>
       </header>
+
 
       {/* Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
