@@ -584,6 +584,9 @@ export function OrdemCompraManualDialog({
                     <th className="px-2 py-2 font-semibold">Item</th>
                     <th className="px-2 py-2 font-semibold">Setor</th>
                     <th className="px-2 py-2 font-semibold">Fornecedor</th>
+                    <th className="px-2 py-2 text-right font-semibold">
+                      Estoque <span className="font-normal normal-case opacity-70">(mín/máx)</span>
+                    </th>
                     <th className="px-2 py-2 text-right font-semibold">Custo un.</th>
                     <th className="px-2 py-2 text-right font-semibold">Quantidade</th>
                     <th className="px-2 py-2 text-right font-semibold">Subtotal</th>
@@ -595,7 +598,7 @@ export function OrdemCompraManualDialog({
                     <>
                       <tr key={`sec-${group.setorId}`} className="bg-primary/5">
                         <td
-                          colSpan={7}
+                          colSpan={8}
                           className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide text-primary"
                         >
                           {group.setorNome}
@@ -608,6 +611,9 @@ export function OrdemCompraManualDialog({
                           ? parseNumberInput(st.custo)
                           : item.custo_unitario;
                         const subtotal = qty * custo;
+                        const abaixoMin =
+                          item.estoque_minimo > 0 &&
+                          item.saldo_estoque < item.estoque_minimo;
                         return (
                           <tr
                             key={item.key}
@@ -627,6 +633,20 @@ export function OrdemCompraManualDialog({
                             </td>
                             <td className="px-2 py-1.5 text-xs text-muted-foreground">
                               {fornMap.get(item.fornecedor_id ?? "")?.fornecedor ?? "—"}
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-xs tabular-nums">
+                              <span
+                                className={
+                                  abaixoMin
+                                    ? "font-semibold text-destructive"
+                                    : "text-foreground"
+                                }
+                              >
+                                {fmtNum(item.saldo_estoque)}
+                              </span>
+                              <span className="ml-1 text-[10px] text-muted-foreground">
+                                ({fmtNum(item.estoque_minimo)}/{fmtNum(item.estoque_maximo)})
+                              </span>
                             </td>
                             <td className="px-2 py-1.5">
                               <Input
