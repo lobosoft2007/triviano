@@ -267,3 +267,54 @@
   }
 }
 
+/* -----------------------------------------------------------------------
+ * html2canvas / html2pdf oklch guard.
+ * Tailwind v4 preflight applies `border-color: var(--border)` on `*`, and
+ * our `--border` is defined in oklch(). html2canvas reads computed styles
+ * and crashes with "Attempting to parse an unsupported color function
+ * 'oklch'". We neutralize every custom property used by preflight to a
+ * plain hex so the capture is safe. Applied globally (screen + print) so
+ * the report always renders with these safe tokens.
+ * ---------------------------------------------------------------------*/
+.report-a4,
+.report-a4 * {
+  --background: #ffffff;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --primary: #111111;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f2f2;
+  --secondary-foreground: #111111;
+  --muted: #eeeeee;
+  --muted-foreground: #555555;
+  --accent: #eeeeee;
+  --accent-foreground: #111111;
+  --destructive: #c0392b;
+  --destructive-foreground: #ffffff;
+  --success: #2f9e44;
+  --success-foreground: #ffffff;
+  --warning: #d99e00;
+  --warning-foreground: #111111;
+  --border: #cccccc;
+  --input: #cccccc;
+  --ring: transparent;
+  --back: #333333;
+  --back-foreground: #ffffff;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #111111;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eeeeee;
+  --sidebar-accent-foreground: #111111;
+  --sidebar-border: #cccccc;
+  --sidebar-ring: transparent;
+  border-color: #cccccc;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  background-image: none !important;
+}
+
+
