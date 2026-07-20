@@ -39,6 +39,7 @@ import { Route as ApiPublicTapPixCreateRouteImport } from './routes/api/public/t
 import { Route as ApiPublicTapCardSettleRouteImport } from './routes/api/public/tap/card/settle'
 import { Route as ApiPublicTapCardRefundRouteImport } from './routes/api/public/tap/card/refund'
 import { Route as ApiPublicPosCommandsAckRouteImport } from './routes/api/public/pos/commands.ack'
+import { Route as ApiPublicPosBrandingSlugRouteImport } from './routes/api/public/pos/branding.$slug'
 import { Route as ApiPublicTapPixWebhookProviderRouteImport } from './routes/api/public/tap/pix/webhook.$provider'
 import { Route as ApiPublicTapPixStatusIdRouteImport } from './routes/api/public/tap/pix/status.$id'
 
@@ -195,6 +196,12 @@ const ApiPublicPosCommandsAckRoute = ApiPublicPosCommandsAckRouteImport.update({
   path: '/api/public/pos/commands/ack',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPosBrandingSlugRoute =
+  ApiPublicPosBrandingSlugRouteImport.update({
+    id: '/api/public/pos/branding/$slug',
+    path: '/api/public/pos/branding/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicTapPixWebhookProviderRoute =
   ApiPublicTapPixWebhookProviderRouteImport.update({
     id: '/api/public/tap/pix/webhook/$provider',
@@ -233,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/pos/branding/$slug': typeof ApiPublicPosBrandingSlugRoute
   '/api/public/pos/commands/ack': typeof ApiPublicPosCommandsAckRoute
   '/api/public/tap/card/refund': typeof ApiPublicTapCardRefundRoute
   '/api/public/tap/card/settle': typeof ApiPublicTapCardSettleRoute
@@ -266,6 +274,7 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/pos/branding/$slug': typeof ApiPublicPosBrandingSlugRoute
   '/api/public/pos/commands/ack': typeof ApiPublicPosCommandsAckRoute
   '/api/public/tap/card/refund': typeof ApiPublicTapCardRefundRoute
   '/api/public/tap/card/settle': typeof ApiPublicTapCardSettleRoute
@@ -301,6 +310,7 @@ export interface FileRoutesById {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/api/public/pos/branding/$slug': typeof ApiPublicPosBrandingSlugRoute
   '/api/public/pos/commands/ack': typeof ApiPublicPosCommandsAckRoute
   '/api/public/tap/card/refund': typeof ApiPublicTapCardRefundRoute
   '/api/public/tap/card/settle': typeof ApiPublicTapCardSettleRoute
@@ -336,6 +346,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/pos/branding/$slug'
     | '/api/public/pos/commands/ack'
     | '/api/public/tap/card/refund'
     | '/api/public/tap/card/settle'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/pos/branding/$slug'
     | '/api/public/pos/commands/ack'
     | '/api/public/tap/card/refund'
     | '/api/public/tap/card/settle'
@@ -403,6 +415,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/api/public/pos/branding/$slug'
     | '/api/public/pos/commands/ack'
     | '/api/public/tap/card/refund'
     | '/api/public/tap/card/settle'
@@ -431,6 +444,7 @@ export interface RootRouteChildren {
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  ApiPublicPosBrandingSlugRoute: typeof ApiPublicPosBrandingSlugRoute
   ApiPublicPosCommandsAckRoute: typeof ApiPublicPosCommandsAckRoute
   ApiPublicTapCardRefundRoute: typeof ApiPublicTapCardRefundRoute
   ApiPublicTapCardSettleRoute: typeof ApiPublicTapCardSettleRoute
@@ -651,6 +665,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPosCommandsAckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/pos/branding/$slug': {
+      id: '/api/public/pos/branding/$slug'
+      path: '/api/public/pos/branding/$slug'
+      fullPath: '/api/public/pos/branding/$slug'
+      preLoaderRoute: typeof ApiPublicPosBrandingSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/tap/pix/webhook/$provider': {
       id: '/api/public/tap/pix/webhook/$provider'
       path: '/api/public/tap/pix/webhook/$provider'
@@ -711,6 +732,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  ApiPublicPosBrandingSlugRoute: ApiPublicPosBrandingSlugRoute,
   ApiPublicPosCommandsAckRoute: ApiPublicPosCommandsAckRoute,
   ApiPublicTapCardRefundRoute: ApiPublicTapCardRefundRoute,
   ApiPublicTapCardSettleRoute: ApiPublicTapCardSettleRoute,
