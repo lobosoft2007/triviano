@@ -4494,6 +4494,7 @@ export type Database = {
         Args: { p_cliente_id: string; p_motivo: string; p_valor: number }
         Returns: number
       }
+      admin_delete_product: { Args: { p_id: string }; Returns: undefined }
       admin_get_empresa_config: {
         Args: never
         Returns: {
@@ -4549,6 +4550,17 @@ export type Database = {
           empresa_id: string
           icon_path: string
           updated_at: string
+        }[]
+      }
+      admin_get_product_detail_meta: {
+        Args: { p_id: string }
+        Returns: {
+          custo_compra: number
+          fornecedor_id: string
+          manipulado: boolean
+          margem_revenda: number
+          preco_ifood: number
+          setor_id: string
         }[]
       }
       admin_get_products: {
@@ -4617,6 +4629,23 @@ export type Database = {
           nome_nivel: string
         }[]
       }
+      admin_save_product_core: {
+        Args: {
+          p_available: boolean
+          p_category_id: string
+          p_description: string
+          p_eixo_variacao: string
+          p_estoque_maximo: number
+          p_estoque_minimo: number
+          p_free_addon_limit: number
+          p_id: string
+          p_image_url: string
+          p_name: string
+          p_price: number
+          p_saldo_estoque: number
+        }
+        Returns: string
+      }
       admin_set_category_horarios: {
         Args: { p_categoria_id: string; p_horarios: Json }
         Returns: undefined
@@ -4654,6 +4683,22 @@ export type Database = {
           p_telefone: string
           p_tipo_logradouro: string
           p_user_id: string
+        }
+        Returns: undefined
+      }
+      admin_update_product_custo_total: {
+        Args: { p_custo_total: number; p_id: string }
+        Returns: undefined
+      }
+      admin_update_product_detail_fields: {
+        Args: {
+          p_custo_compra: number
+          p_fornecedor_id: string
+          p_id: string
+          p_manipulado: boolean
+          p_margem_revenda: number
+          p_preco_ifood: number
+          p_setor_id: string
         }
         Returns: undefined
       }
