@@ -103,9 +103,6 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
           boxSizing: "border-box",
           maxWidth: isLandscape ? "273mm" : "186mm",
           width: isLandscape ? "273mm" : "186mm",
-          minHeight: isLandscape ? "174mm" : "261mm",
-          display: "flex",
-          flexDirection: "column",
           background: "#ffffff",
           color: C.text,
           padding: "0",
@@ -153,7 +150,7 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
           </span>
         </div>
 
-        <div className="report-content" style={{ paddingTop: "12px", flex: 1 }}>
+        <div className="report-content" style={{ paddingTop: "12px" }}>
           <div
             style={{
               marginBottom: "12px",
@@ -285,7 +282,7 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
             fontSize: "10px",
             lineHeight: 1.25,
             color: C.muted,
-            marginTop: "auto",
+            marginTop: "24px",
           }}
         >
           <p style={{ margin: 0, fontWeight: 600 }}>
