@@ -4552,6 +4552,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      admin_get_product_detail: { Args: { p_id: string }; Returns: Json }
       admin_get_product_detail_meta: {
         Args: { p_id: string }
         Returns: {
@@ -4628,6 +4629,17 @@ export type Database = {
           nivel_id: string
           nome_nivel: string
         }[]
+      }
+      admin_product_category_counts: {
+        Args: never
+        Returns: {
+          category_id: string
+          product_count: number
+        }[]
+      }
+      admin_quick_adjust_product: {
+        Args: { p_custo_compra?: number; p_id: string; p_saldo_estoque: number }
+        Returns: undefined
       }
       admin_save_product_core: {
         Args: {

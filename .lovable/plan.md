@@ -1,40 +1,96 @@
-## Onde a Ordem de Compra fica hoje
+## Diagnóstico confirmado
 
-Toda ordem criada (pelo botão "Manual/Avulsa" ou pelo "Gerar ordem" da sugestão) é gravada em `ordens_compra` + `itens_ordem_compra` e aparece na seção **"Ordens de compra recentes"** no final da mesma tela **Admin → Compras → Sugestão de Compras**. Hoje essa lista é só leitura — não dá para abrir, editar, reimprimir, reenviar por WhatsApp, baixar em PDF ou excluir. É isso que vamos resolver.
+O erro **"Não foi possível carregar os detalhes do item"** vem da função do front-end que monta a tela de edição do produto. Ela ainda faz leituras diretas em tabelas auxiliares do produto, principalmente:
 
-## O que vou construir
+- `produtos_addons`
+- `produtos_free_addons`
+- `ingredientes_produto`
+- `produtos_price_options`
+- `fichas_tecnicas`
 
-### 1. Backend (uma migration)
-- **RPCs novas** (SECURITY DEFINER, isoladas por `empresa_id` do usuário):
-  - `get_ordem_compra(p_id uuid)` → devolve cabeçalho + itens + fornecedor (nome/CNPJ/telefone).
-  - `atualizar_ordem_compra(p_id, p_observacao, p_id_fornecedor, p_itens jsonb)` → substitui os itens, recalcula `valor_total`, bloqueia se `status <> 'Aberta'`.
-  - `excluir_ordem_compra(p_id)` → só permite quando `status = 'Aberta'` (ordens já recebidas/lançadas ficam protegidas).
-- Grants para `authenticated`, checagem de permissão via `can_manage_empresa`.
+A checagem no banco confirmou que algumas colunas dessas tabelas foram propositalmente bloqueadas para leitura direta, como `insumo_id`, `quantidade`, `price_option_id`, `preco_ifood` e metadados. Então o usuário pode ser Admin/Superadmin e ainda receber **403** se a tela tentar ler essas colunas por REST direto. Isso não quer dizer que o usuário não é admin; quer dizer que o caminho usado pela tela é o caminho errado para dados administrativos sensíveis.
 
-### 2. Camada de dados (`src/lib/estoque.ts`)
-- Adicionar `getOrdemCompra`, `atualizarOrdemCompra`, `excluirOrdemCompra` chamando as RPCs acima.
-- Estender `listOrdensCompra` para trazer também `status` e telefone do fornecedor (para o WhatsApp).
+## O que são os "detalhes do item"
 
-### 3. UI — `SugestaoComprasView.tsx`
-Transformar a lista "Ordens de compra recentes" em tabela acionável, com cada linha oferecendo:
-- **Abrir** (ícone olho) → abre novo `OrdemCompraDetailDialog`.
-- **Imprimir** (ícone impressora) → reaproveita `OrdemCompraReport` + `window.print()`.
-- **PDF/WhatsApp** (ícone Send) → reaproveita `shareNodeAsPdfWhatsapp` com o telefone do fornecedor pré-preenchido no `wa.me/<telefone>`.
-- **Baixar PDF** (ícone download) → `downloadNodeAsPdf`.
-- **Excluir** (ícone lixeira) → confirmação; só habilitado quando `status = 'Aberta'`.
-- Badge de status ao lado do número (Aberta/Recebida) e busca por nº/fornecedor.
+São os dados que aparecem quando clica em editar um produto:
 
-### 4. Novo componente `OrdemCompraDetailDialog.tsx`
-Baseado no `OrdemCompraManualDialog` já existente (mesma grade buscável, mesmas colunas Item / Setor / Fornecedor / Estoque (mín/máx) / Custo / Qtd / Subtotal), mas em modo edição de uma ordem existente:
-- Carrega itens via `getOrdemCompra`.
-- Permite alterar quantidade, custo unitário, fornecedor da ordem, observação.
-- Botões: **Salvar alterações**, **Imprimir**, **Enviar PDF por WhatsApp**, **Baixar PDF**, **Excluir**.
-- Edição/exclusão bloqueadas visualmente quando a ordem já saiu de "Aberta".
+- dados principais do produto;
+- opções de tamanho/preço;
+- adicionais pagos;
+- adicionais grátis;
+- ficha técnica / ingredientes;
+- metadados fiscal/estoque/custo;
+- campos ligados ao modo **Manipulado / Revenda**.
 
-### 5. Ajuste no `OrdemCompraManualDialog` (após criar)
-Depois que a ordem é criada com sucesso, em vez de só fechar o diálogo, mostrar toast com atalho "Ver / Imprimir" que abre direto o `OrdemCompraDetailDialog` daquela ordem — assim o usuário nunca fica "perdido" após clicar Gerar.
+A tela falha porque parte desses detalhes ainda tenta passar por leitura direta bloqueada.
 
-## Fora do escopo (mantém como está)
-- Recebimento de mercadoria / conciliação de NF (já é outro fluxo).
-- Alterar o status manualmente — muda automaticamente conforme o recebimento.
-- Motor financeiro, RLS, GRANTs existentes (protegidos por `mem://constraints/motor-financeiro-protegido`).
+## Plano de correção
+
+### 1. Concentrar o carregamento do detalhe em RPC administrativa segura
+
+Criar/ajustar uma função administrativa no banco para retornar, de uma vez, os detalhes necessários do produto para o Admin:
+
+- produto base;
+- opções de preço;
+- adicionais pagos;
+- adicionais grátis;
+- ficha técnica;
+- ingredientes;
+- metadados fiscais e de custo.
+
+Essa função deve:
+
+- usar `SECURITY DEFINER`;
+- permitir execução somente para usuários autenticados;
+- validar internamente se o usuário pode administrar a empresa do produto;
+- respeitar Superadmin;
+- não liberar leitura pública nem ampliar `GRANT SELECT` nas tabelas sensíveis.
+
+### 2. Trocar o carregamento do editor no front-end
+
+Alterar `src/lib/erp.ts` para que `fetchProductDetail` pare de fazer `.from(...).select(...)` direto nessas tabelas auxiliares e passe a consumir a nova função administrativa.
+
+Resultado esperado:
+
+- ao clicar em editar, a tela não faz mais requisições REST diretas bloqueadas para essas colunas;
+- o erro 403 do carregamento dos detalhes deve desaparecer;
+- o editor continua recebendo todos os dados necessários.
+
+### 3. Corrigir o fluxo de salvar Manipulado / Revenda
+
+Revisar `saveProductDetail` para garantir que salvar `manipulado = false` não acione uma cadeia de recálculo ou leitura direta que ainda dependa de colunas bloqueadas.
+
+A regra será:
+
+- produto **Manipulado**: custo vem da ficha técnica;
+- produto **Revenda / não manipulado**: custo vem de `custo_compra`;
+- ao alternar para Revenda, o salvamento não deve tentar recalcular ficha técnica como se fosse produto manipulado.
+
+### 4. Corrigir consultas auxiliares diretas de `products`
+
+Substituir os pontos restantes em `src/lib/erp.ts` que ainda fazem leitura direta de `products` para validações administrativas por RPCs já existentes ou por consultas seguras equivalentes, especialmente em verificações de categoria/exclusão/listagem de revenda.
+
+### 5. Não mexer no motor financeiro nem afrouxar segurança
+
+Não serão feitas estas soluções arriscadas:
+
+- não liberar `SELECT *` público ou amplo nas tabelas de produto;
+- não criar policy `USING (true)`;
+- não tornar dados de custo/estoque/ficha técnica públicos;
+- não alterar triggers/RPCs financeiras;
+- não mexer em pagamento, cashback, PIX, webhook ou fechamento de caixa.
+
+### 6. Verificação final
+
+Depois da implementação:
+
+- abrir o editor de produto como usuário autenticado Admin/Superadmin;
+- confirmar que o detalhe carrega sem 403;
+- desmarcar **Manipulado / Preparado em casa**;
+- salvar;
+- reabrir o produto;
+- confirmar que o campo permanece desmarcado;
+- confirmar que o custo usado é `custo_compra`, não valor de venda;
+- verificar que não há novas chamadas bloqueadas para as tabelas auxiliares de produto.
+
+Se não houver sessão autenticada disponível no ambiente de teste, vou marcar explicitamente o caminho autenticado como **UNVERIFIED** e não afirmar que está corrigido até termos esse teste.
