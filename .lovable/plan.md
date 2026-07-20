@@ -1,83 +1,85 @@
-
-# Ícone e nome do App Tap por empresa (whitelabel Android)
-
 ## Objetivo
-Cada empresa-cliente terá seu próprio APK do Triviano Tap com:
-- **Ícone do launcher** próprio (fornecido pelo cliente)
-- **Nome exibido** próprio (ex.: "Clube 23 – Garçom", "Pizzaria Teste – Garçom")
 
-Sem precisar duplicar o código-fonte do app — um único projeto Android gera N APKs a partir de uma configuração central.
+Criar, no repositório mobile `triviano-tap` (Android/React Native), um pipeline de build **whitelabel automatizado** que gera um APK por empresa-cliente puxando ícone + nome direto de `pos_app_branding` no backend. Primeiro cliente configurado: **Clube 23**.
 
-## Como isso vai funcionar (visão geral)
+## Arquitetura
 
 ```text
-Admin (web)                Backend                    Build do APK
------------                -------                    ------------
-Upload do ícone     →   pos_app_branding      →   Script pega branding
-Nome do app "…"         (por empresa_id)          da empresa e gera APK
-                                                   assinado por cliente
+[Backend Lovable]                    [Repo triviano-tap (VSCode)]
+pos_app_branding      ── fetch ─►    scripts/fetch-branding.ts
+pos-app-icons bucket                        │
+                                            ▼
+                                     tenants/<slug>/
+                                       ├── tenant.json
+                                       └── icon-source.png
+                                            │
+                                     scripts/apply-branding.ts
+                                            │
+                          ┌─────────────────┼───────────────────┐
+                          ▼                 ▼                   ▼
+                 strings.xml         mipmap-*/ic_launcher   applicationId
+                  (app_name)          (redimensionado)       + versionCode
+                                            │
+                                     gradlew assembleRelease
+                                            │
+                                     dist/<slug>-vX.Y.Z.apk
 ```
 
-O admin da empresa faz upload do ícone e escolhe o nome no painel. O time do Triviano (ou pipeline automatizado) roda um comando que lê esses dados e produz o APK "brandizado" daquela empresa.
+## Entregáveis (no repo `triviano-tap`)
 
----
+### 1. Endpoint de leitura no backend (este repo)
+- Nova rota `GET /api/public/pos/branding/:slug` (ou por `empresa_id` autenticado com service token de build).
+  - Autenticada via header `x-build-token` (secret novo `POS_BUILD_TOKEN`).
+  - Retorna `{ app_label, icon_signed_url, package_suffix, version }`.
+  - Motivo: o script de build não tem sessão de usuário; precisa de canal server-to-server.
 
-## Parte 1 — Cadastro no Admin (web)
+### 2. Scripts (Node/TS) no repo mobile
+- `scripts/fetch-branding.ts <slug>` — baixa metadados + `icon-source.png` para `tenants/<slug>/`.
+- `scripts/apply-branding.ts <slug>` — usa `sharp` para gerar:
+  - `mipmap-mdpi/ic_launcher.png` (48), `hdpi` (72), `xhdpi` (96), `xxhdpi` (144), `xxxhdpi` (192)
+  - `mipmap-anydpi-v26/ic_launcher.xml` (adaptive) + foreground/background
+  - `ic_launcher_round.png` em todos os buckets
+  - Atualiza `android/app/src/main/res/values/strings.xml` (`app_name`)
+  - Atualiza `applicationId` em `android/app/build.gradle` (ex.: `com.triviano.tap.clube23`)
+  - Escreve `android/app/src/main/assets/tenant.json` (empresa_id, api base) — lido pelo app em runtime para saber contra qual tenant autenticar.
+- `scripts/build-tenant.sh <slug>` — orquestra: `fetch` → `apply` → `./gradlew clean assembleRelease` → move APK para `dist/<slug>-<version>.apk`.
+- `scripts/build-all.ts` — lê `tenants.json` (lista de slugs) e roda `build-tenant.sh` em série para gerar APKs de todos os clientes.
 
-Nova sub-aba em **Admin → Maquininhas (POS) → App branding**:
+### 3. Configuração inicial Clube 23
+- Adicionar `tenants/clube23/` (gerado automaticamente na primeira execução).
+- `tenants.json` inicial: `["clube23"]`.
+- Preencher `pos_app_branding` do Clube 23 no Admin (nome "Clube 23 - Garçom" + ícone).
 
-- Campo "Nome do app" (padrão: `{nome_fantasia} – Garçom`, editável, máx. 30 chars — limite do launcher Android)
-- Upload do ícone (PNG quadrado, mín. 512x512, fundo opaco ou transparente)
-  - Preview mostrando como fica em círculo, quadrado e squircle (formatos de launcher)
-  - Validação de tamanho/formato no cliente antes de subir
-- Botão "Baixar APK personalizado" — dispara o pipeline (Parte 3)
+### 4. package.json (repo mobile)
+```json
+"scripts": {
+  "build:tap": "bash scripts/build-tenant.sh",
+  "build:tap:all": "tsx scripts/build-all.ts",
+  "brand:fetch": "tsx scripts/fetch-branding.ts",
+  "brand:apply": "tsx scripts/apply-branding.ts"
+}
+```
+Uso em VSCode: `bun run build:tap clube23` → APK pronto em `dist/`.
 
-## Parte 2 — Backend
+### 5. Documentação
+- `README-BUILD.md` no repo mobile explicando:
+  - Pré-requisitos (JDK 17, Android SDK, keystore, `.env` com `LOVABLE_API_URL` + `POS_BUILD_TOKEN`).
+  - Como cadastrar novo cliente (Admin → Maquininhas → Branding → rodar `bun run build:tap <slug>`).
+  - Como assinar (keystore único do Triviano, `applicationId` por tenant evita conflito de instalação).
 
-**Nova tabela `pos_app_branding`** (uma linha por empresa):
-- `empresa_id` (FK, unique)
-- `app_label` (text) — nome exibido no launcher
-- `icon_path` (text) — caminho no Storage do ícone fonte 1024x1024
-- `updated_at`
+## O que fica neste repo web (o que faço agora quando aprovar)
 
-**Novo bucket privado `pos-app-icons`** — armazena o ícone fonte enviado pelo admin. Signed URL de leitura restrita ao admin daquela empresa e ao service_role (usado pelo pipeline de build).
+1. Nova rota `src/routes/api/public/pos/branding.$slug.ts` com auth por `POS_BUILD_TOKEN` (secret).
+2. Adicionar coluna `slug` em `pos_app_branding` (ou usar `empresas.slug` existente — verifico na implementação) para o build encontrar o tenant sem expor `empresa_id`.
+3. Registrar o secret `POS_BUILD_TOKEN`.
 
-**RLS**: apenas `admin` da própria empresa lê/escreve; `service_role` lê tudo (para o build).
+## O que fica para o repo mobile (fora deste projeto)
 
-**RPC `admin_get_pos_branding()`** — devolve o registro da empresa ativa para a UI do admin.
+Todos os scripts `scripts/*`, mudanças em `android/`, `package.json` mobile e `README-BUILD.md`. Vou entregar os arquivos como um ZIP/patch para você colar no `triviano-tap`, igual fizemos no `triviano-tap-fase-t-ops-v3.zip`.
 
-## Parte 3 — Pipeline de build por empresa
+## Pergunta antes de implementar
 
-Script Node no repositório do app móvel (`triviano-tap`) — **não altera o app web**:
+Confirma **duas coisas**:
 
-1. `bun run build:tap -- --empresa=<uuid>` (ou slug)
-2. Script consulta `pos_app_branding` via service_role, baixa o ícone fonte
-3. Gera os mipmaps Android (`mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi` + `mipmap-anydpi-v26/ic_launcher.xml` adaptativo) com `sharp`
-4. Injeta `app_label` em `android/app/src/main/res/values/strings.xml` (`<string name="app_name">`)
-5. Grava `empresa_id` em `assets/tenant.json` que o app já lê no boot (para pré-carregar branding e apontar API)
-6. Roda `./gradlew assembleRelease` assinando com a keystore Triviano (uma keystore só, todos os APKs assinados por nós — evita fricção de cada cliente gerar a sua)
-7. Copia `app-universal-release.apk` para `dist/triviano-tap-<slug-empresa>-<versao>.apk`
-
-Pipeline pode rodar local (comando manual) e depois ser plugado em CI (GitHub Actions com matriz por empresa).
-
-## Parte 4 — Documentação para o cliente
-
-Página no admin explicando:
-- Especificação do ícone (1024x1024, PNG, área de segurança de 66% para o formato adaptativo)
-- Limite de 30 caracteres no nome
-- Como instalar o APK personalizado na maquininha (link para o guia ADB já existente)
-
----
-
-## Detalhes técnicos
-
-- **Application ID**: mantém `com.triviano.tap` único (não usamos `applicationIdSuffix` por empresa — dois APKs de empresas diferentes na mesma maquininha é caso raro; se surgir, adicionamos flavor por empresa depois).
-- **Ícone adaptativo (Android 8+)**: gerar `ic_launcher_foreground.png` (área central 66%) + `ic_launcher_background.xml` (cor sólida = `cor_primaria` da empresa, aproveitando o campo já existente em `empresas`).
-- **Fallback legacy**: `ic_launcher.png` tradicional para Android 7 e anterior (Smart POS antigos).
-- **Sem impacto no app web/PWA**: mudanças ficam confinadas ao repositório `triviano-tap` + uma tabela nova + uma aba no admin.
-- **Segurança**: o ícone é uploaded para bucket privado; o pipeline usa service_role apenas no ambiente de build (nunca no browser).
-
-## Fora do escopo desta fase
-- Assinatura por keystore do cliente (fica para uma Fase 2 se algum cliente exigir)
-- Publicação em Play Store por cliente (o APK é sideloaded na maquininha, como já é hoje)
-- Personalização de splash screen (pode virar Fase 2 usando o mesmo `pos_app_branding`)
+1. **Identificador do tenant no build**: prefere usar `empresas.slug` (já existente) ou criar um campo dedicado em `pos_app_branding`? Recomendo `empresas.slug`.
+2. **applicationId**: OK usar padrão `com.triviano.tap.<slug>` (cada cliente vira app separado no launcher, sem conflito ao instalar dois na mesma maquininha)?
