@@ -23,7 +23,35 @@ function baseOptions(filename: string, orientation: "portrait" | "landscape") {
     filename,
     margin: [12, 10, 16, 10],
     image: { type: "jpeg", quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      letterRendering: true,
+      backgroundColor: "#ffffff",
+      onclone: (doc: Document) => {
+        const style = doc.createElement("style");
+        style.textContent = `
+          :root, body, [data-report-capture], .report-a4, .report-a4 * {
+            --background:#ffffff!important;--foreground:#111111!important;
+            --card:#ffffff!important;--card-foreground:#111111!important;
+            --popover:#ffffff!important;--popover-foreground:#111111!important;
+            --primary:#111111!important;--primary-foreground:#ffffff!important;
+            --secondary:#f2f2f2!important;--secondary-foreground:#111111!important;
+            --muted:#eeeeee!important;--muted-foreground:#555555!important;
+            --accent:#eeeeee!important;--accent-foreground:#111111!important;
+            --destructive:#c0392b!important;--destructive-foreground:#ffffff!important;
+            --success:#2f9e44!important;--success-foreground:#ffffff!important;
+            --warning:#d99e00!important;--warning-foreground:#111111!important;
+            --border:#cccccc!important;--input:#cccccc!important;--ring:transparent!important;
+            --color-background:#ffffff!important;--color-foreground:#111111!important;
+            --color-border:#cccccc!important;--color-input:#cccccc!important;--color-ring:transparent!important;
+            color:#111111!important;border-color:#cccccc!important;box-shadow:none!important;text-shadow:none!important;
+          }
+          [data-report-capture] { background:#ffffff!important; }
+        `;
+        doc.head.appendChild(style);
+      },
+    },
     jsPDF: { unit: "mm", format: "a4", orientation },
     pagebreak: { mode: ["css", "legacy"] },
   };
@@ -38,17 +66,44 @@ async function withIsolatedClone<T>(
   node: HTMLElement,
   fn: (clone: HTMLElement) => Promise<T>,
 ): Promise<T> {
+  const restoreRootCss = document.documentElement.getAttribute("style");
+  const restoreBodyCss = document.body.getAttribute("style");
+  const safeVars =
+    "--background:#ffffff;--foreground:#111111;--border:#cccccc;--color-border:#cccccc;--input:#cccccc;--ring:transparent;background:#ffffff;color:#111111;border-color:#cccccc;";
+  document.documentElement.style.cssText += safeVars;
+  document.body.style.cssText += safeVars;
+
+  const guard = document.createElement("style");
+  guard.setAttribute("data-report-capture-guard", "true");
+  guard.textContent = `
+    [data-report-capture], [data-report-capture] *, .report-a4, .report-a4 * {
+      --background:#ffffff!important;--foreground:#111111!important;
+      --border:#cccccc!important;--color-border:#cccccc!important;
+      --input:#cccccc!important;--ring:transparent!important;
+      color:#111111!important;border-color:#cccccc!important;
+      box-shadow:none!important;text-shadow:none!important;background-image:none!important;
+    }
+  `;
   const wrapper = document.createElement("div");
   wrapper.setAttribute("data-report-capture", "true");
   wrapper.style.cssText =
-    "position:fixed;left:-10000px;top:0;width:auto;color:#111;background:#fff;";
+    "position:fixed;left:0;top:0;z-index:2147483647;width:auto;color:#111;background:#fff;border-color:#ccc;box-shadow:none;text-shadow:none;pointer-events:none;";
   const clone = node.cloneNode(true) as HTMLElement;
+  clone.style.position = "relative";
+  clone.style.left = "0";
+  clone.style.top = "0";
   wrapper.appendChild(clone);
+  document.head.appendChild(guard);
   document.body.appendChild(wrapper);
   try {
     return await fn(clone);
   } finally {
     wrapper.remove();
+    guard.remove();
+    if (restoreRootCss === null) document.documentElement.removeAttribute("style");
+    else document.documentElement.setAttribute("style", restoreRootCss);
+    if (restoreBodyCss === null) document.body.removeAttribute("style");
+    else document.body.setAttribute("style", restoreBodyCss);
   }
 }
 

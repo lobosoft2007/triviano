@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Download,
   Loader2,
   Plus,
   Printer,
@@ -43,7 +44,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { printReport } from "@/lib/reports/types";
-import { shareNodeAsPdfWhatsapp } from "@/lib/pdf-share";
+import { downloadNodeAsPdf, shareNodeAsPdfWhatsapp } from "@/lib/pdf-share";
 import { empresaAdminConfigQueryOptions } from "@/lib/empresa";
 import {
   OrdemCompraReport,
@@ -211,7 +212,7 @@ export function OrdemCompraManualDialog({
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
   const [freeItems, setFreeItems] = useState<FreeItem[]>([]);
   const [saving, setSaving] = useState(false);
-  const [busyAction, setBusyAction] = useState<"print" | "share" | null>(null);
+  const [busyAction, setBusyAction] = useState<"print" | "share" | "download" | null>(null);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">(
     "landscape",
   );
@@ -483,6 +484,23 @@ export function OrdemCompraManualDialog({
     }
   }
 
+  async function handleDownload() {
+    if (reportRows.length === 0) {
+      toast.error("Preencha ao menos um item antes de baixar.");
+      return;
+    }
+    if (!reportRef.current) return;
+    setBusyAction("download");
+    try {
+      const stamp = new Date().toISOString().slice(0, 10);
+      await downloadNodeAsPdf(reportRef.current, `ordem-de-compra-${stamp}.pdf`, orientation);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -554,6 +572,20 @@ export function OrdemCompraManualDialog({
                     <Share2 className="h-4 w-4" />
                   )}
                   Enviar PDF por WhatsApp
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownload}
+                  disabled={busyAction !== null || totalItens === 0}
+                  className="gap-1.5"
+                >
+                  {busyAction === "download" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Baixar PDF
                 </Button>
               </div>
             </div>
@@ -851,6 +883,7 @@ export function OrdemCompraManualDialog({
           empresa={empresa}
           rows={reportRows}
           observacao={observacao}
+          orientation={orientation}
         />
       </div>
 

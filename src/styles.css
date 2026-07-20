@@ -244,14 +244,8 @@
     padding-top: 22mm;
     padding-bottom: 14mm;
   }
-  /* Live page counter (Chrome/Edge): hide the on-screen placeholder text
-     and print only the counter via ::after. */
-  body.printing-report .report-pagenum {
-    font-size: 0;
-  }
   body.printing-report .report-pagenum::after {
-    font-size: 10px;
-    content: "Pág " counter(page) " / " counter(pages);
+    content: none !important;
   }
   /* Neutralize off-screen host wrappers so the absolutely-positioned
      `.report-a4` anchors to the page (body), not to a wrapper parked at
