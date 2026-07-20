@@ -773,6 +773,7 @@ function AdminPage() {
           {tab === "funcionarios" && <FuncionariosTab />}
           {tab === "permissoes" && <PermissoesTab />}
           {tab === "mesas" && <MesasQrTab />}
+          {tab === "reservas" && <ReservasConfigTab />}
           {tab === "entregadores" && <EntregadoresCrud />}
           {tab === "ifood" && <IfoodMerchantsCrud />}
           {tab === "pos" && <PosDevicesTab />}
