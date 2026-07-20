@@ -257,7 +257,7 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
 
           <div
             style={{
-              marginTop: "16px",
+              marginTop: "10px",
               display: "flex",
               alignItems: "center",
               justifyContent: "flex-end",
