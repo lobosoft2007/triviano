@@ -194,75 +194,7 @@ export function SugestaoComprasView() {
 
   /* ---------------- Manual order dialog ----------------------------- */
   const [open, setOpen] = useState(false);
-  const [manualForn, setManualForn] = useState<string>(NONE);
-  const [manualObs, setManualObs] = useState("");
-  const [rows, setRows] = useState<ManualRow[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  const openManual = () => {
-    setManualForn(NONE);
-    setManualObs("");
-    setRows([{ tipo: "insumo", ref_id: "", nome: "", quantidade: "", custo_unitario: "" }]);
-    setOpen(true);
-  };
-
-  const addRow = () =>
-    setRows((r) => [
-      ...r,
-      { tipo: "insumo", ref_id: "", nome: "", quantidade: "", custo_unitario: "" },
-    ]);
-  const updateRow = (idx: number, patch: Partial<ManualRow>) =>
-    setRows((r) => r.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
-  const removeRow = (idx: number) =>
-    setRows((r) => r.filter((_, i) => i !== idx));
-
-  const onPickInsumo = (idx: number, insumoId: string) => {
-    const ins = insumos?.find((i) => i.id === insumoId);
-    updateRow(idx, {
-      tipo: "insumo",
-      ref_id: insumoId,
-      nome: ins?.nome ?? "",
-      custo_unitario: ins ? String(ins.custo_unitario).replace(".", ",") : "",
-    });
-  };
-
-  const manualTotal = rows.reduce(
-    (s, r) => s + parseNumberInput(r.quantidade) * parseNumberInput(r.custo_unitario),
-    0,
-  );
-
-  async function handleManualSave() {
-    setSaving(true);
-    try {
-      const itens: OrdemCompraItemInput[] = rows
-        .filter((r) => r.nome.trim() && parseNumberInput(r.quantidade) > 0)
-        .map((r) => ({
-          tipo: r.tipo,
-          ref_id: r.ref_id || null,
-          nome: r.nome.trim(),
-          quantidade: parseNumberInput(r.quantidade),
-          custo_unitario: parseNumberInput(r.custo_unitario),
-        }));
-      if (itens.length === 0) {
-        toast.error("Adicione ao menos um item com quantidade.");
-        setSaving(false);
-        return;
-      }
-      const numero = await criarOrdemCompra({
-        id_fornecedor: manualForn === NONE ? null : manualForn,
-        observacao: manualObs,
-        origem: "Manual",
-        itens,
-      });
-      toast.success(`Ordem de compra nº ${numero} gerada!`);
-      setOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ["ordens-compra"] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar ordem.");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const openManual = () => setOpen(true);
 
   return (
     <section className="space-y-6">
