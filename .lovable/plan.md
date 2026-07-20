@@ -1,70 +1,40 @@
-## Objetivo
+## Onde a Ordem de Compra fica hoje
 
-Reformular o diálogo **"Ordem de Compra Manual / Avulsa"** (dentro de Sugestão de Compras) para trabalhar como a tela de Insumos: uma tabela única, buscável, com todos os insumos e produtos compráveis. O usuário digita quantidade no próprio grid — tudo que tiver quantidade > 0 vira item da ordem. Barra fixa no topo com total e ações de imprimir / enviar PDF por WhatsApp.
+Toda ordem criada (pelo botão "Manual/Avulsa" ou pelo "Gerar ordem" da sugestão) é gravada em `ordens_compra` + `itens_ordem_compra` e aparece na seção **"Ordens de compra recentes"** no final da mesma tela **Admin → Compras → Sugestão de Compras**. Hoje essa lista é só leitura — não dá para abrir, editar, reimprimir, reenviar por WhatsApp, baixar em PDF ou excluir. É isso que vamos resolver.
 
----
+## O que vou construir
 
-## 1. Nova tela (substitui o Dialog atual)
+### 1. Backend (uma migration)
+- **RPCs novas** (SECURITY DEFINER, isoladas por `empresa_id` do usuário):
+  - `get_ordem_compra(p_id uuid)` → devolve cabeçalho + itens + fornecedor (nome/CNPJ/telefone).
+  - `atualizar_ordem_compra(p_id, p_observacao, p_id_fornecedor, p_itens jsonb)` → substitui os itens, recalcula `valor_total`, bloqueia se `status <> 'Aberta'`.
+  - `excluir_ordem_compra(p_id)` → só permite quando `status = 'Aberta'` (ordens já recebidas/lançadas ficam protegidas).
+- Grants para `authenticated`, checagem de permissão via `can_manage_empresa`.
 
-Layout dentro do mesmo `Dialog` (largura `max-w-5xl`, altura ~90dvh, corpo com scroll interno):
+### 2. Camada de dados (`src/lib/estoque.ts`)
+- Adicionar `getOrdemCompra`, `atualizarOrdemCompra`, `excluirOrdemCompra` chamando as RPCs acima.
+- Estender `listOrdensCompra` para trazer também `status` e telefone do fornecedor (para o WhatsApp).
 
-**Cabeçalho fixo (sticky top)**
-- Título "Ordem de Compra Manual / Avulsa"
-- Campo **Busca** (filtra por nome, insensível a acento)
-- **Fornecedor padrão** da ordem (opcional — para itens livres/sem fornecedor)
-- **Observação**
-- **Total da ordem** grande, tabular, sempre visível (soma de `quantidade × custo` das linhas com quantidade > 0)
-- Botões no canto superior direito:
-  - `Imprimir` → abre nova janela com o mesmo layout do framework de relatórios (`ReportShell` A4 retrato, cabeçalho com logo/empresa, paginação, rodapé, apenas linhas com quantidade > 0)
-  - `Enviar PDF por WhatsApp` → gera o PDF do mesmo relatório e abre `https://wa.me/?text=...` com o arquivo anexado via `navigator.share` quando disponível; fallback: baixa o PDF e abre wa.me com o link/instrução
-  - `Gerar ordem` (ação principal — cria a `ordens_compra` como hoje)
-  - `Fechar`
+### 3. UI — `SugestaoComprasView.tsx`
+Transformar a lista "Ordens de compra recentes" em tabela acionável, com cada linha oferecendo:
+- **Abrir** (ícone olho) → abre novo `OrdemCompraDetailDialog`.
+- **Imprimir** (ícone impressora) → reaproveita `OrdemCompraReport` + `window.print()`.
+- **PDF/WhatsApp** (ícone Send) → reaproveita `shareNodeAsPdfWhatsapp` com o telefone do fornecedor pré-preenchido no `wa.me/<telefone>`.
+- **Baixar PDF** (ícone download) → `downloadNodeAsPdf`.
+- **Excluir** (ícone lixeira) → confirmação; só habilitado quando `status = 'Aberta'`.
+- Badge de status ao lado do número (Aberta/Recebida) e busca por nº/fornecedor.
 
-**Corpo — tabela única**
-Colunas: **Item** · **Custo unit.** · **Setor** · **Fornecedor** · **Quantidade (input)** · **Subtotal** · (ação: remover, só para item livre).
-- Linhas: todos os **insumos estocáveis** + **produtos de revenda (manipulado = false)**, obtidos via `listInsumos()` + `admin_get_products({ p_only_manipulado_false: true })`.
-- Ordenação: **Setor (ordem_exibicao)** → **Fornecedor (nome)** → **Nome do item**.
-- Cabeçalhos de grupo visuais separando por setor (accordion não — só linha divisória com nome do setor sticky), e sub-cabeçalho por fornecedor dentro do setor.
-- **Filtro por busca** aplica no nome; grupos vazios somem.
-- Quantidade: input numérico com máscara pt-BR (`parseNumberInput`). Custo unitário editável (default = custo cadastrado), para permitir ajuste pontual.
-- Subtotal recalcula em tempo real. Total no topo é a soma.
+### 4. Novo componente `OrdemCompraDetailDialog.tsx`
+Baseado no `OrdemCompraManualDialog` já existente (mesma grade buscável, mesmas colunas Item / Setor / Fornecedor / Estoque (mín/máx) / Custo / Qtd / Subtotal), mas em modo edição de uma ordem existente:
+- Carrega itens via `getOrdemCompra`.
+- Permite alterar quantidade, custo unitário, fornecedor da ordem, observação.
+- Botões: **Salvar alterações**, **Imprimir**, **Enviar PDF por WhatsApp**, **Baixar PDF**, **Excluir**.
+- Edição/exclusão bloqueadas visualmente quando a ordem já saiu de "Aberta".
 
-**Item livre**
-- Botão `+ Adicionar item livre` no rodapé da tabela → insere uma linha editável (Nome, Setor, Fornecedor, Custo, Quantidade). Persistem só em memória; ao gerar a ordem viram `ref_id = null` como já é hoje.
+### 5. Ajuste no `OrdemCompraManualDialog` (após criar)
+Depois que a ordem é criada com sucesso, em vez de só fechar o diálogo, mostrar toast com atalho "Ver / Imprimir" que abre direto o `OrdemCompraDetailDialog` daquela ordem — assim o usuário nunca fica "perdido" após clicar Gerar.
 
----
-
-## 2. Regra de submissão
-
-Ao clicar `Gerar ordem`:
-- Coleta todas as linhas (catálogo + livres) com `quantidade > 0`.
-- Se nenhum fornecedor for definido por item, usa o fornecedor padrão do cabeçalho. Se o item catalogado tem fornecedor próprio, ele prevalece (mantém consistência).
-- Chama `criarOrdemCompra` já existente. Sem mudança de schema.
-- **Observação futura (não neste escopo):** hoje `ordens_compra` guarda apenas um `id_fornecedor`. Se a ordem misturar fornecedores diferentes, criamos **uma ordem por fornecedor** no mesmo submit (loop client-side em cima da RPC atual) para não perder informação. Toast lista os números gerados.
-
----
-
-## 3. Imprimir e enviar PDF
-
-Reaproveitar o framework de relatórios (`src/components/admin/reports/ReportShell.tsx`) para não reinventar layout:
-- Novo componente `OrdemCompraReport.tsx` que renderiza o mesmo grid (agrupado por setor/fornecedor) no formato A4, com cabeçalho da empresa (nome, CNPJ, logo do branding), data/hora, usuário, total geral.
-- `Imprimir` → `window.print()` com CSS `@page` A4 já usado nos relatórios.
-- `Enviar PDF por WhatsApp` → gera PDF via `html2pdf.js` (ou `jspdf` + `html2canvas`, o que já estiver no projeto; caso nenhum esteja, adicionar `html2pdf.js`) e:
-  - Se `navigator.canShare?.({ files: [pdf] })` → `navigator.share` com o arquivo (funciona em Android/Chrome/PWA).
-  - Fallback desktop: baixa o PDF e abre `https://wa.me/?text=Segue%20a%20ordem%20de%20compra%20anexada.` numa nova aba com aviso "Anexe o arquivo baixado".
-
----
-
-## 4. Arquivos afetados
-
-- `src/components/admin/SugestaoComprasView.tsx` — reescrever o bloco `Dialog` manual; header/cards/lista de sugestão permanecem iguais.
-- **Novo** `src/components/admin/OrdemCompraManualDialog.tsx` — encapsula todo o novo diálogo (busca, tabela agrupada, item livre, ações de topo, geração da ordem).
-- **Novo** `src/components/admin/reports/OrdemCompraReport.tsx` — layout imprimível A4 usando `ReportShell`.
-- **Novo** `src/lib/pdf-share.ts` — helper `printReport()` e `shareReportAsPdf(filename, node)` reutilizáveis.
-- Se `html2pdf.js` não estiver instalado, adicionar como dependência.
-
-## 5. Fora de escopo
-
-- Alterar `ordens_compra` (schema).
-- Mudar o restante da tela de Sugestão (cards, ordens recentes, gerar-por-grupo).
-- Implementar envio de WhatsApp servidor-side (usamos share API do dispositivo).
+## Fora do escopo (mantém como está)
+- Recebimento de mercadoria / conciliação de NF (já é outro fluxo).
+- Alterar o status manualmente — muda automaticamente conforme o recebimento.
+- Motor financeiro, RLS, GRANTs existentes (protegidos por `mem://constraints/motor-financeiro-protegido`).

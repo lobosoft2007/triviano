@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Eye,
   Loader2,
   ShoppingCart,
   Plus,
@@ -33,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OrdemCompraManualDialog } from "./OrdemCompraManualDialog";
+import { OrdemCompraDetailDialog } from "./OrdemCompraDetailDialog";
 
 const NONE = "__none__";
 
@@ -170,6 +172,7 @@ export function SugestaoComprasView() {
   /* ---------------- Manual order dialog ----------------------------- */
   const [open, setOpen] = useState(false);
   const openManual = () => setOpen(true);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   return (
     <section className="space-y-6">
@@ -307,20 +310,34 @@ export function SugestaoComprasView() {
           </p>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-            <table className="w-full min-w-[640px] text-sm">
+            <table className="w-full min-w-[720px] text-sm">
               <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-2.5 font-semibold">Nº</th>
+                  <th className="px-4 py-2.5 font-semibold">Status</th>
                   <th className="px-4 py-2.5 font-semibold">Fornecedor</th>
                   <th className="px-4 py-2.5 font-semibold">Origem</th>
                   <th className="px-4 py-2.5 font-semibold">Data</th>
                   <th className="px-4 py-2.5 text-right font-semibold">Valor</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {ordens!.map((o, idx) => (
                   <tr key={o.id} className={idx > 0 ? "border-t border-border" : ""}>
                     <td className="px-4 py-2.5 font-semibold tabular-nums">#{o.numero}</td>
+                    <td className="px-4 py-2.5">
+                      <span
+                        className={
+                          "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
+                          (o.status === "Aberta"
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
+                            : "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300")
+                        }
+                      >
+                        {o.status}
+                      </span>
+                    </td>
                     <td className="px-4 py-2.5">{o.fornecedor_nome}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{o.origem}</td>
                     <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
@@ -328,6 +345,16 @@ export function SugestaoComprasView() {
                     </td>
                     <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-primary">
                       {formatBRL(o.valor_total)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDetailId(o.id)}
+                        className="gap-1"
+                      >
+                        <Eye className="h-4 w-4" /> Abrir
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -339,6 +366,15 @@ export function SugestaoComprasView() {
 
       {/* Manual order dialog (novo formato, buscável + impressão/PDF) */}
       <OrdemCompraManualDialog open={open} onOpenChange={setOpen} />
+
+      {/* Detalhe / edição / impressão / WhatsApp / exclusão */}
+      <OrdemCompraDetailDialog
+        ordemId={detailId}
+        onOpenChange={(v) => {
+          if (!v) setDetailId(null);
+        }}
+      />
+
 
     </section>
   );

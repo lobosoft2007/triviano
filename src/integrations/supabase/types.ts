@@ -4669,6 +4669,15 @@ export type Database = {
         Args: { p_empresa_id: string; p_overwrite?: boolean }
         Returns: number
       }
+      atualizar_ordem_compra: {
+        Args: {
+          p_fornecedor: string
+          p_id: string
+          p_itens: Json
+          p_observacao: string
+        }
+        Returns: undefined
+      }
       can_manage_empresa: { Args: { _empresa_id: string }; Returns: boolean }
       cancel_order: { Args: { p_order_id: string }; Returns: undefined }
       cancelar_reserva: { Args: { p_reserva_id: string }; Returns: undefined }
@@ -4746,6 +4755,7 @@ export type Database = {
         }
         Returns: string
       }
+      excluir_ordem_compra: { Args: { p_id: string }; Returns: undefined }
       explode_order_stock: { Args: { p_order_id: string }; Returns: undefined }
       fechar_comanda: { Args: { p_comanda_id: string }; Returns: undefined }
       fila_adicionar: {
@@ -4855,6 +4865,7 @@ export type Database = {
           quando: string
         }[]
       }
+      get_ordem_compra: { Args: { p_id: string }; Returns: Json }
       get_painel_retirada: {
         Args: { _empresa_id?: string }
         Returns: {
