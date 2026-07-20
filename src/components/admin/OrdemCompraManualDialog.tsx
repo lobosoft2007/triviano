@@ -686,7 +686,7 @@ export function OrdemCompraManualDialog({
 
                   {filteredCatalog.length === 0 && search && (
                     <tr>
-                      <td colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
+                      <td colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
                         Nenhum item encontrado para "{search}".
                       </td>
                     </tr>
@@ -696,7 +696,7 @@ export function OrdemCompraManualDialog({
                   {freeItems.length > 0 && (
                     <tr className="bg-primary/5">
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide text-primary"
                       >
                         Itens livres
