@@ -1,81 +1,70 @@
 ## Objetivo
 
-Adicionar ao Triviano dois módulos novos e um interruptor de configuração:
-
-1. **Reservas** (cliente reserva pelo PWA; recepcionista gerencia no app do garçom / Tap).
-2. **Fila de espera / walk-in** (recepcionista cria fila, avisa por WhatsApp/Push, arrasta o grupo para uma mesa física).
-3. **Interruptor "Permitir pedidos na mesa pelo PWA do cliente"** por empresa (quando desligado, o QR da mesa só serve para ver cardápio/chamar garçom, não abre carrinho).
-
-Tudo multi-tenant (isolado por `empresa_id` com RLS) e reaproveitando peças que já existem: `comanda_ativa`, `solicitacoes_mesa`, `NotifyClient` (WhatsApp+Push), matriz de permissões, `mesa_token` do QR.
+Reformular o diálogo **"Ordem de Compra Manual / Avulsa"** (dentro de Sugestão de Compras) para trabalhar como a tela de Insumos: uma tabela única, buscável, com todos os insumos e produtos compráveis. O usuário digita quantidade no próprio grid — tudo que tiver quantidade > 0 vira item da ordem. Barra fixa no topo com total e ações de imprimir / enviar PDF por WhatsApp.
 
 ---
 
-## Parte 1 — Configuração no Admin (Reservas + Pedido na Mesa)
+## 1. Nova tela (substitui o Dialog atual)
 
-Nova aba **Admin → Empresa → Reservas & Sala**:
+Layout dentro do mesmo `Dialog` (largura `max-w-5xl`, altura ~90dvh, corpo com scroll interno):
 
-- **Capacidade por dia/horário**: matriz semana × faixa horária (ex.: seg–qui 19:00–22:00 = 40 lugares reserváveis; sex–sáb = 60). Passo padrão 30 min, configurável.
-- **Janela mínima de antecedência** (ex.: reservar até 2 h antes) e **antecedência máxima** (ex.: 30 dias).
-- **Tolerância de atraso** (ex.: reserva "no-show" após 15 min).
-- **Tamanho mín./máx. de grupo por reserva**.
-- **Mesas físicas do salão** (número + capacidade + zona). Já existe `numero_mesa` implicitamente via `comanda_ativa`; agora ganha tabela própria `mesas_fisicas` para capacidade e mapa.
+**Cabeçalho fixo (sticky top)**
+- Título "Ordem de Compra Manual / Avulsa"
+- Campo **Busca** (filtra por nome, insensível a acento)
+- **Fornecedor padrão** da ordem (opcional — para itens livres/sem fornecedor)
+- **Observação**
+- **Total da ordem** grande, tabular, sempre visível (soma de `quantidade × custo` das linhas com quantidade > 0)
+- Botões no canto superior direito:
+  - `Imprimir` → abre nova janela com o mesmo layout do framework de relatórios (`ReportShell` A4 retrato, cabeçalho com logo/empresa, paginação, rodapé, apenas linhas com quantidade > 0)
+  - `Enviar PDF por WhatsApp` → gera o PDF do mesmo relatório e abre `https://wa.me/?text=...` com o arquivo anexado via `navigator.share` quando disponível; fallback: baixa o PDF e abre wa.me com o link/instrução
+  - `Gerar ordem` (ação principal — cria a `ordens_compra` como hoje)
+  - `Fechar`
 
-Novo interruptor **Admin → Empresa → Configurações gerais**:
+**Corpo — tabela única**
+Colunas: **Item** · **Custo unit.** · **Setor** · **Fornecedor** · **Quantidade (input)** · **Subtotal** · (ação: remover, só para item livre).
+- Linhas: todos os **insumos estocáveis** + **produtos de revenda (manipulado = false)**, obtidos via `listInsumos()` + `admin_get_products({ p_only_manipulado_false: true })`.
+- Ordenação: **Setor (ordem_exibicao)** → **Fornecedor (nome)** → **Nome do item**.
+- Cabeçalhos de grupo visuais separando por setor (accordion não — só linha divisória com nome do setor sticky), e sub-cabeçalho por fornecedor dentro do setor.
+- **Filtro por busca** aplica no nome; grupos vazios somem.
+- Quantidade: input numérico com máscara pt-BR (`parseNumberInput`). Custo unitário editável (default = custo cadastrado), para permitir ajuste pontual.
+- Subtotal recalcula em tempo real. Total no topo é a soma.
 
-- `pedido_na_mesa_pelo_cliente` (bool, default `true`). Quando `false`:
-  - O PWA na rota `/mesa` mostra cardápio + botão "Chamar garçom" mas oculta "Enviar para cozinha" e o carrinho.
-  - `enviar_pedido_mesa` passa a checar esse flag e recusar (`PEDIDO_MESA_DESABILITADO`).
-
----
-
-## Parte 2 — Reserva pelo PWA do cliente
-
-Novo fluxo público autenticado em `/reservar`:
-
-1. Cliente escolhe **data**, **nº de pessoas** e vê **horários com vagas** (consulta RPC `reserva_disponibilidade(data, pessoas)` que calcula `capacidade_do_horario - soma(pessoas das reservas confirmadas no mesmo slot)`).
-2. Confirma dados (nome, WhatsApp, e-mail se logado). Se não estiver logado, cria conta via OTP como já fazemos.
-3. Reserva entra como `status = 'confirmada'`. Cliente recebe push + WhatsApp com resumo e link "Ver minha reserva".
-4. Cliente pode **cancelar** até X horas antes (regra da empresa).
-
-Nova tabela `reservas` (`id, empresa_id, cliente_id, data, hora, pessoas, status, mesa_id (nullable até dar entrada), observacoes, created_at`). RLS: cliente vê as próprias; staff da empresa vê todas.
-
----
-
-## Parte 3 — App do Garçom / Tap: aba **Recepção**
-
-Guarda-chuva para a recepcionista (nova permissão `pode_recepcao`; garçom comum não vê):
-
-- **Reservas do dia** — lista por horário. Botão **"Dar entrada"** abre modal para escolher a mesa física livre → cria `comanda_ativa` já vinculada ao cliente e dispara a notificação de "mesa aguardando atendimento" para os garçons da zona.
-- **Fila de espera (walk-in)** — botão "Adicionar à fila" (nome + telefone + tamanho do grupo). Sistema gera posição. Botão **"Avisar mesa liberou"** → WhatsApp/SMS via provedor já integrado + push se o cliente estiver no PWA.
-- **Mapa do salão** — lista/grade de mesas físicas com status (livre / ocupada / reservada às 20h). Arrastar um item da fila/reserva para uma mesa livre = abrir comanda naquela mesa.
-- **Notificação para garçons**: quando a recepcionista abre a mesa, entra na fila de "Visto" que já existe no Caixa e também vira push para o garçom responsável pela zona.
-
-Nova tabela `fila_espera` (`id, empresa_id, nome, telefone, pessoas, status ['aguardando','avisado','sentado','desistiu'], posicao, created_at, avisado_at`).
+**Item livre**
+- Botão `+ Adicionar item livre` no rodapé da tabela → insere uma linha editável (Nome, Setor, Fornecedor, Custo, Quantidade). Persistem só em memória; ao gerar a ordem viram `ref_id = null` como já é hoje.
 
 ---
 
-## Parte 4 — Integração com o que já existe
+## 2. Regra de submissão
 
-- **Comanda / mesa**: `comanda_ativa` ganha coluna opcional `reserva_id` e `fila_id` para rastrear origem.
-- **Notificações**: reaproveita `NotifyClient` (push + WhatsApp) para lembrete de reserva (T-2 h), "mesa pronta" da fila, e alerta de garçom.
-- **Permissões**: nova flag `pode_recepcao` em `permissoes_matriz`; abas Reservas/Fila/Mapa gated por ela.
-- **QR da mesa**: continua igual; muda só o comportamento quando `pedido_na_mesa_pelo_cliente = false`.
-
----
-
-## Detalhes técnicos
-
-- Migração: `mesas_fisicas`, `reservas`, `fila_espera`, `config_reservas` (matriz de capacidade por dia da semana + horário); coluna `pedido_na_mesa_pelo_cliente` em `empresas`; coluna `pode_recepcao` em `permissoes_matriz`; coluna `reserva_id`/`fila_id` em `comanda_ativa`. Cada tabela pública com `GRANT` + RLS por `empresa_id` (ver regras do projeto).
-- RPCs: `reserva_disponibilidade`, `criar_reserva`, `cancelar_reserva`, `dar_entrada_reserva(reserva_id, mesa_id)`, `fila_adicionar`, `fila_avisar`, `fila_sentar(fila_id, mesa_id)`.
-- Endpoints Tap (`/api/public/tap/*`): `reservas`, `fila`, `mesas-livres`, `abrir-mesa` — todos autenticados pelo `deviceToken` já usado no Tap.
-- `enviar_pedido_mesa` passa a validar `empresas.pedido_na_mesa_pelo_cliente`.
-- Front: nova rota `/reservar` (PWA cliente), nova rota/aba **Recepção** no `/caixa` e no app Tap, aba **Reservas & Sala** no `/admin`.
+Ao clicar `Gerar ordem`:
+- Coleta todas as linhas (catálogo + livres) com `quantidade > 0`.
+- Se nenhum fornecedor for definido por item, usa o fornecedor padrão do cabeçalho. Se o item catalogado tem fornecedor próprio, ele prevalece (mantém consistência).
+- Chama `criarOrdemCompra` já existente. Sem mudança de schema.
+- **Observação futura (não neste escopo):** hoje `ordens_compra` guarda apenas um `id_fornecedor`. Se a ordem misturar fornecedores diferentes, criamos **uma ordem por fornecedor** no mesmo submit (loop client-side em cima da RPC atual) para não perder informação. Toast lista os números gerados.
 
 ---
 
-## Perguntas antes de eu implementar
+## 3. Imprimir e enviar PDF
 
-1. **Granularidade do horário de reserva**: slots fixos de **30 min**, **1 h**, ou configurável por empresa?
-2. **Duração média da reserva** (para calcular ocupação futura): usar valor fixo por empresa (ex.: 90 min) ou perguntar em cada reserva?
-3. **Depósito/sinal**: alguma reserva vai exigir pagamento antecipado (integração com Mercado Pago), ou por enquanto todas gratuitas?
-4. **Aviso da fila**: mando por **WhatsApp (Twilio)**, **push do PWA** ou **os dois** em paralelo quando o cliente tem conta e app instalado?
+Reaproveitar o framework de relatórios (`src/components/admin/reports/ReportShell.tsx`) para não reinventar layout:
+- Novo componente `OrdemCompraReport.tsx` que renderiza o mesmo grid (agrupado por setor/fornecedor) no formato A4, com cabeçalho da empresa (nome, CNPJ, logo do branding), data/hora, usuário, total geral.
+- `Imprimir` → `window.print()` com CSS `@page` A4 já usado nos relatórios.
+- `Enviar PDF por WhatsApp` → gera PDF via `html2pdf.js` (ou `jspdf` + `html2canvas`, o que já estiver no projeto; caso nenhum esteja, adicionar `html2pdf.js`) e:
+  - Se `navigator.canShare?.({ files: [pdf] })` → `navigator.share` com o arquivo (funciona em Android/Chrome/PWA).
+  - Fallback desktop: baixa o PDF e abre `https://wa.me/?text=Segue%20a%20ordem%20de%20compra%20anexada.` numa nova aba com aviso "Anexe o arquivo baixado".
+
+---
+
+## 4. Arquivos afetados
+
+- `src/components/admin/SugestaoComprasView.tsx` — reescrever o bloco `Dialog` manual; header/cards/lista de sugestão permanecem iguais.
+- **Novo** `src/components/admin/OrdemCompraManualDialog.tsx` — encapsula todo o novo diálogo (busca, tabela agrupada, item livre, ações de topo, geração da ordem).
+- **Novo** `src/components/admin/reports/OrdemCompraReport.tsx` — layout imprimível A4 usando `ReportShell`.
+- **Novo** `src/lib/pdf-share.ts` — helper `printReport()` e `shareReportAsPdf(filename, node)` reutilizáveis.
+- Se `html2pdf.js` não estiver instalado, adicionar como dependência.
+
+## 5. Fora de escopo
+
+- Alterar `ordens_compra` (schema).
+- Mudar o restante da tela de Sugestão (cards, ordens recentes, gerar-por-grupo).
+- Implementar envio de WhatsApp servidor-side (usamos share API do dispositivo).
