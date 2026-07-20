@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ReservarRouteImport } from './routes/reservar'
 import { Route as MinhaComandaRouteImport } from './routes/minha-comanda'
 import { Route as MesaRouteImport } from './routes/mesa'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -51,6 +52,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReservarRoute = ReservarRouteImport.update({
+  id: '/reservar',
+  path: '/reservar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MinhaComandaRoute = MinhaComandaRouteImport.update({
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/mesa': typeof MesaRoute
   '/minha-comanda': typeof MinhaComandaRoute
+  '/reservar': typeof ReservarRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -254,6 +261,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/mesa': typeof MesaRoute
   '/minha-comanda': typeof MinhaComandaRoute
+  '/reservar': typeof ReservarRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -290,6 +298,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/mesa': typeof MesaRoute
   '/minha-comanda': typeof MinhaComandaRoute
+  '/reservar': typeof ReservarRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -326,6 +335,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/mesa'
     | '/minha-comanda'
+    | '/reservar'
     | '/reset-password'
     | '/sitemap.xml'
     | '/admin'
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/mesa'
     | '/minha-comanda'
+    | '/reservar'
     | '/reset-password'
     | '/sitemap.xml'
     | '/admin'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/mesa'
     | '/minha-comanda'
+    | '/reservar'
     | '/reset-password'
     | '/sitemap.xml'
     | '/_authenticated/admin'
@@ -431,6 +443,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   MesaRoute: typeof MesaRoute
   MinhaComandaRoute: typeof MinhaComandaRoute
+  ReservarRoute: typeof ReservarRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AuthUpdatePasswordRoute: typeof AuthUpdatePasswordRoute
@@ -467,6 +480,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reservar': {
+      id: '/reservar'
+      path: '/reservar'
+      fullPath: '/reservar'
+      preLoaderRoute: typeof ReservarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/minha-comanda': {
@@ -719,6 +739,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   MesaRoute: MesaRoute,
   MinhaComandaRoute: MinhaComandaRoute,
+  ReservarRoute: ReservarRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AuthUpdatePasswordRoute: AuthUpdatePasswordRoute,
