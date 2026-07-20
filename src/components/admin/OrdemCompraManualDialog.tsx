@@ -128,12 +128,31 @@ const fmtNum = (n: number) => {
   return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(n);
 };
 
+export interface PreloadedOCItem {
+  tipo: ItemTipo;
+  ref_id: string | null;
+  nome: string;
+  unidade: string;
+  setor_id: string | null;
+  fornecedor_id: string | null;
+  custo_unitario: number;
+  quantidade: number;
+}
+
 export function OrdemCompraManualDialog({
   open,
   onOpenChange,
+  preloadedItems,
+  consolidatedMode = false,
+  title,
+  observacaoDefault,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  preloadedItems?: PreloadedOCItem[];
+  consolidatedMode?: boolean;
+  title?: string;
+  observacaoDefault?: string;
 }) {
   const queryClient = useQueryClient();
 
@@ -222,11 +241,49 @@ export function OrdemCompraManualDialog({
     if (open) {
       setSearch("");
       setDefaultFornecedor(NONE);
-      setObservacao("");
+      setObservacao(observacaoDefault ?? "");
       setRowState({});
       setFreeItems([]);
     }
-  }, [open]);
+  }, [open, observacaoDefault]);
+
+  // Hydrate from preloadedItems once catalog is ready.
+  const preloadKey = useMemo(
+    () =>
+      preloadedItems
+        ? preloadedItems.map((i) => `${i.tipo}:${i.ref_id ?? i.nome}:${i.quantidade}`).join("|")
+        : "",
+    [preloadedItems],
+  );
+  useEffect(() => {
+    if (!open || !preloadedItems || preloadedItems.length === 0) return;
+    if (catalog.length === 0) return;
+    const catalogKeys = new Set(catalog.map((c) => c.key));
+    const nextRowState: Record<string, RowState> = {};
+    const nextFree: FreeItem[] = [];
+    preloadedItems.forEach((it, idx) => {
+      const key = it.ref_id ? `${it.tipo}:${it.ref_id}` : "";
+      if (key && catalogKeys.has(key)) {
+        nextRowState[key] = {
+          quantidade: String(it.quantidade).replace(".", ","),
+          custo: String(it.custo_unitario).replace(".", ","),
+        };
+      } else {
+        nextFree.push({
+          key: `free:preload:${idx}`,
+          nome: it.nome,
+          setor_id: it.setor_id,
+          fornecedor_id: it.fornecedor_id,
+          custo_unitario: String(it.custo_unitario).replace(".", ","),
+          quantidade: String(it.quantidade).replace(".", ","),
+        });
+      }
+    });
+    setRowState(nextRowState);
+    setFreeItems(nextFree);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, preloadKey, catalog.length]);
+
 
   const getRow = (key: string): RowState =>
     rowState[key] ?? { quantidade: "", custo: "" };
@@ -405,6 +462,63 @@ export function OrdemCompraManualDialog({
         });
       }
 
+      if (consolidatedMode) {
+        // Uma única ordem, ordenada por setor → fornecedor → nome.
+        const enriched: {
+          setorOrdem: number;
+          fornNome: string;
+          nome: string;
+          input: OrdemCompraItemInput;
+        }[] = [];
+        for (const r of selectedRows) {
+          enriched.push({
+            setorOrdem:
+              setorMap.get(r.source.setor_id ?? "")?.ordem_exibicao ?? 999,
+            fornNome:
+              fornMap.get(r.source.fornecedor_id ?? "")?.fornecedor ?? "zzz",
+            nome: r.source.nome,
+            input: {
+              tipo: r.source.tipo,
+              ref_id: r.source.ref_id,
+              nome: r.source.nome,
+              quantidade: r.qty,
+              custo_unitario: r.custo,
+            },
+          });
+        }
+        for (const f of freeItems) {
+          const q = parseNumberInput(f.quantidade);
+          if (q <= 0 || !f.nome.trim()) continue;
+          enriched.push({
+            setorOrdem: setorMap.get(f.setor_id ?? "")?.ordem_exibicao ?? 999,
+            fornNome: fornMap.get(f.fornecedor_id ?? "")?.fornecedor ?? "zzz",
+            nome: f.nome.trim(),
+            input: {
+              tipo: "insumo",
+              ref_id: null,
+              nome: f.nome.trim(),
+              quantidade: q,
+              custo_unitario: parseNumberInput(f.custo_unitario),
+            },
+          });
+        }
+        enriched.sort((a, b) => {
+          if (a.setorOrdem !== b.setorOrdem) return a.setorOrdem - b.setorOrdem;
+          if (a.fornNome !== b.fornNome) return a.fornNome.localeCompare(b.fornNome);
+          return a.nome.localeCompare(b.nome);
+        });
+        const numero = await criarOrdemCompra({
+          id_fornecedor: null,
+          observacao: observacao || "Reposição consolidada — ordenada por setor",
+          origem: "Sugestão",
+          itens: enriched.map((e) => e.input),
+        });
+        toast.success(`Ordem consolidada nº ${numero} gerada!`);
+        await queryClient.invalidateQueries({ queryKey: ["ordens-compra"] });
+        onOpenChange(false);
+        return;
+      }
+
       // Agrupa por fornecedor
       const byForn = new Map<string, OrdemCompraItemInput[]>();
       for (const l of linhas) {
@@ -509,7 +623,7 @@ export function OrdemCompraManualDialog({
           className="flex h-[92dvh] max-h-[92dvh] max-w-5xl flex-col p-0"
         >
           <ModalActionBar
-            title="Ordem de Compra Manual / Avulsa"
+            title={title ?? "Ordem de Compra Manual / Avulsa"}
             onBack={() => onOpenChange(false)}
             onSave={handleSave}
             saving={saving}
