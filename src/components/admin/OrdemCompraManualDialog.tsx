@@ -61,6 +61,9 @@ interface CatalogItem {
   setor_id: string | null;
   fornecedor_id: string | null;
   custo_unitario: number;
+  saldo_estoque: number;
+  estoque_minimo: number;
+  estoque_maximo: number;
 }
 
 interface FreeItem {
@@ -82,13 +85,18 @@ interface ProdutoRow {
   name: string;
   setor_id: string | null;
   fornecedor_id: string | null;
-  custo_compra?: number | null;
-  price?: number | null;
+  /** Custo de aquisição (o preço `price` é venda e nunca deve ser usado aqui). */
+  custo_compra: number;
+  saldo_estoque: number;
+  estoque_minimo: number;
+  estoque_maximo: number;
 }
 
 /**
- * Fetches every product that is bought (manipulado = false) with cost, setor
- * and fornecedor for the manual purchase order grid.
+ * Fetches every product that is bought (manipulado = false) with acquisition
+ * cost, current stock levels, setor and fornecedor for the manual purchase
+ * order grid. `price` (sale price) is intentionally ignored — the cost column
+ * must reflect purchase cost only.
  */
 async function fetchProdutosRevenda(): Promise<ProdutoRow[]> {
   const { data, error } = await supabase.rpc("admin_get_products", {
@@ -100,12 +108,10 @@ async function fetchProdutosRevenda(): Promise<ProdutoRow[]> {
     name: String(p.name ?? ""),
     setor_id: (p.setor_id as string | null) ?? null,
     fornecedor_id: (p.fornecedor_id as string | null) ?? null,
-    custo_compra:
-      p.custo_compra === null || p.custo_compra === undefined
-        ? null
-        : Number(p.custo_compra),
-    price:
-      p.price === null || p.price === undefined ? null : Number(p.price),
+    custo_compra: Number(p.custo_compra ?? 0),
+    saldo_estoque: Number(p.saldo_estoque ?? 0),
+    estoque_minimo: Number(p.estoque_minimo ?? 0),
+    estoque_maximo: Number(p.estoque_maximo ?? 0),
   }));
 }
 
@@ -114,6 +120,12 @@ const normalize = (s: string) =>
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
+
+/** Compact numeric formatter — trims trailing zeros ("12" not "12,00"). */
+const fmtNum = (n: number) => {
+  if (!Number.isFinite(n)) return "0";
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(n);
+};
 
 export function OrdemCompraManualDialog({
   open,
@@ -169,6 +181,9 @@ export function OrdemCompraManualDialog({
         setor_id: i.setor_id,
         fornecedor_id: i.fornecedor_id,
         custo_unitario: Number(i.custo_unitario ?? 0),
+        saldo_estoque: Number(i.saldo_estoque ?? 0),
+        estoque_minimo: Number(i.estoque_minimo ?? 0),
+        estoque_maximo: Number(i.estoque_maximo ?? 0),
       });
     }
     for (const p of produtos ?? []) {
@@ -180,7 +195,10 @@ export function OrdemCompraManualDialog({
         unidade: "un",
         setor_id: p.setor_id,
         fornecedor_id: p.fornecedor_id,
-        custo_unitario: Number(p.custo_compra ?? p.price ?? 0),
+        custo_unitario: Number(p.custo_compra ?? 0),
+        saldo_estoque: p.saldo_estoque,
+        estoque_minimo: p.estoque_minimo,
+        estoque_maximo: p.estoque_maximo,
       });
     }
     return rows;
@@ -572,6 +590,9 @@ export function OrdemCompraManualDialog({
                     <th className="px-2 py-2 font-semibold">Item</th>
                     <th className="px-2 py-2 font-semibold">Setor</th>
                     <th className="px-2 py-2 font-semibold">Fornecedor</th>
+                    <th className="px-2 py-2 text-right font-semibold">
+                      Estoque <span className="font-normal normal-case opacity-70">(mín/máx)</span>
+                    </th>
                     <th className="px-2 py-2 text-right font-semibold">Custo un.</th>
                     <th className="px-2 py-2 text-right font-semibold">Quantidade</th>
                     <th className="px-2 py-2 text-right font-semibold">Subtotal</th>
@@ -583,7 +604,7 @@ export function OrdemCompraManualDialog({
                     <>
                       <tr key={`sec-${group.setorId}`} className="bg-primary/5">
                         <td
-                          colSpan={7}
+                          colSpan={8}
                           className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide text-primary"
                         >
                           {group.setorNome}
@@ -596,6 +617,9 @@ export function OrdemCompraManualDialog({
                           ? parseNumberInput(st.custo)
                           : item.custo_unitario;
                         const subtotal = qty * custo;
+                        const abaixoMin =
+                          item.estoque_minimo > 0 &&
+                          item.saldo_estoque < item.estoque_minimo;
                         return (
                           <tr
                             key={item.key}
@@ -615,6 +639,20 @@ export function OrdemCompraManualDialog({
                             </td>
                             <td className="px-2 py-1.5 text-xs text-muted-foreground">
                               {fornMap.get(item.fornecedor_id ?? "")?.fornecedor ?? "—"}
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-xs tabular-nums">
+                              <span
+                                className={
+                                  abaixoMin
+                                    ? "font-semibold text-destructive"
+                                    : "text-foreground"
+                                }
+                              >
+                                {fmtNum(item.saldo_estoque)}
+                              </span>
+                              <span className="ml-1 text-[10px] text-muted-foreground">
+                                ({fmtNum(item.estoque_minimo)}/{fmtNum(item.estoque_maximo)})
+                              </span>
                             </td>
                             <td className="px-2 py-1.5">
                               <Input
@@ -648,7 +686,7 @@ export function OrdemCompraManualDialog({
 
                   {filteredCatalog.length === 0 && search && (
                     <tr>
-                      <td colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
+                      <td colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
                         Nenhum item encontrado para "{search}".
                       </td>
                     </tr>
@@ -658,7 +696,7 @@ export function OrdemCompraManualDialog({
                   {freeItems.length > 0 && (
                     <tr className="bg-primary/5">
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide text-primary"
                       >
                         Itens livres
@@ -721,9 +759,10 @@ export function OrdemCompraManualDialog({
                                   {forn.fornecedor}
                                 </SelectItem>
                               ))}
-                            </SelectContent>
-                          </Select>
+                          </SelectContent>
+                        </Select>
                         </td>
+                        <td className="px-2 py-1.5 text-right text-xs text-muted-foreground">—</td>
                         <td className="px-2 py-1.5">
                           <Input
                             className="ml-auto h-8 w-24 text-right"
