@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, type CSSProperties } from "react";
 import type { EmpresaBranding } from "@/lib/empresa";
 import { formatBRL } from "@/lib/format";
 
@@ -19,11 +19,15 @@ interface OrdemCompraReportProps {
 }
 
 /**
- * A4 portrait report for a manual purchase order. Rendered off-screen and
- * used both for `window.print()` and for html2pdf.js when sharing via
- * WhatsApp. Uses the same `.report-a4 / .report-header / .report-content /
- * .report-footer` skeleton as the rest of the report framework so the print
- * CSS in `src/styles.css` picks it up automatically.
+ * A4 portrait report for a manual purchase order.
+ *
+ * IMPORTANT: colors, borders and backgrounds are declared with inline
+ * hex/rgb styles (never Tailwind color utilities). Tailwind v4 emits
+ * `oklch(...)` / `color-mix(in oklab, ...)` colors that html2canvas
+ * (used by html2pdf.js) cannot parse — that crashes the PDF/WhatsApp
+ * export with "Attempting to parse an unsupported color function oklch".
+ * Keep this file free of color classes so both `window.print()` and PDF
+ * export stay reliable.
  */
 export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportProps>(
   function OrdemCompraReport({ empresa, rows, observacao }, ref) {
@@ -34,7 +38,6 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
       { hour: "2-digit", minute: "2-digit" },
     )}`;
 
-    // Group by fornecedor for a compact printed layout.
     const grupos = new Map<string, OrdemCompraReportRow[]>();
     for (const row of rows) {
       const key = row.fornecedor || "Sem fornecedor";
@@ -58,55 +61,133 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
       .filter(Boolean)
       .join(" · ");
 
+    // Palette — pure hex, no oklch.
+    const C = {
+      text: "#111111",
+      muted: "#555555",
+      soft: "#777777",
+      line: "#333333",
+      lineSoft: "#cccccc",
+      lineFaint: "#e5e5e5",
+      band: "#f2f2f2",
+    };
+
+    const th: CSSProperties = {
+      padding: "4px 6px",
+      textAlign: "left",
+      fontWeight: 600,
+      fontSize: "9.5pt",
+      textTransform: "uppercase",
+      color: C.muted,
+      borderBottom: `1px solid ${C.lineSoft}`,
+    };
+    const td: CSSProperties = {
+      padding: "4px 6px",
+      verticalAlign: "top",
+      borderBottom: `1px solid ${C.lineFaint}`,
+      color: C.text,
+    };
+    const num: CSSProperties = { textAlign: "right", fontVariantNumeric: "tabular-nums" };
+
     return (
       <div
         ref={ref}
-        className="report-a4 bg-white p-6 text-neutral-900"
+        className="report-a4"
         style={{
           fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif',
           fontSize: "10.5pt",
           maxWidth: "210mm",
           width: "210mm",
+          background: "#ffffff",
+          color: C.text,
+          padding: "24px",
         }}
       >
-        <div className="report-header flex items-center gap-3 border-b border-black/60 pb-2">
+        <div
+          className="report-header"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            borderBottom: `1px solid ${C.line}`,
+            paddingBottom: "8px",
+          }}
+        >
           <img
             src={empresa?.logo_display_url || "/logo.png"}
             alt={empresa?.nome_fantasia || "Logotipo"}
-            className="h-10 w-auto max-w-[120px] object-contain"
+            style={{ height: "40px", width: "auto", maxWidth: "120px", objectFit: "contain" }}
           />
-          <h1 className="flex-1 text-center text-[15px] font-bold uppercase tracking-wide">
+          <h1
+            style={{
+              flex: 1,
+              textAlign: "center",
+              fontSize: "15px",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+              margin: 0,
+            }}
+          >
             Ordem de Compra — Sugestão
           </h1>
-          <span className="report-pagenum min-w-[80px] text-right text-[11px] tabular-nums text-neutral-700">
+          <span
+            className="report-pagenum"
+            style={{
+              minWidth: "80px",
+              textAlign: "right",
+              fontSize: "11px",
+              fontVariantNumeric: "tabular-nums",
+              color: C.muted,
+            }}
+          >
             Pág 1 / 1
           </span>
         </div>
 
-        <div className="report-content pt-3">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 text-[10pt]">
+        <div className="report-content" style={{ paddingTop: "12px" }}>
+          <div
+            style={{
+              marginBottom: "12px",
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              gap: "8px",
+              fontSize: "10pt",
+            }}
+          >
             <div>
-              <span className="text-neutral-500">Emitido em:</span>{" "}
-              <b className="tabular-nums">{dataHora}</b>
+              <span style={{ color: C.soft }}>Emitido em:</span>{" "}
+              <b style={{ fontVariantNumeric: "tabular-nums" }}>{dataHora}</b>
             </div>
             <div>
-              <span className="text-neutral-500">Itens:</span>{" "}
-              <b className="tabular-nums">{rows.length}</b>
+              <span style={{ color: C.soft }}>Itens:</span>{" "}
+              <b style={{ fontVariantNumeric: "tabular-nums" }}>{rows.length}</b>
             </div>
             <div>
-              <span className="text-neutral-500">Total previsto:</span>{" "}
-              <b className="tabular-nums">{formatBRL(total)}</b>
+              <span style={{ color: C.soft }}>Total previsto:</span>{" "}
+              <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatBRL(total)}</b>
             </div>
           </div>
 
           {observacao ? (
-            <p className="mb-3 rounded border border-black/20 bg-neutral-50 px-2 py-1 text-[10pt]">
+            <p
+              style={{
+                marginBottom: "12px",
+                border: `1px solid ${C.lineSoft}`,
+                background: "#fafafa",
+                padding: "4px 8px",
+                fontSize: "10pt",
+                borderRadius: "3px",
+              }}
+            >
               <b>Observação:</b> {observacao}
             </p>
           ) : null}
 
           {rows.length === 0 ? (
-            <p className="py-10 text-center text-neutral-500">
+            <p style={{ padding: "40px 0", textAlign: "center", color: C.soft }}>
               Nenhum item selecionado.
             </p>
           ) : (
@@ -116,37 +197,42 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
                 0,
               );
               return (
-                <div key={fornNome} className="mb-4" style={{ pageBreakInside: "avoid" }}>
-                  <div className="flex items-center justify-between border-b border-black/40 bg-neutral-100 px-2 py-1 text-[10.5pt] font-bold">
+                <div key={fornNome} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      borderBottom: `1px solid ${C.line}`,
+                      background: C.band,
+                      padding: "4px 8px",
+                      fontSize: "10.5pt",
+                      fontWeight: 700,
+                    }}
+                  >
                     <span>{fornNome}</span>
-                    <span className="tabular-nums">{formatBRL(subtotal)}</span>
+                    <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatBRL(subtotal)}</span>
                   </div>
-                  <table className="w-full border-collapse">
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
-                      <tr className="border-b border-black/30 text-left text-[9.5pt] uppercase text-neutral-700">
-                        <th className="px-1.5 py-1 font-semibold">Item</th>
-                        <th className="px-1.5 py-1 font-semibold">Setor</th>
-                        <th className="px-1.5 py-1 text-right font-semibold">Qtd</th>
-                        <th className="px-1.5 py-1 text-right font-semibold">Custo un.</th>
-                        <th className="px-1.5 py-1 text-right font-semibold">Subtotal</th>
+                      <tr>
+                        <th style={th}>Item</th>
+                        <th style={th}>Setor</th>
+                        <th style={{ ...th, ...num }}>Qtd</th>
+                        <th style={{ ...th, ...num }}>Custo un.</th>
+                        <th style={{ ...th, ...num }}>Subtotal</th>
                       </tr>
                     </thead>
                     <tbody>
                       {itens.map((r, i) => (
-                        <tr
-                          key={i}
-                          className="border-b border-black/10 align-top"
-                          style={{ pageBreakInside: "avoid" }}
-                        >
-                          <td className="px-1.5 py-1">{r.nome}</td>
-                          <td className="px-1.5 py-1 text-neutral-700">{r.setor || "—"}</td>
-                          <td className="px-1.5 py-1 text-right tabular-nums">
+                        <tr key={i} style={{ pageBreakInside: "avoid" }}>
+                          <td style={td}>{r.nome}</td>
+                          <td style={{ ...td, color: C.muted }}>{r.setor || "—"}</td>
+                          <td style={{ ...td, ...num }}>
                             {r.quantidade} {r.unidade}
                           </td>
-                          <td className="px-1.5 py-1 text-right tabular-nums">
-                            {formatBRL(r.custo_unitario)}
-                          </td>
-                          <td className="px-1.5 py-1 text-right font-semibold tabular-nums">
+                          <td style={{ ...td, ...num }}>{formatBRL(r.custo_unitario)}</td>
+                          <td style={{ ...td, ...num, fontWeight: 600 }}>
                             {formatBRL(r.quantidade * r.custo_unitario)}
                           </td>
                         </tr>
@@ -158,18 +244,40 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
             })
           )}
 
-          <div className="mt-4 flex items-center justify-end border-t-2 border-black/60 pt-2 text-[12pt]">
-            <span className="mr-3 font-semibold">TOTAL GERAL</span>
-            <span className="font-bold tabular-nums">{formatBRL(total)}</span>
+          <div
+            style={{
+              marginTop: "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              borderTop: `2px solid ${C.line}`,
+              paddingTop: "8px",
+              fontSize: "12pt",
+            }}
+          >
+            <span style={{ marginRight: "12px", fontWeight: 600 }}>TOTAL GERAL</span>
+            <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+              {formatBRL(total)}
+            </span>
           </div>
         </div>
 
-        <div className="report-footer border-t border-black/60 pt-1.5 text-[10px] leading-tight text-neutral-700">
-          <p className="font-semibold">
+        <div
+          className="report-footer"
+          style={{
+            borderTop: `1px solid ${C.line}`,
+            paddingTop: "6px",
+            fontSize: "10px",
+            lineHeight: 1.25,
+            color: C.muted,
+            marginTop: "12px",
+          }}
+        >
+          <p style={{ margin: 0, fontWeight: 600 }}>
             {razao}
             {cnpj}
           </p>
-          <p>{enderecoParts || "—"}</p>
+          <p style={{ margin: 0 }}>{enderecoParts || "—"}</p>
         </div>
       </div>
     );
