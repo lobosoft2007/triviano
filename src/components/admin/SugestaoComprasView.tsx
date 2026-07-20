@@ -4,7 +4,6 @@ import {
   Loader2,
   ShoppingCart,
   Plus,
-  X,
   Wallet,
   AlertTriangle,
   FileText,
@@ -19,17 +18,13 @@ import {
   criarOrdemCompra,
   listOrdensCompra,
   type SugestaoItem,
-  type ItemTipo,
   type OrdemCompraItemInput,
 } from "@/lib/estoque";
 import {
   listSetores,
   listFornecedores,
-  listInsumos,
-  parseNumberInput,
 } from "@/lib/erp";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -37,26 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ModalActionBar } from "@/components/ui/modal-action-bar";
-import { Field } from "./FornecedoresCrud";
+import { OrdemCompraManualDialog } from "./OrdemCompraManualDialog";
 
 const NONE = "__none__";
 
-/** Row model for the manual purchase order editor. */
-interface ManualRow {
-  tipo: ItemTipo;
-  ref_id: string;
-  nome: string;
-  quantidade: string;
-  custo_unitario: string;
-}
 
 export function SugestaoComprasView() {
   const queryClient = useQueryClient();
@@ -76,10 +55,6 @@ export function SugestaoComprasView() {
   const { data: fornecedores } = useQuery({
     queryKey: ["erp-fornecedores"],
     queryFn: listFornecedores,
-  });
-  const { data: insumos } = useQuery({
-    queryKey: ["erp-insumos"],
-    queryFn: listInsumos,
   });
   const { data: ordens } = useQuery({
     queryKey: ["ordens-compra"],
@@ -194,75 +169,7 @@ export function SugestaoComprasView() {
 
   /* ---------------- Manual order dialog ----------------------------- */
   const [open, setOpen] = useState(false);
-  const [manualForn, setManualForn] = useState<string>(NONE);
-  const [manualObs, setManualObs] = useState("");
-  const [rows, setRows] = useState<ManualRow[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  const openManual = () => {
-    setManualForn(NONE);
-    setManualObs("");
-    setRows([{ tipo: "insumo", ref_id: "", nome: "", quantidade: "", custo_unitario: "" }]);
-    setOpen(true);
-  };
-
-  const addRow = () =>
-    setRows((r) => [
-      ...r,
-      { tipo: "insumo", ref_id: "", nome: "", quantidade: "", custo_unitario: "" },
-    ]);
-  const updateRow = (idx: number, patch: Partial<ManualRow>) =>
-    setRows((r) => r.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
-  const removeRow = (idx: number) =>
-    setRows((r) => r.filter((_, i) => i !== idx));
-
-  const onPickInsumo = (idx: number, insumoId: string) => {
-    const ins = insumos?.find((i) => i.id === insumoId);
-    updateRow(idx, {
-      tipo: "insumo",
-      ref_id: insumoId,
-      nome: ins?.nome ?? "",
-      custo_unitario: ins ? String(ins.custo_unitario).replace(".", ",") : "",
-    });
-  };
-
-  const manualTotal = rows.reduce(
-    (s, r) => s + parseNumberInput(r.quantidade) * parseNumberInput(r.custo_unitario),
-    0,
-  );
-
-  async function handleManualSave() {
-    setSaving(true);
-    try {
-      const itens: OrdemCompraItemInput[] = rows
-        .filter((r) => r.nome.trim() && parseNumberInput(r.quantidade) > 0)
-        .map((r) => ({
-          tipo: r.tipo,
-          ref_id: r.ref_id || null,
-          nome: r.nome.trim(),
-          quantidade: parseNumberInput(r.quantidade),
-          custo_unitario: parseNumberInput(r.custo_unitario),
-        }));
-      if (itens.length === 0) {
-        toast.error("Adicione ao menos um item com quantidade.");
-        setSaving(false);
-        return;
-      }
-      const numero = await criarOrdemCompra({
-        id_fornecedor: manualForn === NONE ? null : manualForn,
-        observacao: manualObs,
-        origem: "Manual",
-        itens,
-      });
-      toast.success(`Ordem de compra nº ${numero} gerada!`);
-      setOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ["ordens-compra"] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar ordem.");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const openManual = () => setOpen(true);
 
   return (
     <section className="space-y-6">
@@ -430,121 +337,9 @@ export function SugestaoComprasView() {
         )}
       </div>
 
-      {/* Manual order dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent hideClose className="max-w-2xl">
-          <ModalActionBar
-            title="Ordem de Compra Manual / Avulsa"
-            onBack={() => setOpen(false)}
-            onSave={handleManualSave}
-            saving={saving}
-            saveLabel="Gerar ordem"
-          />
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Fornecedor">
-                <Select value={manualForn} onValueChange={setManualForn}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Sem fornecedor</SelectItem>
-                    {fornecedores?.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.fornecedor}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Observação">
-                <Input
-                  value={manualObs}
-                  onChange={(e) => setManualObs(e.target.value)}
-                  placeholder="Ex.: compra emergencial"
-                />
-              </Field>
-            </div>
+      {/* Manual order dialog (novo formato, buscável + impressão/PDF) */}
+      <OrdemCompraManualDialog open={open} onOpenChange={setOpen} />
 
-            <div className="space-y-2">
-              {rows.map((row, idx) => (
-                <div
-                  key={idx}
-                  className="grid grid-cols-[1fr_90px_100px_32px] items-center gap-2"
-                >
-                  <Select
-                    value={row.ref_id || NONE}
-                    onValueChange={(v) =>
-                      v === NONE
-                        ? updateRow(idx, { ref_id: "", nome: "" })
-                        : onPickInsumo(idx, v)
-                    }
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Insumo (ou digite abaixo)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>Item livre (digitar)</SelectItem>
-                      {insumos?.map((i) => (
-                        <SelectItem key={i.id} value={i.id}>
-                          {i.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    className="h-9"
-                    inputMode="decimal"
-                    value={row.quantidade}
-                    onChange={(e) => updateRow(idx, { quantidade: e.target.value })}
-                    placeholder="Qtd"
-                  />
-                  <Input
-                    className="h-9"
-                    inputMode="decimal"
-                    value={row.custo_unitario}
-                    onChange={(e) =>
-                      updateRow(idx, { custo_unitario: e.target.value })
-                    }
-                    placeholder="R$ un."
-                  />
-                  <button
-                    type="button"
-                    aria-label="Remover"
-                    onClick={() => removeRow(idx)}
-                    className="flex h-8 w-8 items-center justify-center justify-self-end rounded-full text-destructive transition-colors hover:bg-destructive/10"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                  {!row.ref_id && (
-                    <Input
-                      className="col-span-4 h-9"
-                      value={row.nome}
-                      onChange={(e) => updateRow(idx, { nome: e.target.value })}
-                      placeholder="Nome do item livre"
-                    />
-                  )}
-                </div>
-              ))}
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={addRow}
-              >
-                <Plus className="mr-1 h-4 w-4" /> Adicionar item
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2.5">
-              <span className="text-sm font-semibold">Total da ordem</span>
-              <span className="font-display text-base font-bold tabular-nums text-primary">
-                {formatBRL(manualTotal)}
-              </span>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 }
