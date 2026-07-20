@@ -642,14 +642,38 @@ function AdminPage() {
       };
 
       let productId = form.id;
-      if (productId) {
-        const { error } = await supabase.from("products").update(payload).eq("id", productId);
-        if (error) throw error;
-      } else {
-        const { data: inserted, error } = await supabase.from("products").insert(payload).select("id").single();
-        if (error) throw error;
-        productId = inserted.id;
-      }
+      const { data: savedProductId, error } = await (supabase.rpc as typeof supabase.rpc & ((
+        fn: "admin_save_product_core",
+        args: {
+          p_id: string | null;
+          p_category_id: string;
+          p_name: string;
+          p_description: string;
+          p_price: number;
+          p_available: boolean;
+          p_image_url: string;
+          p_free_addon_limit: number;
+          p_eixo_variacao: string;
+          p_saldo_estoque: number;
+          p_estoque_minimo: number;
+          p_estoque_maximo: number;
+        },
+      ) => ReturnType<typeof supabase.rpc>))("admin_save_product_core", {
+        p_id: productId,
+        p_category_id: payload.category_id,
+        p_name: payload.name,
+        p_description: payload.description,
+        p_price: payload.price,
+        p_available: payload.available,
+        p_image_url: payload.image_url,
+        p_free_addon_limit: payload.free_addon_limit,
+        p_eixo_variacao: payload.eixo_variacao,
+        p_saldo_estoque: payload.saldo_estoque,
+        p_estoque_minimo: payload.estoque_minimo,
+        p_estoque_maximo: payload.estoque_maximo,
+      });
+      if (error) throw error;
+      productId = (savedProductId as string) || productId;
 
       await saveProductDetail(productId!, formToDetail(detail));
 
@@ -667,7 +691,7 @@ function AdminPage() {
   const handleDelete = async (p: AdminProduct) => {
     if (!confirm(`Remover "${p.name}" do cardápio?`)) return;
     try {
-      const { error } = await supabase.from("products").delete().eq("id", p.id);
+      const { error } = await supabase.rpc("admin_delete_product", { p_id: p.id });
       if (error) throw error;
       toast.success("Item removido.");
       await queryClient.invalidateQueries({ queryKey: ["admin-menu"] });
