@@ -153,7 +153,7 @@ function ReservarPage() {
         </Button>
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Reservar mesa</p>
-          <h1 className="truncate font-display text-xl font-bold">{empresa?.nome ?? "Restaurante"}</h1>
+          <h1 className="truncate font-display text-xl font-bold">{empresa?.nome_fantasia ?? "Restaurante"}</h1>
         </div>
       </header>
 
@@ -280,7 +280,7 @@ function ReservarPage() {
             <h2 className="font-display text-lg font-bold">Reserva confirmada!</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Enviamos os detalhes para o seu WhatsApp. Chegue com até{" "}
-              {empresa?.reserva_tolerancia_min ?? 15} min de tolerância.
+              {15} min de tolerância.
             </p>
           </div>
           <Button asChild variant="secondary" className="w-full">
