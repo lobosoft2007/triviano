@@ -4548,6 +4548,16 @@ export type Database = {
           nome_recebedor: string
         }[]
       }
+      get_pos_build_branding: {
+        Args: { p_subdominio: string }
+        Returns: {
+          app_label: string
+          empresa_id: string
+          icon_path: string
+          subdominio: string
+          updated_at: string
+        }[]
+      }
       get_public_branding: {
         Args: never
         Returns: {
