@@ -411,7 +411,7 @@ export interface ProductDetail {
 export async function fetchProductDetail(
   productId: string,
 ): Promise<ProductDetail> {
-  const [poRes, addRes, freeRes, fichaRes, prodRes, ingRes, prodIfoodRes] = await Promise.all([
+  const [poRes, addRes, freeRes, fichaRes, prodRes, ingRes, prodMetaRes] = await Promise.all([
     supabase
       .from("produtos_price_options")
       .select("id, tamanho, preco, preco_ifood, sort_order")
@@ -438,8 +438,7 @@ export async function fetchProductDetail(
     // readable directly from the table — fetched via a role-guarded function.
     supabase.rpc("admin_get_ingredientes", { p_product_id: productId }),
 
-    // Preço iFood ainda não retornado pelo RPC — leitura suplementar direta.
-    supabase.from("products").select("preco_ifood").eq("id", productId).maybeSingle(),
+    supabase.rpc("admin_get_product_detail_meta", { p_id: productId }),
   ]);
   if (poRes.error) throw poRes.error;
   if (addRes.error) throw addRes.error;
@@ -447,10 +446,10 @@ export async function fetchProductDetail(
   if (fichaRes.error) throw fichaRes.error;
   if (prodRes.error) throw prodRes.error;
   if (ingRes.error) throw ingRes.error;
+  if (prodMetaRes.error) throw prodMetaRes.error;
 
   const fiscais = (fichaRes.data?.dados_fiscais ?? {}) as Record<string, unknown>;
-  const prodMeta = (prodRes.data ?? [])[0];
-  const prodIfood = (prodIfoodRes.data ?? null) as { preco_ifood?: number | null } | null;
+  const prodMeta = (prodMetaRes.data ?? [])[0] ?? (prodRes.data ?? [])[0];
 
   // All ficha lines with their (optional) price_option_id link.
   const allFicha: FichaLine[] = (ingRes.data ?? []).map((r) => ({
@@ -475,7 +474,7 @@ export async function fetchProductDetail(
     custo_compra: Number(
       (prodMeta as { custo_compra?: number })?.custo_compra ?? 0,
     ),
-    preco_ifood: prodIfood?.preco_ifood != null ? Number(prodIfood.preco_ifood) : null,
+    preco_ifood: prodMeta?.preco_ifood != null ? Number(prodMeta.preco_ifood) : null,
     price_options: (poRes.data ?? []).map((p) => ({
       id: String(p.id),
       tamanho: String(p.tamanho),
@@ -509,28 +508,20 @@ export async function saveProductDetail(
   productId: string,
   detail: ProductDetail,
 ): Promise<void> {
-  // products flags
-  const { data: prodUpd, error: prodErr } = await supabase
-    .from("products")
-    .update({
-      manipulado: detail.manipulado,
-      setor_id: detail.manipulado ? null : detail.setor_id,
-      fornecedor_id: detail.manipulado ? null : detail.fornecedor_id,
-      margem_revenda: detail.margem_revenda,
-      custo_compra: detail.manipulado ? 0 : round2(detail.custo_compra),
-      preco_ifood:
-        detail.preco_ifood != null && detail.preco_ifood > 0
-          ? round2(detail.preco_ifood)
-          : null,
-    })
-    .eq("id", productId)
-    .select("id, manipulado");
+  // products flags — via admin RPC because direct table reads are intentionally restricted.
+  const { error: prodErr } = await supabase.rpc("admin_update_product_detail_fields", {
+    p_id: productId,
+    p_manipulado: detail.manipulado,
+    p_setor_id: detail.manipulado ? null : detail.setor_id,
+    p_fornecedor_id: detail.manipulado ? null : detail.fornecedor_id,
+    p_margem_revenda: detail.margem_revenda,
+    p_custo_compra: detail.manipulado ? 0 : round2(detail.custo_compra),
+    p_preco_ifood:
+      detail.preco_ifood != null && detail.preco_ifood > 0
+        ? round2(detail.preco_ifood)
+        : null,
+  });
   if (prodErr) throw prodErr;
-  if (!prodUpd || prodUpd.length === 0) {
-    throw new Error(
-      "Não foi possível atualizar o produto (verifique se você tem permissão nesta empresa).",
-    );
-  }
 
 
   // price options — insert with explicit ids so per-variation ficha lines
@@ -654,10 +645,10 @@ export async function saveProductDetail(
   // Recalcula e persiste o custo total de produção/revenda para BI.
   try {
     const custoTotal = await fetchProductCustoTotal(productId);
-    const { error: costErr } = await supabase
-      .from("products")
-      .update({ custo_total: custoTotal })
-      .eq("id", productId);
+    const { error: costErr } = await supabase.rpc("admin_update_product_custo_total", {
+      p_id: productId,
+      p_custo_total: custoTotal,
+    });
     if (costErr) throw costErr;
   } catch (costErr) {
     // Não falha o salvamento; o custo pode ser recalculado posteriormente.
