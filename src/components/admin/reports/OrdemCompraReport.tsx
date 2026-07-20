@@ -278,19 +278,19 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
           className="report-footer"
           style={{
             borderTop: `1px solid ${C.line}`,
-            paddingTop: "8px",
-            paddingBottom: "4px",
+            paddingTop: "7px",
+            paddingBottom: "6px",
             fontSize: "11px",
-            lineHeight: 1.55,
+            lineHeight: 1.4,
             color: C.muted,
             marginTop: "24px",
+            overflow: "visible",
           }}
         >
-          <p style={{ margin: 0, fontWeight: 600 }}>
+          <p style={{ margin: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {razao}
-            {cnpj}
+            {cnpj}{enderecoParts ? ` · ${enderecoParts}` : ""}
           </p>
-          <p style={{ margin: 0 }}>{enderecoParts || "—"}</p>
         </div>
       </div>
     );
