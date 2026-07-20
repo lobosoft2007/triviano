@@ -282,6 +282,7 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "funcionarios", label: "Funcionários", icon: UserCog },
   { key: "permissoes", label: "Permissões", icon: ShieldCheck },
   { key: "mesas", label: "Mesas (QR-Codes)", icon: Armchair },
+  { key: "reservas", label: "Reservas & Sala", icon: CalendarClock },
   { key: "entregadores", label: "Entregadores", icon: Bike },
   { key: "ifood", label: "iFood", icon: UtensilsCrossed },
   { key: "pos", label: "Maquininhas (POS)", icon: Smartphone },
