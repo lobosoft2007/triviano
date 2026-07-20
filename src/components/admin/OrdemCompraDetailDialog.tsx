@@ -295,6 +295,18 @@ export function OrdemCompraDetailDialog({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <Select
+                      value={orientation}
+                      onValueChange={(v) => setOrientation(v as "portrait" | "landscape")}
+                    >
+                      <SelectTrigger className="h-9 w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="landscape">Paisagem</SelectItem>
+                        <SelectItem value="portrait">Retrato</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Button
                       variant="outline"
                       size="sm"
