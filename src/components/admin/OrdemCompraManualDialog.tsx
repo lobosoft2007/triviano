@@ -231,6 +231,7 @@ export function OrdemCompraManualDialog({
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
   const [freeItems, setFreeItems] = useState<FreeItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [savingUnica, setSavingUnica] = useState(false);
   const [busyAction, setBusyAction] = useState<"print" | "share" | "download" | null>(null);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">(
     "landscape",
