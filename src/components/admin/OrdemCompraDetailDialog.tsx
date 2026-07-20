@@ -474,6 +474,7 @@ export function OrdemCompraDetailDialog({
 
       <div
         aria-hidden
+        className="report-print-host"
         style={{
           position: "fixed",
           left: "-10000px",
