@@ -623,7 +623,7 @@ export function OrdemCompraManualDialog({
           className="flex h-[92dvh] max-h-[92dvh] max-w-5xl flex-col p-0"
         >
           <ModalActionBar
-            title="Ordem de Compra Manual / Avulsa"
+            title={title ?? "Ordem de Compra Manual / Avulsa"}
             onBack={() => onOpenChange(false)}
             onSave={handleSave}
             saving={saving}
