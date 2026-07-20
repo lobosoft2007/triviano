@@ -321,6 +321,7 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   pos: "master",
   frota: "master",
   tap: "master",
+  reservas: "master",
   "rel-clientes": "master",
   "rel-chat": "master",
 };
