@@ -4830,6 +4830,7 @@ export type Database = {
           acesso_financeiro: boolean
           acesso_kds_cozinha: boolean
           acesso_mesas: boolean
+          acesso_recepcao: boolean
           acesso_rh: boolean
           acesso_sangria_suprimento: boolean
           is_admin: boolean
