@@ -172,6 +172,7 @@ export function SugestaoComprasView() {
   /* ---------------- Manual order dialog ----------------------------- */
   const [open, setOpen] = useState(false);
   const openManual = () => setOpen(true);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   return (
     <section className="space-y-6">
