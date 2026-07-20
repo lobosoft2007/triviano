@@ -79,17 +79,18 @@ export function computeCustoTotal(inputs: CostInputs): number {
 export async function fetchProductCustoTotal(
   productId: string,
 ): Promise<number> {
-  const { data: product, error: prodErr } = await supabase
-    .from("products")
-    .select("price, manipulado, custo_compra")
-    .eq("id", productId)
-    .single();
+  const { data: productRows, error: prodErr } = await supabase.rpc(
+    "admin_get_product_detail_meta",
+    { p_id: productId },
+  );
   if (prodErr) throw prodErr;
+  const product = (productRows ?? [])[0];
+  if (!product) throw new Error("Produto não encontrado.");
 
   const manipulado = (product as { manipulado?: boolean }).manipulado ?? true;
   // Revenda (não manipulado): custo = preço de compra real.
   const custoAquisicao = Number(
-    (product as { custo_compra?: number }).custo_compra ?? product.price,
+    (product as { custo_compra?: number }).custo_compra ?? 0,
   );
 
   if (!manipulado) return round2(custoAquisicao);
