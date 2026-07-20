@@ -509,18 +509,10 @@ export async function saveProductDetail(
   detail: ProductDetail,
 ): Promise<void> {
   // products flags — via admin RPC because direct table reads are intentionally restricted.
-  const { error: prodErr } = await (supabase.rpc as typeof supabase.rpc & ((
-    fn: "admin_update_product_detail_fields",
-    args: {
-      p_id: string;
-      p_manipulado: boolean;
-      p_setor_id: string | null;
-      p_fornecedor_id: string | null;
-      p_margem_revenda: number;
-      p_custo_compra: number;
-      p_preco_ifood: number | null;
-    },
-  ) => ReturnType<typeof supabase.rpc>))("admin_update_product_detail_fields", {
+  const { error: prodErr } = await (supabase.rpc as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => ReturnType<typeof supabase.rpc>)("admin_update_product_detail_fields", {
     p_id: productId,
     p_manipulado: detail.manipulado,
     p_setor_id: detail.manipulado ? null : detail.setor_id,
@@ -699,23 +691,10 @@ export async function cloneProduct(productId: string): Promise<void> {
     estoque_minimo: Number(src.estoque_minimo ?? 0),
     estoque_maximo: Number(src.estoque_maximo ?? 0),
   };
-  const { data: inserted, error } = await (supabase.rpc as typeof supabase.rpc & ((
-    fn: "admin_save_product_core",
-    args: {
-      p_id: string | null;
-      p_category_id: string;
-      p_name: string;
-      p_description: string;
-      p_price: number;
-      p_available: boolean;
-      p_image_url: string;
-      p_free_addon_limit: number;
-      p_eixo_variacao: string;
-      p_saldo_estoque: number;
-      p_estoque_minimo: number;
-      p_estoque_maximo: number;
-    },
-  ) => ReturnType<typeof supabase.rpc>))("admin_save_product_core", {
+  const { data: inserted, error } = await (supabase.rpc as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => ReturnType<typeof supabase.rpc>)("admin_save_product_core", {
     p_id: null,
     p_category_id: payload.category_id,
     p_name: payload.name,
