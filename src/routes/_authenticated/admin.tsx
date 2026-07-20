@@ -86,6 +86,7 @@ import { CombosCrud } from "@/components/admin/CombosCrud";
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
 import { MesasQrTab } from "@/components/admin/MesasQrTab";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
+import { ReservasConfigTab } from "@/components/admin/ReservasConfigTab";
 import { FiscalConfigTab } from "@/components/caixa/FiscalConfigTab";
 import { IdentidadeVisualTab } from "@/components/admin/IdentidadeVisualTab";
 import { EntregadoresCrud } from "@/components/admin/EntregadoresCrud";
