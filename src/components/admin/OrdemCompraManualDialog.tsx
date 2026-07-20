@@ -663,6 +663,10 @@ export function OrdemCompraManualDialog({
             saving={saving}
             saveLabel="Gerar ordem"
             saveDisabled={totalItens === 0}
+            onSecondarySave={consolidatedMode ? undefined : handleSaveUnica}
+            secondarySaveLabel="Gerar Ordem Única"
+            secondarySaving={savingUnica}
+            secondarySaveDisabled={totalItens === 0}
             className="mx-0 mt-0"
           />
 
