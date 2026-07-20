@@ -448,6 +448,20 @@ export function SugestaoComprasView() {
       {/* Manual order dialog (novo formato, buscável + impressão/PDF) */}
       <OrdemCompraManualDialog open={open} onOpenChange={setOpen} />
 
+      {/* Consolidada por Setor — mesmo diálogo, pré-preenchido e em modo ordem única */}
+      <OrdemCompraManualDialog
+        open={consolidatedOpen}
+        onOpenChange={(v) => {
+          setConsolidatedOpen(v);
+          if (!v) setPreloaded([]);
+        }}
+        preloadedItems={preloaded}
+        consolidatedMode
+        title="Ordem Consolidada por Setor"
+        observacaoDefault="Reposição consolidada — ordenada por setor"
+      />
+
+
       {/* Detalhe / edição / impressão / WhatsApp / exclusão */}
       <OrdemCompraDetailDialog
         ordemId={detailId}
