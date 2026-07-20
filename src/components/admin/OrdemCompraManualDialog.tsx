@@ -61,6 +61,9 @@ interface CatalogItem {
   setor_id: string | null;
   fornecedor_id: string | null;
   custo_unitario: number;
+  saldo_estoque: number;
+  estoque_minimo: number;
+  estoque_maximo: number;
 }
 
 interface FreeItem {
@@ -82,13 +85,18 @@ interface ProdutoRow {
   name: string;
   setor_id: string | null;
   fornecedor_id: string | null;
-  custo_compra?: number | null;
-  price?: number | null;
+  /** Custo de aquisição (o preço `price` é venda e nunca deve ser usado aqui). */
+  custo_compra: number;
+  saldo_estoque: number;
+  estoque_minimo: number;
+  estoque_maximo: number;
 }
 
 /**
- * Fetches every product that is bought (manipulado = false) with cost, setor
- * and fornecedor for the manual purchase order grid.
+ * Fetches every product that is bought (manipulado = false) with acquisition
+ * cost, current stock levels, setor and fornecedor for the manual purchase
+ * order grid. `price` (sale price) is intentionally ignored — the cost column
+ * must reflect purchase cost only.
  */
 async function fetchProdutosRevenda(): Promise<ProdutoRow[]> {
   const { data, error } = await supabase.rpc("admin_get_products", {
@@ -100,12 +108,10 @@ async function fetchProdutosRevenda(): Promise<ProdutoRow[]> {
     name: String(p.name ?? ""),
     setor_id: (p.setor_id as string | null) ?? null,
     fornecedor_id: (p.fornecedor_id as string | null) ?? null,
-    custo_compra:
-      p.custo_compra === null || p.custo_compra === undefined
-        ? null
-        : Number(p.custo_compra),
-    price:
-      p.price === null || p.price === undefined ? null : Number(p.price),
+    custo_compra: Number(p.custo_compra ?? 0),
+    saldo_estoque: Number(p.saldo_estoque ?? 0),
+    estoque_minimo: Number(p.estoque_minimo ?? 0),
+    estoque_maximo: Number(p.estoque_maximo ?? 0),
   }));
 }
 
