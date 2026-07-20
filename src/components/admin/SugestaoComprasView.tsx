@@ -56,10 +56,6 @@ export function SugestaoComprasView() {
     queryKey: ["erp-fornecedores"],
     queryFn: listFornecedores,
   });
-  const { data: insumos } = useQuery({
-    queryKey: ["erp-insumos"],
-    queryFn: listInsumos,
-  });
   const { data: ordens } = useQuery({
     queryKey: ["ordens-compra"],
     queryFn: () => listOrdensCompra(20),
