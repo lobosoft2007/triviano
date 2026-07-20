@@ -175,6 +175,9 @@ export function OrdemCompraManualDialog({
         setor_id: i.setor_id,
         fornecedor_id: i.fornecedor_id,
         custo_unitario: Number(i.custo_unitario ?? 0),
+        saldo_estoque: Number(i.saldo_estoque ?? 0),
+        estoque_minimo: Number(i.estoque_minimo ?? 0),
+        estoque_maximo: Number(i.estoque_maximo ?? 0),
       });
     }
     for (const p of produtos ?? []) {
@@ -186,7 +189,10 @@ export function OrdemCompraManualDialog({
         unidade: "un",
         setor_id: p.setor_id,
         fornecedor_id: p.fornecedor_id,
-        custo_unitario: Number(p.custo_compra ?? p.price ?? 0),
+        custo_unitario: Number(p.custo_compra ?? 0),
+        saldo_estoque: p.saldo_estoque,
+        estoque_minimo: p.estoque_minimo,
+        estoque_maximo: p.estoque_maximo,
       });
     }
     return rows;
