@@ -1,85 +1,81 @@
 ## Objetivo
 
-Criar, no repositório mobile `triviano-tap` (Android/React Native), um pipeline de build **whitelabel automatizado** que gera um APK por empresa-cliente puxando ícone + nome direto de `pos_app_branding` no backend. Primeiro cliente configurado: **Clube 23**.
+Adicionar ao Triviano dois módulos novos e um interruptor de configuração:
 
-## Arquitetura
+1. **Reservas** (cliente reserva pelo PWA; recepcionista gerencia no app do garçom / Tap).
+2. **Fila de espera / walk-in** (recepcionista cria fila, avisa por WhatsApp/Push, arrasta o grupo para uma mesa física).
+3. **Interruptor "Permitir pedidos na mesa pelo PWA do cliente"** por empresa (quando desligado, o QR da mesa só serve para ver cardápio/chamar garçom, não abre carrinho).
 
-```text
-[Backend Lovable]                    [Repo triviano-tap (VSCode)]
-pos_app_branding      ── fetch ─►    scripts/fetch-branding.ts
-pos-app-icons bucket                        │
-                                            ▼
-                                     tenants/<slug>/
-                                       ├── tenant.json
-                                       └── icon-source.png
-                                            │
-                                     scripts/apply-branding.ts
-                                            │
-                          ┌─────────────────┼───────────────────┐
-                          ▼                 ▼                   ▼
-                 strings.xml         mipmap-*/ic_launcher   applicationId
-                  (app_name)          (redimensionado)       + versionCode
-                                            │
-                                     gradlew assembleRelease
-                                            │
-                                     dist/<slug>-vX.Y.Z.apk
-```
+Tudo multi-tenant (isolado por `empresa_id` com RLS) e reaproveitando peças que já existem: `comanda_ativa`, `solicitacoes_mesa`, `NotifyClient` (WhatsApp+Push), matriz de permissões, `mesa_token` do QR.
 
-## Entregáveis (no repo `triviano-tap`)
+---
 
-### 1. Endpoint de leitura no backend (este repo)
-- Nova rota `GET /api/public/pos/branding/:slug` (ou por `empresa_id` autenticado com service token de build).
-  - Autenticada via header `x-build-token` (secret novo `POS_BUILD_TOKEN`).
-  - Retorna `{ app_label, icon_signed_url, package_suffix, version }`.
-  - Motivo: o script de build não tem sessão de usuário; precisa de canal server-to-server.
+## Parte 1 — Configuração no Admin (Reservas + Pedido na Mesa)
 
-### 2. Scripts (Node/TS) no repo mobile
-- `scripts/fetch-branding.ts <slug>` — baixa metadados + `icon-source.png` para `tenants/<slug>/`.
-- `scripts/apply-branding.ts <slug>` — usa `sharp` para gerar:
-  - `mipmap-mdpi/ic_launcher.png` (48), `hdpi` (72), `xhdpi` (96), `xxhdpi` (144), `xxxhdpi` (192)
-  - `mipmap-anydpi-v26/ic_launcher.xml` (adaptive) + foreground/background
-  - `ic_launcher_round.png` em todos os buckets
-  - Atualiza `android/app/src/main/res/values/strings.xml` (`app_name`)
-  - Atualiza `applicationId` em `android/app/build.gradle` (ex.: `com.triviano.tap.clube23`)
-  - Escreve `android/app/src/main/assets/tenant.json` (empresa_id, api base) — lido pelo app em runtime para saber contra qual tenant autenticar.
-- `scripts/build-tenant.sh <slug>` — orquestra: `fetch` → `apply` → `./gradlew clean assembleRelease` → move APK para `dist/<slug>-<version>.apk`.
-- `scripts/build-all.ts` — lê `tenants.json` (lista de slugs) e roda `build-tenant.sh` em série para gerar APKs de todos os clientes.
+Nova aba **Admin → Empresa → Reservas & Sala**:
 
-### 3. Configuração inicial Clube 23
-- Adicionar `tenants/clube23/` (gerado automaticamente na primeira execução).
-- `tenants.json` inicial: `["clube23"]`.
-- Preencher `pos_app_branding` do Clube 23 no Admin (nome "Clube 23 - Garçom" + ícone).
+- **Capacidade por dia/horário**: matriz semana × faixa horária (ex.: seg–qui 19:00–22:00 = 40 lugares reserváveis; sex–sáb = 60). Passo padrão 30 min, configurável.
+- **Janela mínima de antecedência** (ex.: reservar até 2 h antes) e **antecedência máxima** (ex.: 30 dias).
+- **Tolerância de atraso** (ex.: reserva "no-show" após 15 min).
+- **Tamanho mín./máx. de grupo por reserva**.
+- **Mesas físicas do salão** (número + capacidade + zona). Já existe `numero_mesa` implicitamente via `comanda_ativa`; agora ganha tabela própria `mesas_fisicas` para capacidade e mapa.
 
-### 4. package.json (repo mobile)
-```json
-"scripts": {
-  "build:tap": "bash scripts/build-tenant.sh",
-  "build:tap:all": "tsx scripts/build-all.ts",
-  "brand:fetch": "tsx scripts/fetch-branding.ts",
-  "brand:apply": "tsx scripts/apply-branding.ts"
-}
-```
-Uso em VSCode: `bun run build:tap clube23` → APK pronto em `dist/`.
+Novo interruptor **Admin → Empresa → Configurações gerais**:
 
-### 5. Documentação
-- `README-BUILD.md` no repo mobile explicando:
-  - Pré-requisitos (JDK 17, Android SDK, keystore, `.env` com `LOVABLE_API_URL` + `POS_BUILD_TOKEN`).
-  - Como cadastrar novo cliente (Admin → Maquininhas → Branding → rodar `bun run build:tap <slug>`).
-  - Como assinar (keystore único do Triviano, `applicationId` por tenant evita conflito de instalação).
+- `pedido_na_mesa_pelo_cliente` (bool, default `true`). Quando `false`:
+  - O PWA na rota `/mesa` mostra cardápio + botão "Chamar garçom" mas oculta "Enviar para cozinha" e o carrinho.
+  - `enviar_pedido_mesa` passa a checar esse flag e recusar (`PEDIDO_MESA_DESABILITADO`).
 
-## O que fica neste repo web (o que faço agora quando aprovar)
+---
 
-1. Nova rota `src/routes/api/public/pos/branding.$slug.ts` com auth por `POS_BUILD_TOKEN` (secret).
-2. Adicionar coluna `slug` em `pos_app_branding` (ou usar `empresas.slug` existente — verifico na implementação) para o build encontrar o tenant sem expor `empresa_id`.
-3. Registrar o secret `POS_BUILD_TOKEN`.
+## Parte 2 — Reserva pelo PWA do cliente
 
-## O que fica para o repo mobile (fora deste projeto)
+Novo fluxo público autenticado em `/reservar`:
 
-Todos os scripts `scripts/*`, mudanças em `android/`, `package.json` mobile e `README-BUILD.md`. Vou entregar os arquivos como um ZIP/patch para você colar no `triviano-tap`, igual fizemos no `triviano-tap-fase-t-ops-v3.zip`.
+1. Cliente escolhe **data**, **nº de pessoas** e vê **horários com vagas** (consulta RPC `reserva_disponibilidade(data, pessoas)` que calcula `capacidade_do_horario - soma(pessoas das reservas confirmadas no mesmo slot)`).
+2. Confirma dados (nome, WhatsApp, e-mail se logado). Se não estiver logado, cria conta via OTP como já fazemos.
+3. Reserva entra como `status = 'confirmada'`. Cliente recebe push + WhatsApp com resumo e link "Ver minha reserva".
+4. Cliente pode **cancelar** até X horas antes (regra da empresa).
 
-## Pergunta antes de implementar
+Nova tabela `reservas` (`id, empresa_id, cliente_id, data, hora, pessoas, status, mesa_id (nullable até dar entrada), observacoes, created_at`). RLS: cliente vê as próprias; staff da empresa vê todas.
 
-Confirma **duas coisas**:
+---
 
-1. **Identificador do tenant no build**: prefere usar `empresas.slug` (já existente) ou criar um campo dedicado em `pos_app_branding`? Recomendo `empresas.slug`.
-2. **applicationId**: OK usar padrão `com.triviano.tap.<slug>` (cada cliente vira app separado no launcher, sem conflito ao instalar dois na mesma maquininha)?
+## Parte 3 — App do Garçom / Tap: aba **Recepção**
+
+Guarda-chuva para a recepcionista (nova permissão `pode_recepcao`; garçom comum não vê):
+
+- **Reservas do dia** — lista por horário. Botão **"Dar entrada"** abre modal para escolher a mesa física livre → cria `comanda_ativa` já vinculada ao cliente e dispara a notificação de "mesa aguardando atendimento" para os garçons da zona.
+- **Fila de espera (walk-in)** — botão "Adicionar à fila" (nome + telefone + tamanho do grupo). Sistema gera posição. Botão **"Avisar mesa liberou"** → WhatsApp/SMS via provedor já integrado + push se o cliente estiver no PWA.
+- **Mapa do salão** — lista/grade de mesas físicas com status (livre / ocupada / reservada às 20h). Arrastar um item da fila/reserva para uma mesa livre = abrir comanda naquela mesa.
+- **Notificação para garçons**: quando a recepcionista abre a mesa, entra na fila de "Visto" que já existe no Caixa e também vira push para o garçom responsável pela zona.
+
+Nova tabela `fila_espera` (`id, empresa_id, nome, telefone, pessoas, status ['aguardando','avisado','sentado','desistiu'], posicao, created_at, avisado_at`).
+
+---
+
+## Parte 4 — Integração com o que já existe
+
+- **Comanda / mesa**: `comanda_ativa` ganha coluna opcional `reserva_id` e `fila_id` para rastrear origem.
+- **Notificações**: reaproveita `NotifyClient` (push + WhatsApp) para lembrete de reserva (T-2 h), "mesa pronta" da fila, e alerta de garçom.
+- **Permissões**: nova flag `pode_recepcao` em `permissoes_matriz`; abas Reservas/Fila/Mapa gated por ela.
+- **QR da mesa**: continua igual; muda só o comportamento quando `pedido_na_mesa_pelo_cliente = false`.
+
+---
+
+## Detalhes técnicos
+
+- Migração: `mesas_fisicas`, `reservas`, `fila_espera`, `config_reservas` (matriz de capacidade por dia da semana + horário); coluna `pedido_na_mesa_pelo_cliente` em `empresas`; coluna `pode_recepcao` em `permissoes_matriz`; coluna `reserva_id`/`fila_id` em `comanda_ativa`. Cada tabela pública com `GRANT` + RLS por `empresa_id` (ver regras do projeto).
+- RPCs: `reserva_disponibilidade`, `criar_reserva`, `cancelar_reserva`, `dar_entrada_reserva(reserva_id, mesa_id)`, `fila_adicionar`, `fila_avisar`, `fila_sentar(fila_id, mesa_id)`.
+- Endpoints Tap (`/api/public/tap/*`): `reservas`, `fila`, `mesas-livres`, `abrir-mesa` — todos autenticados pelo `deviceToken` já usado no Tap.
+- `enviar_pedido_mesa` passa a validar `empresas.pedido_na_mesa_pelo_cliente`.
+- Front: nova rota `/reservar` (PWA cliente), nova rota/aba **Recepção** no `/caixa` e no app Tap, aba **Reservas & Sala** no `/admin`.
+
+---
+
+## Perguntas antes de eu implementar
+
+1. **Granularidade do horário de reserva**: slots fixos de **30 min**, **1 h**, ou configurável por empresa?
+2. **Duração média da reserva** (para calcular ocupação futura): usar valor fixo por empresa (ex.: 90 min) ou perguntar em cada reserva?
+3. **Depósito/sinal**: alguma reserva vai exigir pagamento antecipado (integração com Mercado Pago), ou por enquanto todas gratuitas?
+4. **Aviso da fila**: mando por **WhatsApp (Twilio)**, **push do PWA** ou **os dois** em paralelo quando o cliente tem conta e app instalado?
