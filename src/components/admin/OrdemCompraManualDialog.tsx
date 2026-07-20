@@ -462,6 +462,63 @@ export function OrdemCompraManualDialog({
         });
       }
 
+      if (consolidatedMode) {
+        // Uma única ordem, ordenada por setor → fornecedor → nome.
+        const enriched: {
+          setorOrdem: number;
+          fornNome: string;
+          nome: string;
+          input: OrdemCompraItemInput;
+        }[] = [];
+        for (const r of selectedRows) {
+          enriched.push({
+            setorOrdem:
+              setorMap.get(r.source.setor_id ?? "")?.ordem_exibicao ?? 999,
+            fornNome:
+              fornMap.get(r.source.fornecedor_id ?? "")?.fornecedor ?? "zzz",
+            nome: r.source.nome,
+            input: {
+              tipo: r.source.tipo,
+              ref_id: r.source.ref_id,
+              nome: r.source.nome,
+              quantidade: r.qty,
+              custo_unitario: r.custo,
+            },
+          });
+        }
+        for (const f of freeItems) {
+          const q = parseNumberInput(f.quantidade);
+          if (q <= 0 || !f.nome.trim()) continue;
+          enriched.push({
+            setorOrdem: setorMap.get(f.setor_id ?? "")?.ordem_exibicao ?? 999,
+            fornNome: fornMap.get(f.fornecedor_id ?? "")?.fornecedor ?? "zzz",
+            nome: f.nome.trim(),
+            input: {
+              tipo: "insumo",
+              ref_id: null,
+              nome: f.nome.trim(),
+              quantidade: q,
+              custo_unitario: parseNumberInput(f.custo_unitario),
+            },
+          });
+        }
+        enriched.sort((a, b) => {
+          if (a.setorOrdem !== b.setorOrdem) return a.setorOrdem - b.setorOrdem;
+          if (a.fornNome !== b.fornNome) return a.fornNome.localeCompare(b.fornNome);
+          return a.nome.localeCompare(b.nome);
+        });
+        const numero = await criarOrdemCompra({
+          id_fornecedor: null,
+          observacao: observacao || "Reposição consolidada — ordenada por setor",
+          origem: "Sugestão",
+          itens: enriched.map((e) => e.input),
+        });
+        toast.success(`Ordem consolidada nº ${numero} gerada!`);
+        await queryClient.invalidateQueries({ queryKey: ["ordens-compra"] });
+        onOpenChange(false);
+        return;
+      }
+
       // Agrupa por fornecedor
       const byForn = new Map<string, OrdemCompraItemInput[]>();
       for (const l of linhas) {
