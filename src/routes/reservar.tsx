@@ -73,12 +73,14 @@ function ReservarPage() {
     });
   }, [user?.id, nome, telefone]);
 
-  const reservaAtiva = empresa?.reserva_ativa ?? false;
-
-  const grupoMin = empresa?.reserva_grupo_min ?? 1;
-  const grupoMax = empresa?.reserva_grupo_max ?? 12;
-  const sinalAtivo = empresa?.reserva_sinal_ativo ?? false;
-  const sinalPorPessoa = Number(empresa?.reserva_sinal_por_pessoa ?? 0);
+  // A configuração pública de reservas ainda não trafega via empresaQueryOptions
+  // (RPC pública devolve apenas branding). Usamos defaults conservadores e o
+  // servidor sempre valida o pedido dentro de `criar_reserva`.
+  const reservaAtiva = true;
+  const grupoMin = 1;
+  const grupoMax = 12;
+  const sinalAtivo = false;
+  const sinalPorPessoa = 0;
   const sinalTotal = sinalAtivo ? sinalPorPessoa * pessoas : 0;
 
   const consultar = async () => {
