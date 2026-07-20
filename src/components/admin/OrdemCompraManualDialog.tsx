@@ -72,6 +72,7 @@ interface FreeItem {
   nome: string;
   setor_id: string | null;
   fornecedor_id: string | null;
+  unidade: string;
   custo_unitario: string;
   quantidade: string;
 }
