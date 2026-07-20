@@ -201,7 +201,7 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
                 0,
               );
               return (
-                <div key={fornNome} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
+                <div key={fornNome} style={{ marginBottom: "10px" }}>
                   <div
                     style={{
                       display: "flex",
