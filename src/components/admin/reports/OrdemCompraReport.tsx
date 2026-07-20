@@ -105,7 +105,7 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
           width: isLandscape ? "273mm" : "186mm",
           background: "#ffffff",
           color: C.text,
-          padding: "0",
+          padding: "0 0 14px 0",
         }}
       >
         <div
@@ -287,7 +287,16 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
             overflow: "visible",
           }}
         >
-          <p style={{ margin: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <p
+            style={{
+              margin: 0,
+              fontWeight: 600,
+              lineHeight: "18px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
             {razao}
             {cnpj}{enderecoParts ? ` · ${enderecoParts}` : ""}
           </p>
