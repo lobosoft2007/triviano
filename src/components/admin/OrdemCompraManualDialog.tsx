@@ -128,12 +128,31 @@ const fmtNum = (n: number) => {
   return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(n);
 };
 
+export interface PreloadedOCItem {
+  tipo: ItemTipo;
+  ref_id: string | null;
+  nome: string;
+  unidade: string;
+  setor_id: string | null;
+  fornecedor_id: string | null;
+  custo_unitario: number;
+  quantidade: number;
+}
+
 export function OrdemCompraManualDialog({
   open,
   onOpenChange,
+  preloadedItems,
+  consolidatedMode = false,
+  title,
+  observacaoDefault,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  preloadedItems?: PreloadedOCItem[];
+  consolidatedMode?: boolean;
+  title?: string;
+  observacaoDefault?: string;
 }) {
   const queryClient = useQueryClient();
 
