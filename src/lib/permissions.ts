@@ -57,6 +57,7 @@ export const PERMISSION_LABELS: { key: PermissionFlag; label: string }[] = [
   { key: "acesso_cadastro_produtos", label: "Cadastro de Produtos" },
   { key: "acesso_financeiro", label: "Financeiro" },
   { key: "acesso_rh", label: "RH / Gestão de Equipe" },
+  { key: "acesso_recepcao", label: "Recepção (Reservas / Fila)" },
 ];
 
 /** Effective permissions for the logged-in user. Admins bypass the matrix. */
