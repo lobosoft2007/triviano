@@ -212,7 +212,7 @@ export function OrdemCompraDetailDialog({
     setBusy("print");
     setTimeout(() => {
       try {
-        printReport("portrait");
+        printReport(orientation);
       } finally {
         setBusy(null);
       }
@@ -224,7 +224,7 @@ export function OrdemCompraDetailDialog({
     setBusy("download");
     try {
       const filename = `ordem-de-compra-${ordem?.numero ?? "s-numero"}.pdf`;
-      await downloadNodeAsPdf(reportRef.current, filename, "portrait");
+      await downloadNodeAsPdf(reportRef.current, filename, orientation);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
     } finally {
@@ -240,7 +240,7 @@ export function OrdemCompraDetailDialog({
       const result = await shareNodeAsPdfWhatsapp(
         reportRef.current,
         filename,
-        "portrait",
+        orientation,
         `Ordem de Compra nº ${ordem?.numero ?? ""} em anexo.`,
         fornEfetivo?.telefone ?? null,
       );
