@@ -85,6 +85,7 @@ export type AdminTab =
   | "pos"
   | "frota"
   | "tap"
+  | "reservas"
   | "rel-clientes"
   | "rel-chat";
 
