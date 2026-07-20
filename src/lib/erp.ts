@@ -510,7 +510,7 @@ export async function saveProductDetail(
   detail: ProductDetail,
 ): Promise<void> {
   // products flags
-  const { error: prodErr } = await supabase
+  const { data: prodUpd, error: prodErr } = await supabase
     .from("products")
     .update({
       manipulado: detail.manipulado,
@@ -523,8 +523,15 @@ export async function saveProductDetail(
           ? round2(detail.preco_ifood)
           : null,
     })
-    .eq("id", productId);
+    .eq("id", productId)
+    .select("id, manipulado");
   if (prodErr) throw prodErr;
+  if (!prodUpd || prodUpd.length === 0) {
+    throw new Error(
+      "Não foi possível atualizar o produto (verifique se você tem permissão nesta empresa).",
+    );
+  }
+
 
   // price options — insert with explicit ids so per-variation ficha lines
   // can reference a stable price_option_id even after the delete/reinsert.
