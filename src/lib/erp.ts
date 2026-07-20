@@ -512,14 +512,14 @@ export async function saveProductDetail(
   const { error: prodErr } = await supabase.rpc("admin_update_product_detail_fields", {
     p_id: productId,
     p_manipulado: detail.manipulado,
-    p_setor_id: detail.manipulado ? null : detail.setor_id,
-    p_fornecedor_id: detail.manipulado ? null : detail.fornecedor_id,
+    p_setor_id: detail.manipulado ? undefined : detail.setor_id ?? undefined,
+    p_fornecedor_id: detail.manipulado ? undefined : detail.fornecedor_id ?? undefined,
     p_margem_revenda: detail.margem_revenda,
     p_custo_compra: detail.manipulado ? 0 : round2(detail.custo_compra),
     p_preco_ifood:
       detail.preco_ifood != null && detail.preco_ifood > 0
         ? round2(detail.preco_ifood)
-        : null,
+        : undefined,
   });
   if (prodErr) throw prodErr;
 
@@ -688,13 +688,22 @@ export async function cloneProduct(productId: string): Promise<void> {
     estoque_minimo: Number(src.estoque_minimo ?? 0),
     estoque_maximo: Number(src.estoque_maximo ?? 0),
   };
-  const { data: inserted, error } = await supabase
-    .from("products")
-    .insert(payload)
-    .select("id")
-    .single();
+  const { data: inserted, error } = await supabase.rpc("admin_save_product_core", {
+    p_id: undefined,
+    p_category_id: payload.category_id,
+    p_name: payload.name,
+    p_description: payload.description,
+    p_price: payload.price,
+    p_available: payload.available,
+    p_image_url: payload.image_url,
+    p_free_addon_limit: payload.free_addon_limit,
+    p_eixo_variacao: payload.eixo_variacao,
+    p_saldo_estoque: payload.saldo_estoque,
+    p_estoque_minimo: payload.estoque_minimo,
+    p_estoque_maximo: payload.estoque_maximo,
+  });
   if (error) throw error;
-  const newId = inserted.id as string;
+  const newId = inserted as string;
 
   // Strip the source price-option ids so saveProductDetail mints brand-new
   // ones and re-links each variation's ficha técnica to the fresh ids.
