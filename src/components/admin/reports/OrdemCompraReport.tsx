@@ -16,6 +16,7 @@ interface OrdemCompraReportProps {
   empresa: EmpresaBranding | undefined;
   rows: OrdemCompraReportRow[];
   observacao: string;
+  orientation?: "portrait" | "landscape";
 }
 
 /**
@@ -30,9 +31,10 @@ interface OrdemCompraReportProps {
  * export stay reliable.
  */
 export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportProps>(
-  function OrdemCompraReport({ empresa, rows, observacao }, ref) {
+  function OrdemCompraReport({ empresa, rows, observacao, orientation = "landscape" }, ref) {
     const total = rows.reduce((s, r) => s + r.quantidade * r.custo_unitario, 0);
     const now = new Date();
+    const isLandscape = orientation === "landscape";
     const dataHora = `${now.toLocaleDateString("pt-BR")} ${now.toLocaleTimeString(
       "pt-BR",
       { hour: "2-digit", minute: "2-digit" },
@@ -73,19 +75,21 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
     };
 
     const th: CSSProperties = {
-      padding: "4px 6px",
+      padding: "4px 5px",
       textAlign: "left",
       fontWeight: 600,
-      fontSize: "9.5pt",
+      fontSize: "9pt",
       textTransform: "uppercase",
       color: C.muted,
       borderBottom: `1px solid ${C.lineSoft}`,
+      whiteSpace: "nowrap",
     };
     const td: CSSProperties = {
-      padding: "4px 6px",
+      padding: "4px 5px",
       verticalAlign: "top",
       borderBottom: `1px solid ${C.lineFaint}`,
       color: C.text,
+      overflowWrap: "anywhere",
     };
     const num: CSSProperties = { textAlign: "right", fontVariantNumeric: "tabular-nums" };
 
@@ -95,12 +99,16 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
         className="report-a4"
         style={{
           fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif',
-          fontSize: "10.5pt",
-          maxWidth: "210mm",
-          width: "210mm",
+          fontSize: "10pt",
+          boxSizing: "border-box",
+          maxWidth: isLandscape ? "273mm" : "186mm",
+          width: isLandscape ? "273mm" : "186mm",
+          minHeight: isLandscape ? "182mm" : "269mm",
+          display: "flex",
+          flexDirection: "column",
           background: "#ffffff",
           color: C.text,
-          padding: "24px",
+          padding: "0",
         }}
       >
         <div
@@ -145,7 +153,7 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
           </span>
         </div>
 
-        <div className="report-content" style={{ paddingTop: "12px" }}>
+        <div className="report-content" style={{ paddingTop: "12px", flex: 1 }}>
           <div
             style={{
               marginBottom: "12px",
@@ -213,7 +221,14 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
                     <span>{fornNome}</span>
                     <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatBRL(subtotal)}</span>
                   </div>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+                    <colgroup>
+                      <col style={{ width: isLandscape ? "42%" : "34%" }} />
+                      <col style={{ width: isLandscape ? "18%" : "16%" }} />
+                      <col style={{ width: isLandscape ? "12%" : "14%" }} />
+                      <col style={{ width: isLandscape ? "14%" : "17%" }} />
+                      <col style={{ width: isLandscape ? "14%" : "19%" }} />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th style={th}>Item</th>
@@ -270,7 +285,7 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
             fontSize: "10px",
             lineHeight: 1.25,
             color: C.muted,
-            marginTop: "12px",
+            marginTop: "auto",
           }}
         >
           <p style={{ margin: 0, fontWeight: 600 }}>

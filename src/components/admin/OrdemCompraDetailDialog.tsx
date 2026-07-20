@@ -503,6 +503,7 @@ export function OrdemCompraDetailDialog({
           empresa={empresa}
           rows={reportRows}
           observacao={observacao}
+            orientation={orientation}
         />
       </div>
     </>

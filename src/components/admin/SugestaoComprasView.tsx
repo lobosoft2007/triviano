@@ -222,7 +222,6 @@ export function SugestaoComprasView() {
             size="sm"
             variant="secondary"
             onClick={gerarOrdemUnica}
-            disabled={(sugestao?.length ?? 0) === 0}
           >
             <Send className="mr-1 h-4 w-4" /> Gerar Ordem Única (todos fornecedores)
           </Button>
