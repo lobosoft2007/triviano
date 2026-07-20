@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { OrdemCompraManualDialog } from "./OrdemCompraManualDialog";
+import { OrdemCompraManualDialog, type PreloadedOCItem } from "./OrdemCompraManualDialog";
 import { OrdemCompraDetailDialog } from "./OrdemCompraDetailDialog";
 
 const NONE = "__none__";
