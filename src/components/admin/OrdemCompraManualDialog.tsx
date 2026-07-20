@@ -241,11 +241,49 @@ export function OrdemCompraManualDialog({
     if (open) {
       setSearch("");
       setDefaultFornecedor(NONE);
-      setObservacao("");
+      setObservacao(observacaoDefault ?? "");
       setRowState({});
       setFreeItems([]);
     }
-  }, [open]);
+  }, [open, observacaoDefault]);
+
+  // Hydrate from preloadedItems once catalog is ready.
+  const preloadKey = useMemo(
+    () =>
+      preloadedItems
+        ? preloadedItems.map((i) => `${i.tipo}:${i.ref_id ?? i.nome}:${i.quantidade}`).join("|")
+        : "",
+    [preloadedItems],
+  );
+  useEffect(() => {
+    if (!open || !preloadedItems || preloadedItems.length === 0) return;
+    if (catalog.length === 0) return;
+    const catalogKeys = new Set(catalog.map((c) => c.key));
+    const nextRowState: Record<string, RowState> = {};
+    const nextFree: FreeItem[] = [];
+    preloadedItems.forEach((it, idx) => {
+      const key = it.ref_id ? `${it.tipo}:${it.ref_id}` : "";
+      if (key && catalogKeys.has(key)) {
+        nextRowState[key] = {
+          quantidade: String(it.quantidade).replace(".", ","),
+          custo: String(it.custo_unitario).replace(".", ","),
+        };
+      } else {
+        nextFree.push({
+          key: `free:preload:${idx}`,
+          nome: it.nome,
+          setor_id: it.setor_id,
+          fornecedor_id: it.fornecedor_id,
+          custo_unitario: String(it.custo_unitario).replace(".", ","),
+          quantidade: String(it.quantidade).replace(".", ","),
+        });
+      }
+    });
+    setRowState(nextRowState);
+    setFreeItems(nextFree);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, preloadKey, catalog.length]);
+
 
   const getRow = (key: string): RowState =>
     rowState[key] ?? { quantidade: "", custo: "" };
