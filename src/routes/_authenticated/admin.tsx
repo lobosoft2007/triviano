@@ -642,23 +642,10 @@ function AdminPage() {
       };
 
       let productId = form.id;
-      const { data: savedProductId, error } = await (supabase.rpc as typeof supabase.rpc & ((
-        fn: "admin_save_product_core",
-        args: {
-          p_id: string | null;
-          p_category_id: string;
-          p_name: string;
-          p_description: string;
-          p_price: number;
-          p_available: boolean;
-          p_image_url: string;
-          p_free_addon_limit: number;
-          p_eixo_variacao: string;
-          p_saldo_estoque: number;
-          p_estoque_minimo: number;
-          p_estoque_maximo: number;
-        },
-      ) => ReturnType<typeof supabase.rpc>))("admin_save_product_core", {
+      const { data: savedProductId, error } = await (supabase.rpc as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => ReturnType<typeof supabase.rpc>)("admin_save_product_core", {
         p_id: productId,
         p_category_id: payload.category_id,
         p_name: payload.name,
