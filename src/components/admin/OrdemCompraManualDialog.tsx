@@ -413,6 +413,7 @@ export function OrdemCompraManualDialog({
         nome: "",
         setor_id: null,
         fornecedor_id: null,
+        unidade: "un",
         custo_unitario: "",
         quantidade: "",
       },
