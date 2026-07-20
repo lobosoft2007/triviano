@@ -121,6 +121,12 @@ const normalize = (s: string) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
+/** Compact numeric formatter — trims trailing zeros ("12" not "12,00"). */
+const fmtNum = (n: number) => {
+  if (!Number.isFinite(n)) return "0";
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(n);
+};
+
 export function OrdemCompraManualDialog({
   open,
   onOpenChange,
