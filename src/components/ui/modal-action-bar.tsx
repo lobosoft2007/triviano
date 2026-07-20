@@ -19,6 +19,11 @@ interface ModalActionBarProps {
   saveForm?: string;
   /** Hide the confirm button entirely (read-only modals). */
   hideSave?: boolean;
+  /** Optional secondary save action rendered to the left of the primary save. */
+  onSecondarySave?: () => void;
+  secondarySaveLabel?: string;
+  secondarySaveDisabled?: boolean;
+  secondarySaving?: boolean;
   className?: string;
 }
 
@@ -41,14 +46,19 @@ export function ModalActionBar({
   backLabel = "Voltar",
   saveForm,
   hideSave = false,
+  onSecondarySave,
+  secondarySaveLabel = "Salvar",
+  secondarySaveDisabled = false,
+  secondarySaving = false,
   className,
 }: ModalActionBarProps) {
   const showSave = !hideSave && (onSave || saveForm);
+  const showSecondary = !hideSave && !!onSecondarySave;
 
   return (
     <div
       className={cn(
-        "sticky top-0 z-20 -mx-6 -mt-6 mb-1 flex items-center gap-3 border-b border-border bg-background px-4 py-3",
+        "sticky top-0 z-20 -mx-6 -mt-6 mb-1 flex items-center gap-2 border-b border-border bg-background px-4 py-3",
         className,
       )}
     >
@@ -71,6 +81,20 @@ export function ModalActionBar({
         <span className="flex-1" />
       )}
 
+      {showSecondary ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="default"
+          onClick={onSecondarySave}
+          disabled={secondarySaving || secondarySaveDisabled || saving}
+          className="gap-1.5 font-semibold"
+        >
+          {secondarySaving && <Loader2 className="h-4 w-4 animate-spin" />}
+          {secondarySaveLabel}
+        </Button>
+      ) : null}
+
       {showSave ? (
         <Button
           type={saveForm ? "submit" : "button"}
@@ -78,7 +102,7 @@ export function ModalActionBar({
           variant="success"
           size="default"
           onClick={onSave}
-          disabled={saving || saveDisabled}
+          disabled={saving || saveDisabled || secondarySaving}
           className="gap-1.5 font-semibold"
         >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -90,3 +114,4 @@ export function ModalActionBar({
     </div>
   );
 }
+
