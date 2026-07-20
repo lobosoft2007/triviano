@@ -145,9 +145,8 @@ export const OrdemCompraReport = forwardRef<HTMLDivElement, OrdemCompraReportPro
               fontVariantNumeric: "tabular-nums",
               color: C.muted,
             }}
-          >
-            Pág 1 / 1
-          </span>
+          />
+
         </div>
 
         <div className="report-content" style={{ paddingTop: "12px" }}>
