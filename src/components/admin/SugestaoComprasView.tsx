@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Eye,
   Loader2,
   ShoppingCart,
   Plus,
@@ -33,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OrdemCompraManualDialog } from "./OrdemCompraManualDialog";
+import { OrdemCompraDetailDialog } from "./OrdemCompraDetailDialog";
 
 const NONE = "__none__";
 
