@@ -379,9 +379,9 @@ export function OrdemCompraManualDialog({
     selectedRows.length +
     freeItems.filter((f) => parseNumberInput(f.quantidade) > 0).length;
 
-  /* ---------------- Report rows for print / PDF --------------------- */
-  const reportRows: OrdemCompraReportRow[] = useMemo(() => {
-    const rows: OrdemCompraReportRow[] = [];
+  /* ---------------- Report rows (padrão OrdemCompraLinha) ----------- */
+  const reportRows: OrdemCompraLinha[] = useMemo(() => {
+    const rows: OrdemCompraLinha[] = [];
     const defaultFornNome =
       defaultFornecedor !== NONE
         ? fornMap.get(defaultFornecedor)?.fornecedor ?? ""
@@ -402,6 +402,9 @@ export function OrdemCompraManualDialog({
         unidade: r.source.unidade,
         quantidade: r.qty,
         custo_unitario: r.custo,
+        estoque_atual: r.source.saldo_estoque,
+        estoque_minimo: r.source.estoque_minimo,
+        estoque_maximo: r.source.estoque_maximo,
       });
     }
     for (const f of freeItems) {
