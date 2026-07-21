@@ -427,6 +427,12 @@ export function OrdemCompraDetailDialog({
         rows={reportRows}
         observacao={observacao}
       />
+
+      <RecebimentoOrdemDialog
+        ordemId={ordem?.id ?? null}
+        open={receberOpen}
+        onOpenChange={setReceberOpen}
+      />
     </>
   );
 }
