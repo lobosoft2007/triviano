@@ -209,6 +209,8 @@ export interface ReportShellProps<T> {
   rows: T[];
   /** Optional loading flag. */
   loading?: boolean;
+  /** Initial A4 orientation before the user changes it. */
+  defaultOrientation?: ReportPrefs["orientation"];
   /** CSV cell extractor (defaults to using `render` when it is a primitive). */
   csvValue?: (row: T, col: ReportColumn<T>) => string | number;
 }
@@ -221,6 +223,7 @@ export function ReportShell<T>({
   filters,
   rows,
   loading,
+  defaultOrientation = "portrait",
   csvValue,
 }: ReportShellProps<T>) {
   const { data: empresa } = useQuery(empresaAdminConfigQueryOptions);
@@ -230,9 +233,9 @@ export function ReportShell<T>({
       visible: defaultVisible,
       fontFamily: REPORT_FONTS[0].value,
       fontSize: 11,
-      orientation: "portrait",
+      orientation: defaultOrientation,
     }),
-    [defaultVisible],
+    [defaultVisible, defaultOrientation],
   );
 
   const [prefs, setPrefs] = useState<ReportPrefs>(() => loadPrefs(slug, defaults));
@@ -324,7 +327,7 @@ export function ReportShell<T>({
           <Button
             size="sm"
             className="gap-1.5"
-            onClick={() => printReport(prefs.orientation)}
+            onClick={() => printReport(prefs.orientation, slug)}
             disabled={rows.length === 0}
           >
             <Printer className="h-4 w-4" /> Imprimir / PDF
@@ -335,6 +338,8 @@ export function ReportShell<T>({
       {/* Report body (also target of window.print()) */}
       <div
         className="report-a4 mx-auto rounded-xl border border-border bg-white p-6 text-neutral-900 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none"
+        data-report-slug={slug}
+        data-report-orientation={prefs.orientation}
         style={{
           fontFamily: prefs.fontFamily,
           fontSize: `${prefs.fontSize}pt`,
@@ -353,6 +358,7 @@ export function ReportShell<T>({
                 {visibleCols.map((c) => (
                   <th
                     key={c.key}
+                    data-report-col={c.key}
                     className={
                       "px-1.5 py-1 font-semibold " +
                       (c.numeric ? "text-right" : "")
@@ -392,6 +398,7 @@ export function ReportShell<T>({
                     {visibleCols.map((c) => (
                       <td
                         key={c.key}
+                        data-report-col={c.key}
                         className={
                           "px-1.5 py-1 " + (c.numeric ? "text-right tabular-nums" : "")
                         }
