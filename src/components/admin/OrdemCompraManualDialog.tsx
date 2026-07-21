@@ -239,6 +239,11 @@ export function OrdemCompraManualDialog({
   const [observacao, setObservacao] = useState("");
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
   const [freeItems, setFreeItems] = useState<FreeItem[]>([]);
+  /** Nomes pré-resolvidos vindos do preload, por chave do catálogo (`tipo:ref_id`). */
+  const [preloadNames, setPreloadNames] = useState<
+    Record<string, { setor_nome?: string; fornecedor_nome?: string }>
+  >({});
+
   const [saving, setSaving] = useState(false);
   const [savingUnica, setSavingUnica] = useState(false);
   const [busyAction, setBusyAction] = useState<"print" | "share" | "download" | null>(null);
@@ -254,8 +259,10 @@ export function OrdemCompraManualDialog({
       setObservacao(observacaoDefault ?? "");
       setRowState({});
       setFreeItems([]);
+      setPreloadNames({});
     }
   }, [open, observacaoDefault]);
+
 
   // Hydrate from preloadedItems once catalog is ready.
   const preloadKey = useMemo(
@@ -271,19 +278,32 @@ export function OrdemCompraManualDialog({
     const catalogKeys = new Set(catalog.map((c) => c.key));
     const nextRowState: Record<string, RowState> = {};
     const nextFree: FreeItem[] = [];
+    const nextNames: Record<
+      string,
+      { setor_nome?: string; fornecedor_nome?: string }
+    > = {};
     preloadedItems.forEach((it, idx) => {
       const key = it.ref_id ? `${it.tipo}:${it.ref_id}` : "";
+      const setorNome =
+        it.setor_nome || setorMap.get(it.setor_id ?? "")?.setor || "";
+      const fornNome =
+        it.fornecedor_nome || fornMap.get(it.fornecedor_id ?? "")?.fornecedor || "";
       if (key && catalogKeys.has(key)) {
         nextRowState[key] = {
           quantidade: String(it.quantidade).replace(".", ","),
           custo: String(it.custo_unitario).replace(".", ","),
         };
+        if (setorNome || fornNome) {
+          nextNames[key] = { setor_nome: setorNome, fornecedor_nome: fornNome };
+        }
       } else {
         nextFree.push({
           key: `free:preload:${idx}`,
           nome: it.nome,
           setor_id: it.setor_id,
           fornecedor_id: it.fornecedor_id,
+          setor_nome: setorNome,
+          fornecedor_nome: fornNome,
           unidade: it.unidade || "un",
           custo_unitario: String(it.custo_unitario).replace(".", ","),
           quantidade: String(it.quantidade).replace(".", ","),
@@ -292,8 +312,10 @@ export function OrdemCompraManualDialog({
     });
     setRowState(nextRowState);
     setFreeItems(nextFree);
+    setPreloadNames(nextNames);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, preloadKey, catalog.length]);
+  }, [open, preloadKey, catalog.length, setorMap, fornMap]);
+
 
 
   const getRow = (key: string): RowState =>
