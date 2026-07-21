@@ -86,13 +86,40 @@ export function formatMoney(v: number): string {
  * that isolates the report container from the rest of the app. Coexists with
  * the 80mm thermal-receipt print rule (which requires `.thermal-receipt`).
  */
-export function printReport(orientation: ReportOrientation = "portrait") {
+function removeExistingPrintRoot() {
+  document.getElementById("report-print-root")?.remove();
+}
+
+export function printReport(
+  orientation: ReportOrientation = "portrait",
+  slug?: string,
+) {
+  const sourceSelector = slug
+    ? `.report-a4[data-report-slug="${CSS.escape(slug)}"]`
+    : ".report-a4";
+  const source = document.querySelector<HTMLElement>(sourceSelector);
+
+  if (!source) {
+    window.print();
+    return;
+  }
+
+  removeExistingPrintRoot();
+
+  const printRoot = document.createElement("div");
+  printRoot.id = "report-print-root";
+  printRoot.dataset.orientation = orientation;
+  const clone = source.cloneNode(true) as HTMLElement;
+  clone.classList.add("report-print-clone");
+  printRoot.appendChild(clone);
+  document.body.appendChild(printRoot);
+
   const style = document.createElement("style");
   style.id = "report-print-page";
   style.textContent = `@media print {
     @page {
       size: A4 ${orientation};
-      margin: 14mm 12mm 20mm 12mm;
+      margin: 12mm 10mm 16mm 10mm;
       @top-right {
         content: "Pág " counter(page) " / " counter(pages);
         font: 10pt "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -104,11 +131,12 @@ export function printReport(orientation: ReportOrientation = "portrait") {
   document.body.classList.add("printing-report");
   const cleanup = () => {
     document.body.classList.remove("printing-report");
+    removeExistingPrintRoot();
     style.remove();
     window.removeEventListener("afterprint", cleanup);
   };
   window.addEventListener("afterprint", cleanup);
-  window.print();
+  requestAnimationFrame(() => window.print());
 }
 
 
