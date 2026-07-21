@@ -209,6 +209,11 @@
   }
 
   /* A4 report printing (activated when body has .printing-report class). */
+  html:has(body.printing-report),
+  body.printing-report {
+    background: #fff !important;
+    color: #000 !important;
+  }
   body.printing-report * {
     visibility: hidden !important;
   }
@@ -280,7 +285,7 @@
     max-width: none !important;
     min-width: 0 !important;
     color: #000;
-    background: #fff;
+    background: #fff !important;
     padding: 0;
     margin: 0 auto !important;
     border: 0;
@@ -297,6 +302,18 @@
     table-layout: fixed;
     break-inside: auto;
     page-break-inside: auto;
+    background: #fff !important;
+  }
+  body.printing-report .report-print-table thead,
+  body.printing-report .report-print-table tbody,
+  body.printing-report .report-print-table tfoot,
+  body.printing-report .report-print-table tr,
+  body.printing-report .report-print-table th,
+  body.printing-report .report-print-table td,
+  body.printing-report .report-header,
+  body.printing-report .report-footer {
+    background: #fff !important;
+    color: #000 !important;
   }
   body.printing-report .report-print-head {
     display: table-header-group;
@@ -335,11 +352,11 @@
   }
   body.printing-report .report-column-head th[data-report-col="unidade"],
   body.printing-report .report-data-row td[data-report-col="unidade"] {
-    width: 9mm;
+    width: 8mm;
   }
   body.printing-report .report-column-head th[data-report-col="quantidade"],
   body.printing-report .report-data-row td[data-report-col="quantidade"] {
-    width: 11mm;
+    width: 10mm;
   }
   body.printing-report .report-column-head th[data-report-col="custo_unitario"],
   body.printing-report .report-data-row td[data-report-col="custo_unitario"],
@@ -351,7 +368,7 @@
   body.printing-report .report-data-row td[data-report-col="setor"],
   body.printing-report .report-column-head th[data-report-col="fornecedor"],
   body.printing-report .report-data-row td[data-report-col="fornecedor"] {
-    width: 28mm;
+    width: 24mm;
   }
   /* O contador nativo do @page substitui esse span. */
   body.printing-report .report-pagenum {
