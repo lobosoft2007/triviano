@@ -613,67 +613,13 @@ export function OrdemCompraManualDialog({
   }
 
 
-  /* ---------------- Print / Share ----------------------------------- */
-  const reportRef = useRef<HTMLDivElement>(null);
-
-  async function handlePrint() {
+  /* ---------------- Preview / Print via ReportShell ----------------- */
+  function handleOpenPreview() {
     if (reportRows.length === 0) {
-      toast.error("Preencha ao menos um item antes de imprimir.");
+      toast.error("Preencha ao menos um item antes de visualizar o relatório.");
       return;
     }
-    setBusyAction("print");
-    setTimeout(() => {
-      try {
-        printReport(orientation);
-      } finally {
-        setBusyAction(null);
-      }
-    }, 50);
-  }
-
-  async function handleShare() {
-    if (reportRows.length === 0) {
-      toast.error("Preencha ao menos um item antes de enviar.");
-      return;
-    }
-    if (!reportRef.current) return;
-    setBusyAction("share");
-    try {
-      const stamp = new Date().toISOString().slice(0, 10);
-      const filename = `ordem-de-compra-${stamp}.pdf`;
-      const result = await shareNodeAsPdfWhatsapp(
-        reportRef.current,
-        filename,
-        orientation,
-        "Segue a Ordem de Compra em anexo.",
-      );
-      toast.success(
-        result === "shared"
-          ? "PDF pronto para envio."
-          : "PDF baixado. Anexe no WhatsApp que abriu em nova aba.",
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function handleDownload() {
-    if (reportRows.length === 0) {
-      toast.error("Preencha ao menos um item antes de baixar.");
-      return;
-    }
-    if (!reportRef.current) return;
-    setBusyAction("download");
-    try {
-      const stamp = new Date().toISOString().slice(0, 10);
-      await downloadNodeAsPdf(reportRef.current, `ordem-de-compra-${stamp}.pdf`, orientation);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
-    } finally {
-      setBusyAction(null);
-    }
+    setPreviewOpen(true);
   }
 
   return (
@@ -712,59 +658,15 @@ export function OrdemCompraManualDialog({
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Select
-                  value={orientation}
-                  onValueChange={(v) => setOrientation(v as "portrait" | "landscape")}
-                >
-                  <SelectTrigger className="h-9 w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="landscape">Paisagem</SelectItem>
-                    <SelectItem value="portrait">Retrato</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handlePrint}
-                  disabled={busyAction !== null || totalItens === 0}
+                  onClick={handleOpenPreview}
+                  disabled={totalItens === 0}
                   className="gap-1.5"
                 >
-                  {busyAction === "print" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Printer className="h-4 w-4" />
-                  )}
-                  Imprimir
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleShare}
-                  disabled={busyAction !== null || totalItens === 0}
-                  className="gap-1.5"
-                >
-                  {busyAction === "share" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Share2 className="h-4 w-4" />
-                  )}
-                  Enviar PDF por WhatsApp
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownload}
-                  disabled={busyAction !== null || totalItens === 0}
-                  className="gap-1.5"
-                >
-                  {busyAction === "download" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  Baixar PDF
+                  <Eye className="h-4 w-4" />
+                  Visualizar relatório
                 </Button>
               </div>
             </div>
