@@ -2182,6 +2182,66 @@ export type Database = {
           },
         ]
       }
+      itens_recebimento_ordem: {
+        Row: {
+          created_at: string
+          custo_anterior: number | null
+          custo_unitario_pago: number
+          id: string
+          id_item_ordem: string | null
+          id_recebimento: string
+          nome: string
+          quantidade_recebida: number
+          ref_id: string | null
+          saldo_apos: number | null
+          subtotal: number
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          custo_anterior?: number | null
+          custo_unitario_pago?: number
+          id?: string
+          id_item_ordem?: string | null
+          id_recebimento: string
+          nome: string
+          quantidade_recebida?: number
+          ref_id?: string | null
+          saldo_apos?: number | null
+          subtotal?: number
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          custo_anterior?: number | null
+          custo_unitario_pago?: number
+          id?: string
+          id_item_ordem?: string | null
+          id_recebimento?: string
+          nome?: string
+          quantidade_recebida?: number
+          ref_id?: string | null
+          saldo_apos?: number | null
+          subtotal?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_recebimento_ordem_id_item_ordem_fkey"
+            columns: ["id_item_ordem"]
+            isOneToOne: false
+            referencedRelation: "itens_ordem_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_recebimento_ordem_id_recebimento_fkey"
+            columns: ["id_recebimento"]
+            isOneToOne: false
+            referencedRelation: "recebimentos_ordem"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lancamentos_tesouraria: {
         Row: {
           categoria_fluxo: string
@@ -3841,6 +3901,99 @@ export type Database = {
           },
         ]
       }
+      recebimentos_ordem: {
+        Row: {
+          chave_acesso: string | null
+          com_nf: boolean
+          created_at: string
+          data_emissao: string | null
+          data_entrada: string
+          empresa_id: string
+          id: string
+          id_conta_financeira: string | null
+          id_fornecedor: string | null
+          id_ordem_compra: string
+          numero: number
+          numero_nf: string | null
+          observacao: string
+          serie_nf: string | null
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          chave_acesso?: string | null
+          com_nf?: boolean
+          created_at?: string
+          data_emissao?: string | null
+          data_entrada?: string
+          empresa_id?: string
+          id?: string
+          id_conta_financeira?: string | null
+          id_fornecedor?: string | null
+          id_ordem_compra: string
+          numero?: number
+          numero_nf?: string | null
+          observacao?: string
+          serie_nf?: string | null
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          chave_acesso?: string | null
+          com_nf?: boolean
+          created_at?: string
+          data_emissao?: string | null
+          data_entrada?: string
+          empresa_id?: string
+          id?: string
+          id_conta_financeira?: string | null
+          id_fornecedor?: string | null
+          id_ordem_compra?: string
+          numero?: number
+          numero_nf?: string | null
+          observacao?: string
+          serie_nf?: string | null
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimentos_ordem_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_ordem_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_ordem_id_conta_financeira_fkey"
+            columns: ["id_conta_financeira"]
+            isOneToOne: false
+            referencedRelation: "contas_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_ordem_id_fornecedor_fkey"
+            columns: ["id_fornecedor"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_ordem_id_ordem_compra_fkey"
+            columns: ["id_ordem_compra"]
+            isOneToOne: false
+            referencedRelation: "ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regras_combos: {
         Row: {
           ativo: boolean
@@ -4799,6 +4952,10 @@ export type Database = {
       }
       discard_unpaid_drafts: { Args: { p_host?: string }; Returns: number }
       email_queue_dispatch: { Args: never; Returns: undefined }
+      encerrar_ordem_compra: {
+        Args: { p_ordem_id: string }
+        Returns: undefined
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -5043,6 +5200,7 @@ export type Database = {
           sort_order: number
         }[]
       }
+      get_recebimentos_ordem: { Args: { p_ordem_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5150,6 +5308,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      receber_ordem_compra: {
+        Args: { p_cabecalho: Json; p_itens: Json; p_ordem_id: string }
+        Returns: number
       }
       recompute_manipulado_preco_ideal: {
         Args: { p_ids: string[] }
