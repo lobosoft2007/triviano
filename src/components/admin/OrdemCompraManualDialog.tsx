@@ -399,16 +399,23 @@ export function OrdemCompraManualDialog({
   /* ---------------- Report rows for print / PDF --------------------- */
   const reportRows: OrdemCompraReportRow[] = useMemo(() => {
     const rows: OrdemCompraReportRow[] = [];
+    const defaultFornNome =
+      defaultFornecedor !== NONE
+        ? fornMap.get(defaultFornecedor)?.fornecedor ?? ""
+        : "";
     for (const r of selectedRows) {
+      const cached = preloadNames[r.source.key];
       rows.push({
         nome: r.source.nome,
         tipo: r.source.tipo,
-        setor: setorMap.get(r.source.setor_id ?? "")?.setor ?? "",
+        setor:
+          setorMap.get(r.source.setor_id ?? "")?.setor ||
+          cached?.setor_nome ||
+          "",
         fornecedor:
-          fornMap.get(r.source.fornecedor_id ?? "")?.fornecedor ??
-          (defaultFornecedor !== NONE
-            ? fornMap.get(defaultFornecedor)?.fornecedor ?? ""
-            : ""),
+          fornMap.get(r.source.fornecedor_id ?? "")?.fornecedor ||
+          cached?.fornecedor_nome ||
+          defaultFornNome,
         unidade: r.source.unidade,
         quantidade: r.qty,
         custo_unitario: r.custo,
@@ -420,19 +427,20 @@ export function OrdemCompraManualDialog({
       rows.push({
         nome: f.nome || "(item livre)",
         tipo: "livre",
-        setor: setorMap.get(f.setor_id ?? "")?.setor ?? "",
+        setor:
+          setorMap.get(f.setor_id ?? "")?.setor || f.setor_nome || "",
         fornecedor:
-          fornMap.get(f.fornecedor_id ?? "")?.fornecedor ??
-          (defaultFornecedor !== NONE
-            ? fornMap.get(defaultFornecedor)?.fornecedor ?? ""
-            : ""),
+          fornMap.get(f.fornecedor_id ?? "")?.fornecedor ||
+          f.fornecedor_nome ||
+          defaultFornNome,
         unidade: f.unidade || "un",
         quantidade: q,
         custo_unitario: parseNumberInput(f.custo_unitario),
       });
     }
     return rows;
-  }, [selectedRows, freeItems, setorMap, fornMap, defaultFornecedor]);
+  }, [selectedRows, freeItems, setorMap, fornMap, defaultFornecedor, preloadNames]);
+
 
   /* ---------------- Free items -------------------------------------- */
   const addFreeItem = () =>

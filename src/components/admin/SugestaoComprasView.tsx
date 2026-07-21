@@ -222,9 +222,12 @@ export function SugestaoComprasView() {
       unidade: i.unidade,
       setor_id: i.setor_id,
       fornecedor_id: i.fornecedor_id,
+      setor_nome: setorMap.get(i.setor_id ?? "") ?? "",
+      fornecedor_nome: fornMap.get(i.fornecedor_id ?? "") ?? "",
       custo_unitario: i.custo_unitario,
       quantidade: i.quantidade_comprar,
     }));
+
     items.sort((a, b) => {
       const oa = setorOrdem.get(a.setor_id ?? "") ?? 999;
       const ob = setorOrdem.get(b.setor_id ?? "") ?? 999;
