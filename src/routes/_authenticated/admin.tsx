@@ -755,9 +755,28 @@ function AdminPage() {
                   </Button>
                 )}
                 {tab === "cardapio" && (
-                  <Button size="sm" onClick={openNew}>
-                    <Plus className="mr-1 h-4 w-4" /> Novo produto
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={async () => {
+                        const t = toast.loading("Recalculando CMV de todos os produtos…");
+                        try {
+                          const { data, error } = await supabase.rpc("admin_recompute_all_custo_total");
+                          if (error) throw error;
+                          await qc.invalidateQueries({ queryKey: ["admin-menu"] });
+                          toast.success(`CMV atualizado em ${Number(data ?? 0)} produtos.`, { id: t });
+                        } catch (e) {
+                          toast.error((e as Error).message ?? "Falha ao recalcular CMV.", { id: t });
+                        }
+                      }}
+                    >
+                      Recalcular CMV
+                    </Button>
+                    <Button size="sm" onClick={openNew}>
+                      <Plus className="mr-1 h-4 w-4" /> Novo produto
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
