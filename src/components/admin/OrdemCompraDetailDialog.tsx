@@ -387,25 +387,13 @@ export function OrdemCompraDetailDialog({
         </DialogContent>
       </Dialog>
 
-      <div
-        aria-hidden
-        className="report-print-host"
-        style={{
-          position: "fixed",
-          left: "-10000px",
-          top: 0,
-          width: "210mm",
-          pointerEvents: "none",
-        }}
-      >
-        <OrdemCompraReport
-          ref={reportRef}
-          empresa={empresa}
-          rows={reportRows}
-          observacao={observacao}
-            orientation={orientation}
-        />
-      </div>
+      <RelatorioOrdemCompraDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        title={ordem ? `Ordem de Compra nº ${ordem.numero}` : "Ordem de Compra"}
+        rows={reportRows}
+        observacao={observacao}
+      />
     </>
   );
 }
