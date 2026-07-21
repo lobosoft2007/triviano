@@ -240,59 +240,14 @@ export function OrdemCompraDetailDialog({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Select
-                      value={orientation}
-                      onValueChange={(v) => setOrientation(v as "portrait" | "landscape")}
-                    >
-                      <SelectTrigger className="h-9 w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="landscape">Paisagem</SelectItem>
-                        <SelectItem value="portrait">Retrato</SelectItem>
-                      </SelectContent>
-                    </Select>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={handlePrint}
-                      disabled={busy !== null}
+                      onClick={handleOpenPreview}
                       className="gap-1.5"
                     >
-                      {busy === "print" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Printer className="h-4 w-4" />
-                      )}
-                      Imprimir
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleDownload}
-                      disabled={busy !== null}
-                      className="gap-1.5"
-                    >
-                      {busy === "download" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4" />
-                      )}
-                      Baixar PDF
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleShare}
-                      disabled={busy !== null}
-                      className="gap-1.5"
-                    >
-                      {busy === "share" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Share2 className="h-4 w-4" />
-                      )}
-                      WhatsApp
+                      <Eye className="h-4 w-4" />
+                      Visualizar relatório
                     </Button>
                     {editavel && (
                       <Button
