@@ -132,20 +132,40 @@ export function OrdemCompraDetailDialog({
         ? fornMap.get(ordem.id_fornecedor)
         : undefined;
 
+  // Nomes por item vindos de getOrdemCompra (resolvidos via ref_id).
+  const itemNamesById = useMemo(() => {
+    const m = new Map<
+      string,
+      { setor: string; fornecedor: string; unidade: string }
+    >();
+    for (const i of ordem?.itens ?? []) {
+      m.set(i.id, {
+        setor: i.setor_nome ?? "",
+        fornecedor: i.fornecedor_nome ?? "",
+        unidade: i.unidade ?? "",
+      });
+    }
+    return m;
+  }, [ordem]);
+
   const reportRows: OrdemCompraLinha[] = useMemo(
     () =>
       rows
         .filter((r) => parseNumberInput(r.quantidade) > 0)
-        .map((r) => ({
-          nome: r.nome || "(item)",
-          tipo: r.tipo === "produto" ? "produto" : r.tipo === "livre" ? "livre" : "insumo",
-          setor: "",
-          fornecedor: fornEfetivo?.fornecedor ?? "",
-          unidade: "",
-          quantidade: parseNumberInput(r.quantidade),
-          custo_unitario: parseNumberInput(r.custo),
-        })),
-    [rows, fornEfetivo],
+        .map((r) => {
+          const resolved = itemNamesById.get(r.key);
+          return {
+            nome: r.nome || "(item)",
+            tipo:
+              r.tipo === "produto" ? "produto" : r.tipo === "livre" ? "livre" : "insumo",
+            setor: resolved?.setor ?? "",
+            fornecedor: resolved?.fornecedor || fornEfetivo?.fornecedor || "",
+            unidade: resolved?.unidade || "un",
+            quantidade: parseNumberInput(r.quantidade),
+            custo_unitario: parseNumberInput(r.custo),
+          };
+        }),
+    [rows, fornEfetivo, itemNamesById],
   );
 
 
