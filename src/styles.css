@@ -347,8 +347,14 @@
   body.printing-report .report-data-row,
   body.printing-report .report-summary-row,
   body.printing-report .report-total-row {
-    break-inside: avoid-page;
-    page-break-inside: avoid;
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+  }
+  body.printing-report .report-data-row td,
+  body.printing-report .report-summary-row td,
+  body.printing-report .report-total-row td {
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
   }
   body.printing-report .report-column-head th,
   body.printing-report .report-data-row td,
