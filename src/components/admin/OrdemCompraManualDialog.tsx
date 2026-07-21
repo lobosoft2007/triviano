@@ -945,28 +945,13 @@ export function OrdemCompraManualDialog({
         </DialogContent>
       </Dialog>
 
-      {/* Off-screen A4 report used by print / PDF share. Kept in the DOM so
-          the print CSS in styles.css picks up `.report-a4` even when the
-          dialog owns the visible layout. */}
-      <div
-        aria-hidden
-        className="report-print-host"
-        style={{
-          position: "fixed",
-          left: "-10000px",
-          top: 0,
-          width: "210mm",
-          pointerEvents: "none",
-        }}
-      >
-        <OrdemCompraReport
-          ref={reportRef}
-          empresa={empresa}
-          rows={reportRows}
-          observacao={observacao}
-          orientation={orientation}
-        />
-      </div>
+      <RelatorioOrdemCompraDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        title={title ?? "Ordem de Compra Manual / Avulsa"}
+        rows={reportRows}
+        observacao={observacao}
+      />
 
       {/* Silence unused-icon lint if the icon becomes optional in the future. */}
       <Send className="hidden" />
