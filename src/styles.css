@@ -226,7 +226,10 @@
     min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
     transform: none !important;
+    background: transparent !important;
   }
   body.printing-report > *:not(:has(.report-a4)) {
     display: none !important;

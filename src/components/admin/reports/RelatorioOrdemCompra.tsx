@@ -332,9 +332,9 @@ export function RelatorioOrdemCompraDialog({
         <ModalActionBar
           title={props.title}
           onBack={() => onOpenChange(false)}
-          className="mx-0 mt-0"
+          className="mx-0 mt-0 print:hidden"
         />
-        <div className="min-h-0 flex-1 overflow-y-auto bg-secondary/30 p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-secondary/30 p-4 print:block print:bg-white print:p-0">
           <RelatorioOrdemCompra {...props} />
         </div>
       </DialogContent>
