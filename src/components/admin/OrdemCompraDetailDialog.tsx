@@ -192,57 +192,14 @@ export function OrdemCompraDetailDialog({
     }
   }
 
-  async function handlePrint() {
+  function handleOpenPreview() {
     if (reportRows.length === 0) {
-      toast.error("Nenhum item para imprimir.");
+      toast.error("Nenhum item para visualizar.");
       return;
     }
-    setBusy("print");
-    setTimeout(() => {
-      try {
-        printReport(orientation);
-      } finally {
-        setBusy(null);
-      }
-    }, 50);
+    setPreviewOpen(true);
   }
 
-  async function handleDownload() {
-    if (!reportRef.current || reportRows.length === 0) return;
-    setBusy("download");
-    try {
-      const filename = `ordem-de-compra-${ordem?.numero ?? "s-numero"}.pdf`;
-      await downloadNodeAsPdf(reportRef.current, filename, orientation);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleShare() {
-    if (!reportRef.current || reportRows.length === 0) return;
-    setBusy("share");
-    try {
-      const filename = `ordem-de-compra-${ordem?.numero ?? "s-numero"}.pdf`;
-      const result = await shareNodeAsPdfWhatsapp(
-        reportRef.current,
-        filename,
-        orientation,
-        `Ordem de Compra nº ${ordem?.numero ?? ""} em anexo.`,
-        fornEfetivo?.telefone ?? null,
-      );
-      toast.success(
-        result === "shared"
-          ? "PDF pronto para envio."
-          : "PDF baixado. Anexe no WhatsApp que abriu em nova aba.",
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
-    } finally {
-      setBusy(null);
-    }
-  }
 
   return (
     <>
