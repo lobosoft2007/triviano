@@ -29,7 +29,7 @@ import {
 } from "@/lib/reports/types";
 
 /* ------------------------------------------------------------------ */
-/* Header / Footer (repeated on each printed page via position:fixed)  */
+/* Header / Footer (repeated on each printed page via table groups)    */
 /* ------------------------------------------------------------------ */
 
 function ReportHeader({
@@ -249,6 +249,7 @@ export function ReportShell<T>({
     () => columns.filter((c) => prefs.visible.includes(c.key)),
     [columns, prefs.visible],
   );
+  const visibleColSpan = Math.max(visibleCols.length, 1);
 
   const totals = useMemo(
     () => sumMoneyColumns(rows, visibleCols),
@@ -340,41 +341,53 @@ export function ReportShell<T>({
           maxWidth: prefs.orientation === "landscape" ? "297mm" : "210mm",
         }}
       >
-        <ReportHeader empresa={empresa} title={title} />
-
-        <div className="report-content pt-3">
-          {loading ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : rows.length === 0 ? (
-            <p className="py-10 text-center text-neutral-500">
-              Nenhum registro encontrado com os filtros selecionados.
-            </p>
-          ) : (
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-black/40 text-left">
-                  {visibleCols.map((c) => (
-                    <th
-                      key={c.key}
-                      className={
-                        "px-1.5 py-1 font-semibold " +
-                        (c.numeric ? "text-right" : "")
-                      }
-                      style={c.minWidth ? { minWidth: c.minWidth } : undefined}
-                    >
-                      {c.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
+        <table className="report-print-table w-full border-collapse">
+          <thead className="report-print-head">
+            <tr className="report-header-row">
+              <th colSpan={visibleColSpan} className="report-header-cell p-0 pb-3">
+                <ReportHeader empresa={empresa} title={title} />
+              </th>
+            </tr>
+            {!loading && rows.length > 0 && visibleCols.length > 0 ? (
+              <tr className="report-column-head border-b border-black/40 text-left">
+                {visibleCols.map((c) => (
+                  <th
+                    key={c.key}
+                    className={
+                      "px-1.5 py-1 font-semibold " +
+                      (c.numeric ? "text-right" : "")
+                    }
+                    style={c.minWidth ? { minWidth: c.minWidth } : undefined}
+                  >
+                    {c.label}
+                  </th>
+                ))}
+              </tr>
+            ) : null}
+          </thead>
+          <tbody className="report-print-body">
+            {loading ? (
+              <tr>
+                <td colSpan={visibleColSpan}>
+                  <div className="flex justify-center py-16">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={visibleColSpan}>
+                  <p className="py-10 text-center text-neutral-500">
+                    Nenhum registro encontrado com os filtros selecionados.
+                  </p>
+                </td>
+              </tr>
+            ) : (
+              <>
                 {rows.map((row, idx) => (
                   <tr
                     key={idx}
-                    className="border-b border-black/10 align-top"
-                    style={{ pageBreakInside: "avoid" }}
+                    className="report-data-row border-b border-black/10 align-top"
                   >
                     {visibleCols.map((c) => (
                       <td
@@ -388,10 +401,8 @@ export function ReportShell<T>({
                     ))}
                   </tr>
                 ))}
-              </tbody>
-              <tfoot>
                 {Object.keys(totals).length > 0 && (
-                  <tr className="border-t-2 border-black/60 font-semibold">
+                  <tr className="report-summary-row border-t-2 border-black/60 font-semibold">
                     {visibleCols.map((c, i) => (
                       <td
                         key={c.key}
@@ -409,20 +420,25 @@ export function ReportShell<T>({
                     ))}
                   </tr>
                 )}
-                <tr>
+                <tr className="report-total-row">
                   <td
-                    colSpan={visibleCols.length}
+                    colSpan={visibleColSpan}
                     className="px-1.5 pt-2 text-[11px] text-neutral-700"
                   >
                     Total de registros: <b>{rows.length}</b>
                   </td>
                 </tr>
-              </tfoot>
-            </table>
-          )}
-        </div>
-
-        <ReportFooter empresa={empresa} />
+              </>
+            )}
+          </tbody>
+          <tfoot className="report-print-foot">
+            <tr className="report-footer-row">
+              <td colSpan={visibleColSpan} className="report-footer-cell p-0 pt-3">
+                <ReportFooter empresa={empresa} />
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </div>
   );
