@@ -27,6 +27,7 @@ import {
   RelatorioOrdemCompraDialog,
   type OrdemCompraLinha,
 } from "./reports/RelatorioOrdemCompra";
+import { RecebimentoOrdemDialog } from "./RecebimentoOrdemDialog";
 
 const NONE = "__none__";
 
