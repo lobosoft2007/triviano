@@ -327,6 +327,7 @@ export function RelatorioOrdemCompraDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         hideClose
+        data-report-dialog="true"
         className="flex h-[95dvh] max-h-[95dvh] max-w-[1200px] flex-col gap-0 p-0"
       >
         <ModalActionBar
