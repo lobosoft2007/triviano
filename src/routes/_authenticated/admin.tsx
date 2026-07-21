@@ -764,7 +764,7 @@ function AdminPage() {
                         try {
                           const { data, error } = await supabase.rpc("admin_recompute_all_custo_total");
                           if (error) throw error;
-                          await qc.invalidateQueries({ queryKey: ["admin-menu"] });
+                          await queryClient.invalidateQueries({ queryKey: ["admin-menu"] });
                           toast.success(`CMV atualizado em ${Number(data ?? 0)} produtos.`, { id: t });
                         } catch (e) {
                           toast.error((e as Error).message ?? "Falha ao recalcular CMV.", { id: t });
