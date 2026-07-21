@@ -168,7 +168,6 @@ export function OrdemCompraManualDialog({
     queryKey: ["revenda-produtos-full"],
     queryFn: fetchProdutosRevenda,
   });
-  const { data: empresa } = useQuery(empresaAdminConfigQueryOptions);
 
   const setorMap = useMemo(
     () => new Map<string, Setor>((setores ?? []).map((s) => [s.id, s])),
