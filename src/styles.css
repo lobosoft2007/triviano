@@ -205,6 +205,32 @@
   }
 
   /* A4 report printing (activated when body has .printing-report class). */
+  body.printing-report,
+  body.printing-report #root,
+  body.printing-report [data-radix-dialog-content],
+  body.printing-report [role="dialog"] {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  body.printing-report *:has(.report-a4) {
+    position: static !important;
+    inset: auto !important;
+    left: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+  body.printing-report > *:not(:has(.report-a4)) {
+    display: none !important;
+  }
   body.printing-report .report-a4,
   body.printing-report .report-a4 * {
     visibility: visible;
@@ -214,27 +240,48 @@
     left: auto;
     top: auto;
     right: auto;
-    width: 100%;
+    width: 100% !important;
+    max-width: none !important;
     color: #000;
     background: #fff;
     padding: 0;
     border: 0;
     box-shadow: none;
+    break-inside: auto;
+    page-break-inside: auto;
   }
-  /* Header/footer fluem naturalmente (uma única vez).
-     Paginação vem do @page @top-right injetado por printReport(). */
+  body.printing-report .report-print-table {
+    width: 100% !important;
+    border-collapse: collapse;
+    table-layout: auto;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+  body.printing-report .report-print-head {
+    display: table-header-group;
+  }
+  body.printing-report .report-print-foot {
+    display: table-footer-group;
+  }
+  body.printing-report .report-print-body {
+    display: table-row-group;
+  }
   body.printing-report .report-header,
   body.printing-report .report-footer {
     position: static;
     background: #fff;
   }
-  body.printing-report .report-content {
-    padding-top: 0;
-    padding-bottom: 0;
+  body.printing-report .report-header-cell,
+  body.printing-report .report-footer-cell {
+    border: 0;
+    font-weight: inherit;
+    text-align: initial;
   }
-  /* Não repetir thead em cada página. */
-  body.printing-report .report-a4 thead {
-    display: table-row-group;
+  body.printing-report .report-data-row,
+  body.printing-report .report-summary-row,
+  body.printing-report .report-total-row {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   /* O contador nativo do @page substitui esse span. */
   body.printing-report .report-pagenum {
