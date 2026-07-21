@@ -416,7 +416,9 @@ export function SugestaoComprasView() {
                           "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
                           (o.status === "Aberta"
                             ? "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
-                            : "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300")
+                            : o.status === "Parcial"
+                              ? "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300"
+                              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300")
                         }
                       >
                         {o.status}

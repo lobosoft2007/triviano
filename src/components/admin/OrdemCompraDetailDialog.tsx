@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, Loader2, Plus, Trash2, X } from "lucide-react";
+import { Eye, Loader2, PackageCheck, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -27,6 +27,7 @@ import {
   RelatorioOrdemCompraDialog,
   type OrdemCompraLinha,
 } from "./reports/RelatorioOrdemCompra";
+import { RecebimentoOrdemDialog } from "./RecebimentoOrdemDialog";
 
 const NONE = "__none__";
 
@@ -76,6 +77,8 @@ export function OrdemCompraDetailDialog({
   );
 
   const editavel = (ordem?.status ?? "Aberta") === "Aberta";
+  const podeReceber = ordem ? ordem.status !== "Recebida" : false;
+  const [receberOpen, setReceberOpen] = useState(false);
 
   useEffect(() => {
     if (ordem) {
@@ -269,6 +272,16 @@ export function OrdemCompraDetailDialog({
                       <Eye className="h-4 w-4" />
                       Visualizar relatório
                     </Button>
+                    {podeReceber && (
+                      <Button
+                        size="sm"
+                        onClick={() => setReceberOpen(true)}
+                        className="gap-1.5"
+                      >
+                        <PackageCheck className="h-4 w-4" />
+                        Receber Mercadoria
+                      </Button>
+                    )}
                     {editavel && (
                       <Button
                         variant="destructive"
@@ -413,6 +426,12 @@ export function OrdemCompraDetailDialog({
         title={ordem ? `Ordem de Compra nº ${ordem.numero}` : "Ordem de Compra"}
         rows={reportRows}
         observacao={observacao}
+      />
+
+      <RecebimentoOrdemDialog
+        ordemId={ordem?.id ?? null}
+        open={receberOpen}
+        onOpenChange={setReceberOpen}
       />
     </>
   );

@@ -1,51 +1,87 @@
-Você tem razão em cobrar: o problema não é a ordem de compra em si, é estrutural no motor de impressão A4. Pelos arquivos lidos e pelos prints, o relatório está sendo impresso ainda preso ao contexto do diálogo/app e herdando regras conflitantes de impressão. Isso faz o navegador gerar 3 páginas, mas renderizar o conteúdo deslocado/cortado, sem respeitar corretamente a área A4, cabeçalho e rodapé.
 
-Plano de correção definitiva:
+# Recebimento de Ordens de Compra
 
-1. Separar impressão A4 da impressão térmica
-- Hoje existe uma regra global de `@media print` que começa escondendo tudo e define `@page` para cupom 80mm.
-- Vou isolar o modo A4 para que, quando `body.printing-report` estiver ativo, ele use apenas regras A4 e não herde o comportamento do cupom térmico.
-- Resultado esperado: PDF A4 real, sem largura de 80mm, sem deslocamento lateral e sem área cortada.
+Hoje temos dois fluxos desconectados:
+- **Ordens de Compra** (planejamento/pedido ao fornecedor) — Admin → Compras
+- **Entrada Avulsa** (recebimento sem vínculo à ordem) — atualiza saldo/custo e financeiro
 
-2. Tirar o relatório do fluxo visual do Dialog somente na hora de imprimir
-- O conteúdo continuará aparecendo no modal normalmente na tela.
-- Para imprimir/PDF, criarei uma cópia limpa do relatório em um host temporário direto no `body`, fora do `DialogContent`, overlay, AppShell e containers com `overflow/position/transform`.
-- Resultado esperado: o navegador pagina o relatório como documento normal, não como conteúdo dentro de uma janela modal.
+Falta o ciclo do meio: **abrir a ordem, conferir cada item (quantidade real e preço pago), marcar se veio com ou sem NF e dar entrada de fato no estoque**. Este plano fecha esse ciclo reutilizando o motor que já existe para entrada avulsa (que já faz baixa de saldo, recálculo de custo médio ponderado e lançamento financeiro).
 
-3. Ajustar o layout A4 com dimensões conservadoras
-- Usar A4 como padrão.
-- Definir largura útil fixa por orientação:
-  - Retrato: área útil compatível com A4 menos margens.
-  - Paisagem: área útil compatível com A4 paisagem menos margens.
-- Remover dependência de `max-width` visual e impedir que a tabela ultrapasse a página.
-- Reduzir espaçamento/colunas no relatório de ordem quando necessário, com quebra de texto em Item/Setor/Fornecedor.
-- Resultado esperado: nenhuma coluna cortada no lado esquerdo/direito.
+## Escopo
 
-4. Cabeçalho e rodapé repetidos por página
-- Manter o padrão correto com `<thead>` e `<tfoot>` no `ReportShell`.
-- Garantir CSS de impressão específico para `display: table-header-group` e `display: table-footer-group` no host limpo de impressão.
-- Remover o contador fixo `Pág 1 / 1` do cabeçalho visual impresso; se o navegador suportar contador de página, ele fica na margem; se não suportar, não exibiremos número errado.
-- Resultado esperado: cabeçalho e rodapé aparecem em todas as páginas sem sobrepor os dados.
+1. Novo botão **"Receber Mercadoria"** em cada Ordem de Compra com status `Aberta` (na lista de Ordens e no detalhe).
+2. Novo diálogo **`RecebimentoOrdemDialog`** que carrega os itens da ordem e permite:
+   - Editar **quantidade recebida** por item (default = quantidade da ordem).
+   - Editar **custo unitário real** por item (default = custo da ordem).
+   - Marcar item como "não recebido" (quantidade = 0).
+   - Ver, ao lado de cada linha, saldo atual e custo atual do insumo/produto para conferência.
+3. Cabeçalho do recebimento:
+   - Toggle **Com NF / Sem NF**.
+   - Se **Com NF**: campos `numero_nf`, `serie_nf` (opcional), `chave_acesso` (opcional, 44 dígitos), `data_emissao`, `data_entrada` (default hoje).
+   - Se **Sem NF**: campo `observacao` obrigatório (ex.: "compra em atacado").
+   - Fornecedor (herdado da ordem, editável).
+   - **Pagar com a conta** (mesma seleção da Entrada Avulsa, opcional → não lança financeiro).
+4. Ao confirmar:
+   - Persistir o recebimento vinculado à ordem.
+   - Baixar estoque + recalcular custo médio por item (mesma RPC que a Entrada Avulsa já usa).
+   - Se **Com NF**, gravar dados fiscais junto ao recebimento (número/chave/data) para futura conciliação com o módulo Fiscal / Manifestação.
+   - Se conta financeira selecionada, lançar despesa (a pagar hoje).
+   - Fechar a ordem: status `Recebida` (ou `Parcial` se algum item ficou com quantidade menor que a pedida — ver seção "Recebimento parcial").
+5. **Impressão / histórico**: reaproveitar `ReportShell` para gerar um comprovante A4 do recebimento (mesmo padrão do relatório de Ordem de Compra recém-corrigido).
 
-5. Corrigir quebras de linha e de página nas linhas da tabela
-- Evitar `break-inside: avoid` em excesso quando isso impede paginação normal em tabelas longas.
-- Aplicar somente proteção mínima para não cortar uma linha individual no meio.
-- Definir `white-space`, `overflow-wrap` e larguras de coluna para que textos longos não empurrem a tabela para fora.
-- Resultado esperado: 46 itens ocupam múltiplas páginas, sem cortar linhas nem repetir blocos fora do lugar.
+## Recebimento parcial
 
-6. Validar antes de entregar
-- Vou validar com Playwright gerando PDF A4 de um relatório grande.
-- Conferir número de páginas do PDF e inspecionar visualmente as páginas convertidas em imagem.
-- Só vou considerar concluído se as páginas não estiverem cortadas e se cabeçalho/rodapé estiverem corretos.
+- Se qualquer item foi recebido com quantidade menor que a pedida, a ordem fica `Parcial` e continua permitindo novos recebimentos até completar (ou ser encerrada manualmente).
+- Cada recebimento é um registro próprio, com seu próprio nº, NF e lançamento financeiro — nunca sobrescreve os anteriores.
+- Botão "Encerrar ordem" no detalhe (força status `Recebida` mesmo com saldo pendente, para casos de cancelamento parcial pelo fornecedor).
 
-Arquivos previstos:
-- `src/lib/reports/types.ts`: ajustar `printReport` para criar host limpo de impressão e aplicar regra A4 isolada.
-- `src/styles.css`: separar regras A4 das regras do cupom térmico e remover conflitos de print.
-- `src/components/admin/reports/ReportShell.tsx`: pequenos ajustes de marcação/classes se necessário para o clone limpo e paginação.
-- `src/components/admin/reports/RelatorioOrdemCompra.tsx`: ajustar larguras/quebras de coluna da ordem de compra para caber em A4.
+## Backend (migração)
 
-Critério de aceite:
-- PDF da ordem de compra com dezenas de itens gera múltiplas páginas completas.
-- Nenhuma página fica deslocada/cortada como nos prints enviados.
-- Cabeçalho e rodapé aparecem em todas as páginas.
-- O relatório continua funcionando no modal, CSV e impressão/PDF.
+Novas tabelas (com GRANT + RLS por `empresa_id` já no mesmo migration):
+
+- **`recebimentos_ordem`** — cabeçalho
+  - `id_ordem_compra`, `numero` (SEQUENCE por empresa), `com_nf` bool, `numero_nf`, `serie_nf`, `chave_acesso`, `data_emissao`, `data_entrada`, `id_fornecedor`, `id_conta_financeira` (nullable), `observacao`, `valor_total`.
+- **`itens_recebimento_ordem`** — linhas
+  - `id_recebimento`, `id_item_ordem` (nullable, para item livre), `tipo` (`insumo` | `produto`), `ref_id`, `quantidade_recebida`, `custo_unitario_pago`, `subtotal`.
+
+Nova RPC **`receber_ordem_compra(p_ordem_id, p_cabecalho jsonb, p_itens jsonb)`** (SECURITY DEFINER, em transação):
+1. Valida que a ordem pertence à empresa e está `Aberta` ou `Parcial`.
+2. Insere `recebimentos_ordem` + `itens_recebimento_ordem`.
+3. Para cada item, delega ao mesmo motor da Entrada Avulsa (`registrar_entrada_avulsa` / `registrar_entrada_produtos`) — isso já faz **baixa de saldo** e **recálculo de custo médio ponderado**.
+4. Se `id_conta_financeira` presente, cria lançamento em `fluxo_caixa` (débito) como despesa a pagar/paga (mesmo padrão da Entrada Avulsa).
+5. Recalcula status da ordem (`Recebida` / `Parcial`) comparando quantidades recebidas acumuladas vs. pedidas.
+
+RPC de leitura **`get_recebimentos_ordem(p_ordem_id)`** para listar histórico de recebimentos da ordem no diálogo de detalhe.
+
+## Frontend
+
+Arquivos novos:
+- `src/components/admin/RecebimentoOrdemDialog.tsx` — diálogo principal (baseado em `OrdemCompraManualDialog` para consistência visual + `EntradaEstoqueView` para lógica de linhas).
+- `src/components/admin/reports/RelatorioRecebimento.tsx` — comprovante A4 (padrão `ReportShell`).
+- `src/lib/recebimentos.ts` — funções `receberOrdemCompra`, `listRecebimentosOrdem`.
+
+Arquivos alterados:
+- `src/components/admin/OrdemCompraDetailDialog.tsx` — adicionar aba/seção "Recebimentos" e botão **"Receber Mercadoria"** (habilitado se status ≠ `Recebida`).
+- Lista de Ordens (`SugestaoComprasView.tsx` / view de Ordens): coluna de status ganha badge `Aberta / Parcial / Recebida`; ação "Receber" no menu de cada linha.
+- `src/lib/estoque.ts` — tipar `status` da ordem incluindo `Parcial` e `Recebida`.
+
+## Detalhes técnicos
+
+- Custo médio ponderado é calculado hoje pelo mesmo trigger/RPC que a Entrada Avulsa usa; não vamos duplicá-lo, só chamamos.
+- Para produtos de revenda (`manipulado = false`), a atualização de `custo_compra` reflete diretamente no `custo_total` (já coberto por `computeCustoTotal` em `src/lib/cost.ts`). Para insumos, o novo `custo_unitario` propaga automaticamente para todos os produtos manipulados via `fetchProductCustoTotal`.
+- Dados de NF ficam apenas no cabeçalho do recebimento nesta fase. **Integração com download de NF-e da SEFAZ e conciliação automática com o módulo Fiscal (`notas_fiscais` / `manifestacoes_destinatario`) fica para uma fase 2**, quando o motor de manifestação estiver validado em produção — só precisamos garantir que `chave_acesso` gravada aqui possa ser cruzada depois.
+- RLS: todas as novas tabelas usam `empresa_id` + `has_role`/`current_empresa_id()` no mesmo padrão de `ordens_compra` / `entradas_avulsas_estoque`.
+
+## Fora do escopo (fases futuras)
+
+- Download automático da NF-e via SEFAZ e conciliação com a manifestação.
+- Divergências entre NF e pedido gerando alerta/relatório de auditoria.
+- Rateio de frete/impostos no custo unitário (será um campo `custo_extra` distribuído proporcionalmente).
+- Devolução parcial ao fornecedor.
+
+## Entregáveis
+
+1. Migração com tabelas, GRANT, RLS, RPC `receber_ordem_compra` e `get_recebimentos_ordem`.
+2. `src/lib/recebimentos.ts`, `RecebimentoOrdemDialog.tsx`, `RelatorioRecebimento.tsx`.
+3. Ajustes em `OrdemCompraDetailDialog.tsx` e na lista de ordens.
+4. Teste manual: criar ordem → receber com NF (parcial) → completar segundo recebimento sem NF → validar saldo, custo médio e lançamento financeiro.
