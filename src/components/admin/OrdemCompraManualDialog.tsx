@@ -232,10 +232,7 @@ export function OrdemCompraManualDialog({
 
   const [saving, setSaving] = useState(false);
   const [savingUnica, setSavingUnica] = useState(false);
-  const [busyAction, setBusyAction] = useState<"print" | "share" | "download" | null>(null);
-  const [orientation, setOrientation] = useState<"portrait" | "landscape">(
-    "landscape",
-  );
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Reset when reopening.
   useEffect(() => {
