@@ -89,7 +89,17 @@ export function formatMoney(v: number): string {
 export function printReport(orientation: ReportOrientation = "portrait") {
   const style = document.createElement("style");
   style.id = "report-print-page";
-  style.textContent = `@media print { @page { size: A4 ${orientation}; margin: 14mm 12mm 20mm 12mm; } }`;
+  style.textContent = `@media print {
+    @page {
+      size: A4 ${orientation};
+      margin: 14mm 12mm 20mm 12mm;
+      @top-right {
+        content: "Pág " counter(page) " / " counter(pages);
+        font: 10pt "Inter", ui-sans-serif, system-ui, sans-serif;
+        color: #555;
+      }
+    }
+  }`;
   document.head.appendChild(style);
   document.body.classList.add("printing-report");
   const cleanup = () => {
@@ -100,6 +110,7 @@ export function printReport(orientation: ReportOrientation = "portrait") {
   window.addEventListener("afterprint", cleanup);
   window.print();
 }
+
 
 /** Escape a value for CSV (RFC 4180-ish). */
 function csvCell(value: unknown): string {
