@@ -43,8 +43,10 @@ export async function receberOrdemCompra(input: {
   }
   const { data, error } = await supabase.rpc("receber_ordem_compra", {
     p_ordem_id: input.ordem_id,
-    p_cabecalho: input.cabecalho as unknown as Record<string, unknown>,
-    p_itens: itens as unknown as Record<string, unknown>[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    p_cabecalho: input.cabecalho as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    p_itens: itens as any,
   });
   if (error) throw error;
   return Number(data ?? 0);
