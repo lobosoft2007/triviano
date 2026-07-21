@@ -199,6 +199,12 @@ export interface OrdemCompraItem {
   nome: string;
   quantidade: number;
   custo_unitario: number;
+  /** Enriquecidos após a leitura (resolvidos por `ref_id`). */
+  setor_id?: string | null;
+  setor_nome?: string | null;
+  fornecedor_id?: string | null;
+  fornecedor_nome?: string | null;
+  unidade?: string | null;
 }
 
 export interface OrdemCompraDetalhe {
@@ -221,7 +227,124 @@ export async function getOrdemCompra(id: string): Promise<OrdemCompraDetalhe> {
   const { data, error } = await supabase.rpc("get_ordem_compra", { p_id: id });
   if (error) throw error;
   const d = data as Record<string, unknown>;
-  const itens = (d.itens as Record<string, unknown>[] | undefined) ?? [];
+  const itensRaw = (d.itens as Record<string, unknown>[] | undefined) ?? [];
+
+  const itens: OrdemCompraItem[] = itensRaw.map((i) => ({
+    id: String(i.id),
+    tipo: (i.tipo as OrdemCompraItem["tipo"]) ?? "insumo",
+    ref_id: (i.ref_id as string | null) ?? null,
+    nome: String(i.nome ?? ""),
+    quantidade: Number(i.quantidade ?? 0),
+    custo_unitario: Number(i.custo_unitario ?? 0),
+    setor_id: null,
+    setor_nome: null,
+    fornecedor_id: null,
+    fornecedor_nome: null,
+    unidade: null,
+  }));
+
+  // Resolver setor/fornecedor por item via join no cliente.
+  const insumoIds = Array.from(
+    new Set(
+      itens
+        .filter((i) => i.tipo === "insumo" && i.ref_id)
+        .map((i) => i.ref_id as string),
+    ),
+  );
+  const produtoIds = Array.from(
+    new Set(
+      itens
+        .filter((i) => i.tipo === "produto" && i.ref_id)
+        .map((i) => i.ref_id as string),
+    ),
+  );
+
+  const insumoMap = new Map<
+    string,
+    { setor_id: string | null; fornecedor_id: string | null; unidade: string | null }
+  >();
+  if (insumoIds.length > 0) {
+    const { data: rows } = await supabase
+      .from("insumos")
+      .select("id, setor_id, fornecedor_id, unidade_medida")
+      .in("id", insumoIds);
+    for (const r of rows ?? []) {
+      insumoMap.set(String(r.id), {
+        setor_id: (r.setor_id as string | null) ?? null,
+        fornecedor_id: (r.fornecedor_id as string | null) ?? null,
+        unidade: (r.unidade_medida as string | null) ?? null,
+      });
+    }
+  }
+
+  const produtoMap = new Map<
+    string,
+    { setor_id: string | null; fornecedor_id: string | null }
+  >();
+  if (produtoIds.length > 0) {
+    const { data: rows } = await supabase.rpc("admin_get_products", {
+      p_only_manipulado_false: false,
+    });
+    const wanted = new Set(produtoIds);
+    for (const r of (rows ?? []) as Record<string, unknown>[]) {
+      const pid = String(r.id);
+      if (!wanted.has(pid)) continue;
+      produtoMap.set(pid, {
+        setor_id: (r.setor_id as string | null) ?? null,
+        fornecedor_id: (r.fornecedor_id as string | null) ?? null,
+      });
+    }
+  }
+
+  const setorIdsNeed = new Set<string>();
+  const fornIdsNeed = new Set<string>();
+  for (const it of itens) {
+    const src =
+      it.tipo === "insumo"
+        ? insumoMap.get(it.ref_id ?? "")
+        : it.tipo === "produto"
+          ? produtoMap.get(it.ref_id ?? "")
+          : null;
+    if (src?.setor_id) setorIdsNeed.add(src.setor_id);
+    if (src?.fornecedor_id) fornIdsNeed.add(src.fornecedor_id);
+  }
+
+  const setorNames = new Map<string, string>();
+  if (setorIdsNeed.size > 0) {
+    const { data: rows } = await supabase
+      .from("setores")
+      .select("id, setor")
+      .in("id", Array.from(setorIdsNeed));
+    for (const r of rows ?? []) setorNames.set(String(r.id), String(r.setor ?? ""));
+  }
+  const fornNames = new Map<string, string>();
+  if (fornIdsNeed.size > 0) {
+    const { data: rows } = await supabase
+      .from("fornecedores")
+      .select("id, fornecedor")
+      .in("id", Array.from(fornIdsNeed));
+    for (const r of rows ?? [])
+      fornNames.set(String(r.id), String(r.fornecedor ?? ""));
+  }
+
+  for (const it of itens) {
+    if (it.tipo === "insumo") {
+      const src = insumoMap.get(it.ref_id ?? "");
+      it.setor_id = src?.setor_id ?? null;
+      it.fornecedor_id = src?.fornecedor_id ?? null;
+      it.unidade = src?.unidade ?? null;
+    } else if (it.tipo === "produto") {
+      const src = produtoMap.get(it.ref_id ?? "");
+      it.setor_id = src?.setor_id ?? null;
+      it.fornecedor_id = src?.fornecedor_id ?? null;
+      it.unidade = "un";
+    }
+    it.setor_nome = it.setor_id ? setorNames.get(it.setor_id) ?? null : null;
+    it.fornecedor_nome = it.fornecedor_id
+      ? fornNames.get(it.fornecedor_id) ?? null
+      : null;
+  }
+
   return {
     id: String(d.id),
     numero: Number(d.numero ?? 0),
@@ -235,14 +358,7 @@ export async function getOrdemCompra(id: string): Promise<OrdemCompraDetalhe> {
     valor_total: Number(d.valor_total ?? 0),
     created_at: String(d.created_at),
     updated_at: String(d.updated_at),
-    itens: itens.map((i) => ({
-      id: String(i.id),
-      tipo: (i.tipo as OrdemCompraItem["tipo"]) ?? "insumo",
-      ref_id: (i.ref_id as string | null) ?? null,
-      nome: String(i.nome ?? ""),
-      quantidade: Number(i.quantidade ?? 0),
-      custo_unitario: Number(i.custo_unitario ?? 0),
-    })),
+    itens,
   };
 }
 

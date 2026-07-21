@@ -1,67 +1,59 @@
-## Objetivo
 
-Reescrever a impressão/preview da **Ordem de Compra** (Sugestão + Manual + Consolidada por Setor) usando como base o mesmo padrão do **Relatório de Clientes** — `ReportShell` + `printReport()` do `src/lib/reports/types.ts`. O `ReportShell` já resolve tudo que estava quebrado no `OrdemCompraReport` atual (página em branco, "Pág 0/0", setor vazio, oklch no PDF): cabeçalho/rodapé, paginação `@page`, filtros, seleção de colunas, escolha de fonte, totais monetários e contagem de registros.
+## Diagnóstico
 
-Essas regras (cabeçalho com logo + título + Pág x/y, rodapé com razão social/endereço, filtros, seleção de colunas, totais monetários, contagem, escolha de fonte) passam a ser as **regras oficiais** de qualquer relatório novo do sistema — via `ReportShell`.
+As colunas **Setor** e **Fornecedor** ficam em branco por duas origens diferentes:
 
-## Escopo — só a Ordem de Compra
+### A) Ordens já salvas (`OrdemCompraDetailDialog.tsx`)
+- `reportRows` é montado assim (linhas 135–149):
+  ```
+  setor: "",
+  fornecedor: fornEfetivo?.fornecedor ?? "",
+  ```
+  ou seja, o setor **nunca** é preenchido e o fornecedor sai do cabeçalho da ordem (fica em branco quando a ordem é consolidada — `id_fornecedor = null`, caso típico da Sugestão / Ordem Única / Consolidada por Setor).
+- A tabela `itens_ordem_compra` guarda apenas `tipo + ref_id + nome + quantidade + custo`, sem `setor_id` / `fornecedor_id`. Portanto o setor/fornecedor de cada linha precisa ser **resolvido em runtime** a partir do `ref_id` (join com `insumos` ou `products`).
 
-Não mexer no `RelatorioClientes`, no `RelatorioChatIA` nem no `ReportShell` propriamente dito (ele já está correto). Também não mexer no motor financeiro, RLS, RPCs ou schema.
+### B) Ordem em criação a partir da Sugestão (`OrdemCompraManualDialog.tsx`)
+- Quando o item vem do catálogo (`catalog`), o `reportRows` (linhas 383–428) lê `setorMap.get(source.setor_id)` e `fornMap.get(source.fornecedor_id)`. Se o catálogo (insumos / `admin_get_products`) devolver `setor_id`/`fornecedor_id`, funciona.
+- Quando o preload vem da Sugestão (`abrirConsolidadaPorSetor`, linhas 218–229), os nomes são passados em `setor_nome`/`fornecedor_nome`, mas o efeito de hidratação (linhas 268–298) só grava `preloadNames[key]` quando **há setorNome OU fornNome**, e o render lê `setorMap.get(...) || cached?.setor_nome`. Se o catálogo devolver `setor_id = null` para itens vindos de `products` (bug conhecido de `admin_get_products` que às vezes não expõe `setor_id`), o fallback funciona. Se o próprio `preloadedItems` também tiver setor/forn vazio (item sem setor cadastrado, ou perda no caminho), fica em branco.
 
-## Mudanças
+## Correções
 
-### 1. Substituir a impressão da Ordem de Compra pelo `ReportShell`
+### 1) `src/lib/estoque.ts` — enriquecer `getOrdemCompra`
+- Alterar o retorno de `getOrdemCompra(id)` para incluir por item:
+  - `setor_id`, `setor_nome`
+  - `fornecedor_id`, `fornecedor_nome`
+  - `unidade`
+- Implementação: após buscar `itens_ordem_compra`, agrupar `ref_id` por `tipo` e:
+  - `SELECT id, setor_id, fornecedor_id, unidade_medida FROM insumos WHERE id IN (...)`;
+  - `SELECT id, setor_id, fornecedor_id FROM products WHERE id IN (...)` (via `admin_get_products` já usado, ou select direto se RLS permitir);
+  - resolver setor/fornecedor com `listSetores()` + `listFornecedores()`.
+- Manter `OrdemCompraItem` retro-compatível: novos campos são opcionais (`string | null`).
 
-Criar `src/components/admin/reports/RelatorioOrdemCompra.tsx` seguindo o mesmo padrão do `RelatorioClientes.tsx`:
+### 2) `src/components/admin/OrdemCompraDetailDialog.tsx`
+- No `reportRows`, substituir os literais por:
+  ```
+  setor: i.setor_nome ?? "",
+  fornecedor: i.fornecedor_nome ?? fornEfetivo?.fornecedor ?? "",
+  unidade: i.unidade ?? "un",
+  ```
+- Passar também `estoque_atual/min/max` como `null` (o report já esconde por padrão).
 
-- Recebe via props: `title` (ex.: "Ordem de Compra — Sugestão", "Ordem Consolidada por Setor", "Ordem Manual"), `rows: OrdemCompraLinha[]`, `observacao?`, `loading?`.
-- Colunas padronizadas (todas selecionáveis; `defaultHidden` nas menos usadas):
-  - Item (nome), Setor, Fornecedor, Unidade, Qtd (numeric), Custo un. (money), Subtotal (money), Estoque atual (defaultHidden), Mínimo/Máximo (defaultHidden), Tipo (defaultHidden).
-- Filtros no header do shell (dentro do slot `filters`):
-  - Busca (nome/fornecedor/setor), Setor (select), Fornecedor (select), Tipo (insumo/produto/livre), Ordenar (Setor→Fornecedor→Nome | Fornecedor→Nome | Nome | Maior subtotal).
-- Totais: `money: true` em Custo un. e Subtotal → `ReportShell` já soma no rodapé; contagem de itens sai automática.
-- Rodapé: já vem de `ReportShell` com razão social + endereço da `empresas`.
-- Fonte, orientação (retrato/paisagem) e "Imprimir / PDF": já é o `printReport()` do shell, que injeta o `@page` com `counter(page) / counter(pages)` — resolve a página em branco e a paginação zerada do relatório atual.
+### 3) `src/components/admin/OrdemCompraManualDialog.tsx` — robustez
+- Sempre gravar `preloadNames[key]` (mesmo com strings vazias) para preservar a intenção do caller, e no `reportRows` inverter a precedência para: **primeiro** `cached?.setor_nome`, depois `setorMap.get(source.setor_id)`. Assim os nomes já resolvidos pela Sugestão (que sabe o setor real) ganham dos derivados do catálogo, que às vezes vêm sem `setor_id`.
+- Idem para `fornecedor`.
+- Nenhuma mudança na UI ou no salvamento.
 
-### 2. Preparar os dados a partir das três origens existentes
+### 4) Verificação em `admin_get_products` (só leitura)
+- Rodar `supabase--read_query` para confirmar se a RPC devolve `setor_id`/`fornecedor_id`. Se não devolver, incluir na lista de retorno é uma correção adicional — mas provavelmente já devolve (a Sugestão depende disso). Sem alterações se estiver OK.
 
-Criar um helper `src/lib/reports/ordem-compra-rows.ts` com uma única função `buildOrdemCompraRows(input)` que retorna `OrdemCompraLinha[]` já com `setor_nome`, `fornecedor_nome`, `estoque_atual`, `minimo`, `maximo`, `custo_compra`, `quantidade`, `unidade`, `tipo`, `nome` resolvidos. Ela é chamada em três lugares:
+## Fora de escopo
 
-- **Sugestão de Compra** (`SugestaoComprasView.tsx`) → para os botões:
-  - "Gerar Ordem Única" → uma lista.
-  - "Gerar Ordem Consolidada por Setor" → mesma função, `orderBy: setor→fornecedor→nome`.
-- **Ordem Manual** (`OrdemCompraManualDialog.tsx`) → mesmos dados dos itens editados no diálogo.
-- **Detalhe da OC** (`OrdemCompraDetailDialog.tsx`) → itens da OC persistida.
+- Não mudar `itens_ordem_compra` (evita migração para dados históricos; a resolução por `ref_id` cobre todos os casos existentes).
+- Não tocar em RLS, cash back, motor financeiro, impressão/paginação (já resolvidos).
 
-O helper resolve nome de setor/fornecedor **na origem**, eliminando a corrida de `setorMap`/`fornMap` que hoje deixa a coluna Setor em branco.
+## Validação
 
-### 3. Trocar o preview atual pelo novo componente
-
-- `SugestaoComprasView.tsx`: os botões "Gerar Ordem Única" e "Gerar Ordem Consolidada por Setor" passam a abrir um `Dialog` (ou navegar para uma aba) que renderiza `<RelatorioOrdemCompra rows={...} title={...} />`. Remover a rota atual que instanciava o `OrdemCompraReport` fora do shell.
-- `OrdemCompraManualDialog.tsx`: substituir o preview (`<OrdemCompraReport ... />` + `window.print()` manual) por `<RelatorioOrdemCompra ... />` renderizado num `Sheet`/`Dialog` de tela cheia. A parte de **salvar a OC no banco** continua igual — só o preview/impressão muda.
-- `OrdemCompraDetailDialog.tsx`: mesma troca de preview.
-
-### 4. Aposentar o `OrdemCompraReport` antigo
-
-Após 1–3 funcionarem, apagar `src/components/admin/reports/OrdemCompraReport.tsx` e as regras `@media print` específicas dele em `src/styles.css` (`.report-a4`, `.report-header`/`.report-footer` fixed, `.report-pagenum`, `@top-right` duplicado). O `printReport()` do shell já cobre tudo.
-
-### 5. PDF / WhatsApp
-
-- Botão "Imprimir / PDF" do `ReportShell` já usa `window.print()` → "Salvar como PDF" do navegador. Sem `html2pdf.js`, sem `oklch`, sem página em branco.
-- Botão "Enviar por WhatsApp" some do preview. Fica só o compartilhamento nativo do PDF que o próprio SO oferece após "Salvar como PDF". Se o usuário quiser um botão dedicado de WhatsApp num segundo momento, entra num plano separado.
-
-## Fora do escopo
-
-- Não mudar `RelatorioClientes`, `RelatorioChatIA`, `ReportShell`.
-- Não mudar cálculos de sugestão de compra, custo, estoque, ficha técnica, motor financeiro, RLS/GRANTs.
-- Não alterar o fluxo de salvar OC (manual/consolidada) — apenas o preview/impressão.
-
-## Verificação
-
-1. Sugestão de Compra → "Gerar Ordem Única" com 46 itens → preview mostra header/toolbar (colunas, fonte, orientação, CSV, Imprimir), 46 linhas, totais em Custo un. e Subtotal, "Total de registros: 46".
-2. "Imprimir / PDF" → visualização do navegador mostra 3 páginas A4, cabeçalho com logo + título + "Pág 1/3", rodapé com razão social/endereço.
-3. Coluna Setor preenchida em todas as linhas.
-4. Ordem Consolidada por Setor → mesma lista ordenada por setor → fornecedor → nome.
-5. Ordem Manual → preview idêntico ao da Sugestão.
-6. Detalhe de OC salva → preview idêntico.
-7. Nada de "oklch" no console, nenhuma página em branco.
+- Abrir uma **ordem salva consolidada** (várias fornecedores) → visualizar relatório → Setor e Fornecedor preenchidos em todas as linhas.
+- Abrir a **Sugestão → Gerar Ordem Consolidada por Setor** → preview → colunas preenchidas.
+- Abrir a **Ordem Manual/Avulsa** adicionando item do catálogo e um item livre com setor/fornecedor escolhidos → colunas preenchidas.
+- Imprimir e conferir que ainda paginam corretamente com cabeçalho/rodapé em todas as páginas.
