@@ -365,7 +365,7 @@ export function ProductDetailFields({
                 id="prod-custo-compra"
                 inputMode="decimal"
                 value={value.custo_compra}
-                readOnly
+                //readOnly
                 tabIndex={-1}
                 className="cursor-not-allowed bg-secondary text-muted-foreground"
                 placeholder="0,00"
