@@ -132,7 +132,7 @@ export function OrdemCompraDetailDialog({
         ? fornMap.get(ordem.id_fornecedor)
         : undefined;
 
-  const reportRows: OrdemCompraReportRow[] = useMemo(
+  const reportRows: OrdemCompraLinha[] = useMemo(
     () =>
       rows
         .filter((r) => parseNumberInput(r.quantidade) > 0)
@@ -148,7 +148,6 @@ export function OrdemCompraDetailDialog({
     [rows, fornEfetivo],
   );
 
-  const reportRef = useRef<HTMLDivElement>(null);
 
   async function handleSave() {
     if (!ordem || !editavel) return;
