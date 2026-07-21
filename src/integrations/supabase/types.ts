@@ -4617,6 +4617,7 @@ export type Database = {
       }
     }
     Functions: {
+      _compute_product_custo_total: { Args: { p_id: string }; Returns: number }
       _finalize_order_financials: {
         Args: { p_order_id: string }
         Returns: number
@@ -4793,6 +4794,15 @@ export type Database = {
       admin_quick_adjust_product: {
         Args: { p_custo_compra?: number; p_id: string; p_saldo_estoque: number }
         Returns: undefined
+      }
+      admin_recompute_all_custo_total: { Args: never; Returns: number }
+      admin_recompute_products_by_insumos: {
+        Args: { p_insumo_ids: string[] }
+        Returns: number
+      }
+      admin_recompute_products_custo_total: {
+        Args: { p_ids: string[] }
+        Returns: number
       }
       admin_save_product_core: {
         Args: {
