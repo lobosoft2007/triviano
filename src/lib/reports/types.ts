@@ -52,7 +52,9 @@ export function loadPrefs(slug: string, defaults: ReportPrefs): ReportPrefs {
       fontFamily: parsed.fontFamily || defaults.fontFamily,
       fontSize: Number(parsed.fontSize) || defaults.fontSize,
       orientation:
-        parsed.orientation === "landscape" ? "landscape" : defaults.orientation,
+        parsed.orientation === "landscape" || parsed.orientation === "portrait"
+          ? parsed.orientation
+          : defaults.orientation,
     };
   } catch {
     return defaults;
