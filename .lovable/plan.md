@@ -1,89 +1,67 @@
-## Diagnóstico
+## Objetivo
 
-**1) "Pág 0 / 0"** — o contador está dentro de `.report-header`, que em impressão é `position: fixed`. No Chromium, `counter(page)`/`counter(pages)` dentro de elemento `position: fixed` avalia como **0**. Por isso aparece "Pág 0 / 0" em toda página.
+Reescrever a impressão/preview da **Ordem de Compra** (Sugestão + Manual + Consolidada por Setor) usando como base o mesmo padrão do **Relatório de Clientes** — `ReportShell` + `printReport()` do `src/lib/reports/types.ts`. O `ReportShell` já resolve tudo que estava quebrado no `OrdemCompraReport` atual (página em branco, "Pág 0/0", setor vazio, oklch no PDF): cabeçalho/rodapé, paginação `@page`, filtros, seleção de colunas, escolha de fonte, totais monetários e contagem de registros.
 
-**2) Só imprime a 1ª página** — no `@media print` a regra atual força `.report-a4 { position: absolute; top: 0 }`. Elementos posicionados absolutamente **não paginam**: o navegador desenha o bloco todo e recorta na quebra da 1ª página, cortando as páginas 2 e 3. É por isso que 46 itens saem só até a 1ª folha.
+Essas regras (cabeçalho com logo + título + Pág x/y, rodapé com razão social/endereço, filtros, seleção de colunas, totais monetários, contagem, escolha de fonte) passam a ser as **regras oficiais** de qualquer relatório novo do sistema — via `ReportShell`.
 
-**3) Setor em branco** — em `OrdemCompraManualDialog.tsx` a coluna Setor é resolvida via `setorMap.get(setor_id)?.setor` — tanto no ramo do catálogo (`selectedRows`) quanto nos itens livres (preload da Sugestão). Basta o `setorMap` estar vazio no instante em que o `reportRows` é gerado (query `erp-setores` ainda hidratando, ou a instância desse `useQuery` no diálogo montada tarde) para todas as células ficarem "—". Precisamos parar de depender do `setorMap` no relatório: o nome do setor já vem da fonte e deve ser carregado direto.
+## Escopo — só a Ordem de Compra
 
-## Correções
+Não mexer no `RelatorioClientes`, no `RelatorioChatIA` nem no `ReportShell` propriamente dito (ele já está correto). Também não mexer no motor financeiro, RLS, RPCs ou schema.
 
-### A. Paginação real no cabeçalho (`src/styles.css`)
+## Mudanças
 
-Substituir o esquema de header/footer `position: fixed` + `counter(page)` interno por **@page margin boxes**, que são o mecanismo padrão para número de página:
+### 1. Substituir a impressão da Ordem de Compra pelo `ReportShell`
 
-```css
-@media print {
-  body.printing-report {
-    /* nada de fixed: o cabeçalho vai como “running header” do @page */
-  }
+Criar `src/components/admin/reports/RelatorioOrdemCompra.tsx` seguindo o mesmo padrão do `RelatorioClientes.tsx`:
 
-  @page {
-    /* já vem de printReport() com size + margens; adicionamos: */
-    @top-right {
-      content: "Pág " counter(page) " / " counter(pages);
-      font: 10pt "Inter", sans-serif;
-      color: #555;
-    }
-  }
+- Recebe via props: `title` (ex.: "Ordem de Compra — Sugestão", "Ordem Consolidada por Setor", "Ordem Manual"), `rows: OrdemCompraLinha[]`, `observacao?`, `loading?`.
+- Colunas padronizadas (todas selecionáveis; `defaultHidden` nas menos usadas):
+  - Item (nome), Setor, Fornecedor, Unidade, Qtd (numeric), Custo un. (money), Subtotal (money), Estoque atual (defaultHidden), Mínimo/Máximo (defaultHidden), Tipo (defaultHidden).
+- Filtros no header do shell (dentro do slot `filters`):
+  - Busca (nome/fornecedor/setor), Setor (select), Fornecedor (select), Tipo (insumo/produto/livre), Ordenar (Setor→Fornecedor→Nome | Fornecedor→Nome | Nome | Maior subtotal).
+- Totais: `money: true` em Custo un. e Subtotal → `ReportShell` já soma no rodapé; contagem de itens sai automática.
+- Rodapé: já vem de `ReportShell` com razão social + endereço da `empresas`.
+- Fonte, orientação (retrato/paisagem) e "Imprimir / PDF": já é o `printReport()` do shell, que injeta o `@page` com `counter(page) / counter(pages)` — resolve a página em branco e a paginação zerada do relatório atual.
 
-  /* .report-a4 volta a fluir naturalmente */
-  body.printing-report .report-a4 {
-    position: static;      /* <- ESSENCIAL para paginar */
-    width: 100%;
-    color: #000;
-    background: #fff;
-  }
+### 2. Preparar os dados a partir das três origens existentes
 
-  /* header/footer deixam de ser fixed; renderizam uma vez no fluxo */
-  body.printing-report .report-header,
-  body.printing-report .report-footer {
-    position: static;
-  }
+Criar um helper `src/lib/reports/ordem-compra-rows.ts` com uma única função `buildOrdemCompraRows(input)` que retorna `OrdemCompraLinha[]` já com `setor_nome`, `fornecedor_nome`, `estoque_atual`, `minimo`, `maximo`, `custo_compra`, `quantidade`, `unidade`, `tipo`, `nome` resolvidos. Ela é chamada em três lugares:
 
-  /* Sem padding-top/bottom de reserva (não há mais fixed cobrindo) */
-  body.printing-report .report-content {
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-}
-```
+- **Sugestão de Compra** (`SugestaoComprasView.tsx`) → para os botões:
+  - "Gerar Ordem Única" → uma lista.
+  - "Gerar Ordem Consolidada por Setor" → mesma função, `orderBy: setor→fornecedor→nome`.
+- **Ordem Manual** (`OrdemCompraManualDialog.tsx`) → mesmos dados dos itens editados no diálogo.
+- **Detalhe da OC** (`OrdemCompraDetailDialog.tsx`) → itens da OC persistida.
 
-Também esconder o `.report-pagenum` do JSX na impressão (deixa de ser fonte da numeração):
+O helper resolve nome de setor/fornecedor **na origem**, eliminando a corrida de `setorMap`/`fornMap` que hoje deixa a coluna Setor em branco.
 
-```css
-body.printing-report .report-pagenum { display: none; }
-```
+### 3. Trocar o preview atual pelo novo componente
 
-### B. Estender o `@page` gerado pelo `printReport` (`src/lib/reports/types.ts`)
+- `SugestaoComprasView.tsx`: os botões "Gerar Ordem Única" e "Gerar Ordem Consolidada por Setor" passam a abrir um `Dialog` (ou navegar para uma aba) que renderiza `<RelatorioOrdemCompra rows={...} title={...} />`. Remover a rota atual que instanciava o `OrdemCompraReport` fora do shell.
+- `OrdemCompraManualDialog.tsx`: substituir o preview (`<OrdemCompraReport ... />` + `window.print()` manual) por `<RelatorioOrdemCompra ... />` renderizado num `Sheet`/`Dialog` de tela cheia. A parte de **salvar a OC no banco** continua igual — só o preview/impressão muda.
+- `OrdemCompraDetailDialog.tsx`: mesma troca de preview.
 
-Injetar o mesmo `@top-right` no `<style>` dinâmico (fica junto do `@page { size: A4 ... }` que já é criado por chamada). Assim, mesmo trocando orientação, o contador reaparece.
+### 4. Aposentar o `OrdemCompraReport` antigo
 
-### C. Setor sempre presente (`OrdemCompraManualDialog.tsx`)
+Após 1–3 funcionarem, apagar `src/components/admin/reports/OrdemCompraReport.tsx` e as regras `@media print` específicas dele em `src/styles.css` (`.report-a4`, `.report-header`/`.report-footer` fixed, `.report-pagenum`, `@top-right` duplicado). O `printReport()` do shell já cobre tudo.
 
-Parar de resolver setor/fornecedor via `setorMap`/`fornMap` na geração de `reportRows`:
+### 5. PDF / WhatsApp
 
-1. Ampliar `FreeItem` para carregar `setor_nome` e `fornecedor_nome` já resolvidos no momento da hidratação (o dialog tem `setores`/`fornecedores` — se estiverem vazios no primeiro tick, o efeito de preload continua reagindo às queries; adicionar `setores`/`fornecedores` às dependências do preload).
-2. Ampliar `PreloadedOCItem` (opcional) com `setor_nome` e `fornecedor_nome`. `SugestaoComprasView` já tem os dois maps e passa direto.
-3. Em `reportRows`:
-   - free item → usar `f.setor_nome` (fallback `setorMap.get(...)`).
-   - catalog item → manter `setorMap`, mas com o mesmo fallback via `PreloadedOCItem` se o item veio da Sugestão (guardar num `Map<catalogKey, setor_nome>` construído no preload).
+- Botão "Imprimir / PDF" do `ReportShell` já usa `window.print()` → "Salvar como PDF" do navegador. Sem `html2pdf.js`, sem `oklch`, sem página em branco.
+- Botão "Enviar por WhatsApp" some do preview. Fica só o compartilhamento nativo do PDF que o próprio SO oferece após "Salvar como PDF". Se o usuário quiser um botão dedicado de WhatsApp num segundo momento, entra num plano separado.
 
-Assim o relatório fica imune a race das queries `erp-setores` / `erp-fornecedores`.
+## Fora do escopo
 
-### D. Verificação
+- Não mudar `RelatorioClientes`, `RelatorioChatIA`, `ReportShell`.
+- Não mudar cálculos de sugestão de compra, custo, estoque, ficha técnica, motor financeiro, RLS/GRANTs.
+- Não alterar o fluxo de salvar OC (manual/consolidada) — apenas o preview/impressão.
 
-Após aplicar, imprimir a Ordem Consolidada com 46 itens e conferir via preview de impressão do navegador:
+## Verificação
 
-- 3 páginas geradas (46 itens no A4 paisagem).
-- Cabeçalho mostra "Pág 1 / 3", "Pág 2 / 3", "Pág 3 / 3".
-- Coluna "Setor" preenchida em todas as linhas.
-- Sem duplicação de thead nem overflow em Retrato.
-
-## Arquivos afetados
-
-- `src/styles.css` — bloco `@media print` do relatório A4.
-- `src/lib/reports/types.ts` — `printReport` injeta `@top-right`.
-- `src/components/admin/OrdemCompraReport.tsx` — remover o span `.report-pagenum` (ou apenas ocultar via CSS já feito em A).
-- `src/components/admin/OrdemCompraManualDialog.tsx` — `FreeItem` + `PreloadedOCItem` + preload + `reportRows`.
-- `src/components/admin/SugestaoComprasView.tsx` — preencher `setor_nome`/`fornecedor_nome` ao montar `PreloadedOCItem`.
+1. Sugestão de Compra → "Gerar Ordem Única" com 46 itens → preview mostra header/toolbar (colunas, fonte, orientação, CSV, Imprimir), 46 linhas, totais em Custo un. e Subtotal, "Total de registros: 46".
+2. "Imprimir / PDF" → visualização do navegador mostra 3 páginas A4, cabeçalho com logo + título + "Pág 1/3", rodapé com razão social/endereço.
+3. Coluna Setor preenchida em todas as linhas.
+4. Ordem Consolidada por Setor → mesma lista ordenada por setor → fornecedor → nome.
+5. Ordem Manual → preview idêntico ao da Sugestão.
+6. Detalhe de OC salva → preview idêntico.
+7. Nada de "oklch" no console, nenhuma página em branco.

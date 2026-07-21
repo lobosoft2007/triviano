@@ -1,14 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Download,
-  Loader2,
-  Plus,
-  Printer,
-  Share2,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Eye, Loader2, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -31,13 +23,10 @@ import {
   type OrdemCompraItem,
 } from "@/lib/estoque";
 import { formatBRL } from "@/lib/format";
-import { printReport } from "@/lib/reports/types";
-import { downloadNodeAsPdf, shareNodeAsPdfWhatsapp } from "@/lib/pdf-share";
-import { empresaAdminConfigQueryOptions } from "@/lib/empresa";
 import {
-  OrdemCompraReport,
-  type OrdemCompraReportRow,
-} from "./reports/OrdemCompraReport";
+  RelatorioOrdemCompraDialog,
+  type OrdemCompraLinha,
+} from "./reports/RelatorioOrdemCompra";
 
 const NONE = "__none__";
 
@@ -65,7 +54,7 @@ export function OrdemCompraDetailDialog({
     queryFn: listFornecedores,
     enabled: open,
   });
-  const { data: empresa } = useQuery(empresaAdminConfigQueryOptions);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const {
     data: ordem,
     isLoading,
@@ -143,7 +132,7 @@ export function OrdemCompraDetailDialog({
         ? fornMap.get(ordem.id_fornecedor)
         : undefined;
 
-  const reportRows: OrdemCompraReportRow[] = useMemo(
+  const reportRows: OrdemCompraLinha[] = useMemo(
     () =>
       rows
         .filter((r) => parseNumberInput(r.quantidade) > 0)
@@ -159,7 +148,6 @@ export function OrdemCompraDetailDialog({
     [rows, fornEfetivo],
   );
 
-  const reportRef = useRef<HTMLDivElement>(null);
 
   async function handleSave() {
     if (!ordem || !editavel) return;
@@ -204,57 +192,14 @@ export function OrdemCompraDetailDialog({
     }
   }
 
-  async function handlePrint() {
+  function handleOpenPreview() {
     if (reportRows.length === 0) {
-      toast.error("Nenhum item para imprimir.");
+      toast.error("Nenhum item para visualizar.");
       return;
     }
-    setBusy("print");
-    setTimeout(() => {
-      try {
-        printReport(orientation);
-      } finally {
-        setBusy(null);
-      }
-    }, 50);
+    setPreviewOpen(true);
   }
 
-  async function handleDownload() {
-    if (!reportRef.current || reportRows.length === 0) return;
-    setBusy("download");
-    try {
-      const filename = `ordem-de-compra-${ordem?.numero ?? "s-numero"}.pdf`;
-      await downloadNodeAsPdf(reportRef.current, filename, orientation);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleShare() {
-    if (!reportRef.current || reportRows.length === 0) return;
-    setBusy("share");
-    try {
-      const filename = `ordem-de-compra-${ordem?.numero ?? "s-numero"}.pdf`;
-      const result = await shareNodeAsPdfWhatsapp(
-        reportRef.current,
-        filename,
-        orientation,
-        `Ordem de Compra nº ${ordem?.numero ?? ""} em anexo.`,
-        fornEfetivo?.telefone ?? null,
-      );
-      toast.success(
-        result === "shared"
-          ? "PDF pronto para envio."
-          : "PDF baixado. Anexe no WhatsApp que abriu em nova aba.",
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
-    } finally {
-      setBusy(null);
-    }
-  }
 
   return (
     <>
@@ -295,59 +240,14 @@ export function OrdemCompraDetailDialog({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Select
-                      value={orientation}
-                      onValueChange={(v) => setOrientation(v as "portrait" | "landscape")}
-                    >
-                      <SelectTrigger className="h-9 w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="landscape">Paisagem</SelectItem>
-                        <SelectItem value="portrait">Retrato</SelectItem>
-                      </SelectContent>
-                    </Select>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={handlePrint}
-                      disabled={busy !== null}
+                      onClick={handleOpenPreview}
                       className="gap-1.5"
                     >
-                      {busy === "print" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Printer className="h-4 w-4" />
-                      )}
-                      Imprimir
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleDownload}
-                      disabled={busy !== null}
-                      className="gap-1.5"
-                    >
-                      {busy === "download" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4" />
-                      )}
-                      Baixar PDF
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleShare}
-                      disabled={busy !== null}
-                      className="gap-1.5"
-                    >
-                      {busy === "share" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Share2 className="h-4 w-4" />
-                      )}
-                      WhatsApp
+                      <Eye className="h-4 w-4" />
+                      Visualizar relatório
                     </Button>
                     {editavel && (
                       <Button
@@ -487,25 +387,13 @@ export function OrdemCompraDetailDialog({
         </DialogContent>
       </Dialog>
 
-      <div
-        aria-hidden
-        className="report-print-host"
-        style={{
-          position: "fixed",
-          left: "-10000px",
-          top: 0,
-          width: "210mm",
-          pointerEvents: "none",
-        }}
-      >
-        <OrdemCompraReport
-          ref={reportRef}
-          empresa={empresa}
-          rows={reportRows}
-          observacao={observacao}
-            orientation={orientation}
-        />
-      </div>
+      <RelatorioOrdemCompraDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        title={ordem ? `Ordem de Compra nº ${ordem.numero}` : "Ordem de Compra"}
+        rows={reportRows}
+        observacao={observacao}
+      />
     </>
   );
 }

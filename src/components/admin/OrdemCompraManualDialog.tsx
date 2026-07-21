@@ -1,15 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Download,
-  Loader2,
-  Plus,
-  Printer,
-  Search,
-  Send,
-  Share2,
-  X,
-} from "lucide-react";
+import { Eye, Loader2, Plus, Search, Send, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -33,7 +24,6 @@ import {
   listSetores,
   parseNumberInput,
   type Fornecedor,
-  type Insumo,
   type Setor,
 } from "@/lib/erp";
 import {
@@ -43,13 +33,10 @@ import {
 } from "@/lib/estoque";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { printReport } from "@/lib/reports/types";
-import { downloadNodeAsPdf, shareNodeAsPdfWhatsapp } from "@/lib/pdf-share";
-import { empresaAdminConfigQueryOptions } from "@/lib/empresa";
 import {
-  OrdemCompraReport,
-  type OrdemCompraReportRow,
-} from "./reports/OrdemCompraReport";
+  RelatorioOrdemCompraDialog,
+  type OrdemCompraLinha,
+} from "./reports/RelatorioOrdemCompra";
 
 const NONE = "__none__";
 
@@ -181,7 +168,6 @@ export function OrdemCompraManualDialog({
     queryKey: ["revenda-produtos-full"],
     queryFn: fetchProdutosRevenda,
   });
-  const { data: empresa } = useQuery(empresaAdminConfigQueryOptions);
 
   const setorMap = useMemo(
     () => new Map<string, Setor>((setores ?? []).map((s) => [s.id, s])),
@@ -246,10 +232,7 @@ export function OrdemCompraManualDialog({
 
   const [saving, setSaving] = useState(false);
   const [savingUnica, setSavingUnica] = useState(false);
-  const [busyAction, setBusyAction] = useState<"print" | "share" | "download" | null>(null);
-  const [orientation, setOrientation] = useState<"portrait" | "landscape">(
-    "landscape",
-  );
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Reset when reopening.
   useEffect(() => {
@@ -396,9 +379,9 @@ export function OrdemCompraManualDialog({
     selectedRows.length +
     freeItems.filter((f) => parseNumberInput(f.quantidade) > 0).length;
 
-  /* ---------------- Report rows for print / PDF --------------------- */
-  const reportRows: OrdemCompraReportRow[] = useMemo(() => {
-    const rows: OrdemCompraReportRow[] = [];
+  /* ---------------- Report rows (padrão OrdemCompraLinha) ----------- */
+  const reportRows: OrdemCompraLinha[] = useMemo(() => {
+    const rows: OrdemCompraLinha[] = [];
     const defaultFornNome =
       defaultFornecedor !== NONE
         ? fornMap.get(defaultFornecedor)?.fornecedor ?? ""
@@ -419,6 +402,9 @@ export function OrdemCompraManualDialog({
         unidade: r.source.unidade,
         quantidade: r.qty,
         custo_unitario: r.custo,
+        estoque_atual: r.source.saldo_estoque,
+        estoque_minimo: r.source.estoque_minimo,
+        estoque_maximo: r.source.estoque_maximo,
       });
     }
     for (const f of freeItems) {
@@ -627,67 +613,13 @@ export function OrdemCompraManualDialog({
   }
 
 
-  /* ---------------- Print / Share ----------------------------------- */
-  const reportRef = useRef<HTMLDivElement>(null);
-
-  async function handlePrint() {
+  /* ---------------- Preview / Print via ReportShell ----------------- */
+  function handleOpenPreview() {
     if (reportRows.length === 0) {
-      toast.error("Preencha ao menos um item antes de imprimir.");
+      toast.error("Preencha ao menos um item antes de visualizar o relatório.");
       return;
     }
-    setBusyAction("print");
-    setTimeout(() => {
-      try {
-        printReport(orientation);
-      } finally {
-        setBusyAction(null);
-      }
-    }, 50);
-  }
-
-  async function handleShare() {
-    if (reportRows.length === 0) {
-      toast.error("Preencha ao menos um item antes de enviar.");
-      return;
-    }
-    if (!reportRef.current) return;
-    setBusyAction("share");
-    try {
-      const stamp = new Date().toISOString().slice(0, 10);
-      const filename = `ordem-de-compra-${stamp}.pdf`;
-      const result = await shareNodeAsPdfWhatsapp(
-        reportRef.current,
-        filename,
-        orientation,
-        "Segue a Ordem de Compra em anexo.",
-      );
-      toast.success(
-        result === "shared"
-          ? "PDF pronto para envio."
-          : "PDF baixado. Anexe no WhatsApp que abriu em nova aba.",
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function handleDownload() {
-    if (reportRows.length === 0) {
-      toast.error("Preencha ao menos um item antes de baixar.");
-      return;
-    }
-    if (!reportRef.current) return;
-    setBusyAction("download");
-    try {
-      const stamp = new Date().toISOString().slice(0, 10);
-      await downloadNodeAsPdf(reportRef.current, `ordem-de-compra-${stamp}.pdf`, orientation);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
-    } finally {
-      setBusyAction(null);
-    }
+    setPreviewOpen(true);
   }
 
   return (
@@ -726,59 +658,15 @@ export function OrdemCompraManualDialog({
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Select
-                  value={orientation}
-                  onValueChange={(v) => setOrientation(v as "portrait" | "landscape")}
-                >
-                  <SelectTrigger className="h-9 w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="landscape">Paisagem</SelectItem>
-                    <SelectItem value="portrait">Retrato</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handlePrint}
-                  disabled={busyAction !== null || totalItens === 0}
+                  onClick={handleOpenPreview}
+                  disabled={totalItens === 0}
                   className="gap-1.5"
                 >
-                  {busyAction === "print" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Printer className="h-4 w-4" />
-                  )}
-                  Imprimir
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleShare}
-                  disabled={busyAction !== null || totalItens === 0}
-                  className="gap-1.5"
-                >
-                  {busyAction === "share" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Share2 className="h-4 w-4" />
-                  )}
-                  Enviar PDF por WhatsApp
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownload}
-                  disabled={busyAction !== null || totalItens === 0}
-                  className="gap-1.5"
-                >
-                  {busyAction === "download" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  Baixar PDF
+                  <Eye className="h-4 w-4" />
+                  Visualizar relatório
                 </Button>
               </div>
             </div>
@@ -1057,28 +945,13 @@ export function OrdemCompraManualDialog({
         </DialogContent>
       </Dialog>
 
-      {/* Off-screen A4 report used by print / PDF share. Kept in the DOM so
-          the print CSS in styles.css picks up `.report-a4` even when the
-          dialog owns the visible layout. */}
-      <div
-        aria-hidden
-        className="report-print-host"
-        style={{
-          position: "fixed",
-          left: "-10000px",
-          top: 0,
-          width: "210mm",
-          pointerEvents: "none",
-        }}
-      >
-        <OrdemCompraReport
-          ref={reportRef}
-          empresa={empresa}
-          rows={reportRows}
-          observacao={observacao}
-          orientation={orientation}
-        />
-      </div>
+      <RelatorioOrdemCompraDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        title={title ?? "Ordem de Compra Manual / Avulsa"}
+        rows={reportRows}
+        observacao={observacao}
+      />
 
       {/* Silence unused-icon lint if the icon becomes optional in the future. */}
       <Send className="hidden" />
