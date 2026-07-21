@@ -220,6 +220,7 @@ export function RelatorioOrdemCompra({
         title={title}
         columns={COLUMNS}
         defaultVisible={DEFAULT_VISIBLE}
+        defaultOrientation="landscape"
         rows={filtered}
         loading={loading}
         csvValue={csvValue}
