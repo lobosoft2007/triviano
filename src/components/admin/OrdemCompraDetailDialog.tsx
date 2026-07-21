@@ -77,6 +77,8 @@ export function OrdemCompraDetailDialog({
   );
 
   const editavel = (ordem?.status ?? "Aberta") === "Aberta";
+  const podeReceber = ordem ? ordem.status !== "Recebida" : false;
+  const [receberOpen, setReceberOpen] = useState(false);
 
   useEffect(() => {
     if (ordem) {
