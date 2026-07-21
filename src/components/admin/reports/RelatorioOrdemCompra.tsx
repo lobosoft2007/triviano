@@ -327,14 +327,15 @@ export function RelatorioOrdemCompraDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         hideClose
+        data-report-dialog="true"
         className="flex h-[95dvh] max-h-[95dvh] max-w-[1200px] flex-col gap-0 p-0"
       >
         <ModalActionBar
           title={props.title}
           onBack={() => onOpenChange(false)}
-          className="mx-0 mt-0"
+          className="mx-0 mt-0 print:hidden"
         />
-        <div className="min-h-0 flex-1 overflow-y-auto bg-secondary/30 p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-secondary/30 p-4 print:block print:bg-white print:p-0">
           <RelatorioOrdemCompra {...props} />
         </div>
       </DialogContent>
