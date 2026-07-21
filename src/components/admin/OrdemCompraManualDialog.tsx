@@ -392,12 +392,12 @@ export function OrdemCompraManualDialog({
         nome: r.source.nome,
         tipo: r.source.tipo,
         setor:
-          setorMap.get(r.source.setor_id ?? "")?.setor ||
           cached?.setor_nome ||
+          setorMap.get(r.source.setor_id ?? "")?.setor ||
           "",
         fornecedor:
-          fornMap.get(r.source.fornecedor_id ?? "")?.fornecedor ||
           cached?.fornecedor_nome ||
+          fornMap.get(r.source.fornecedor_id ?? "")?.fornecedor ||
           defaultFornNome,
         unidade: r.source.unidade,
         quantidade: r.qty,
@@ -414,10 +414,12 @@ export function OrdemCompraManualDialog({
         nome: f.nome || "(item livre)",
         tipo: "livre",
         setor:
-          setorMap.get(f.setor_id ?? "")?.setor || f.setor_nome || "",
+          f.setor_nome ||
+          setorMap.get(f.setor_id ?? "")?.setor ||
+          "",
         fornecedor:
-          fornMap.get(f.fornecedor_id ?? "")?.fornecedor ||
           f.fornecedor_nome ||
+          fornMap.get(f.fornecedor_id ?? "")?.fornecedor ||
           defaultFornNome,
         unidade: f.unidade || "un",
         quantidade: q,
