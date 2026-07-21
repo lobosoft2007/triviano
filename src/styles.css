@@ -177,15 +177,19 @@
   display: none;
 }
 
+#report-print-root {
+  display: none;
+}
+
 @media print {
-  body * {
+  body:not(.printing-report) * {
     visibility: hidden;
   }
-  .thermal-receipt,
-  .thermal-receipt * {
+  body:not(.printing-report) .thermal-receipt,
+  body:not(.printing-report) .thermal-receipt * {
     visibility: visible;
   }
-  .thermal-receipt {
+  body:not(.printing-report) .thermal-receipt {
     display: block;
     position: absolute;
     left: 0;
@@ -205,12 +209,36 @@
   }
 
   /* A4 report printing (activated when body has .printing-report class). */
+  body.printing-report * {
+    visibility: hidden !important;
+  }
   body.printing-report,
   body.printing-report #root {
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
+  }
+  body.printing-report .thermal-receipt {
+    display: none !important;
+  }
+  body.printing-report #root {
+    display: none !important;
+  }
+  body.printing-report #report-print-root,
+  body.printing-report #report-print-root * {
+    visibility: visible !important;
+  }
+  body.printing-report #report-print-root {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #000 !important;
   }
   body.printing-report [data-radix-dialog-overlay] {
     display: none !important;
@@ -248,20 +276,25 @@
     left: auto;
     top: auto;
     right: auto;
-    width: 100% !important;
+    width: 190mm !important;
     max-width: none !important;
+    min-width: 0 !important;
     color: #000;
     background: #fff;
     padding: 0;
+    margin: 0 auto !important;
     border: 0;
     box-shadow: none;
     break-inside: auto;
     page-break-inside: auto;
   }
+  body.printing-report .report-a4[data-report-orientation="landscape"] {
+    width: 277mm !important;
+  }
   body.printing-report .report-print-table {
     width: 100% !important;
     border-collapse: collapse;
-    table-layout: auto;
+    table-layout: fixed;
     break-inside: auto;
     page-break-inside: auto;
   }
@@ -288,8 +321,37 @@
   body.printing-report .report-data-row,
   body.printing-report .report-summary-row,
   body.printing-report .report-total-row {
-    break-inside: avoid;
-    page-break-inside: avoid;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+  body.printing-report .report-column-head th,
+  body.printing-report .report-data-row td,
+  body.printing-report .report-summary-row td,
+  body.printing-report .report-total-row td {
+    overflow-wrap: anywhere;
+    word-break: normal;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  body.printing-report .report-column-head th[data-report-col="unidade"],
+  body.printing-report .report-data-row td[data-report-col="unidade"] {
+    width: 9mm;
+  }
+  body.printing-report .report-column-head th[data-report-col="quantidade"],
+  body.printing-report .report-data-row td[data-report-col="quantidade"] {
+    width: 11mm;
+  }
+  body.printing-report .report-column-head th[data-report-col="custo_unitario"],
+  body.printing-report .report-data-row td[data-report-col="custo_unitario"],
+  body.printing-report .report-column-head th[data-report-col="subtotal"],
+  body.printing-report .report-data-row td[data-report-col="subtotal"] {
+    width: 23mm;
+  }
+  body.printing-report .report-column-head th[data-report-col="setor"],
+  body.printing-report .report-data-row td[data-report-col="setor"],
+  body.printing-report .report-column-head th[data-report-col="fornecedor"],
+  body.printing-report .report-data-row td[data-report-col="fornecedor"] {
+    width: 28mm;
   }
   /* O contador nativo do @page substitui esse span. */
   body.printing-report .report-pagenum {
