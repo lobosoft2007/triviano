@@ -54,7 +54,7 @@ export function OrdemCompraDetailDialog({
     queryFn: listFornecedores,
     enabled: open,
   });
-  const { data: empresa } = useQuery(empresaAdminConfigQueryOptions);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const {
     data: ordem,
     isLoading,
