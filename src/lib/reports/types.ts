@@ -90,6 +90,11 @@ function removeExistingPrintRoot() {
   document.getElementById("report-print-root")?.remove();
 }
 
+type HiddenPrintSibling = {
+  element: HTMLElement;
+  display: string;
+};
+
 export function printReport(
   orientation: ReportOrientation = "portrait",
   slug?: string,
@@ -114,9 +119,47 @@ export function printReport(
   printRoot.appendChild(clone);
   document.body.appendChild(printRoot);
 
+  const hiddenSiblings: HiddenPrintSibling[] = [];
+  Array.from(document.body.children).forEach((child) => {
+    if (child === printRoot || !(child instanceof HTMLElement)) return;
+    hiddenSiblings.push({
+      element: child,
+      display: child.style.getPropertyValue("display"),
+    });
+    child.style.setProperty("display", "none", "important");
+  });
+
+  const previousHtmlBackground = document.documentElement.style.backgroundColor;
+  const previousBodyBackground = document.body.style.backgroundColor;
+  const previousBodyMargin = document.body.style.margin;
+  document.documentElement.style.backgroundColor = "#fff";
+  document.body.style.backgroundColor = "#fff";
+  document.body.style.margin = "0";
+
   const style = document.createElement("style");
   style.id = "report-print-page";
   style.textContent = `@media print {
+    html, body {
+      background: #fff !important;
+      color: #000 !important;
+      margin: 0 !important;
+      min-height: 0 !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    body.printing-report > :not(#report-print-root) {
+      display: none !important;
+    }
+    #report-print-root {
+      display: block !important;
+      background: #fff !important;
+      color: #000 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
     @page {
       size: A4 ${orientation};
       margin: 12mm 10mm 16mm 10mm;
@@ -131,6 +174,13 @@ export function printReport(
   document.body.classList.add("printing-report");
   const cleanup = () => {
     document.body.classList.remove("printing-report");
+    hiddenSiblings.forEach(({ element, display }) => {
+      if (display) element.style.setProperty("display", display);
+      else element.style.removeProperty("display");
+    });
+    document.documentElement.style.backgroundColor = previousHtmlBackground;
+    document.body.style.backgroundColor = previousBodyBackground;
+    document.body.style.margin = previousBodyMargin;
     removeExistingPrintRoot();
     style.remove();
     window.removeEventListener("afterprint", cleanup);
