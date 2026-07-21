@@ -272,6 +272,16 @@ export function OrdemCompraDetailDialog({
                       <Eye className="h-4 w-4" />
                       Visualizar relatório
                     </Button>
+                    {podeReceber && (
+                      <Button
+                        size="sm"
+                        onClick={() => setReceberOpen(true)}
+                        className="gap-1.5"
+                      >
+                        <PackageCheck className="h-4 w-4" />
+                        Receber Mercadoria
+                      </Button>
+                    )}
                     {editavel && (
                       <Button
                         variant="destructive"
