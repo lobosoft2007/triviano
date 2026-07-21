@@ -72,10 +72,14 @@ interface FreeItem {
   nome: string;
   setor_id: string | null;
   fornecedor_id: string | null;
+  /** Pré-resolvido no momento da hidratação, para não depender de setorMap no render. */
+  setor_nome?: string;
+  fornecedor_nome?: string;
   unidade: string;
   custo_unitario: string;
   quantidade: string;
 }
+
 
 interface RowState {
   quantidade: string;
@@ -136,9 +140,13 @@ export interface PreloadedOCItem {
   unidade: string;
   setor_id: string | null;
   fornecedor_id: string | null;
+  /** Nomes já resolvidos pelo caller — evita "—" quando o setorMap ainda não hidratou. */
+  setor_nome?: string;
+  fornecedor_nome?: string;
   custo_unitario: number;
   quantidade: number;
 }
+
 
 export function OrdemCompraManualDialog({
   open,
@@ -231,6 +239,11 @@ export function OrdemCompraManualDialog({
   const [observacao, setObservacao] = useState("");
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
   const [freeItems, setFreeItems] = useState<FreeItem[]>([]);
+  /** Nomes pré-resolvidos vindos do preload, por chave do catálogo (`tipo:ref_id`). */
+  const [preloadNames, setPreloadNames] = useState<
+    Record<string, { setor_nome?: string; fornecedor_nome?: string }>
+  >({});
+
   const [saving, setSaving] = useState(false);
   const [savingUnica, setSavingUnica] = useState(false);
   const [busyAction, setBusyAction] = useState<"print" | "share" | "download" | null>(null);
@@ -246,8 +259,10 @@ export function OrdemCompraManualDialog({
       setObservacao(observacaoDefault ?? "");
       setRowState({});
       setFreeItems([]);
+      setPreloadNames({});
     }
   }, [open, observacaoDefault]);
+
 
   // Hydrate from preloadedItems once catalog is ready.
   const preloadKey = useMemo(
@@ -263,19 +278,32 @@ export function OrdemCompraManualDialog({
     const catalogKeys = new Set(catalog.map((c) => c.key));
     const nextRowState: Record<string, RowState> = {};
     const nextFree: FreeItem[] = [];
+    const nextNames: Record<
+      string,
+      { setor_nome?: string; fornecedor_nome?: string }
+    > = {};
     preloadedItems.forEach((it, idx) => {
       const key = it.ref_id ? `${it.tipo}:${it.ref_id}` : "";
+      const setorNome =
+        it.setor_nome || setorMap.get(it.setor_id ?? "")?.setor || "";
+      const fornNome =
+        it.fornecedor_nome || fornMap.get(it.fornecedor_id ?? "")?.fornecedor || "";
       if (key && catalogKeys.has(key)) {
         nextRowState[key] = {
           quantidade: String(it.quantidade).replace(".", ","),
           custo: String(it.custo_unitario).replace(".", ","),
         };
+        if (setorNome || fornNome) {
+          nextNames[key] = { setor_nome: setorNome, fornecedor_nome: fornNome };
+        }
       } else {
         nextFree.push({
           key: `free:preload:${idx}`,
           nome: it.nome,
           setor_id: it.setor_id,
           fornecedor_id: it.fornecedor_id,
+          setor_nome: setorNome,
+          fornecedor_nome: fornNome,
           unidade: it.unidade || "un",
           custo_unitario: String(it.custo_unitario).replace(".", ","),
           quantidade: String(it.quantidade).replace(".", ","),
@@ -284,8 +312,10 @@ export function OrdemCompraManualDialog({
     });
     setRowState(nextRowState);
     setFreeItems(nextFree);
+    setPreloadNames(nextNames);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, preloadKey, catalog.length]);
+  }, [open, preloadKey, catalog.length, setorMap, fornMap]);
+
 
 
   const getRow = (key: string): RowState =>
@@ -369,16 +399,23 @@ export function OrdemCompraManualDialog({
   /* ---------------- Report rows for print / PDF --------------------- */
   const reportRows: OrdemCompraReportRow[] = useMemo(() => {
     const rows: OrdemCompraReportRow[] = [];
+    const defaultFornNome =
+      defaultFornecedor !== NONE
+        ? fornMap.get(defaultFornecedor)?.fornecedor ?? ""
+        : "";
     for (const r of selectedRows) {
+      const cached = preloadNames[r.source.key];
       rows.push({
         nome: r.source.nome,
         tipo: r.source.tipo,
-        setor: setorMap.get(r.source.setor_id ?? "")?.setor ?? "",
+        setor:
+          setorMap.get(r.source.setor_id ?? "")?.setor ||
+          cached?.setor_nome ||
+          "",
         fornecedor:
-          fornMap.get(r.source.fornecedor_id ?? "")?.fornecedor ??
-          (defaultFornecedor !== NONE
-            ? fornMap.get(defaultFornecedor)?.fornecedor ?? ""
-            : ""),
+          fornMap.get(r.source.fornecedor_id ?? "")?.fornecedor ||
+          cached?.fornecedor_nome ||
+          defaultFornNome,
         unidade: r.source.unidade,
         quantidade: r.qty,
         custo_unitario: r.custo,
@@ -390,19 +427,20 @@ export function OrdemCompraManualDialog({
       rows.push({
         nome: f.nome || "(item livre)",
         tipo: "livre",
-        setor: setorMap.get(f.setor_id ?? "")?.setor ?? "",
+        setor:
+          setorMap.get(f.setor_id ?? "")?.setor || f.setor_nome || "",
         fornecedor:
-          fornMap.get(f.fornecedor_id ?? "")?.fornecedor ??
-          (defaultFornecedor !== NONE
-            ? fornMap.get(defaultFornecedor)?.fornecedor ?? ""
-            : ""),
+          fornMap.get(f.fornecedor_id ?? "")?.fornecedor ||
+          f.fornecedor_nome ||
+          defaultFornNome,
         unidade: f.unidade || "un",
         quantidade: q,
         custo_unitario: parseNumberInput(f.custo_unitario),
       });
     }
     return rows;
-  }, [selectedRows, freeItems, setorMap, fornMap, defaultFornecedor]);
+  }, [selectedRows, freeItems, setorMap, fornMap, defaultFornecedor, preloadNames]);
+
 
   /* ---------------- Free items -------------------------------------- */
   const addFreeItem = () =>

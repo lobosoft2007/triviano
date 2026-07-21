@@ -210,10 +210,10 @@
     visibility: visible;
   }
   body.printing-report .report-a4 {
-    position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
+    position: static;
+    left: auto;
+    top: auto;
+    right: auto;
     width: 100%;
     color: #000;
     background: #fff;
@@ -221,42 +221,27 @@
     border: 0;
     box-shadow: none;
   }
-  /* Repeat header/footer on every printed page. */
-  body.printing-report .report-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: #fff;
-  }
+  /* Header/footer fluem naturalmente (uma única vez).
+     Paginação vem do @page @top-right injetado por printReport(). */
+  body.printing-report .report-header,
   body.printing-report .report-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    position: static;
     background: #fff;
   }
-  /* Leave space for the fixed header/footer inside the flowing content.
-     Fixed header is ~40px logo + border ≈ 16mm; 18mm gives a small safety
-     margin without pushing rows to the next page. */
   body.printing-report .report-content {
-    padding-top: 18mm;
-    padding-bottom: 12mm;
+    padding-top: 0;
+    padding-bottom: 0;
   }
-  /* Do NOT repeat the table thead on each printed page — that showed a
-     stray "header + last row" fragment below the totals when a table
-     overflowed by a single row. */
+  /* Não repetir thead em cada página. */
   body.printing-report .report-a4 thead {
     display: table-row-group;
   }
-  /* Real page counter for the report header. */
-  body.printing-report .report-pagenum::after {
-    content: "Pág " counter(page) " / " counter(pages);
+  /* O contador nativo do @page substitui esse span. */
+  body.printing-report .report-pagenum {
+    display: none;
   }
 
-  /* Neutralize off-screen host wrappers so the absolutely-positioned
-     `.report-a4` anchors to the page (body), not to a wrapper parked at
-     left:-10000px. Without this, print output is blank. */
+  /* Neutralize off-screen host wrappers so `.report-a4` anchors to body. */
   body.printing-report .report-print-host {
     position: static !important;
     left: auto !important;
@@ -267,6 +252,7 @@
     transform: none !important;
   }
 }
+
 
 /* -----------------------------------------------------------------------
  * html2canvas / html2pdf oklch guard.
