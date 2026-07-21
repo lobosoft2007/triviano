@@ -72,10 +72,14 @@ interface FreeItem {
   nome: string;
   setor_id: string | null;
   fornecedor_id: string | null;
+  /** Pré-resolvido no momento da hidratação, para não depender de setorMap no render. */
+  setor_nome?: string;
+  fornecedor_nome?: string;
   unidade: string;
   custo_unitario: string;
   quantidade: string;
 }
+
 
 interface RowState {
   quantidade: string;
@@ -136,9 +140,13 @@ export interface PreloadedOCItem {
   unidade: string;
   setor_id: string | null;
   fornecedor_id: string | null;
+  /** Nomes já resolvidos pelo caller — evita "—" quando o setorMap ainda não hidratou. */
+  setor_nome?: string;
+  fornecedor_nome?: string;
   custo_unitario: number;
   quantidade: number;
 }
+
 
 export function OrdemCompraManualDialog({
   open,
