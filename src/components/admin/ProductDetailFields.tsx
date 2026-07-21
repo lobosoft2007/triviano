@@ -184,9 +184,7 @@ function PriceOptionsEditor({
     <div className="rounded-xl border border-border p-3">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-medium">
-          {eixoVariacao?.trim()
-            ? `${eixoVariacao.trim()}s / opções de preço`
-            : "Tamanhos / opções de preço"}
+          {eixoVariacao?.trim() ? `${eixoVariacao.trim()}s / opções de preço` : "Tamanhos / opções de preço"}
         </h3>
         <Button type="button" size="sm" variant="secondary" onClick={add}>
           <Plus className="mr-1 h-4 w-4" /> Adicionar
@@ -328,9 +326,7 @@ export function ProductDetailFields({
     (max, o) => Math.max(max, computeFichaCMV(o.ficha, insumos, subprodutos)),
     0,
   );
-  const custoBase = value.manipulado
-    ? baseCMV + maxVariationCMV
-    : parseNum(value.custo_compra);
+  const custoBase = value.manipulado ? baseCMV + maxVariationCMV : parseNum(value.custo_compra);
   const margem = parseNum(value.margem_revenda);
   const precoIdeal = custoBase * (1 + margem / 100);
 
@@ -365,14 +361,12 @@ export function ProductDetailFields({
                 id="prod-custo-compra"
                 inputMode="decimal"
                 value={value.custo_compra}
-                //readOnly
+                readOnly
                 tabIndex={-1}
                 className="cursor-not-allowed bg-secondary text-muted-foreground"
                 placeholder="0,00"
               />
-              <p className="text-[11px] text-muted-foreground">
-                Atualizado apenas via Entrada de Estoque ou NF.
-              </p>
+              <p className="text-[11px] text-muted-foreground">Atualizado apenas via Entrada de Estoque ou NF.</p>
             </div>
           )}
           <div className="space-y-1.5">
@@ -402,13 +396,10 @@ export function ProductDetailFields({
           <Label htmlFor="prod-preco-ifood" className="text-sm font-semibold">
             Preço iFood
           </Label>
-          <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-500">
-            iFood
-          </span>
+          <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-500">iFood</span>
         </div>
         <p className="mb-2 text-xs text-muted-foreground">
-          Preço praticado no iFood (para absorver a comissão do marketplace).
-          Deixe em branco para usar o preço interno.
+          Preço praticado no iFood (para absorver a comissão do marketplace). Deixe em branco para usar o preço interno.
         </p>
         <Input
           id="prod-preco-ifood"
