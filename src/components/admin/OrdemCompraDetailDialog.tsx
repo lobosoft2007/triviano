@@ -1,14 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Download,
-  Loader2,
-  Plus,
-  Printer,
-  Share2,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Eye, Loader2, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -31,13 +23,10 @@ import {
   type OrdemCompraItem,
 } from "@/lib/estoque";
 import { formatBRL } from "@/lib/format";
-import { printReport } from "@/lib/reports/types";
-import { downloadNodeAsPdf, shareNodeAsPdfWhatsapp } from "@/lib/pdf-share";
-import { empresaAdminConfigQueryOptions } from "@/lib/empresa";
 import {
-  OrdemCompraReport,
-  type OrdemCompraReportRow,
-} from "./reports/OrdemCompraReport";
+  RelatorioOrdemCompraDialog,
+  type OrdemCompraLinha,
+} from "./reports/RelatorioOrdemCompra";
 
 const NONE = "__none__";
 
