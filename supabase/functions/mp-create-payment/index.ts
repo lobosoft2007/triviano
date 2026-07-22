@@ -340,7 +340,28 @@ Deno.serve(async (req) => {
   const tipoPagamento =
     body.method === "pix" ? "pix" : "cartao_credito_online";
 
-  if (isComanda) {
+  if (isFiado) {
+    // Fiado: gravamos referências na cobrança. O webhook chamará
+    // pay_fiado_from_mp para baixar o saldo devedor. Idempotente.
+    await admin
+      .from("mp_fiado_charges")
+      .update({
+        mp_order_id: mpOrderId,
+        mp_payment_id: mpPaymentId,
+      })
+      .eq("id", fiadoChargeId!);
+
+    return json({
+      status: mpStatus,
+      paid: isPaid,
+      mp_order_id: mpOrderId,
+      mp_payment_id: mpPaymentId,
+      qr_code: qrCode,
+      qr_code_base64: qrCodeBase64,
+      ticket_url: ticketUrl,
+      charge_id: fiadoChargeId,
+    });
+  } else if (isComanda) {
     // Comanda (Mesa): só gravamos as referências do MP. A baixa unificada de
     // TODOS os pedidos vinculados acontece no webhook (_settle_comanda) quando
     // o pagamento for confirmado. Nunca ocultamos pedidos já ativos no Caixa.
