@@ -33,6 +33,7 @@ import { AjusteRapidoView } from "@/components/admin/AjusteRapidoView";
 import { PartialReportDialog } from "@/components/caixa/PartialReportDialog";
 import { BalcaoView } from "@/components/caixa/BalcaoView";
 import { EntregasKanban } from "@/components/caixa/EntregasKanban";
+import { StatusControl } from "@/components/caixa/StatusControl";
 import { AppShell, ShellHeader, ShellBody } from "@/components/layout/AppShell";
 import {
   SidebarProvider,
@@ -1161,7 +1162,14 @@ function CompactOrderRow({
           </span>
         </div>
 
-        <div className="mt-2.5 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-2.5 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <div className="min-w-0 flex-1">
+            <StatusControl
+              orderId={order.id}
+              userId={order.user_id ?? undefined}
+              status={order.status_pedido}
+            />
+          </div>
           {isNew ? (
             <Button
               size="sm"
@@ -1688,6 +1696,16 @@ function OrderCard({
         <p className="mt-3 text-center text-xs font-semibold text-success">
           ✓ Impressões de preparo disparadas
         </p>
+      )}
+
+      {!isMesa && (
+        <div className="mt-3">
+          <StatusControl
+            orderId={order.id}
+            userId={order.user_id ?? undefined}
+            status={order.status_pedido}
+          />
+        </div>
       )}
 
       <OrderActions order={order} showPayment={!isMesa} />
