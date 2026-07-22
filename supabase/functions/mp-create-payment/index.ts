@@ -100,15 +100,17 @@ Deno.serve(async (req) => {
     return json({ error: "JSON inválido." }, 400);
   }
   const isComanda = !!body.comanda_id;
-  if ((!body.order_id && !body.comanda_id) || !body.method) {
-    return json({ error: "order_id ou comanda_id e method são obrigatórios." }, 400);
+  const isFiado = body.kind === "fiado";
+  if (!isFiado && (!body.order_id && !body.comanda_id) || !body.method) {
+    return json({ error: "order_id/comanda_id/kind e method são obrigatórios." }, 400);
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-  // 2) Carregar a ENTIDADE cobrada (pedido isolado OU comanda inteira) e
+  // 2) Carregar a ENTIDADE cobrada (pedido isolado OU comanda OU fiado) e
   // validar posse. A comanda cobra o total_parcial (soma de todos os pedidos
-  // da mesa) — liquidação unificada (v1.7.0).
+  // da mesa) — liquidação unificada (v1.7.0). Fiado cria uma cobrança de
+  // quitação em mp_fiado_charges vinculada ao user_id + empresa_id.
   let entity: {
     id: string;
     user_id: string;
@@ -116,8 +118,49 @@ Deno.serve(async (req) => {
     total: number;
     pago_online: boolean;
   } | null = null;
+  // Alvo tipo "fiado" — precisa ser conhecido por outras etapas
+  let fiadoChargeId: string | null = null;
 
-  if (isComanda) {
+  if (isFiado) {
+    if (body.method !== "pix") {
+      return json({ error: "Fiado: apenas PIX é suportado." }, 400);
+    }
+    const amount = Number(body.fiado_amount ?? 0);
+    if (!(amount > 0)) return json({ error: "Valor inválido." }, 400);
+    // Perfil do usuário logado (fiado só pode ser pago pelo próprio dono)
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("id, empresa_id, saldo_devedor_fiado, fiado_autorizado")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (!prof || !prof.empresa_id) return json({ error: "Perfil sem empresa." }, 400);
+    if (!prof.fiado_autorizado) return json({ error: "Fiado não autorizado." }, 403);
+    const saldo = Number(prof.saldo_devedor_fiado ?? 0);
+    if (saldo <= 0) return json({ error: "Sem saldo devedor." }, 400);
+    if (amount > saldo + 0.001) {
+      return json({ error: "Valor maior que o saldo devedor." }, 400);
+    }
+    // Cria a linha de cobrança (pending) — o webhook amarrará mp_order_id/status.
+    const { data: charge, error: chargeErr } = await admin
+      .from("mp_fiado_charges")
+      .insert({
+        user_id: user.id,
+        empresa_id: prof.empresa_id,
+        valor: amount,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (chargeErr || !charge) return json({ error: "Falha ao criar cobrança." }, 500);
+    fiadoChargeId = charge.id;
+    entity = {
+      id: charge.id,
+      user_id: user.id,
+      empresa_id: prof.empresa_id,
+      total: amount,
+      pago_online: false,
+    };
+  } else if (isComanda) {
     const { data: com, error: comErr } = await admin
       .from("comanda_ativa")
       .select("id, user_id, empresa_id, total_parcial, pago_online, status")
