@@ -406,6 +406,13 @@ export interface ProductDetail {
   ean: string;
   /** Ficha técnica: insumos / subprodutos that compose the product. */
   ficha: FichaLine[];
+  /**
+   * Ingredientes que o cliente pode marcar para remover no PWA
+   * (ex.: "Sem tomate"). Independem da ficha técnica: são apenas nomes.
+   * Podem coincidir com ingredientes da ficha (nesse caso, apenas o toggle
+   * "Cliente pode remover" da ficha basta).
+   */
+  removaveis: string[];
 }
 
 type AdminProductDetailPayload = {
