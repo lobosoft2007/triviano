@@ -379,6 +379,7 @@ function detailToForm(d: ProductDetail): ProductDetailForm {
       quantidade: f.quantidade ? String(f.quantidade).replace(".", ",") : "",
       permitir_exclusao: f.permitir_exclusao,
     })),
+    removaveis: [...(d.removaveis ?? [])],
   };
 }
 
