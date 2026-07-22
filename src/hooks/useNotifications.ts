@@ -41,7 +41,7 @@ export function useClientNotifications() {
   const query = useQuery({
     queryKey: ["my-notifications", user?.id, empresaId],
     enabled: !!user?.id,
-    queryFn: () => fetchMyNotifications(empresaId),
+    queryFn: () => fetchMyNotifications(empresaId, user?.id),
   });
 
   useEffect(() => {
