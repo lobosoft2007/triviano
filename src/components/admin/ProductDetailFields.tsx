@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FichaTecnicaEditor, computeFichaCMV, type FichaRow } from "@/components/admin/FichaTecnicaEditor";
+import { RemovableIngredientsEditor } from "@/components/admin/RemovableIngredientsEditor";
 import { formatBRL } from "@/lib/format";
 import type { Insumo, Subproduto } from "@/lib/erp";
 
@@ -43,6 +44,8 @@ export interface ProductDetailForm {
   ncm: string;
   ean: string;
   ficha: FichaRow[];
+  /** Nomes de ingredientes que o cliente pode remover no PWA. */
+  removaveis: string[];
 }
 
 export const EMPTY_DETAIL: ProductDetailForm = {
@@ -58,6 +61,7 @@ export const EMPTY_DETAIL: ProductDetailForm = {
   ncm: "",
   ean: "",
   ficha: [],
+  removaveis: [],
 };
 
 const newId = () =>
@@ -492,6 +496,11 @@ export function ProductDetailFields({
             labelPlaceholder="Ex.: Granola"
             rows={value.free_addons}
             onChange={(rows) => patch({ free_addons: rows })}
+          />
+          <RemovableIngredientsEditor
+            value={value.removaveis}
+            onChange={(rows) => patch({ removaveis: rows })}
+            ficha={value.ficha}
           />
           <FichaTecnicaEditor
             value={value.ficha}
