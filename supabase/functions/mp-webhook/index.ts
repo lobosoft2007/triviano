@@ -386,8 +386,10 @@ Deno.serve(async (req) => {
   if (isFiado && fiadoCharge) {
     // ---- Quitação de FIADO (conta corrente) ----
     if (paid && fiadoCharge.status !== "paid") {
+      const mpPaymentId = isPaymentTopic ? resourceId : (apiPaymentId || fiadoCharge.mp_payment_id || "");
       const { error: payErr } = await admin.rpc("pay_fiado_from_mp", {
         p_charge_id: fiadoCharge.id,
+        p_mp_payment_id: mpPaymentId,
       });
       if (payErr) {
         console.error("mp-webhook: pay_fiado_from_mp falhou", {
