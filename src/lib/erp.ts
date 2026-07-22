@@ -517,6 +517,13 @@ export async function fetchProductDetail(
     ncm: String(fiscais.ncm ?? ""),
     ean: String(fiscais.ean ?? ""),
     ficha: baseFicha,
+    removaveis: Array.from(
+      new Set(
+        allFicha
+          .filter((f) => f.permitir_exclusao && f.nome.trim())
+          .map((f) => f.nome.trim()),
+      ),
+    ),
   };
 }
 
