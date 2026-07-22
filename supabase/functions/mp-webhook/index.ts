@@ -400,13 +400,13 @@ Deno.serve(async (req) => {
         .from("mp_fiado_charges")
         .update({
           status: "paid",
-          mp_status: status,
           mp_payment_id: isPaymentTopic ? resourceId : apiPaymentId || fiadoCharge.mp_payment_id,
         })
         .eq("id", fiadoCharge.id);
       console.log("mp-webhook: FIADO QUITADO", { charge_id: fiadoCharge.id });
     } else if (!paid) {
-      await admin.from("mp_fiado_charges").update({ mp_status: status }).eq("id", fiadoCharge.id);
+      // sem coluna mp_status em mp_fiado_charges — logar apenas
+      console.log("mp-webhook: fiado ainda não pago", { charge_id: fiadoCharge.id, status });
     }
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
