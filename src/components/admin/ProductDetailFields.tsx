@@ -497,6 +497,11 @@ export function ProductDetailFields({
             rows={value.free_addons}
             onChange={(rows) => patch({ free_addons: rows })}
           />
+          <RemovableIngredientsEditor
+            value={value.removaveis}
+            onChange={(rows) => patch({ removaveis: rows })}
+            ficha={value.ficha}
+          />
           <FichaTecnicaEditor
             value={value.ficha}
             onChange={(rows) => patch({ ficha: rows })}
