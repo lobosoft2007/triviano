@@ -1,42 +1,47 @@
-## Causa raiz (confirmada nos logs + banco)
+## Contexto correto
 
-O webhook do Mercado Pago chegou, foi reconciliado com sucesso (`mpStatus: processed`, `paidAmount: 34`) e invocou `pay_fiado_from_mp`. Essa função é `SECURITY DEFINER`, mas por baixo ela chama `public.pay_fiado(...)`, que começa com:
+O botão é o **"Abater com cashback"** no `/caixa → Conta Corrente` (componente `ContaCorrenteTab`), acionado pelo operador de caixa/admin para um **cliente terceiro**. Ele chama a mesma RPC `abater_fiado_com_cashback(p_user_id)` — só que agora `p_user_id ≠ auth.uid()` (o operador está atuando em nome do cliente).
 
-```sql
-IF NOT public.has_role(auth.uid(), 'admin') THEN
-  RAISE EXCEPTION 'Acesso restrito.';
-END IF;
-```
+O toast "Erro ao abater." é o fallback do `catch` — o erro real vem da RPC/Supabase e não está sendo exibido (`err` não é `Error`, é `PostgrestError`).
 
-Como o webhook roda sem sessão (`auth.uid()` é NULL), a chamada falha com **"Acesso restrito."** — exatamente a mensagem que aparece nos logs `mp-webhook: pay_fiado_from_mp falhou`. Resultado: o MP confirma o pagamento, mas o saldo devedor não é baixado.
+## Diagnóstico
+
+Preciso confirmar em qual etapa a RPC falha. Hipóteses prováveis, em ordem:
+
+1. **Regra de autorização da RPC.** Hoje ela exige `has_role(auth.uid(), 'admin')` para agir sobre outro usuário. Funcionários operando o caixa sob a **matriz de permissões dinâmicas** (nivel_id, sem role `admin` na `user_roles`) são bloqueados com `Acesso restrito.` — mesmo tendo permissão de caixa.
+2. **Trigger `prevent_profile_privilege_escalation`** no UPDATE de `profiles`. Para caller com role `admin` real passa; para funcionário sem role `admin` (mesmo com `can_manage_empresa`) barra a alteração de `saldo_cashback`/`saldo_devedor_fiado`.
+3. **Ruído irrelevante.** Os erros de `postgres_changes` no console (`cannot add postgres_changes callbacks for realtime:caixa-orders after subscribe()`) são do canal Realtime do caixa se re-inscrevendo — não têm relação com o abatimento; ficam de fora deste plano.
 
 ## Correção proposta
 
-Reescrever `public.pay_fiado_from_mp` para **não depender de `pay_fiado`** e executar a baixa diretamente (função continua `SECURITY DEFINER`, protegida por só ser chamada com um `charge_id` válido da tabela `mp_fiado_charges`, cujo status/empresa já são conferidos internamente).
+Alinhar as duas checagens ao mesmo modelo já usado por `protect_profile_sensitive_columns` / demais RPCs do caixa: **quem pode gerenciar a empresa do cliente** pode operar, não apenas quem tem a role `admin`.
 
-A nova versão faz, dentro da mesma transação e de forma idempotente (retorna cedo se `status='paid'`):
+### 1. Ajustar a RPC `abater_fiado_com_cashback`
+Trocar a autorização:
+```sql
+IF p_user_id <> auth.uid()
+   AND NOT public.can_manage_empresa(
+     (SELECT empresa_id FROM public.profiles WHERE id = p_user_id)
+   ) THEN
+  RAISE EXCEPTION 'Acesso restrito.';
+END IF;
+```
+Assim admin master, admin de empresa e funcionário com permissão de caixa passam; cliente comum continua só podendo abater o próprio saldo.
 
-1. `SELECT ... FOR UPDATE` da cobrança em `mp_fiado_charges`.
-2. `UPDATE profiles.saldo_devedor_fiado = GREATEST(0, saldo - valor)` do `user_id` da cobrança.
-3. `INSERT` em `extrato_fiado` (tipo `Credito_Pagamento`) — histórico do fiado.
-4. `INSERT` em `extrato_conta_corrente` (tipo `Credito`, descrição "Quitação PIX Mercado Pago").
-5. `UPDATE clientes_fiado.saldo_devedor_atual` para refletir o novo saldo.
-6. `PERFORM notify_fiado(...)` para notificar o cliente.
-7. Marca a cobrança como `paid`, grava `paid_at` e `mp_payment_id`.
+### 2. Ajustar o trigger `prevent_profile_privilege_escalation`
+Adicionar bypass para chamadas vindas de RPC SECURITY DEFINER (mesmo padrão de `protect_profile_sensitive_columns`):
+```sql
+IF current_user <> 'authenticated' THEN
+  RETURN NEW;
+END IF;
+```
+Mantém os bloqueios contra edição direta via Data API pelo próprio cliente; libera apenas UPDATE feito por RPCs autorizadas.
 
-Diferenças frente ao `pay_fiado` tradicional (intencionais para o contexto webhook):
-- **Sem `has_role`/`can_manage_empresa`**: quem autoriza é o próprio Mercado Pago via `mp_fiado_charges` (a cobrança só existe porque o cliente autenticado a criou pela Edge Function, com validação de `empresa_id` e `saldo_devedor_fiado`).
-- **Não lança em `movimentacoes_caixa`**: pagamento veio online, fora de qualquer caixa aberto — coerente com o comportamento já usado pelo webhook em outros fluxos MP.
+### 3. Melhorar a mensagem no cliente
+Em `ContaCorrenteTab.handleAbater`, extrair `err.message` também de `PostgrestError` (`typeof err === "object" && err && "message" in err`) para o toast mostrar a razão real caso volte a falhar.
 
-Nenhuma outra função, RLS, GRANT ou trigger é alterada. O Edge Function `mp-webhook` já chama a RPC do jeito certo; só a função SQL precisa mudar.
-
-## Entregável
-
-- Uma migração SQL única redefinindo `public.pay_fiado_from_mp(uuid, text)` conforme acima.
-- Sem mudanças de código no front nem nas Edge Functions.
-
-## Validação após aplicar
-
-1. Refazer um pagamento PIX de fiado pelo `/perfil`.
-2. Conferir nos logs do `mp-webhook` a ausência de `pay_fiado_from_mp falhou`.
-3. Ver o saldo devedor cair no `/perfil` (dialog fecha sozinho via polling) e a linha aparecer em "Extrato".
+## Verificação
+- Operador admin master abate cashback de um cliente com dívida → sucesso, saldo devedor cai, extratos gravados.
+- Operador funcionário (nivel_id, sem role `admin`) roda a mesma ação → sucesso.
+- Cliente comum tentando abater outro usuário via API → `Acesso restrito.`
+- Cliente tentando `UPDATE profiles SET saldo_cashback = …` direto via PostgREST → continua bloqueado.
