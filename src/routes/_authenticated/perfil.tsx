@@ -11,7 +11,9 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Gift,
+  QrCode,
 } from "lucide-react";
+import { FiadoPixDialog } from "@/components/perfil/FiadoPixDialog";
 import { useAuth } from "@/lib/auth";
 import {
   fetchFullProfile,
@@ -63,6 +65,8 @@ function PerfilPage() {
   });
 
   const [abating, setAbating] = useState(false);
+
+  const [pixOpen, setPixOpen] = useState(false);
 
   async function handleAbater() {
     if (!user) return;
@@ -231,6 +235,20 @@ function PerfilPage() {
                     </div>
                   );
                 })()}
+                {profile.saldo_devedor_fiado > 0 && (
+                  <div className="mt-4">
+                    <Button
+                      className="h-11 w-full rounded-xl font-semibold"
+                      onClick={() => setPixOpen(true)}
+                    >
+                      <QrCode className="mr-2 h-4 w-4" />
+                      Pagar com PIX
+                    </Button>
+                    <p className="mt-2 text-center text-xs text-muted-foreground">
+                      Gere um QR Code para quitar total ou parcialmente sua conta.
+                    </p>
+                  </div>
+                )}
               </section>
             )}
 
@@ -454,6 +472,14 @@ function PerfilPage() {
         <PoweredByBadge className="pt-6" />
         </main>
       </ShellBody>
+      {user && profile && (
+        <FiadoPixDialog
+          open={pixOpen}
+          onOpenChange={setPixOpen}
+          userId={user.id}
+          saldoDevedor={profile.saldo_devedor_fiado}
+        />
+      )}
     </AppShell>
   );
 }

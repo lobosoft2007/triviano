@@ -136,6 +136,20 @@ Deno.serve(async (req) => {
     comanda = com ?? null;
   }
 
+  // Cobrança de quitação de FIADO (não vinculada a pedido/comanda).
+  let fiadoCharge:
+    | { id: string; user_id: string; empresa_id: string; valor: number; mp_order_id: string | null; mp_payment_id: string | null; status: string }
+    | null = null;
+  if (!order && !comanda) {
+    const { data: fc } = await admin
+      .from("mp_fiado_charges")
+      .select("id, user_id, empresa_id, valor, mp_order_id, mp_payment_id, status")
+      .or(`mp_payment_id.eq.${resourceId},mp_order_id.eq.${resourceId}`)
+      .maybeSingle();
+    fiadoCharge = fc ?? null;
+  }
+
+
   let discoveredCfg:
     | (MpConfig & { empresa_id: string })
     | null = null;
@@ -146,7 +160,7 @@ Deno.serve(async (req) => {
   // payment id que não bate mais na linha local. Para não perder a confirmação,
   // reconsultamos o pagamento nos tenants ativos e usamos external_reference
   // (= order.id) como fonte de verdade.
-  if (!order && !comanda && isPaymentTopic) {
+  if (!order && !comanda && !fiadoCharge && isPaymentTopic) {
     const { data: cfgs } = await admin
       .from("config_pagamentos")
       .select("empresa_id, mp_access_token, mp_access_token_prod, mp_access_token_test, mp_webhook_secret")
@@ -172,14 +186,8 @@ Deno.serve(async (req) => {
             order = byExternalReference;
             discoveredCfg = cfgItem;
             discoveredPayment = payment;
-            console.log("mp-webhook: pedido localizado por external_reference", {
-              order_id: order.id,
-              resourceId,
-              empresa_id: order.empresa_id,
-            });
             break;
           }
-          // Comanda (liquidação unificada): external_reference = comanda.id.
           const { data: byComandaRef } = await admin
             .from("comanda_ativa")
             .select("id, empresa_id, mp_order_id, mp_payment_id, pago_online")
@@ -190,11 +198,19 @@ Deno.serve(async (req) => {
             comanda = byComandaRef;
             discoveredCfg = cfgItem;
             discoveredPayment = payment;
-            console.log("mp-webhook: comanda localizada por external_reference", {
-              comanda_id: comanda.id,
-              resourceId,
-              empresa_id: comanda.empresa_id,
-            });
+            break;
+          }
+          // Fiado: external_reference = mp_fiado_charges.id
+          const { data: byFiadoRef } = await admin
+            .from("mp_fiado_charges")
+            .select("id, user_id, empresa_id, valor, mp_order_id, mp_payment_id, status")
+            .eq("id", externalReference)
+            .eq("empresa_id", cfgItem.empresa_id)
+            .maybeSingle();
+          if (byFiadoRef) {
+            fiadoCharge = byFiadoRef;
+            discoveredCfg = cfgItem;
+            discoveredPayment = payment;
             break;
           }
         } catch (e) {
@@ -204,13 +220,14 @@ Deno.serve(async (req) => {
           });
         }
       }
-      if (order || comanda) break;
+      if (order || comanda || fiadoCharge) break;
     }
   }
 
-  // Alvo unificado: pedido isolado (Delivery/Balcão) OU comanda (Mesa).
-  const isComanda = !order && !!comanda;
-  const target = order ?? comanda;
+  // Alvo unificado: pedido isolado (Delivery/Balcão) OU comanda OU fiado.
+  const isComanda = !order && !!comanda && !fiadoCharge;
+  const isFiado = !order && !comanda && !!fiadoCharge;
+  const target = order ?? comanda ?? fiadoCharge;
 
   if (!target) {
     // Recurso ainda não conhecido (corrida) — 200 para reentrega posterior.
@@ -365,6 +382,36 @@ Deno.serve(async (req) => {
   }
 
   const paid = ["paid", "processed", "approved"].includes(status.toLowerCase());
+
+  if (isFiado && fiadoCharge) {
+    // ---- Quitação de FIADO (conta corrente) ----
+    if (paid && fiadoCharge.status !== "paid") {
+      const mpPaymentId = isPaymentTopic ? resourceId : (apiPaymentId || fiadoCharge.mp_payment_id || "");
+      const { error: payErr } = await admin.rpc("pay_fiado_from_mp", {
+        p_charge_id: fiadoCharge.id,
+        p_mp_payment_id: mpPaymentId,
+      });
+      if (payErr) {
+        console.error("mp-webhook: pay_fiado_from_mp falhou", {
+          charge_id: fiadoCharge.id,
+          error: payErr.message,
+        });
+        return new Response("retry", { status: 500, headers: corsHeaders });
+      }
+      await admin
+        .from("mp_fiado_charges")
+        .update({
+          status: "paid",
+          mp_payment_id: isPaymentTopic ? resourceId : apiPaymentId || fiadoCharge.mp_payment_id,
+        })
+        .eq("id", fiadoCharge.id);
+      console.log("mp-webhook: FIADO QUITADO", { charge_id: fiadoCharge.id });
+    } else if (!paid) {
+      // sem coluna mp_status em mp_fiado_charges — logar apenas
+      console.log("mp-webhook: fiado ainda não pago", { charge_id: fiadoCharge.id, status });
+    }
+    return new Response("ok", { status: 200, headers: corsHeaders });
+  }
 
   if (isComanda) {
     // ---- Liquidação UNIFICADA da comanda (Mesa) ----

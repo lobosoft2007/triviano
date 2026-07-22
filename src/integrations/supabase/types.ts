@@ -2526,6 +2526,45 @@ export type Database = {
           },
         ]
       }
+      mp_fiado_charges: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          id: string
+          mp_order_id: string | null
+          mp_payment_id: string | null
+          paid_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          id?: string
+          mp_order_id?: string | null
+          mp_payment_id?: string | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          mp_order_id?: string | null
+          mp_payment_id?: string | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       niveis_acesso: {
         Row: {
           created_at: string
@@ -5039,6 +5078,13 @@ export type Database = {
           id: string
         }[]
       }
+      get_mp_fiado_status: {
+        Args: { p_charge_id: string }
+        Returns: {
+          status: string
+          valor: number
+        }[]
+      }
       get_mp_public_config: {
         Args: { p_ambiente?: string; p_host?: string }
         Returns: {
@@ -5279,6 +5325,10 @@ export type Database = {
           p_user_id: string
           p_valor: number
         }
+        Returns: number
+      }
+      pay_fiado_from_mp: {
+        Args: { p_charge_id: string; p_mp_payment_id: string }
         Returns: number
       }
       pos_fleet_kpis: { Args: never; Returns: Json }

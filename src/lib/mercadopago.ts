@@ -224,6 +224,55 @@ export async function fetchMpComandaStatus(
   };
 }
 
+// -------------------- Fiado (Conta Corrente) — quitação PIX -----------------
+
+export interface CreateMpFiadoPaymentInput {
+  valor: number;
+}
+
+export interface CreateMpFiadoPaymentResult extends CreateMpPaymentResult {
+  charge_id: string;
+}
+
+/** Cria uma cobrança PIX de quitação de fiado (conta corrente do cliente). */
+export async function createMpFiadoPayment(
+  input: CreateMpFiadoPaymentInput,
+): Promise<CreateMpFiadoPaymentResult> {
+  const { data, error } = await supabase.functions.invoke<CreateMpFiadoPaymentResult>(
+    "mp-create-payment",
+    {
+      body: {
+        kind: "fiado",
+        context: "fiado",
+        method: "pix",
+        fiado_amount: input.valor,
+        env: currentEnv(),
+      },
+    },
+  );
+  if (error) throw error;
+  if (!data) throw new Error("Resposta vazia do pagamento.");
+  return data;
+}
+
+export interface MpFiadoStatus {
+  status: string;
+  valor: number;
+}
+
+/** Consulta o status da cobrança de fiado (dono da cobrança). */
+export async function fetchMpFiadoStatus(chargeId: string): Promise<MpFiadoStatus | null> {
+  const { data, error } = await supabase.rpc("get_mp_fiado_status", {
+    p_charge_id: chargeId,
+  });
+  if (error) throw error;
+  const row = (data ?? [])[0];
+  if (!row) return null;
+  return { status: row.status ?? "pending", valor: Number(row.valor ?? 0) };
+}
+
+
+
 
 declare global {
   interface Window {

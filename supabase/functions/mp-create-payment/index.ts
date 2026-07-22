@@ -37,6 +37,10 @@ interface CreatePaymentBody {
   // comanda_id. O valor cobrado é o total_parcial (soma de todos os pedidos
   // da mesa) e a Order do MP referencia a COMANDA, não um pedido isolado.
   comanda_id?: string;
+  // Cobrança de QUITAÇÃO DE FIADO (conta corrente) — não vinculada a pedido.
+  // O webhook chama pay_fiado_from_mp para dar baixa automática no saldo devedor.
+  kind?: "order" | "comanda" | "fiado";
+  fiado_amount?: number;
   method: "pix" | "card";
   // Ambiente detectado no frontend a partir do host real do navegador.
   env?: "prod" | "test";
@@ -45,7 +49,8 @@ interface CreatePaymentBody {
   //  - "balcao"  : PDV/Balcão — pedido nasce oculto (rascunho) até a confirmação.
   //  - "mesa"    : Mesa/Delivery já ativo no Caixa — NÃO alterar visibilidade.
   //  - "comanda" : liquidação unificada da comanda da mesa (v1.7.0).
-  context?: "app" | "balcao" | "mesa" | "comanda";
+  //  - "fiado"   : quitação de conta corrente pelo cliente no /perfil.
+  context?: "app" | "balcao" | "mesa" | "comanda" | "fiado";
   // Card-only (Checkout Transparente / Card Payment Brick):
   token?: string;
   installments?: number;
@@ -95,15 +100,17 @@ Deno.serve(async (req) => {
     return json({ error: "JSON inválido." }, 400);
   }
   const isComanda = !!body.comanda_id;
-  if ((!body.order_id && !body.comanda_id) || !body.method) {
-    return json({ error: "order_id ou comanda_id e method são obrigatórios." }, 400);
+  const isFiado = body.kind === "fiado";
+  if (!isFiado && (!body.order_id && !body.comanda_id) || !body.method) {
+    return json({ error: "order_id/comanda_id/kind e method são obrigatórios." }, 400);
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-  // 2) Carregar a ENTIDADE cobrada (pedido isolado OU comanda inteira) e
+  // 2) Carregar a ENTIDADE cobrada (pedido isolado OU comanda OU fiado) e
   // validar posse. A comanda cobra o total_parcial (soma de todos os pedidos
-  // da mesa) — liquidação unificada (v1.7.0).
+  // da mesa) — liquidação unificada (v1.7.0). Fiado cria uma cobrança de
+  // quitação em mp_fiado_charges vinculada ao user_id + empresa_id.
   let entity: {
     id: string;
     user_id: string;
@@ -111,8 +118,49 @@ Deno.serve(async (req) => {
     total: number;
     pago_online: boolean;
   } | null = null;
+  // Alvo tipo "fiado" — precisa ser conhecido por outras etapas
+  let fiadoChargeId: string | null = null;
 
-  if (isComanda) {
+  if (isFiado) {
+    if (body.method !== "pix") {
+      return json({ error: "Fiado: apenas PIX é suportado." }, 400);
+    }
+    const amount = Number(body.fiado_amount ?? 0);
+    if (!(amount > 0)) return json({ error: "Valor inválido." }, 400);
+    // Perfil do usuário logado (fiado só pode ser pago pelo próprio dono)
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("id, empresa_id, saldo_devedor_fiado, fiado_autorizado")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (!prof || !prof.empresa_id) return json({ error: "Perfil sem empresa." }, 400);
+    if (!prof.fiado_autorizado) return json({ error: "Fiado não autorizado." }, 403);
+    const saldo = Number(prof.saldo_devedor_fiado ?? 0);
+    if (saldo <= 0) return json({ error: "Sem saldo devedor." }, 400);
+    if (amount > saldo + 0.001) {
+      return json({ error: "Valor maior que o saldo devedor." }, 400);
+    }
+    // Cria a linha de cobrança (pending) — o webhook amarrará mp_order_id/status.
+    const { data: charge, error: chargeErr } = await admin
+      .from("mp_fiado_charges")
+      .insert({
+        user_id: user.id,
+        empresa_id: prof.empresa_id,
+        valor: amount,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (chargeErr || !charge) return json({ error: "Falha ao criar cobrança." }, 500);
+    fiadoChargeId = charge.id;
+    entity = {
+      id: charge.id,
+      user_id: user.id,
+      empresa_id: prof.empresa_id,
+      total: amount,
+      pago_online: false,
+    };
+  } else if (isComanda) {
     const { data: com, error: comErr } = await admin
       .from("comanda_ativa")
       .select("id, user_id, empresa_id, total_parcial, pago_online, status")
@@ -292,7 +340,28 @@ Deno.serve(async (req) => {
   const tipoPagamento =
     body.method === "pix" ? "pix" : "cartao_credito_online";
 
-  if (isComanda) {
+  if (isFiado) {
+    // Fiado: gravamos referências na cobrança. O webhook chamará
+    // pay_fiado_from_mp para baixar o saldo devedor. Idempotente.
+    await admin
+      .from("mp_fiado_charges")
+      .update({
+        mp_order_id: mpOrderId,
+        mp_payment_id: mpPaymentId,
+      })
+      .eq("id", fiadoChargeId!);
+
+    return json({
+      status: mpStatus,
+      paid: isPaid,
+      mp_order_id: mpOrderId,
+      mp_payment_id: mpPaymentId,
+      qr_code: qrCode,
+      qr_code_base64: qrCodeBase64,
+      ticket_url: ticketUrl,
+      charge_id: fiadoChargeId,
+    });
+  } else if (isComanda) {
     // Comanda (Mesa): só gravamos as referências do MP. A baixa unificada de
     // TODOS os pedidos vinculados acontece no webhook (_settle_comanda) quando
     // o pagamento for confirmado. Nunca ocultamos pedidos já ativos no Caixa.

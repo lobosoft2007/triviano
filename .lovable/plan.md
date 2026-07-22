@@ -1,28 +1,58 @@
-## Diagnóstico
+## Objetivo
+No card **Conta Corrente** de `/perfil` (Meus Dados), adicionar um botão **"Pagar via PIX"** que gera cobrança dinâmica do Mercado Pago (mesma infra do checkout/comanda). O webhook confirma o pagamento e chama `pay_fiado` automaticamente, quitando o saldo devedor sem intervenção do caixa. O card de cashback já tem o botão de abatimento — mantido como está.
 
-O dialog "Meus pedidos" trava no loading porque o `GET /rest/v1/orders` retorna **400 Bad Request**:
+## UX no /perfil
 
-```
-column meios_pagamento_2.tipo does not exist
-hint: Perhaps you meant to reference the column "meios_pagamento_2.ativo"
-```
+Dentro da seção "Conta Corrente" (só aparece se `fiado_autorizado` e `saldo_devedor_fiado > 0`):
 
-Em `src/lib/orders.ts` (função `fetchOrders`), o select faz join `pagamentos_pedido(valor_pago, meios_pagamento(nome, tipo))`. A coluna `tipo` **não existe mais** na tabela `meios_pagamento` (colunas atuais: `id, nome, ativo, exige_maquineta, empresa_id, percentual_cashback, is_sistema, created_at, updated_at`). Provavelmente foi removida no refactor do CRUD de Meios de Pagamento (Release 1.8.0). Por isso a chamada quebra por inteiro e o PostgREST devolve 400 antes mesmo da RLS.
+- Botão **"Pagar com PIX"** abaixo do bloco de saldo/limite.
+- Ao clicar → abre um `Dialog` com:
+  - Campo de **valor** (numérico, default = saldo devedor, min = R$ 0,01, max = saldo devedor).
+  - Botão **"Gerar QR Code"**.
+  - Após gerar: **QR (imagem base64)** + **Copia e Cola** com botão de copiar + valor formatado + indicador "Aguardando pagamento…".
+  - Ao webhook confirmar (polling do status): toast de sucesso, dialog fecha, saldo devedor atualiza (invalidate das queries de perfil + extrato fiado + extrato cashback + full-profile).
 
-## Correção
+Nenhuma mudança no card de cashback — o botão "Usar X para abater o fiado" já existe.
 
-Um único arquivo, mudança pontual e sem tocar em regra de negócio.
+## Backend
 
-### `src/lib/orders.ts`
+### 1. `supabase/functions/mp-create-payment/index.ts`
+Aceitar novo `kind: "fiado"` no payload:
+- Sem `order_id`. Payload: `{ kind: "fiado", user_id, amount, host }`.
+- Valida: `amount > 0`, `amount <= saldo_devedor_fiado` do `user_id`, `auth.uid() = user_id`.
+- Resolve `empresa_id` via host e busca token MP secreto (mesmo fluxo atual).
+- Cria Order MP PIX com `external_reference = "fiado:<user_id>:<uuid>"` e `metadata: { kind: "fiado", user_id, empresa_id, valor }`.
+- Grava linha em nova tabela `mp_fiado_charges` (id, user_id, empresa_id, valor, mp_order_id, status, created_at) para o webhook conseguir localizar e para polling.
+- Retorna `qr_code`, `qr_code_base64`, `mp_order_id`, `status`.
 
-1. No `.select(...)` do `fetchOrders`, trocar `meios_pagamento(nome, tipo)` por `meios_pagamento(nome)`.
-2. No mapeamento de `pagamentos`, remover a leitura de `p.meios_pagamento?.tipo` e:
-   - Ajustar o tipo local `rawPagamentos` para refletir apenas `{ nome?: string }`.
-   - Definir `tipo: ""` no objeto `OrderPayment` retornado (mantém o contrato da interface sem exigir a coluna).
-3. Manter o restante do fluxo, incluindo `isReorderable` e o botão "Repetir pedido" para pedidos Finalizados/Cancelados — nada muda no comportamento visível além de a lista voltar a carregar.
+### 2. `supabase/functions/mp-webhook/index.ts`
+No handler, após buscar a Order do MP, se `metadata.kind === "fiado"`:
+- Localiza `mp_fiado_charges` pelo `mp_order_id`; se já `paid`, retorna 200 (idempotência).
+- Se aprovado, chama nova RPC `pay_fiado_from_mp(p_user_id, p_valor, p_mp_order_id)` (SECURITY DEFINER) que:
+  - Insere/garante meio de pagamento "PIX Mercado Pago" e chama a lógica de `pay_fiado` (mesmo caminho já existente), amarrando a origem ao `mp_order_id` no `descricao` do lançamento.
+  - Marca `mp_fiado_charges.status = 'paid'`.
+- Se recusado/expirado, marca `status = 'failed'`.
 
-## Verificação
+### 3. Nova RPC `get_mp_fiado_status(p_mp_order_id)`
+Definer, retorna `{status}` da `mp_fiado_charges` para o polling do frontend (RLS: só o dono da linha lê).
 
-- Recarregar o PWA em `/orders` como cliente e confirmar que a lista aparece.
-- Confirmar que pedidos Finalizado/Cancelado continuam com o botão "Repetir pedido".
-- Sem alteração em RLS, triggers ou migrations.
+### 4. Migração
+- `CREATE TABLE public.mp_fiado_charges` com colunas acima + GRANTs (`authenticated` SELECT/INSERT via RPC only; `service_role` ALL) + RLS "user reads own" e "service_role manages".
+- `CREATE FUNCTION public.pay_fiado_from_mp(...)` e `public.get_mp_fiado_status(...)`.
+- Não altera nada do motor financeiro protegido — apenas envolve `pay_fiado` já auditado.
+
+## Frontend (novos arquivos)
+
+- `src/lib/mercadopago.ts`: adicionar `createMpFiadoPayment({ userId, amount })` e `fetchMpFiadoStatus(mpOrderId)`.
+- `src/components/perfil/FiadoPixDialog.tsx`: novo dialog com campo de valor, geração do QR, polling (`setInterval` 3s), UI reaproveitando o padrão visual do `ComandaPixCharge`.
+- `src/routes/_authenticated/perfil.tsx`: adicionar botão "Pagar com PIX" na seção Conta Corrente e montar o dialog.
+
+## Validação
+1. `bun run build`.
+2. `security--run_security_scan` — garantir que a nova RPC e tabela estão travadas.
+3. Teste manual: gerar PIX em ambiente sandbox, simular webhook, ver saldo devedor cair e extrato aparecer.
+
+## Notas
+- Não altera motor financeiro (apenas usa `pay_fiado` via wrapper).
+- Multi-tenant preservado (empresa resolvida por host, credenciais MP por empresa).
+- Sem alteração no card de cashback / abatimento.
