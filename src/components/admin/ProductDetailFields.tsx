@@ -43,6 +43,8 @@ export interface ProductDetailForm {
   ncm: string;
   ean: string;
   ficha: FichaRow[];
+  /** Nomes de ingredientes que o cliente pode remover no PWA. */
+  removaveis: string[];
 }
 
 export const EMPTY_DETAIL: ProductDetailForm = {
