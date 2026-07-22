@@ -231,7 +231,13 @@ function ClientRow({
         )}.`,
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao abater.");
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Erro ao abater.";
+      toast.error(msg);
     } finally {
       setAbating(false);
     }
