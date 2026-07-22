@@ -136,6 +136,20 @@ Deno.serve(async (req) => {
     comanda = com ?? null;
   }
 
+  // Cobrança de quitação de FIADO (não vinculada a pedido/comanda).
+  let fiadoCharge:
+    | { id: string; user_id: string; empresa_id: string; valor: number; mp_order_id: string | null; mp_payment_id: string | null; status: string }
+    | null = null;
+  if (!order && !comanda) {
+    const { data: fc } = await admin
+      .from("mp_fiado_charges")
+      .select("id, user_id, empresa_id, valor, mp_order_id, mp_payment_id, status")
+      .or(`mp_payment_id.eq.${resourceId},mp_order_id.eq.${resourceId}`)
+      .maybeSingle();
+    fiadoCharge = fc ?? null;
+  }
+
+
   let discoveredCfg:
     | (MpConfig & { empresa_id: string })
     | null = null;
