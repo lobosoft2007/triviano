@@ -60,6 +60,7 @@ export const EMPTY_DETAIL: ProductDetailForm = {
   ncm: "",
   ean: "",
   ficha: [],
+  removaveis: [],
 };
 
 const newId = () =>
