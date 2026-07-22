@@ -1,53 +1,39 @@
-# Reativar Status Movimentável nos Pedidos de Delivery
+## Problema
 
-## Por que sumiu?
+No `/caixa`, o `StatusControl` do pedido de Delivery permite marcar direto como **Finalizado** — o pedido sai do dashboard sem passar pelo fluxo de "Finalizar e Receber" (que roda a RPC `finalize_order_paid`, lança no caixa, cashback, fiado, etc.). Ou seja: pedido some sem baixa financeira.
 
-Sinceramente, não tenho um registro em memória de uma decisão explícita de "remover status do delivery". Olhando o código, o que aconteceu foi:
+## Objetivo
 
-- O componente `src/components/caixa/StatusControl.tsx` **continua existindo, completo e funcional** — inclusive já integrado com `notifyStatusChange` (push no app do cliente) e `cancelOrder` (com estorno de estoque).
-- A infra no backend está viva: `orders.status_pedido`, `updateStatusPedido()`, `ESTEIRA_STATUSES` (Recebido → Em preparação → Aguardando entregador → Em entrega → Entregue → Finalizado), trigger de notificação, tudo intacto.
-- O que aconteceu no /caixa foi uma **refatoração visual** (na virada para o layout compacto de 1 coluna com cards clicáveis + modal de detalhe): o `DeliveryColumn` passou a renderizar `CompactOrderRow`, cujo único botão visível hoje é "Imprimir". O `StatusControl` deixou de ser incluído nem no card compacto nem no `OrderCard` do modal de detalhe — foi um "esqueceram de reconectar" durante o redesign, não uma decisão de negócio.
+**Finalizado deixa de ser um status manualmente selecionável.** Só a RPC de liquidação (`finalize_order_paid`, disparada pelo botão "Finalizar e Receber" ou pelo webhook do Mercado Pago) pode colocar o pedido em `Finalizado`.
 
-Ou seja: a funcionalidade não foi desligada, só ficou órfã da UI. Reativar é rápido e seguro.
+## Mudanças
 
-## O que fazer
+### 1. Frontend — `src/components/caixa/StatusControl.tsx`
+- Remover **Finalizado** da lista de opções renderizadas no `<select>` (continua em `ESTEIRA_STATUSES` para exibir o pedido já finalizado, mas não como opção clicável).
+- Ao tentar avançar de "Entregue" o operador vê tooltip/label indicando: *"Use Finalizar e Receber para lançar o pagamento."*
+- Nenhuma mudança na opção "Cancelado".
 
-### 1. Reconectar `StatusControl` no cartão de delivery
-No `CompactOrderRow` (`src/routes/_authenticated/caixa.tsx`, ~L1132) mostrar o `StatusControl` (com bolinha colorida + select) **apenas para delivery**, na barra de ações inferior, ao lado do botão Imprimir. Fica assim:
+### 2. Backend — nova migration
+Trigger `BEFORE UPDATE` em `public.orders` (SECURITY DEFINER, `search_path=public`) que **bloqueia** a transição de `status_pedido` para `'Finalizado'` quando o pedido ainda não está pago:
 
 ```text
-┌─────────────────────────────────────────┐
-│ João Silva            R$ 78,00          │
-│ #A1B2C3 · 19:42 · espera 12 min         │
-│                                          │
-│ 🟡 [Em preparação ▼]     [🖨 Imprimir]  │
-└─────────────────────────────────────────┘
+IF NEW.status_pedido = 'Finalizado' AND OLD.status_pedido <> 'Finalizado' THEN
+  IF NEW.status <> 'paid' THEN
+     RAISE EXCEPTION 'Pedido não pode ser finalizado sem lançamento de pagamento. Use Finalizar e Receber.'
+       USING ERRCODE = 'check_violation';
+  END IF;
+END IF;
 ```
 
-- Envolver o `StatusControl` num `<div onClick={e => e.stopPropagation()}>` para que trocar o status não abra o modal de detalhe.
-- Passar `orderId`, `userId={order.user_id}`, `status={order.status_pedido}`.
+A RPC `finalize_order_paid` já grava `status='paid'` antes de mudar `status_pedido`, então o fluxo legítimo continua funcionando. Mesa (comanda) não é afetada, pois lá o status é gerenciado pela liquidação da comanda que também passa pelo helper financeiro.
 
-### 2. Também mostrar no modal de detalhe (`OrderCard`)
-No `OrderCard` (~L1624), incluir o `StatusControl` no topo do card (só para `tipo_atendimento === "Delivery"`), para que ao abrir o pedido em detalhe o operador consiga mudar status por ali também.
+### 3. Nada muda em
+- `finalize_order_paid` RPC
+- Fluxo de Mesa / Comanda
+- Cancelamento (continua estornando estoque)
+- Notificações de status (bell/push) — continuam para todos os outros status
 
-### 3. Confirmar comportamento do "Cancelado"
-O `StatusControl` já trata Cancelado com `confirm()` + `cancelOrder()` (estorna estoque, notifica cliente). Sem mudança.
-
-### 4. Nada muda em Mesa
-O controle continua só em delivery (mesas têm outro fluxo — comanda ativa / finalizar e receber).
-
-### 5. Sem migração de banco
-`orders.status_pedido` já existe, `updateStatusPedido` já existe, `notifyStatusChange` já existe, RLS já cobre. É puramente UI.
-
-## Detalhes técnicos
-
-- **Arquivo único editado:** `src/routes/_authenticated/caixa.tsx`.
-- **Imports novos:** `StatusControl` de `@/components/caixa/StatusControl`.
-- **Escopo:** apenas o ramo Delivery (`order.tipo_atendimento === "Delivery"`); Mesas ficam como estão.
-- **Sem alteração** em: `caixa.ts`, `notifications.ts`, `StatusControl.tsx`, schema, RLS, triggers.
-- **Sem impacto no motor financeiro** (respeita `mem://constraints/motor-financeiro-protegido`).
-
-## Confirma?
-Se quiser, eu já implemento. Alguma preferência?
-- (a) Mostrar o `StatusControl` **tanto no cartão compacto quanto no modal** (recomendado — operador troca sem abrir o modal).
-- (b) Mostrar **só no modal de detalhe** (cartão compacto fica mais limpo).
+## Validação
+- Testar: mudar Delivery para "Finalizado" via dropdown → opção não existe mais.
+- Testar: chamar `finalize_order_paid` num pedido → conclui sem erro (RPC seta `paid` antes de `Finalizado`).
+- Testar: `UPDATE orders SET status_pedido='Finalizado'` direto no banco num pedido não pago → bloqueado pela trigger.
