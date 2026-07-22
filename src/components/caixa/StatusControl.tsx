@@ -140,14 +140,17 @@ export function StatusControl({
         aria-label="Status do pedido"
         className={`h-9 flex-1 rounded-lg border-2 px-2 text-sm font-semibold transition-colors disabled:opacity-60 ${style.select}`}
       >
-        {ESTEIRA_STATUSES.map((s) => (
-          <option key={s} value={s} className="bg-background text-foreground">
-            {s}
-          </option>
-        ))}
+        {ESTEIRA_STATUSES.filter((s) => s === status || s !== "Finalizado").map(
+          (s) => (
+            <option key={s} value={s} className="bg-background text-foreground">
+              {s}
+            </option>
+          ),
+        )}
         <option value="Cancelado" className="bg-background text-foreground">
           Cancelado
         </option>
+
       </select>
       {saving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
     </div>
