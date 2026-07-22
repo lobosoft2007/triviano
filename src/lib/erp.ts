@@ -662,6 +662,32 @@ export async function saveProductDetail(
     fichaRows.push(...rows);
   });
 
+  // Ingredientes "removíveis" dedicados (não pertencem à ficha técnica):
+  // são apenas nomes que o cliente pode marcar para remover no PWA.
+  // Deduplica pelo nome (case-insensitive) para não duplicar com a ficha.
+  const jaExpostos = new Set(
+    fichaRows
+      .filter((r) => r.permitir_exclusao)
+      .map((r) => r.nome.toLowerCase()),
+  );
+  for (const nome of detail.removaveis ?? []) {
+    const clean = nome.trim();
+    if (!clean) continue;
+    const key = clean.toLowerCase();
+    if (jaExpostos.has(key)) continue;
+    jaExpostos.add(key);
+    fichaRows.push({
+      product_id: productId,
+      nome: clean,
+      insumo_id: null,
+      subproduto_id: null,
+      quantidade: 0,
+      permitir_exclusao: true,
+      price_option_id: null,
+      sort_order: order++,
+    });
+  }
+
   if (fichaRows.length) {
     const { error } = await supabase
       .from("ingredientes_produto")
