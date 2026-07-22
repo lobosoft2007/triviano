@@ -66,6 +66,8 @@ function PerfilPage() {
 
   const [abating, setAbating] = useState(false);
 
+  const [pixOpen, setPixOpen] = useState(false);
+
   async function handleAbater() {
     if (!user) return;
     setAbating(true);
