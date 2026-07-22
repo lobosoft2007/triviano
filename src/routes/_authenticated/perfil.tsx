@@ -472,6 +472,14 @@ function PerfilPage() {
         <PoweredByBadge className="pt-6" />
         </main>
       </ShellBody>
+      {user && profile && (
+        <FiadoPixDialog
+          open={pixOpen}
+          onOpenChange={setPixOpen}
+          userId={user.id}
+          saldoDevedor={profile.saldo_devedor_fiado}
+        />
+      )}
     </AppShell>
   );
 }
