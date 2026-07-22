@@ -230,6 +230,7 @@ export const NOTIFICATION_VISIBLE_WINDOW_MS = 24 * 60 * 60 * 1000;
  */
 export async function fetchMyNotifications(
   empresaId?: string,
+  userId?: string,
 ): Promise<NotificacaoCliente[]> {
   const cutoff = new Date(
     Date.now() - NOTIFICATION_VISIBLE_WINDOW_MS,
@@ -244,6 +245,12 @@ export async function fetchMyNotifications(
         .select(`${baseSelect}, orders!inner(empresa_id)`)
         .eq("orders.empresa_id", empresaId)
     : supabase.from("notificacoes_cliente").select(baseSelect);
+
+  // Defesa em profundidade: filtra explicitamente pelo dono da notificação
+  // para que admins não recebam avisos de outros clientes via bell.
+  if (userId) {
+    query = query.eq("id_usuario", userId) as typeof query;
+  }
 
   query = query
     .gte("created_at", cutoff)
