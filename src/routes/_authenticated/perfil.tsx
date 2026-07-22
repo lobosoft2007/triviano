@@ -235,6 +235,20 @@ function PerfilPage() {
                     </div>
                   );
                 })()}
+                {profile.saldo_devedor_fiado > 0 && (
+                  <div className="mt-4">
+                    <Button
+                      className="h-11 w-full rounded-xl font-semibold"
+                      onClick={() => setPixOpen(true)}
+                    >
+                      <QrCode className="mr-2 h-4 w-4" />
+                      Pagar com PIX
+                    </Button>
+                    <p className="mt-2 text-center text-xs text-muted-foreground">
+                      Gere um QR Code para quitar total ou parcialmente sua conta.
+                    </p>
+                  </div>
+                )}
               </section>
             )}
 
