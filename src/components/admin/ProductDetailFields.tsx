@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FichaTecnicaEditor, computeFichaCMV, type FichaRow } from "@/components/admin/FichaTecnicaEditor";
+import { RemovableIngredientsEditor } from "@/components/admin/RemovableIngredientsEditor";
 import { formatBRL } from "@/lib/format";
 import type { Insumo, Subproduto } from "@/lib/erp";
 
