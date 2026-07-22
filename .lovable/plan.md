@@ -1,39 +1,49 @@
-## Problema
+## Causa raiz (confirmada pelo erro no console)
 
-No `/caixa`, o `StatusControl` do pedido de Delivery permite marcar direto como **Finalizado** — o pedido sai do dashboard sem passar pelo fluxo de "Finalizar e Receber" (que roda a RPC `finalize_order_paid`, lança no caixa, cashback, fiado, etc.). Ou seja: pedido some sem baixa financeira.
+`code: '23514'` + mensagem "Pedido nao pode ser finalizado sem lancamento de pagamento" = a trigger `trg_enforce_order_finalized_requires_paid` (adicionada ontem) está abortando a finalização legítima.
 
-## Objetivo
+Ela exige `orders.status = 'paid'` quando `status_pedido` vira `'Finalizado'`. Mas o motor financeiro legítimo (`_finalize_order_financials`, chamado pela RPC `finalize_order_paid` que o botão "Finalizar" dispara) executa **um único UPDATE**:
 
-**Finalizado deixa de ser um status manualmente selecionável.** Só a RPC de liquidação (`finalize_order_paid`, disparada pelo botão "Finalizar e Receber" ou pelo webhook do Mercado Pago) pode colocar o pedido em `Finalizado`.
-
-## Mudanças
-
-### 1. Frontend — `src/components/caixa/StatusControl.tsx`
-- Remover **Finalizado** da lista de opções renderizadas no `<select>` (continua em `ESTEIRA_STATUSES` para exibir o pedido já finalizado, mas não como opção clicável).
-- Ao tentar avançar de "Entregue" o operador vê tooltip/label indicando: *"Use Finalizar e Receber para lançar o pagamento."*
-- Nenhuma mudança na opção "Cancelado".
-
-### 2. Backend — nova migration
-Trigger `BEFORE UPDATE` em `public.orders` (SECURITY DEFINER, `search_path=public`) que **bloqueia** a transição de `status_pedido` para `'Finalizado'` quando o pedido ainda não está pago:
-
-```text
-IF NEW.status_pedido = 'Finalizado' AND OLD.status_pedido <> 'Finalizado' THEN
-  IF NEW.status <> 'paid' THEN
-     RAISE EXCEPTION 'Pedido não pode ser finalizado sem lançamento de pagamento. Use Finalizar e Receber.'
-       USING ERRCODE = 'check_violation';
-  END IF;
-END IF;
+```sql
+UPDATE public.orders
+   SET status_pedido = 'Finalizado', status = 'delivered'
+ WHERE id = p_order_id;
 ```
 
-A RPC `finalize_order_paid` já grava `status='paid'` antes de mudar `status_pedido`, então o fluxo legítimo continua funcionando. Mesa (comanda) não é afetada, pois lá o status é gerenciado pela liquidação da comanda que também passa pelo helper financeiro.
+Nunca passa por `'paid'` — vai direto de `'pending'` para `'delivered'` no mesmo statement. A trigger vê `NEW.status = 'delivered'` (`<> 'paid'`), aborta, o UPDATE é revertido inteiro, o pedido continua no dashboard. Nenhum pedido consegue mais ser finalizado pelo caixa.
 
-### 3. Nada muda em
-- `finalize_order_paid` RPC
-- Fluxo de Mesa / Comanda
-- Cancelamento (continua estornando estoque)
-- Notificações de status (bell/push) — continuam para todos os outros status
+## Correção
+
+Ajustar apenas a função da trigger para aceitar os dois estados que o motor usa para marcar "pagamento reconhecido":
+
+```sql
+CREATE OR REPLACE FUNCTION public.enforce_order_finalized_requires_paid()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.status_pedido = 'Finalizado'
+     AND (OLD.status_pedido IS DISTINCT FROM 'Finalizado')
+     AND COALESCE(NEW.status, '') NOT IN ('paid', 'delivered') THEN
+    RAISE EXCEPTION 'Pedido nao pode ser finalizado sem lancamento de pagamento. Use Finalizar e Receber.'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+```
+
+A proteção original continua valendo: se o operador tentar setar `status_pedido='Finalizado'` via dropdown/SQL direto num pedido `pending`/`aguardando_pagamento`, `NEW.status` continua `'pending'` e a trigger bloqueia. Só o fluxo `finalize_order_paid` / `_finalize_order_financials` (que grava `status='delivered'` junto) passa.
+
+A trigger em si (o `CREATE TRIGGER`) não precisa ser recriada — só substituo a função.
+
+## Migração
+
+Uma migração curta com `CREATE OR REPLACE FUNCTION` da função acima.
 
 ## Validação
-- Testar: mudar Delivery para "Finalizado" via dropdown → opção não existe mais.
-- Testar: chamar `finalize_order_paid` num pedido → conclui sem erro (RPC seta `paid` antes de `Finalizado`).
-- Testar: `UPDATE orders SET status_pedido='Finalizado'` direto no banco num pedido não pago → bloqueado pela trigger.
+
+- Refazer o teste: pedido Delivery R$4 + R$3 taxa, R$7 em Dinheiro, clicar Finalizar → deve concluir, sair do dashboard, cliente recebe push.
+- Sanity: tentar `UPDATE orders SET status_pedido='Finalizado'` direto num pedido `pending` → continua bloqueado.
