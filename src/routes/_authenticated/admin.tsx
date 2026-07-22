@@ -431,6 +431,9 @@ function formToDetail(d: ProductDetailForm): ProductDetail {
         quantidade: parseNumberInput(f.quantidade),
         permitir_exclusao: f.permitir_exclusao,
       })),
+    removaveis: (d.removaveis ?? [])
+      .map((n) => n.trim())
+      .filter((n) => n.length > 0),
   };
 }
 
