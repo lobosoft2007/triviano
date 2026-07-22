@@ -173,7 +173,7 @@ export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
   let query = supabase
     .from("orders")
     .select(
-      "id, status, status_pedido, total, discount, delivery_address, created_at, tipo_atendimento, numero_mesa, pago_online, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes), pagamentos_pedido(valor_pago, meios_pagamento(nome, tipo))",
+      "id, status, status_pedido, total, discount, delivery_address, created_at, tipo_atendimento, numero_mesa, pago_online, order_items(id, product_name, unit_price, quantity, size, addons, second_flavor, remocoes), pagamentos_pedido(valor_pago, meios_pagamento(nome))",
     )
     .eq("user_id", userId)
     // Rascunhos de pagamento e pagamentos abandonados são totalmente
@@ -193,15 +193,16 @@ export async function fetchOrders(empresaId?: string): Promise<OrderRow[]> {
       ? ((o as unknown as {
           pagamentos_pedido: {
             valor_pago: number;
-            meios_pagamento: { nome?: string; tipo?: string } | null;
+            meios_pagamento: { nome?: string } | null;
           }[];
         }).pagamentos_pedido)
       : [];
     const pagamentos: OrderPayment[] = rawPagamentos.map((p) => ({
       nome: p.meios_pagamento?.nome ?? "Pagamento",
-      tipo: p.meios_pagamento?.tipo ?? "",
+      tipo: "",
       valor: Number(p.valor_pago ?? 0),
     }));
+
     return {
       id: o.id,
       status: o.status,

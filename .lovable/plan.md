@@ -1,37 +1,28 @@
-## Problema
+## Diagnóstico
 
-No checkout do PWA (`src/routes/checkout.tsx`), o `handleSubmit` grava um snapshot `pendingPayment` em `sessionStorage` **e** `localStorage` para **qualquer** forma de pagamento — inclusive **Conta Corrente (Fiado)**, **Dinheiro (na entrega)** e **Cartão na entrega**, que **não têm** nenhuma tela de pagamento pendente para renderizar (só PIX e Cartão online usam esse snapshot).
+O dialog "Meus pedidos" trava no loading porque o `GET /rest/v1/orders` retorna **400 Bad Request**:
 
-Consequência observada pelo usuário:
-1. Cliente finaliza pedido no Fiado → snapshot antigo fica gravado no `localStorage`.
-2. Cliente adiciona um novo item (Fanta 350ml, R$ 7,00) e volta ao checkout.
-3. `readPendingPaymentSnapshot()` recupera o pedido antigo, `finalTotal = pendingPayment.total` sobrescreve o total real, e `effectivePayMethod = pendingPayment.payMethod`.
-4. A tela mostra o total/forma de pagamento do pedido anterior, não vai para "escolher pagamento" do novo, e o pedido novo fica pendente sem forma de resolver — carrinho continua cheio.
+```
+column meios_pagamento_2.tipo does not exist
+hint: Perhaps you meant to reference the column "meios_pagamento_2.ativo"
+```
 
-## Correção (apenas UI/estado do checkout do cliente)
+Em `src/lib/orders.ts` (função `fetchOrders`), o select faz join `pagamentos_pedido(valor_pago, meios_pagamento(nome, tipo))`. A coluna `tipo` **não existe mais** na tabela `meios_pagamento` (colunas atuais: `id, nome, ativo, exige_maquineta, empresa_id, percentual_cashback, is_sistema, created_at, updated_at`). Provavelmente foi removida no refactor do CRUD de Meios de Pagamento (Release 1.8.0). Por isso a chamada quebra por inteiro e o PostgREST devolve 400 antes mesmo da RLS.
 
-Alterar somente `src/routes/checkout.tsx`. Não mexer no motor financeiro nem em RPC/RLS.
+## Correção
 
-1. **Só gravar `pendingPayment` quando realmente existe pagamento em andamento.**
-   No sucesso do `placeOrder`, gravar o snapshot **apenas** quando `isOnlinePayment === true` (PIX online ou Cartão via MP). Para "Dinheiro", "Cartão na entrega" e "Conta Corrente" **não** chamar `writePendingPaymentSnapshot` nem `setPendingPayment`.
+Um único arquivo, mudança pontual e sem tocar em regra de negócio.
 
-2. **Encerrar o checkout para os fluxos sem pagamento pendente.**
-   Após `placeOrder` em Fiado/Dinheiro/Cartão-na-entrega:
-   - `clear()` (já feito) — limpa o carrinho.
-   - `clearCheckoutSnapshot()` — remove `checkout_auth_latch_v1`, `checkout_payment_snapshot_v1` e ambos os `checkout_pending_payment_v1` (session + local).
-   - `navigate({ to: "/orders", replace: true })` — leva o cliente para a lista de pedidos, evitando que a tela de checkout mostre estado "fantasma".
-   - Manter o `toast.success` específico para cada método (Fiado / Dinheiro / Cartão na entrega).
+### `src/lib/orders.ts`
 
-3. **Higiene defensiva na montagem do `/checkout`.**
-   Se, ao montar, existir um `pendingPayment` em storage cujo `payMethod` **não** seja `PIX` nem `Cartão de Crédito`/`Cartão de Débito` com MP ativo, tratar como snapshot inválido e limpar (`clearCheckoutSnapshot` + `setPendingPayment(null)`). Isso cura clientes que já ficaram com o snapshot "envenenado" antes da correção, sem exigir limpeza manual do navegador.
+1. No `.select(...)` do `fetchOrders`, trocar `meios_pagamento(nome, tipo)` por `meios_pagamento(nome)`.
+2. No mapeamento de `pagamentos`, remover a leitura de `p.meios_pagamento?.tipo` e:
+   - Ajustar o tipo local `rawPagamentos` para refletir apenas `{ nome?: string }`.
+   - Definir `tipo: ""` no objeto `OrderPayment` retornado (mantém o contrato da interface sem exigir a coluna).
+3. Manter o restante do fluxo, incluindo `isReorderable` e o botão "Repetir pedido" para pedidos Finalizados/Cancelados — nada muda no comportamento visível além de a lista voltar a carregar.
 
-4. **Sem mudanças em backend.**
-   Nada de migração, RPC, RLS ou edge function. Nenhuma alteração no fluxo do caixa. Nenhuma mudança em `placeOrder`, `finalize_order_paid`, cashback, ou notificações.
+## Verificação
 
-## Validação manual
-
-- Fazer pedido em **Conta Corrente** → deve limpar carrinho, redirecionar para `/orders`, e um novo checkout partir do zero com o total do carrinho novo.
-- Fazer pedido em **Dinheiro (na entrega)** → mesmo comportamento.
-- Fazer pedido em **PIX** → continua exibindo a tela de PIX pendente (inalterado).
-- Fazer pedido em **Cartão via MP** → continua exibindo o formulário de cartão pendente (inalterado).
-- Cliente que já estava com o snapshot antigo travado abre `/checkout` com carrinho novo → snapshot é descartado automaticamente e o fluxo normal aparece.
+- Recarregar o PWA em `/orders` como cliente e confirmar que a lista aparece.
+- Confirmar que pedidos Finalizado/Cancelado continuam com o botão "Repetir pedido".
+- Sem alteração em RLS, triggers ou migrations.
