@@ -383,6 +383,34 @@ Deno.serve(async (req) => {
 
   const paid = ["paid", "processed", "approved"].includes(status.toLowerCase());
 
+  if (isFiado && fiadoCharge) {
+    // ---- Quitação de FIADO (conta corrente) ----
+    if (paid && fiadoCharge.status !== "paid") {
+      const { error: payErr } = await admin.rpc("pay_fiado_from_mp", {
+        p_charge_id: fiadoCharge.id,
+      });
+      if (payErr) {
+        console.error("mp-webhook: pay_fiado_from_mp falhou", {
+          charge_id: fiadoCharge.id,
+          error: payErr.message,
+        });
+        return new Response("retry", { status: 500, headers: corsHeaders });
+      }
+      await admin
+        .from("mp_fiado_charges")
+        .update({
+          status: "paid",
+          mp_status: status,
+          mp_payment_id: isPaymentTopic ? resourceId : apiPaymentId || fiadoCharge.mp_payment_id,
+        })
+        .eq("id", fiadoCharge.id);
+      console.log("mp-webhook: FIADO QUITADO", { charge_id: fiadoCharge.id });
+    } else if (!paid) {
+      await admin.from("mp_fiado_charges").update({ mp_status: status }).eq("id", fiadoCharge.id);
+    }
+    return new Response("ok", { status: 200, headers: corsHeaders });
+  }
+
   if (isComanda) {
     // ---- Liquidação UNIFICADA da comanda (Mesa) ----
     if (paid && !target.pago_online) {
