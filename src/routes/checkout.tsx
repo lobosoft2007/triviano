@@ -256,6 +256,21 @@ function CheckoutPage() {
     if (!everAuthed) setEverAuthed(true);
   }, [user, everAuthed]);
 
+  // Higiene defensiva: só PIX e Cartão (via MP) têm tela de pagamento pendente.
+  // Um snapshot de outra forma (Fiado/Dinheiro/Cartão na entrega) é resíduo de
+  // uma versão anterior do checkout e envenena o próximo pedido — descarta.
+  useEffect(() => {
+    if (!pendingPayment) return;
+    const isPendingScreen =
+      pendingPayment.payMethod === "PIX" ||
+      pendingPayment.payMethod === "Cartão de Crédito" ||
+      pendingPayment.payMethod === "Cartão de Débito";
+    if (!isPendingScreen) {
+      clearCheckoutSnapshot();
+      setPendingPayment(null);
+    }
+  }, [pendingPayment]);
+
 
   const safeItems = useMemo(
 
@@ -612,35 +627,47 @@ function CheckoutPage() {
         pagamentoOnline: isOnlinePayment,
       });
 
-      const paymentSnapshot: PendingPaymentSnapshot = {
-        at: Date.now(),
-        orderId,
-        total: finalTotal,
-        tipo,
-        mesa,
-        address,
-        phone: parsed.data.phone,
-        notes: parsed.data.notes ?? "",
-        payMethod,
-        trocoPara,
-      };
-      writePendingPaymentSnapshot(paymentSnapshot);
-      setPendingPayment(paymentSnapshot);
-      if (!isOnlinePayment) {
+      if (isOnlinePayment) {
+        const paymentSnapshot: PendingPaymentSnapshot = {
+          at: Date.now(),
+          orderId,
+          total: finalTotal,
+          tipo,
+          mesa,
+          address,
+          phone: parsed.data.phone,
+          notes: parsed.data.notes ?? "",
+          payMethod,
+          trocoPara,
+        };
+        writePendingPaymentSnapshot(paymentSnapshot);
+        setPendingPayment(paymentSnapshot);
+        await queryClient.invalidateQueries({ queryKey: ["orders"] });
+        toast.success(
+          payMethod === "PIX"
+            ? "PIX gerado. Seu carrinho será limpo após a confirmação do pagamento."
+            : "Pagamento iniciado. Seu carrinho será limpo após a confirmação.",
+        );
+        setSubmitting(false);
+        if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        // Fluxos sem pagamento pendente (Fiado, Dinheiro, Cartão na entrega):
+        // o pedido já foi registrado e não há tela de pagamento para renderizar.
+        // Limpamos carrinho e snapshots do checkout e levamos o cliente para
+        // a lista de pedidos, evitando que uma revisita ao /checkout recupere
+        // um snapshot antigo e "envenene" o próximo pedido.
         clear();
-      }
-      await queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success(
-        payMethod === "PIX"
-          ? "PIX gerado. Seu carrinho será limpo após a confirmação do pagamento."
-          : payMethod === "Conta Corrente"
+        clearCheckoutSnapshot();
+        setPendingPayment(null);
+        await queryClient.invalidateQueries({ queryKey: ["orders"] });
+        toast.success(
+          payMethod === "Conta Corrente"
             ? "Pedido registrado e lançado na sua conta corrente!"
-            : isOnlinePayment
-              ? "Pagamento iniciado. Seu carrinho será limpo após a confirmação."
-              : "Pedido registrado! Confira as instruções de pagamento.",
-      );
-      setSubmitting(false);
-      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+            : "Pedido registrado! Confira as instruções de pagamento.",
+        );
+        setSubmitting(false);
+        navigate({ to: "/orders", replace: true });
+      }
     } catch (err) {
       // Log the full error for observability; never surface raw DB/gateway text.
       console.error("Falha ao finalizar o pedido:", err);
