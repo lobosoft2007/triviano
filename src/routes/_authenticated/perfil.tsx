@@ -11,7 +11,9 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Gift,
+  QrCode,
 } from "lucide-react";
+import { FiadoPixDialog } from "@/components/perfil/FiadoPixDialog";
 import { useAuth } from "@/lib/auth";
 import {
   fetchFullProfile,
