@@ -37,6 +37,10 @@ interface CreatePaymentBody {
   // comanda_id. O valor cobrado é o total_parcial (soma de todos os pedidos
   // da mesa) e a Order do MP referencia a COMANDA, não um pedido isolado.
   comanda_id?: string;
+  // Cobrança de QUITAÇÃO DE FIADO (conta corrente) — não vinculada a pedido.
+  // O webhook chama pay_fiado_from_mp para dar baixa automática no saldo devedor.
+  kind?: "order" | "comanda" | "fiado";
+  fiado_amount?: number;
   method: "pix" | "card";
   // Ambiente detectado no frontend a partir do host real do navegador.
   env?: "prod" | "test";
@@ -45,7 +49,8 @@ interface CreatePaymentBody {
   //  - "balcao"  : PDV/Balcão — pedido nasce oculto (rascunho) até a confirmação.
   //  - "mesa"    : Mesa/Delivery já ativo no Caixa — NÃO alterar visibilidade.
   //  - "comanda" : liquidação unificada da comanda da mesa (v1.7.0).
-  context?: "app" | "balcao" | "mesa" | "comanda";
+  //  - "fiado"   : quitação de conta corrente pelo cliente no /perfil.
+  context?: "app" | "balcao" | "mesa" | "comanda" | "fiado";
   // Card-only (Checkout Transparente / Card Payment Brick):
   token?: string;
   installments?: number;
