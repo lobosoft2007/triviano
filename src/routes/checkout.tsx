@@ -256,6 +256,21 @@ function CheckoutPage() {
     if (!everAuthed) setEverAuthed(true);
   }, [user, everAuthed]);
 
+  // Higiene defensiva: só PIX e Cartão (via MP) têm tela de pagamento pendente.
+  // Um snapshot de outra forma (Fiado/Dinheiro/Cartão na entrega) é resíduo de
+  // uma versão anterior do checkout e envenena o próximo pedido — descarta.
+  useEffect(() => {
+    if (!pendingPayment) return;
+    const isPendingScreen =
+      pendingPayment.payMethod === "PIX" ||
+      pendingPayment.payMethod === "Cartão de Crédito" ||
+      pendingPayment.payMethod === "Cartão de Débito";
+    if (!isPendingScreen) {
+      clearCheckoutSnapshot();
+      setPendingPayment(null);
+    }
+  }, [pendingPayment]);
+
 
   const safeItems = useMemo(
 
