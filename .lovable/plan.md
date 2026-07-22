@@ -1,58 +1,42 @@
-## Objetivo
-No card **Conta Corrente** de `/perfil` (Meus Dados), adicionar um botão **"Pagar via PIX"** que gera cobrança dinâmica do Mercado Pago (mesma infra do checkout/comanda). O webhook confirma o pagamento e chama `pay_fiado` automaticamente, quitando o saldo devedor sem intervenção do caixa. O card de cashback já tem o botão de abatimento — mantido como está.
+## Causa raiz (confirmada nos logs + banco)
 
-## UX no /perfil
+O webhook do Mercado Pago chegou, foi reconciliado com sucesso (`mpStatus: processed`, `paidAmount: 34`) e invocou `pay_fiado_from_mp`. Essa função é `SECURITY DEFINER`, mas por baixo ela chama `public.pay_fiado(...)`, que começa com:
 
-Dentro da seção "Conta Corrente" (só aparece se `fiado_autorizado` e `saldo_devedor_fiado > 0`):
+```sql
+IF NOT public.has_role(auth.uid(), 'admin') THEN
+  RAISE EXCEPTION 'Acesso restrito.';
+END IF;
+```
 
-- Botão **"Pagar com PIX"** abaixo do bloco de saldo/limite.
-- Ao clicar → abre um `Dialog` com:
-  - Campo de **valor** (numérico, default = saldo devedor, min = R$ 0,01, max = saldo devedor).
-  - Botão **"Gerar QR Code"**.
-  - Após gerar: **QR (imagem base64)** + **Copia e Cola** com botão de copiar + valor formatado + indicador "Aguardando pagamento…".
-  - Ao webhook confirmar (polling do status): toast de sucesso, dialog fecha, saldo devedor atualiza (invalidate das queries de perfil + extrato fiado + extrato cashback + full-profile).
+Como o webhook roda sem sessão (`auth.uid()` é NULL), a chamada falha com **"Acesso restrito."** — exatamente a mensagem que aparece nos logs `mp-webhook: pay_fiado_from_mp falhou`. Resultado: o MP confirma o pagamento, mas o saldo devedor não é baixado.
 
-Nenhuma mudança no card de cashback — o botão "Usar X para abater o fiado" já existe.
+## Correção proposta
 
-## Backend
+Reescrever `public.pay_fiado_from_mp` para **não depender de `pay_fiado`** e executar a baixa diretamente (função continua `SECURITY DEFINER`, protegida por só ser chamada com um `charge_id` válido da tabela `mp_fiado_charges`, cujo status/empresa já são conferidos internamente).
 
-### 1. `supabase/functions/mp-create-payment/index.ts`
-Aceitar novo `kind: "fiado"` no payload:
-- Sem `order_id`. Payload: `{ kind: "fiado", user_id, amount, host }`.
-- Valida: `amount > 0`, `amount <= saldo_devedor_fiado` do `user_id`, `auth.uid() = user_id`.
-- Resolve `empresa_id` via host e busca token MP secreto (mesmo fluxo atual).
-- Cria Order MP PIX com `external_reference = "fiado:<user_id>:<uuid>"` e `metadata: { kind: "fiado", user_id, empresa_id, valor }`.
-- Grava linha em nova tabela `mp_fiado_charges` (id, user_id, empresa_id, valor, mp_order_id, status, created_at) para o webhook conseguir localizar e para polling.
-- Retorna `qr_code`, `qr_code_base64`, `mp_order_id`, `status`.
+A nova versão faz, dentro da mesma transação e de forma idempotente (retorna cedo se `status='paid'`):
 
-### 2. `supabase/functions/mp-webhook/index.ts`
-No handler, após buscar a Order do MP, se `metadata.kind === "fiado"`:
-- Localiza `mp_fiado_charges` pelo `mp_order_id`; se já `paid`, retorna 200 (idempotência).
-- Se aprovado, chama nova RPC `pay_fiado_from_mp(p_user_id, p_valor, p_mp_order_id)` (SECURITY DEFINER) que:
-  - Insere/garante meio de pagamento "PIX Mercado Pago" e chama a lógica de `pay_fiado` (mesmo caminho já existente), amarrando a origem ao `mp_order_id` no `descricao` do lançamento.
-  - Marca `mp_fiado_charges.status = 'paid'`.
-- Se recusado/expirado, marca `status = 'failed'`.
+1. `SELECT ... FOR UPDATE` da cobrança em `mp_fiado_charges`.
+2. `UPDATE profiles.saldo_devedor_fiado = GREATEST(0, saldo - valor)` do `user_id` da cobrança.
+3. `INSERT` em `extrato_fiado` (tipo `Credito_Pagamento`) — histórico do fiado.
+4. `INSERT` em `extrato_conta_corrente` (tipo `Credito`, descrição "Quitação PIX Mercado Pago").
+5. `UPDATE clientes_fiado.saldo_devedor_atual` para refletir o novo saldo.
+6. `PERFORM notify_fiado(...)` para notificar o cliente.
+7. Marca a cobrança como `paid`, grava `paid_at` e `mp_payment_id`.
 
-### 3. Nova RPC `get_mp_fiado_status(p_mp_order_id)`
-Definer, retorna `{status}` da `mp_fiado_charges` para o polling do frontend (RLS: só o dono da linha lê).
+Diferenças frente ao `pay_fiado` tradicional (intencionais para o contexto webhook):
+- **Sem `has_role`/`can_manage_empresa`**: quem autoriza é o próprio Mercado Pago via `mp_fiado_charges` (a cobrança só existe porque o cliente autenticado a criou pela Edge Function, com validação de `empresa_id` e `saldo_devedor_fiado`).
+- **Não lança em `movimentacoes_caixa`**: pagamento veio online, fora de qualquer caixa aberto — coerente com o comportamento já usado pelo webhook em outros fluxos MP.
 
-### 4. Migração
-- `CREATE TABLE public.mp_fiado_charges` com colunas acima + GRANTs (`authenticated` SELECT/INSERT via RPC only; `service_role` ALL) + RLS "user reads own" e "service_role manages".
-- `CREATE FUNCTION public.pay_fiado_from_mp(...)` e `public.get_mp_fiado_status(...)`.
-- Não altera nada do motor financeiro protegido — apenas envolve `pay_fiado` já auditado.
+Nenhuma outra função, RLS, GRANT ou trigger é alterada. O Edge Function `mp-webhook` já chama a RPC do jeito certo; só a função SQL precisa mudar.
 
-## Frontend (novos arquivos)
+## Entregável
 
-- `src/lib/mercadopago.ts`: adicionar `createMpFiadoPayment({ userId, amount })` e `fetchMpFiadoStatus(mpOrderId)`.
-- `src/components/perfil/FiadoPixDialog.tsx`: novo dialog com campo de valor, geração do QR, polling (`setInterval` 3s), UI reaproveitando o padrão visual do `ComandaPixCharge`.
-- `src/routes/_authenticated/perfil.tsx`: adicionar botão "Pagar com PIX" na seção Conta Corrente e montar o dialog.
+- Uma migração SQL única redefinindo `public.pay_fiado_from_mp(uuid, text)` conforme acima.
+- Sem mudanças de código no front nem nas Edge Functions.
 
-## Validação
-1. `bun run build`.
-2. `security--run_security_scan` — garantir que a nova RPC e tabela estão travadas.
-3. Teste manual: gerar PIX em ambiente sandbox, simular webhook, ver saldo devedor cair e extrato aparecer.
+## Validação após aplicar
 
-## Notas
-- Não altera motor financeiro (apenas usa `pay_fiado` via wrapper).
-- Multi-tenant preservado (empresa resolvida por host, credenciais MP por empresa).
-- Sem alteração no card de cashback / abatimento.
+1. Refazer um pagamento PIX de fiado pelo `/perfil`.
+2. Conferir nos logs do `mp-webhook` a ausência de `pay_fiado_from_mp falhou`.
+3. Ver o saldo devedor cair no `/perfil` (dialog fecha sozinho via polling) e a linha aparecer em "Extrato".
