@@ -15,6 +15,11 @@ interface Props {
   orderId: string;
   total: number;
   method: "pix" | "card";
+  /**
+   * Quando `method === "card"`, restringe o Brick a crédito ou débito.
+   * Se omitido, o Brick aceita ambos (comportamento original).
+   */
+  cardType?: "credit" | "debit";
   config: MpPublicConfig;
   payerEmail?: string;
   onPaid: () => void;
@@ -31,6 +36,7 @@ export function MercadoPagoCheckout({
   orderId,
   total,
   method,
+  cardType,
   config,
   payerEmail,
   onPaid,
@@ -115,7 +121,15 @@ export function MercadoPagoCheckout({
         const bricks = mp.bricks();
         brickRef.current = await bricks.create("cardPayment", "mp-card-brick", {
           initialization: { amount: total, payer: { email: payerEmail } },
-          customization: { visual: { style: { theme: "default" } } },
+          customization: {
+            visual: { style: { theme: "default" } },
+            paymentMethods:
+              cardType === "credit"
+                ? { maxInstallments: undefined, types: { excluded: ["debit_card"] } }
+                : cardType === "debit"
+                  ? { maxInstallments: 1, types: { excluded: ["credit_card"] } }
+                  : undefined,
+          },
           callbacks: {
             onReady: () => {},
             onError: (err: unknown) => {
@@ -166,7 +180,7 @@ export function MercadoPagoCheckout({
       brickRef.current = null;
       mountedContainer.current = false;
     };
-  }, [method, config.public_key, total, payerEmail, orderId, onPaid]);
+  }, [method, cardType, config.public_key, total, payerEmail, orderId, onPaid]);
 
   async function copyPix() {
     if (!pix?.qr_code) return;

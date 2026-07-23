@@ -82,16 +82,26 @@ const CHECKOUT_AUTH_LATCH_TTL = 30 * 60 * 1000;
 type PayMethod =
   | "PIX"
   | "Dinheiro"
-  | "Cartão de Crédito"
-  | "Cartão de Débito"
+  | "Crédito online"
+  | "Débito online"
+  | "Crédito na entrega"
+  | "Débito na entrega"
   | "Conta Corrente";
 
 const PAY_METHODS: { value: PayMethod; label: string; hint: string }[] = [
   { value: "PIX", label: "PIX", hint: "QR Code na hora" },
   { value: "Dinheiro", label: "Dinheiro", hint: "Pague na entrega" },
-  { value: "Cartão de Crédito", label: "Crédito", hint: "Maquininha na entrega" },
-  { value: "Cartão de Débito", label: "Débito", hint: "Maquininha na entrega" },
+  { value: "Crédito online", label: "Crédito online", hint: "Cartão pelo app" },
+  { value: "Débito online", label: "Débito online", hint: "Cartão pelo app" },
+  { value: "Crédito na entrega", label: "Crédito na entrega", hint: "Maquininha na entrega" },
+  { value: "Débito na entrega", label: "Débito na entrega", hint: "Maquininha na entrega" },
 ];
+
+/** Pedidos legados/salvos podem ter os rótulos antigos; aceitamos ambos ao decidir a tela de pagamento. */
+const ONLINE_CARD_METHODS: readonly PayMethod[] = [
+  "Crédito online",
+  "Débito online",
+] as const;
 
 interface CheckoutSnapshot {
   at: number;
@@ -261,10 +271,14 @@ function CheckoutPage() {
   // uma versão anterior do checkout e envenena o próximo pedido — descarta.
   useEffect(() => {
     if (!pendingPayment) return;
+    const pm = pendingPayment.payMethod as PayMethod | string;
     const isPendingScreen =
-      pendingPayment.payMethod === "PIX" ||
-      pendingPayment.payMethod === "Cartão de Crédito" ||
-      pendingPayment.payMethod === "Cartão de Débito";
+      pm === "PIX" ||
+      pm === "Crédito online" ||
+      pm === "Débito online" ||
+      // Legado: versões antigas usavam esses rótulos para cartão online.
+      pm === "Cartão de Crédito" ||
+      pm === "Cartão de Débito";
     if (!isPendingScreen) {
       clearCheckoutSnapshot();
       setPendingPayment(null);
@@ -324,8 +338,11 @@ function CheckoutPage() {
   const visibleMethods = PAY_METHODS.filter((m) => {
     if (m.value === "PIX") return mpConfigLoading || (mpActive && allowPixOnline);
     if (m.value === "Dinheiro") return allowNaEntrega;
-    if (m.value === "Cartão de Crédito" || m.value === "Cartão de Débito") {
-      return mpActive ? allowCardOnline : allowNaEntrega;
+    if (m.value === "Crédito online" || m.value === "Débito online") {
+      return mpActive && allowCardOnline;
+    }
+    if (m.value === "Crédito na entrega" || m.value === "Débito na entrega") {
+      return allowNaEntrega;
     }
     return true;
   });
@@ -338,7 +355,7 @@ function CheckoutPage() {
   const isOnlinePayment =
     payMethod === "PIX" ||
     (mpActive &&
-      (payMethod === "Cartão de Crédito" || payMethod === "Cartão de Débito") &&
+      (payMethod === "Crédito online" || payMethod === "Débito online") &&
       allowCardOnline);
 
 
@@ -918,8 +935,11 @@ function CheckoutPage() {
           ) : pendingPayment &&
             mpActive &&
             mpConfig &&
-            (effectivePayMethod === "Cartão de Crédito" ||
-              effectivePayMethod === "Cartão de Débito") ? (
+            (effectivePayMethod === "Crédito online" ||
+              effectivePayMethod === "Débito online" ||
+              // Legado: pedidos criados antes da separação online x na entrega.
+              (effectivePayMethod as string) === "Cartão de Crédito" ||
+              (effectivePayMethod as string) === "Cartão de Débito") ? (
             <section className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-primary" />
@@ -938,6 +958,9 @@ function CheckoutPage() {
                 orderId={pendingPayment.orderId}
                 total={finalTotal}
                 method="card"
+                cardType={
+                  effectivePayMethod === "Débito online" ? "debit" : "credit"
+                }
                 config={mpConfig}
                 payerEmail={user?.email ?? undefined}
                 onPaid={() => {
@@ -1019,8 +1042,8 @@ function CheckoutPage() {
                   )}
                 </p>
               )}
-              {(effectivePayMethod === "Cartão de Crédito" ||
-                effectivePayMethod === "Cartão de Débito") && (
+              {(effectivePayMethod === "Crédito na entrega" ||
+                effectivePayMethod === "Débito na entrega") && (
                 <p className="mt-2 rounded-xl bg-background/60 px-3 py-2 text-xs text-muted-foreground">
                   A maquininha estará disponível no momento{" "}
                   {tipo === "Delivery" ? "da entrega" : "da retirada"}.

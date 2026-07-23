@@ -1,42 +1,61 @@
-## Situação atual (verificada)
 
-- A flag que ativa o meio a meio é a coluna `categories.allows_half`.
-- No banco, as duas categorias de Pizzas (`pizzas` e `pizzas-t99`) já estão com `allows_half = true`.
-- A API pública `/rest/v1/categories` retorna corretamente `allows_half: true` para essas categorias (testado via anon key).
-- O `ProductCustomizer` renderiza o checkbox "Pizza meio a meio" quando `!isAcai && category.allows_half` (`src/components/ProductCustomizer.tsx:382`).
-- **Não existe nenhum toggle no /admin** para essa flag — hoje só dá pra mexer direto no banco. É por isso que "não achei onde reabilitar".
+## Objetivo
 
-Ou seja: no banco está ligado, mas você não vê a opção no PWA. Antes de mudar código de UI, preciso confirmar por onde a pizza está sendo aberta hoje, porque tem dois caminhos de home no projeto (`index.tsx` clássico e `home-netflix.tsx`) — os dois usam a mesma flag, mas o modal do "netflix" tem uma etapa de pré-seleção que pode estar fechando antes de abrir o customizador.
+Hoje o PWA mostra "Crédito" e "Débito" com dica "Maquininha na entrega", mas — quando o Mercado Pago está ativo — abre o Brick e pede os dados do cartão. Vamos separar em 4 opções distintas e independentes, cada uma cadastrada como meio em `/admin > Meios de Pagamento` (para ter cashback e taxas próprios). Retenção de cartão para futuras compras (Mercado Pago Customer Cards) fica para uma próxima fase.
 
-## Plano
+## Escopo (apenas frontend / checkout)
 
-### 1. Diagnóstico rápido do "checkbox não aparece"
+Não mexer no motor financeiro (RPCs `create_order`, `finalize_order_paid`, webhook `mp-create-payment`/`mp-webhook`, triggers de estoque/cashback, trigger de "finalizado exige pago"). A separação é puramente de UX + rótulos + roteamento condicional.
 
-- Abrir o preview autenticado, entrar em uma pizza e inspecionar via DevTools:
-  - confirmar qual componente abriu (Sheet do `ProductCustomizer` ou Dialog do `home-netflix`).
-  - checar se `category.allows_half` chega como `true` no cliente (log temporário controlado, removido depois).
-- Se o problema for cache do PWA (service worker antigo servindo menu sem `allows_half`), forçar reload / bump de versão.
-- Se o problema for de fluxo (home-netflix abrindo direto no carrinho sem passar pelo customizador), corrigir o gatilho para respeitar `needsCustomization` que já inclui `allows_half`.
+## Novo conjunto de opções no PWA
 
-Sem alterar regra de negócio nem preço — só garantir que o checkbox volte a aparecer.
+Substituir as 2 linhas atuais de cartão por 4 rótulos independentes:
 
-### 2. Adicionar controle no /admin (Categorias)
+- **Crédito online** — abre o Brick de cartão do Mercado Pago (fluxo atual). Só aparece quando `mpConfig.aceita_cartao_online = true`.
+- **Débito online** — mesmo Brick, mas configurado para forçar débito no MP. Só aparece quando `mpConfig.aceita_cartao_online = true`.
+- **Crédito na entrega** — só rótulo, nenhum Brick, nenhum dado de cartão pedido. Só aparece quando `mpConfig.aceita_na_entrega = true` (ou quando o MP está desligado, como fallback atual).
+- **Débito na entrega** — idem, débito na maquininha do entregador. Mesma regra de visibilidade.
 
-Fonte única de verdade para você não precisar mais me chamar:
+Regras conjuntas:
+- Se MP ativo e "na entrega" habilitado → mostra as 4.
+- Se MP inativo → só as 2 "na entrega".
+- Se "na entrega" desligado no admin → só as 2 "online".
 
-- Em `src/components/admin/CategoriasCrud.tsx`, adicionar no editor de cada categoria:
-  - Switch **"Permite pizza meio a meio"** → grava `categories.allows_half`.
-  - (Bônus, mesmo dialog) Campo numérico **"Mínimo de itens"** → grava `categories.min_items` (útil pros Pastéis, que também não têm UI hoje).
-- Persistência via update no Supabase, respeitando as policies já existentes de categorias.
-- Sem migration — as colunas já existem.
+## Alterações de código
 
-### 3. Verificação
+### 1. `src/routes/checkout.tsx`
 
-- Marcar/desmarcar o switch em `Pizzas` no /admin e confirmar que:
-  - a lista de pizzas no PWA passa a mostrar/esconder o checkbox "Pizza meio a meio";
-  - ao marcar meio a meio, a lista de segundo sabor aparece e o preço sai como média dos dois (comportamento já existente, só quero garantir que não regrediu).
+- Ampliar o union `PayMethod` para incluir `"Crédito online" | "Débito online" | "Crédito na entrega" | "Débito na entrega"` e remover `"Cartão de Crédito"` / `"Cartão de Débito"`.
+- Reescrever `PAY_METHODS` com as 4 novas linhas (labels + hints "Cartão pelo app" / "Maquininha na entrega") + PIX + Dinheiro + Conta Corrente.
+- Atualizar `visibleMethods` conforme regras acima.
+- Atualizar `isOnlinePayment` para `payMethod === "PIX" || payMethod === "Crédito online" || payMethod === "Débito online"` (as duas "na entrega" nunca são online, mesmo com MP ativo).
+- Propagar o novo rótulo em `paymentLabel` (usado no `composedNotes` do pedido) e em toda checagem que hoje bate string com `"Cartão de Crédito"`/`"Cartão de Débito"` (blocos de linhas 265–267, 339–342, 601–608, 647–666).
+- Passar o tipo de cartão escolhido para o `<MercadoPagoCheckout>` via nova prop `cardType?: "credit" | "debit"`.
 
-## Fora do escopo
+### 2. `src/components/checkout/MercadoPagoCheckout.tsx`
 
-- Não mexer no cálculo de preço meio a meio, no cupom da cozinha, nem no combo Burger+Petisco.
-- Não mexer em RLS/GRANT de `categories` (já validado que anon lê `allows_half`).
+- Adicionar prop `cardType?: "credit" | "debit"` (default: `undefined`).
+- Passar `paymentTypes: { excluded: [...] }` no `initialization` do Card Payment Brick para forçar só crédito ou só débito conforme `cardType` (`credit_card`/`debit_card` do MP). Sem `cardType`, mantém o comportamento atual (ambos).
+
+### 3. Migração de rótulos legados (compat)
+
+- Em `src/lib/caixa.ts` (lista `STANDARD` das linhas 664–671), manter `"Cartão de Crédito"` e `"Cartão de Débito"` (histórico) e adicionar as 4 novas variantes, para o resumo do caixa continuar somando corretamente pedidos antigos e novos.
+- Nenhuma alteração em `NON_CASH_MEIOS`/regra de gaveta: os quatro rótulos novos continuam sendo "não-dinheiro".
+
+### 4. `/admin > Meios de Pagamento` (dado, não código)
+
+- Cadastro dos 4 meios (`Crédito online`, `Débito online`, `Crédito na entrega`, `Débito na entrega`) fica a cargo do usuário via UI existente (`MeiosPagamentoCrud`) — cada um com seu cashback/taxa. **Não vamos inserir dados por script**; só documentar no fim: "abra /admin > Meios de Pagamento e crie os 4 registros; os 2 antigos podem ser desativados quando não houver mais pedidos abertos usando-os."
+
+## O que **não** entra nesta rodada
+
+- Salvar o cartão do cliente no Mercado Pago (Customer Cards / vault) para reutilizar em compras futuras — combinado com o usuário para uma fase posterior. Vai exigir criar um `mp_customer_id` no `profiles`, listar cartões salvos via edge function e ampliar o Brick para "usar cartão salvo".
+- Split, cofre próprio ou tokenização fora do Mercado Pago.
+- Alteração de triggers, RLS, RPC `create_order` ou webhook.
+
+## Validação depois de implementar
+
+1. MP ativo + na entrega ligado → 4 opções aparecem; "online" abre o Brick, "na entrega" registra o pedido sem pedir cartão.
+2. MP desligado → só as 2 "na entrega".
+3. Pedido em "Crédito na entrega" fica visível no /caixa imediatamente (é offline), roteia impressão como offline (dinheiro/fiado).
+4. Pedido em "Crédito online" fica oculto até o webhook do MP confirmar (comportamento atual do PIX/cartão).
+5. Após cadastrar os 4 meios em /admin, cashback aplicado no pedido usa a % daquele meio específico.
