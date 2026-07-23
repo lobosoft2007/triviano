@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -60,6 +61,8 @@ interface FormState {
   name: string;
   cor_fonte: string;
   tamanho_fonte: string;
+  allows_half: boolean;
+  min_items: number;
 }
 
 const EMPTY: FormState = {
@@ -67,7 +70,10 @@ const EMPTY: FormState = {
   name: "",
   cor_fonte: "text-white",
   tamanho_fonte: "text-base",
+  allows_half: false,
+  min_items: 0,
 };
+
 
 const QK = ["admin-categories"];
 
