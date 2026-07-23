@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "pos_app_releases read all" ON public.pos_app_releases;
+CREATE POLICY "pos_app_releases superadmin read" ON public.pos_app_releases FOR SELECT TO authenticated USING (is_superadmin());
