@@ -379,7 +379,7 @@ export function ProductCustomizer({
           )}
 
           {/* Half and half */}
-          {!isAcai && category.allows_half && (
+          {category.allows_half && (
             <section>
               <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
                 <span className="text-sm font-semibold">
