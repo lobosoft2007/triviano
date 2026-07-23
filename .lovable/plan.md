@@ -1,21 +1,69 @@
-## Diagnóstico (confirmado por queries)
+# Plano B v3 — Agente Local de Impressão
 
-- Cadastro correto: **Cozinha** tem 8 categorias (incluindo Pizzas), **Bar** tem Bebidas/Açaís, **Caixa** tem Diversos, **Balcão de Entregas** com `imprime_pedido_completo = true`. Todas ativas na mesma `empresa_id` do pedido.
-- `enqueue_print_jobs` está correta: chamada manual no pedido `f8bdd5d2…` gerou os jobs de setor (Cozinha e Bar) como esperado.
-- Causa real: no `create_order`, o `INSERT` em `orders` acontece **antes** do `INSERT` em `order_items`. O trigger `trg_orders_enqueue_print` (AFTER INSERT em `orders`) dispara nesse instante — o loop de setor não acha itens e nada é enfileirado. O loop de `pedido_completo` varre `config_impressoras` direto e por isso o job do Balcão sai normalmente. Depois o trigger marca `impresso_cozinha = true` e nenhum UPDATE posterior reenfileira.
+## Objetivo
+Serviço Node.js local que consome a fila `print_jobs`, formata em ESC/POS e envia para impressoras térmicas via TCP:9100, com retry automático e recuperação por soft-fail.
 
-## Correção (revisada para evitar double-enqueue)
+## Estrutura do pacote (`print-agent/`)
+```text
+print-agent/
+  package.json
+  tsconfig.json
+  .env.example
+  README.md
+  src/
+    index.ts          # loop principal (poll + dispatch)
+    config.ts         # carrega .env (URL, token, encoding, intervalos)
+    api.ts            # chamadas /claim, /ack, /heartbeat
+    escpos.ts         # formatação (sector vs full order), encoding CP850/UTF-8
+    tcp.ts            # envio TCP:9100 com timeout
+    logger.ts         # logs simples em stdout + arquivo
+```
+Independente do app web; roda com `npm start` na loja.
 
-Migração única, sem tocar em frontend nem no motor financeiro:
+## Banco de dados (migração única)
+1. `print_jobs`: adicionar `attempts int default 0`, `next_attempt_at timestamptz default now()`, `last_error text`.
+2. `claim_print_jobs`: reservar jobs onde `status='queued' AND next_attempt_at<=now()` **ou** `status='processing' AND locked_until<now()`. `locked_until = now()+30s`. Incrementa `attempts`.
+3. `ack_print_job(job_id, ok, error_message)`:
+   - `ok=true` → `status='done'`.
+   - `ok=false` e `attempts<5` → `status='queued'`, backoff `next_attempt_at = now()+ (attempts^2 * 10s)`, grava `last_error`.
+   - `ok=false` e `attempts>=5` → `status='failed'`, grava `last_error`.
+4. `pg_cron` de retenção: apaga jobs `done`/`failed` com mais de 7 dias (diário).
+5. Sem cron de expiração de 30min — soft-fail é resolvido pelo próprio `claim_print_jobs`.
 
-1. **`trg_orders_enqueue_print`**: transformar o ramo `TG_OP = 'INSERT'` em no-op (só `RETURN NEW`). Manter as condições (a) `impresso_cozinha false→true`, (b) webhook PIX/cartão (`aguardando_pagamento true→false`) e (c) rede de segurança `status ∈ (paid, delivered)` exatamente como estão — inclusive o `UPDATE ... SET impresso_cozinha = true` interno das (b) e (c), que continua protegido pelo `pg_trigger_depth() > 1`.
-2. **`create_order`**: após o `INSERT` em `order_items` (e o cálculo final do pedido), quando `v_aguardando_pagamento = false`, executar apenas
-   `UPDATE public.orders SET impresso_cozinha = true WHERE id = v_order_id;`
-   Esse UPDATE aciona o trigger via condição (a), que enfileira os jobs com os itens já presentes. Como (a) **não** faz UPDATE interno, não há recursão nem double-enqueue.
-3. PIX/cartão online: como `aguardando_pagamento = true`, o `create_order` não faz o UPDATE — o cupom só sai quando o webhook zera `aguardando_pagamento` e o ramo (b) dispara, como hoje.
+## Fluxo do agente
+1. `POST /api/public/print-agent/heartbeat` a cada 30s (atualiza `printer_agent_tokens.last_seen_at`).
+2. `POST /api/public/print-agent/claim` a cada 2s (config): recebe lote de jobs.
+3. Para cada job: formata em ESC/POS conforme `layout` (sector/full), envia por TCP:9100 da impressora alvo.
+4. `POST /api/public/print-agent/ack` com `{ok, error_message?}`.
+5. Se o agente cair entre claim e ack, `locked_until` expira em 30s e outro poll re-reivindica automaticamente (sem cron, sem reversão manual).
 
-## Validação
+## Formatação ESC/POS (`escpos.ts`)
+- Layout **sector** (cozinha/bar/pizzaria): cabeçalho da empresa, número do pedido/senha, mesa/entregador, apenas itens do setor, adicionais, removidos, observações. Corte final.
+- Layout **full** (via de balcão/entrega): pedido completo, totais, meio de pagamento, endereço se delivery.
+- Encoding: default `cp850`, configurável por `PRINTER_ENCODING` no `.env` e override opcional por impressora (coluna `encoding` em `config_impressoras`, nullable).
 
-- Pedido novo em Dinheiro com itens de Cozinha, Bar e Diversos → `print_jobs` mostra um job `setor` para Cozinha, um para Bar, um para Caixa e um `pedido_completo` para Balcão de Entregas (sem duplicatas).
-- Pedido PIX → nenhum job antes do webhook; após confirmação, mesmos jobs acima aparecem uma única vez.
-- Pedidos antigos travados sem cupom de setor podem ser reprocessados com `SELECT enqueue_print_jobs('<id>')` (comportamento já validado agora, retornou 3 jobs).
+## `.env.example`
+```
+AGENT_TOKEN=...            # token gerado no /caixa
+API_BASE_URL=https://triviano.com.br
+POLL_INTERVAL_MS=2000
+HEARTBEAT_INTERVAL_MS=30000
+PRINTER_ENCODING=cp850
+LOG_FILE=./agent.log
+```
+
+## UI /caixa — "Fila de Impressão"
+- Painel dentro de Impressoras: lista `print_jobs` recentes com colunas status, tentativas, impressora, criado, último erro.
+- Badges de saúde por agente (online se `last_seen_at < 60s`).
+- Botão "Reimprimir" por job (reseta `attempts=0`, `status='queued'`, `next_attempt_at=now()`).
+- Contador de "atrasados" (queued > 30s).
+
+## Ordem de execução
+1. Migração DB (colunas, `claim_print_jobs`, `ack_print_job`, cron retenção, coluna `encoding` opcional).
+2. Pacote `print-agent/` (código + README de instalação Windows/Linux).
+3. UI da fila em `src/routes/_authenticated/caixa.tsx` + componente `PrintQueuePanel`.
+4. Ajuste do `enqueue_print_jobs` para setar `next_attempt_at=now()` na criação.
+
+## Fora do escopo
+- Instalação automática do agente como serviço do Windows (documentado no README).
+- Descoberta automática de impressoras na rede.
