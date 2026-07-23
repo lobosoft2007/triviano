@@ -15,6 +15,8 @@ interface PrintJobRow {
   created_at: string;
   next_attempt_at: string | null;
   printed_at: string | null;
+  order_id: string | null;
+  payload: Record<string, unknown> | null;
 }
 
 interface PrinterRef {
@@ -36,6 +38,18 @@ function fmtTime(iso: string | null) {
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+function orderLabel(job: PrintJobRow): string {
+  const order = (job.payload?.order ?? null) as
+    | { senha_diaria?: string | number | null; senha?: string | number | null }
+    | null;
+  const diaria = order?.senha_diaria;
+  if (diaria != null && String(diaria).trim() !== "") return `#${diaria}`;
+  const senha = order?.senha;
+  if (senha != null && String(senha).trim() !== "") return `S${senha}`;
+  if (job.order_id) return job.order_id.slice(0, 6).toUpperCase();
+  return "—";
+}
+
 export function PrintQueuePanel() {
   const qc = useQueryClient();
 
@@ -45,7 +59,7 @@ export function PrintQueuePanel() {
       const { data, error } = await supabase
         .from("print_jobs")
         .select(
-          "id, status, tipo, attempts, printer_id, last_error, created_at, next_attempt_at, printed_at",
+          "id, status, tipo, attempts, printer_id, last_error, created_at, next_attempt_at, printed_at, order_id, payload",
         )
         .order("created_at", { ascending: false })
         .limit(30);
@@ -68,12 +82,13 @@ export function PrintQueuePanel() {
   });
 
   const retryMutation = useMutation({
-    mutationFn: async (jobId: string) => {
-      const { error } = await supabase.rpc("retry_print_job", { p_job_id: jobId });
+    mutationFn: async (job: PrintJobRow) => {
+      const { error } = await supabase.rpc("retry_print_job", { p_job_id: job.id });
       if (error) throw error;
+      return job;
     },
-    onSuccess: () => {
-      toast.success("Job reenfileirado");
+    onSuccess: (job) => {
+      toast.success(`Pedido ${orderLabel(job)} reenfileirado`);
       qc.invalidateQueries({ queryKey: ["print-jobs-panel"] });
     },
     onError: (err: Error) => toast.error(err.message || "Falha ao reenfileirar"),
@@ -120,6 +135,7 @@ export function PrintQueuePanel() {
         <div className="space-y-1.5 max-h-80 overflow-auto">
           {jobs.map((j) => {
             const s = STATUS_LABEL[j.status] ?? STATUS_LABEL.pending;
+            const isPrinting = j.status === "printing";
             return (
               <div
                 key={j.id}
@@ -128,7 +144,14 @@ export function PrintQueuePanel() {
                 <Badge variant="outline" className={s.className}>
                   {s.label}
                 </Badge>
-                <span className="font-mono text-[10px] text-muted-foreground">
+                <Badge
+                  variant="outline"
+                  className="font-mono bg-muted text-foreground border-border"
+                  title="Número do pedido"
+                >
+                  {orderLabel(j)}
+                </Badge>
+                <span className="font-mono text-[10px] text-muted-foreground hidden md:inline">
                   {j.tipo}
                 </span>
                 <span className="flex-1 truncate">{printerName(j.printer_id)}</span>
@@ -138,17 +161,16 @@ export function PrintQueuePanel() {
                 <span className="text-muted-foreground hidden sm:inline">
                   {fmtTime(j.created_at)}
                 </span>
-                {(j.status === "failed" || j.status === "expired") && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 px-2 text-[11px]"
-                    onClick={() => retryMutation.mutate(j.id)}
-                    disabled={retryMutation.isPending}
-                  >
-                    Reimprimir
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={() => retryMutation.mutate(j)}
+                  disabled={retryMutation.isPending || isPrinting}
+                  title={isPrinting ? "Aguarde: job em impressão" : "Reimprimir"}
+                >
+                  Reimprimir
+                </Button>
                 {j.last_error && (
                   <span
                     className="text-red-600 truncate max-w-[180px]"
