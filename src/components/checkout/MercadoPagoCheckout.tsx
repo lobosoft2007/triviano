@@ -121,7 +121,15 @@ export function MercadoPagoCheckout({
         const bricks = mp.bricks();
         brickRef.current = await bricks.create("cardPayment", "mp-card-brick", {
           initialization: { amount: total, payer: { email: payerEmail } },
-          customization: { visual: { style: { theme: "default" } } },
+          customization: {
+            visual: { style: { theme: "default" } },
+            paymentMethods:
+              cardType === "credit"
+                ? { maxInstallments: undefined, types: { excluded: ["debit_card"] } }
+                : cardType === "debit"
+                  ? { maxInstallments: 1, types: { excluded: ["credit_card"] } }
+                  : undefined,
+          },
           callbacks: {
             onReady: () => {},
             onError: (err: unknown) => {
