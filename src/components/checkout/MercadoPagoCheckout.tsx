@@ -180,7 +180,7 @@ export function MercadoPagoCheckout({
       brickRef.current = null;
       mountedContainer.current = false;
     };
-  }, [method, config.public_key, total, payerEmail, orderId, onPaid]);
+  }, [method, cardType, config.public_key, total, payerEmail, orderId, onPaid]);
 
   async function copyPix() {
     if (!pix?.qr_code) return;
