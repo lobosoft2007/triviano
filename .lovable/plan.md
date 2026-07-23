@@ -1,26 +1,42 @@
-## Objetivo
-No `PaymentDialog` do Caixa, quando o operador escolhe **Dinheiro** e digita um valor maior que o restante, tratar a diferença como **troco** (não como "Excedente"): registrar o pagamento pelo valor exato do restante e mostrar o troco a devolver ao cliente.
+## Situação atual (verificada)
 
-## Regra
-Aplicar somente quando o meio selecionado no campo "Adicionar pagamento" for **Dinheiro** (match por `nome` case-insensitive, mesmo padrão já usado para PIX) **e** `valor digitado > restante > 0`.
+- A flag que ativa o meio a meio é a coluna `categories.allows_half`.
+- No banco, as duas categorias de Pizzas (`pizzas` e `pizzas-t99`) já estão com `allows_half = true`.
+- A API pública `/rest/v1/categories` retorna corretamente `allows_half: true` para essas categorias (testado via anon key).
+- O `ProductCustomizer` renderiza o checkbox "Pizza meio a meio" quando `!isAcai && category.allows_half` (`src/components/ProductCustomizer.tsx:382`).
+- **Não existe nenhum toggle no /admin** para essa flag — hoje só dá pra mexer direto no banco. É por isso que "não achei onde reabilitar".
 
-Nesse caso, ao clicar em **+ (Adicionar)**:
-- Lançar `addPagamento` com `valor = restante` (não com o valor digitado).
-- Calcular `troco = valorDigitado − restante` e exibir num aviso destacado ("Troco a devolver: R$ X,XX") logo abaixo do resumo, além de um `toast.success` confirmando o troco.
-- Como o pagamento fecha exatamente o total, o botão **Finalizar** fica habilitado normalmente.
+Ou seja: no banco está ligado, mas você não vê a opção no PWA. Antes de mudar código de UI, preciso confirmar por onde a pizza está sendo aberta hoje, porque tem dois caminhos de home no projeto (`index.tsx` clássico e `home-netflix.tsx`) — os dois usam a mesma flag, mas o modal do "netflix" tem uma etapa de pré-seleção que pode estar fechando antes de abrir o customizador.
 
-Se o meio for qualquer outro (Cartão, PIX, Fiado, etc.), manter o comportamento atual (mostra "Excedente" e bloqueia Finalizar), porque só faz sentido dar troco em espécie.
+## Plano
 
-## Mudanças
-### `src/components/caixa/PaymentDialog.tsx`
-1. Derivar `dinheiroMeio` da lista `meios` (igual ao `pixMeio`).
-2. Em `handleAdd`, quando `meioId === dinheiroMeio?.id` e `toCents(v) > restanteCents && restanteCents > 0`:
-   - chamar `addPagamento({ valor: restante })`;
-   - guardar o troco em `useState<number>` (`troco`) para exibição;
-   - `toast.success(\`Troco: \${formatBRL(troco)}\`)`.
-3. Renderizar bloco "Troco a devolver" no resumo quando `troco > 0` (some ao fechar/reabrir o diálogo — resetar em `useEffect` ligado a `open`).
-4. Não alterar o cálculo de `restante`/`matches` — como o valor lançado é sempre `= restante`, `matches` fica `true` naturalmente.
+### 1. Diagnóstico rápido do "checkbox não aparece"
+
+- Abrir o preview autenticado, entrar em uma pizza e inspecionar via DevTools:
+  - confirmar qual componente abriu (Sheet do `ProductCustomizer` ou Dialog do `home-netflix`).
+  - checar se `category.allows_half` chega como `true` no cliente (log temporário controlado, removido depois).
+- Se o problema for cache do PWA (service worker antigo servindo menu sem `allows_half`), forçar reload / bump de versão.
+- Se o problema for de fluxo (home-netflix abrindo direto no carrinho sem passar pelo customizador), corrigir o gatilho para respeitar `needsCustomization` que já inclui `allows_half`.
+
+Sem alterar regra de negócio nem preço — só garantir que o checkbox volte a aparecer.
+
+### 2. Adicionar controle no /admin (Categorias)
+
+Fonte única de verdade para você não precisar mais me chamar:
+
+- Em `src/components/admin/CategoriasCrud.tsx`, adicionar no editor de cada categoria:
+  - Switch **"Permite pizza meio a meio"** → grava `categories.allows_half`.
+  - (Bônus, mesmo dialog) Campo numérico **"Mínimo de itens"** → grava `categories.min_items` (útil pros Pastéis, que também não têm UI hoje).
+- Persistência via update no Supabase, respeitando as policies já existentes de categorias.
+- Sem migration — as colunas já existem.
+
+### 3. Verificação
+
+- Marcar/desmarcar o switch em `Pizzas` no /admin e confirmar que:
+  - a lista de pizzas no PWA passa a mostrar/esconder o checkbox "Pizza meio a meio";
+  - ao marcar meio a meio, a lista de segundo sabor aparece e o preço sai como média dos dois (comportamento já existente, só quero garantir que não regrediu).
 
 ## Fora do escopo
-- `ComandaPaymentDialog` (liquidação de mesa) — o usuário citou apenas "pagamento do pedido"; se quiser aplicar lá também, tratamos numa próxima rodada.
-- Nenhuma migration/RPC: `pagamentos_pedido` continua registrando só o valor efetivamente aplicado; troco é informação de UI (não é movimento financeiro).
+
+- Não mexer no cálculo de preço meio a meio, no cupom da cozinha, nem no combo Burger+Petisco.
+- Não mexer em RLS/GRANT de `categories` (já validado que anon lê `allows_half`).
