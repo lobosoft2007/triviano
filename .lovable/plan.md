@@ -1,26 +1,26 @@
 ## Objetivo
-Incluir a identificação do pedido em todas as notificações enviadas ao cliente (sino no PWA + push OS), para que ele saiba a qual pedido a mudança de status se refere quando tem vários pedidos em andamento.
+No `PaymentDialog` do Caixa, quando o operador escolhe **Dinheiro** e digita um valor maior que o restante, tratar a diferença como **troco** (não como "Excedente"): registrar o pagamento pelo valor exato do restante e mostrar o troco a devolver ao cliente.
 
-## Identificador a exibir
-Usar `#` + os 6 primeiros caracteres do `order.id` em maiúsculas (mesmo padrão já usado no `WhatsAppStatusButton` e nos cupons — consistência total entre canais). Quando o pedido tiver `senha_diaria`, priorizar `#<senha_diaria>` (padrão que já usamos no painel de fila de impressão).
+## Regra
+Aplicar somente quando o meio selecionado no campo "Adicionar pagamento" for **Dinheiro** (match por `nome` case-insensitive, mesmo padrão já usado para PIX) **e** `valor digitado > restante > 0`.
+
+Nesse caso, ao clicar em **+ (Adicionar)**:
+- Lançar `addPagamento` com `valor = restante` (não com o valor digitado).
+- Calcular `troco = valorDigitado − restante` e exibir num aviso destacado ("Troco a devolver: R$ X,XX") logo abaixo do resumo, além de um `toast.success` confirmando o troco.
+- Como o pagamento fecha exatamente o total, o botão **Finalizar** fica habilitado normalmente.
+
+Se o meio for qualquer outro (Cartão, PIX, Fiado, etc.), manter o comportamento atual (mostra "Excedente" e bloqueia Finalizar), porque só faz sentido dar troco em espécie.
 
 ## Mudanças
-
-### 1. `src/lib/notifications.ts`
-- Transformar `STATUS_NOTIFICATION_MESSAGES` de objeto estático em função `buildStatusNotification(status, orderLabel)` que devolve `{ titulo, mensagem }` com o rótulo do pedido embutido no título e no corpo.
-  - Ex.: título `"Saiu para entrega — Pedido #A1B2C3"`, mensagem `"Seu pedido #A1B2C3 saiu! O entregador já está a caminho."`.
-- Atualizar `notifyStatusChange(orderId, userId, status, orderLabel?)` para receber e usar o rótulo; quando não vier, derivar de `orderId` (fallback `#XXXXXX`).
-- Atualizar `notifyOrderCanceled(orderId, userId, brand, orderLabel?)` para incluir o rótulo no título/mensagem.
-
-### 2. Call sites
-Passar o `orderLabel` (senha diária quando existir, senão fallback de id) nas chamadas:
-- `src/components/caixa/NotifyClient.tsx` (troca de status no caixa).
-- `src/components/caixa/StatusControl.tsx` se disparar notificação direta.
-- Qualquer outro ponto que chame `notifyStatusChange` / `notifyOrderCanceled` (buscar no repo antes de editar).
-
-### 3. Sem mudanças de schema
-Nenhuma migration necessária — o dado já existe em `orders` (`id`, `senha_diaria`). Apenas formatação de texto.
+### `src/components/caixa/PaymentDialog.tsx`
+1. Derivar `dinheiroMeio` da lista `meios` (igual ao `pixMeio`).
+2. Em `handleAdd`, quando `meioId === dinheiroMeio?.id` e `toCents(v) > restanteCents && restanteCents > 0`:
+   - chamar `addPagamento({ valor: restante })`;
+   - guardar o troco em `useState<number>` (`troco`) para exibição;
+   - `toast.success(\`Troco: \${formatBRL(troco)}\`)`.
+3. Renderizar bloco "Troco a devolver" no resumo quando `troco > 0` (some ao fechar/reabrir o diálogo — resetar em `useEffect` ligado a `open`).
+4. Não alterar o cálculo de `restante`/`matches` — como o valor lançado é sempre `= restante`, `matches` fica `true` naturalmente.
 
 ## Fora do escopo
-- WhatsApp fallback já inclui o número — não mexer.
-- Notificações antigas já persistidas não serão reescritas (apenas novas terão o rótulo).
+- `ComandaPaymentDialog` (liquidação de mesa) — o usuário citou apenas "pagamento do pedido"; se quiser aplicar lá também, tratamos numa próxima rodada.
+- Nenhuma migration/RPC: `pagamentos_pedido` continua registrando só o valor efetivamente aplicado; troco é informação de UI (não é movimento financeiro).
