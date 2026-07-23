@@ -271,10 +271,14 @@ function CheckoutPage() {
   // uma versão anterior do checkout e envenena o próximo pedido — descarta.
   useEffect(() => {
     if (!pendingPayment) return;
+    const pm = pendingPayment.payMethod as PayMethod | string;
     const isPendingScreen =
-      pendingPayment.payMethod === "PIX" ||
-      pendingPayment.payMethod === "Cartão de Crédito" ||
-      pendingPayment.payMethod === "Cartão de Débito";
+      pm === "PIX" ||
+      pm === "Crédito online" ||
+      pm === "Débito online" ||
+      // Legado: versões antigas usavam esses rótulos para cartão online.
+      pm === "Cartão de Crédito" ||
+      pm === "Cartão de Débito";
     if (!isPendingScreen) {
       clearCheckoutSnapshot();
       setPendingPayment(null);
