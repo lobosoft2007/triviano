@@ -1,57 +1,93 @@
-## Diagnóstico
+## Objetivo
+Ajustar o gatilho de impressão para que:
+- **Dinheiro, Fiado e Cartão na entrega (maquineta)**: cozinha recebe o cupom **assim que o cliente envia o pedido** no PWA.
+- **PIX e Cartão online (checkout Mercado Pago)**: cozinha só recebe o cupom **após a confirmação do pagamento** (webhook).
 
-**Do I know what the issue is?** Sim.
+## Como diferenciar os dois grupos
+Sinal já existente: `orders.aguardando_pagamento`.
+- PIX / cartão online: entra `true`, o webhook do Mercado Pago vira para `false`.
+- Dinheiro / fiado / maquineta: entra já como `false`.
 
-A mensagem não está mais genérica: a captura mostra que o toast passou a exibir o erro real do backend:
+Cobre 100% dos casos hoje sem alterar `meios_pagamento` nem criar coluna nova.
 
-```text
-function gen_random_bytes(integer) does not exist
-```
+## Mudanças
 
-O problema atual está na função SQL `create_printer_agent_token`. Ela é `SECURITY DEFINER` e usa:
+### 1. Trigger `trg_orders_enqueue_print` (única alteração de banco)
+Reescrever para 4 caminhos disjuntos, todos protegidos contra re-entrada:
+
+- **AFTER INSERT** — se `aguardando_pagamento = false` → enfileira imediato (dinheiro/fiado/maquineta) e marca `impresso_cozinha = true`.
+- **AFTER UPDATE (a)** — operador do Caixa/Mesa clicou "Enviar p/ cozinha" (transição manual de `impresso_cozinha` false → true) → enfileira.
+- **AFTER UPDATE (b)** — `aguardando_pagamento` passou de `true` → `false` (webhook aprovou PIX/cartão online) → enfileira e marca `impresso_cozinha = true`.
+- **AFTER UPDATE (c)** — rede de segurança: `status` mudou para `paid`/`delivered` sem ter sido impresso → enfileira e marca.
+
+### Anti-recursão
+O `UPDATE public.orders SET impresso_cozinha = true` feito dentro da trigger dispararia a própria trigger e satisfaria o caminho (a), gerando **cupom duplicado**. Solução: primeira linha da função sai cedo quando `pg_trigger_depth() > 1`. Assim a chamada externa é atendida (depth = 1) e todas as re-entradas do próprio UPDATE (depth = 2) são ignoradas.
+
+### 2. Nenhuma alteração no PWA/checkout
+Fluxo do cliente continua igual. Só a hora em que o cupom sai da fila muda.
+
+### 3. Sem impacto no roteamento
+`enqueue_print_jobs` (roteamento por categoria + cupom completo do balcão) continua idêntico — só muda **quando** é chamado.
+
+## Detalhes técnicos
 
 ```sql
-SET search_path TO public
+CREATE OR REPLACE FUNCTION public.trg_orders_enqueue_print()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+BEGIN
+  -- Guarda anti-recursão: ignora reentradas causadas pelo próprio UPDATE interno.
+  IF pg_trigger_depth() > 1 THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    -- Dinheiro / Fiado / Cartão na entrega: imprime imediato
+    IF COALESCE(NEW.aguardando_pagamento, false) = false
+       AND COALESCE(NEW.impresso_cozinha, false) = false THEN
+      PERFORM public.enqueue_print_jobs(NEW.id);
+      UPDATE public.orders SET impresso_cozinha = true WHERE id = NEW.id;
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  -- UPDATE
+  -- (a) Comanda de mesa/Caixa: operador clicou "Enviar p/ cozinha"
+  IF NEW.impresso_cozinha = true AND COALESCE(OLD.impresso_cozinha, false) = false THEN
+    PERFORM public.enqueue_print_jobs(NEW.id);
+    RETURN NEW;
+  END IF;
+
+  -- (b) PIX/Cartão online confirmado pelo webhook
+  IF COALESCE(OLD.aguardando_pagamento, false) = true
+     AND COALESCE(NEW.aguardando_pagamento, false) = false
+     AND COALESCE(NEW.impresso_cozinha, false) = false THEN
+    PERFORM public.enqueue_print_jobs(NEW.id);
+    UPDATE public.orders SET impresso_cozinha = true WHERE id = NEW.id;
+    RETURN NEW;
+  END IF;
+
+  -- (c) Rede de segurança: chegou em paid/delivered sem ter impresso
+  IF NEW.status IN ('paid','delivered')
+     AND OLD.status IS DISTINCT FROM NEW.status
+     AND COALESCE(NEW.impresso_cozinha, false) = false THEN
+    PERFORM public.enqueue_print_jobs(NEW.id);
+    UPDATE public.orders SET impresso_cozinha = true WHERE id = NEW.id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
 ```
 
-Dentro dela, o SQL chama:
+Reanexar em `AFTER INSERT OR UPDATE ON public.orders`.
 
-```sql
-gen_random_bytes(32)
-digest(v_token, 'sha256')
-```
+## Validações pós-implementação
+- Pedido PWA em dinheiro → **1** conjunto de jobs enfileirado no INSERT (sem duplicata do UPDATE interno).
+- Pedido PWA em PIX → nada no INSERT; **1** conjunto quando o webhook zera `aguardando_pagamento`.
+- Comanda de mesa → botão "Enviar p/ cozinha" continua imprimindo pelo caminho (a).
+- Pedido do Caixa finalizado direto em "paid" → rede de segurança (c) garante 1 impressão.
+- Nenhum cupom duplicado ao mudar `status` posteriormente (guarda `impresso_cozinha` já `true`).
 
-Essas funções vêm da extensão criptográfica do banco e, neste projeto, precisam ser chamadas com schema explícito. Como o `search_path` da função foi travado em `public`, o backend não encontra `gen_random_bytes` e a criação do agente falha.
-
-## Por que antes parecia toast genérico
-
-Antes, o frontend caía no fallback `Não foi possível criar o agente`. Depois do ajuste do toast, ele passou a mostrar a mensagem real. A prova é a própria captura: agora vemos o erro SQL completo, não só o texto genérico.
-
-## Plano de correção
-
-1. **Corrigir a RPC principal**
-   - Recriar `create_printer_agent_token(nome text)`.
-   - Trocar:
-     - `gen_random_bytes(32)` por `extensions.gen_random_bytes(32)`
-     - `digest(v_token, 'sha256')` por `extensions.digest(v_token, 'sha256')`
-   - Manter `SECURITY DEFINER` e `SET search_path TO public`.
-
-2. **Manter a compatibilidade JSONB**
-   - Preservar `create_printer_agent_token(payload jsonb)` aceitando `nome` e `p_nome`.
-   - Ela continuará chamando a função principal.
-
-3. **Preservar permissões e escopo**
-   - Reaplicar `GRANT EXECUTE` se necessário.
-   - Não alterar pedidos, delivery, pagamentos, RLS global ou motor financeiro.
-
-4. **Validar**
-   - Confirmar que a RPC não retorna mais `42883`.
-   - Confirmar que a criação do agente funciona ou, se houver outra falha, o toast mostra a mensagem real.
-
-<presentation-actions>
-  <presentation-open-history>View History</presentation-open-history>
-</presentation-actions>
-
-<presentation-actions>
-<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
-</presentation-actions>
+## Fora do escopo
+- Alterar UI, `meios_pagamento` ou `config_impressoras`.
+- Flag por empresa para desligar a impressão antecipada (pode ser aberto depois se alguma franquia pedir).
