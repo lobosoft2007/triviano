@@ -15,6 +15,11 @@ interface Props {
   orderId: string;
   total: number;
   method: "pix" | "card";
+  /**
+   * Quando `method === "card"`, restringe o Brick a crédito ou débito.
+   * Se omitido, o Brick aceita ambos (comportamento original).
+   */
+  cardType?: "credit" | "debit";
   config: MpPublicConfig;
   payerEmail?: string;
   onPaid: () => void;
@@ -31,6 +36,7 @@ export function MercadoPagoCheckout({
   orderId,
   total,
   method,
+  cardType,
   config,
   payerEmail,
   onPaid,
