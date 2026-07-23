@@ -2255,6 +2255,18 @@ function PrinterCard({
     }
   }
 
+  async function handleTestPrint() {
+    setBusy(true);
+    try {
+      await enqueueTestPrint(printer.id);
+      toast.success("Cupom de teste enfileirado. Aguardando o agente imprimir.");
+    } catch {
+      toast.error("Não foi possível enfileirar o cupom de teste.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
       <div className="flex items-center gap-2">
@@ -2264,6 +2276,15 @@ function PrinterCard({
         />
         <span className="font-display font-bold">{printer.nome}</span>
         {printer.is_default && (
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase">
+            Padrão
+          </span>
+        )}
+        {printer.imprime_pedido_completo && (
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+            Pedido completo
+          </span>
+        )}
           <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase">
             Padrão
           </span>
