@@ -1,36 +1,53 @@
-## Plano — corrigir criação do Agente de Impressão
+## Plano: resolver o 404 persistente ao criar agente
 
-### 1. Corrigir os RPCs `create_printer_agent_token` e `revoke_printer_agent_token`
-Hoje eles chamam `can_manage_empresa()` sem argumento, mas a função exige `empresa_id uuid`. É essa a causa real do "Não foi possível criar o agente".
+### O problema real
+A tela ainda chama `/rpc/create_printer_agent_token` e recebe 404. Pela documentação do PostgREST, esse 404 em RPC significa função não encontrada **para a assinatura/parâmetros recebidos pela API**, ou schema cache desatualizado.
 
-- Substituir o guard por: `is_master_admin() OR can_manage_empresa(current_empresa_id())`.
-- Manter `SECURITY DEFINER` e `search_path = public`.
-- Em `create_...`: gerar token, gravar hash e associar à `current_empresa_id()`.
+O banco foi conferido agora e contém:
 
-### 2. Ajustar as políticas RLS de `printer_agent_tokens`
-Sim, vou usar **as duas policies** que você sugeriu (padrão já adotado no projeto):
-
-- `tokens_admin_master` — Admin Master (via `is_master_admin()`, que é o helper oficial deste projeto; não vamos ler `profiles.is_admin` diretamente porque a matriz de papéis vive em `user_roles` + `niveis_acesso`).
-- `tokens_empresa_manager` — `empresa_id = current_empresa_id() AND can_manage_empresa(current_empresa_id())`.
-
-Ambas cobrindo `FOR ALL` (SELECT/INSERT/UPDATE/DELETE), restritas ao role `authenticated`. As policies antigas restritas a "master only" serão removidas.
-
-### 3. Melhorar a mensagem de erro no toast
-Em `AgentsSection` (dentro de `src/routes/_authenticated/caixa.tsx`), no `onError` da mutation de criar/revogar agente:
-
-```ts
-onError: (err: unknown) => {
-  const msg = err instanceof Error ? err.message : "Falha desconhecida";
-  toast.error(msg);
-}
+```text
+create_printer_agent_token(nome text)
+anon: sem execução
+authenticated: com execução
 ```
 
-Assim o erro real do Postgres/RLS aparece na tela.
+Então a função existe, mas a API que atende o browser ainda não está conseguindo casar a chamada real com a assinatura. Como o usuário continua vendo o erro, vou corrigir de forma tolerante para aceitar tanto a assinatura nova quanto a antiga.
 
-### 4. Validar
-- Rodar linter Supabase.
-- Testar criação de agente como Admin Local (Claudia) e como Admin Master.
-- Confirmar que o token aparece uma única vez com botão "Copiar" e é listado depois.
+### Do I know what the issue is?
+Sim: o backend tem a função, mas o PostgREST está retornando 404 porque a assinatura exposta/cacheada não está casando com o payload que chega do frontend. A correção segura é manter a assinatura atual e adicionar uma compatibilidade que aceite também o formato antigo, além de melhorar a mensagem do erro.
 
-### Fora do escopo
-Motor financeiro, meios de pagamento, webhook MP — intocados.
+### Correções
+1. **Adicionar compatibilidade na RPC**
+   - Manter `create_printer_agent_token(nome text)`.
+   - Criar uma sobrecarga segura `create_printer_agent_token(jsonb)` que aceite payloads com `nome` ou `p_nome`.
+   - Essa sobrecarga reutilizará a mesma lógica de permissão: Admin Master ou gerente/admin local da própria empresa.
+   - Liberar execução apenas para `authenticated` e `service_role`, nunca para `anon`.
+   - Recarregar o schema da API após a migration.
+
+2. **Fortalecer o frontend**
+   - Manter a chamada principal com `{ nome }`.
+   - Se a API ainda responder 404 por cache/assinatura, tentar uma segunda chamada compatível com `{ p_nome: nome }` ou com fallback JSONB, sem criar duplicidade.
+   - Converter qualquer erro do backend em `Error` com mensagem legível.
+
+3. **Corrigir o toast definitivamente**
+   - Substituir o fallback genérico por extração de `message`, `details`, `hint` e `code`.
+   - Se ainda falhar, o toast deve mostrar a mensagem real do backend/PostgREST, por exemplo “Could not find…” ou “Acesso restrito…”.
+
+4. **Validar**
+   - Conferir no banco que existem as assinaturas esperadas.
+   - Conferir que `anon` não executa e `authenticated` executa.
+   - Conferir que as policies `tokens_admin_master` e `tokens_empresa_manager` continuam aplicadas.
+   - Não mexer em pedidos, delivery, pagamentos, RLS de outras tabelas ou motor financeiro.
+
+### Arquivos/áreas afetadas
+- Migration do backend para a RPC de agente de impressão.
+- `src/lib/printers.ts` para fallback e normalização de erro.
+- `src/routes/_authenticated/caixa.tsx` apenas no catch/toast do modal de agente.
+
+<presentation-actions>
+  <presentation-open-history>View History</presentation-open-history>
+</presentation-actions>
+
+<presentation-actions>
+<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
+</presentation-actions>

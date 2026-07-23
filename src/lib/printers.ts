@@ -133,6 +133,51 @@ export interface PrinterAgentToken {
   created_at: string;
 }
 
+type BackendErrorShape = {
+  message?: unknown;
+  details?: unknown;
+  hint?: unknown;
+  code?: unknown;
+  status?: unknown;
+  statusText?: unknown;
+};
+
+export function getBackendErrorMessage(
+  err: unknown,
+  fallback = "Não foi possível concluir a operação.",
+): string {
+  if (err instanceof Error && err.message.trim()) {
+    return err.message;
+  }
+
+  if (err && typeof err === "object") {
+    const e = err as BackendErrorShape;
+    const parts = [e.message, e.details, e.hint, e.code, e.status, e.statusText]
+      .filter((value): value is string | number =>
+        (typeof value === "string" && value.trim().length > 0) ||
+        typeof value === "number",
+      )
+      .map(String);
+
+    if (parts.length > 0) {
+      return parts.join(" | ");
+    }
+  }
+
+  return fallback;
+}
+
+function isRpcSignatureCacheMiss(err: unknown): boolean {
+  const message = getBackendErrorMessage(err, "").toLowerCase();
+  return (
+    message.includes("pgrst202") ||
+    message.includes("could not find") ||
+    message.includes("schema cache") ||
+    message.includes("404") ||
+    message.includes("not found")
+  );
+}
+
 export async function fetchPrinterAgentTokens(): Promise<PrinterAgentToken[]> {
   const { data, error } = await supabase
     .from("printer_agent_tokens")
@@ -146,15 +191,29 @@ export async function createPrinterAgentToken(nome: string): Promise<string> {
   const { data, error } = await supabase.rpc("create_printer_agent_token", {
     nome,
   });
-  if (error) throw error;
-  return data as unknown as string;
+  if (!error) return data as unknown as string;
+
+  if (isRpcSignatureCacheMiss(error)) {
+    const { data: fallbackData, error: fallbackError } = await supabase.rpc(
+      "create_printer_agent_token" as never,
+      { payload: { nome } } as never,
+    );
+    if (!fallbackError) return fallbackData as unknown as string;
+    throw new Error(
+      getBackendErrorMessage(fallbackError, "Não foi possível criar o agente."),
+    );
+  }
+
+  throw new Error(getBackendErrorMessage(error, "Não foi possível criar o agente."));
 }
 
 export async function revokePrinterAgentToken(id: string): Promise<void> {
   const { error } = await supabase.rpc("revoke_printer_agent_token", {
     p_id: id,
   });
-  if (error) throw error;
+  if (error) {
+    throw new Error(getBackendErrorMessage(error, "Não foi possível revogar o agente."));
+  }
 }
 
 /* ------------------------------------------------------------------ */
