@@ -71,6 +71,7 @@ export async function createPrinter(input: {
   porta?: number | null;
   caminho_usb?: string | null;
   cor?: string;
+  imprime_pedido_completo?: boolean;
 }): Promise<void> {
   const { error } = await supabase.from("config_impressoras").insert({
     nome: input.nome,
@@ -79,6 +80,7 @@ export async function createPrinter(input: {
     porta: input.porta ?? null,
     caminho_usb: input.caminho_usb ?? null,
     cor: input.cor ?? "#2563eb",
+    imprime_pedido_completo: !!input.imprime_pedido_completo,
   });
   if (error) throw error;
 }
@@ -93,6 +95,7 @@ export async function updatePrinter(
     caminho_usb: string | null;
     cor: string;
     ativo: boolean;
+    imprime_pedido_completo: boolean;
   }>,
 ): Promise<void> {
   const { error } = await supabase
