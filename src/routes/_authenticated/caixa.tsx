@@ -2231,8 +2231,8 @@ function AgentsSection() {
       setNome("");
       await queryClient.invalidateQueries({ queryKey: ["printer-agent-tokens"] });
       toast.success("Agente criado. Copie o token — ele não será exibido novamente.");
-    } catch {
-      toast.error("Não foi possível criar o agente.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível criar o agente.");
     } finally {
       setSaving(false);
     }
@@ -2244,8 +2244,8 @@ function AgentsSection() {
       await revokePrinterAgentToken(t.id);
       await queryClient.invalidateQueries({ queryKey: ["printer-agent-tokens"] });
       toast.success("Agente revogado.");
-    } catch {
-      toast.error("Não foi possível revogar o agente.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível revogar o agente.");
     }
   }
 
