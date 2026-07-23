@@ -1,48 +1,52 @@
-## Plano: resolver o 404 persistente ao criar agente
+## Diagnóstico
 
-### O problema real
-A tela ainda chama `/rpc/create_printer_agent_token` e recebe 404. Pela documentação do PostgREST, esse 404 em RPC significa função não encontrada **para a assinatura/parâmetros recebidos pela API**, ou schema cache desatualizado.
+**Do I know what the issue is?** Sim.
 
-O banco foi conferido agora e contém:
+A mensagem não está mais genérica: a captura mostra que o toast passou a exibir o erro real do backend:
 
 ```text
-create_printer_agent_token(nome text)
-anon: sem execução
-authenticated: com execução
+function gen_random_bytes(integer) does not exist
 ```
 
-Então a função existe, mas a API que atende o browser ainda não está conseguindo casar a chamada real com a assinatura. Como o usuário continua vendo o erro, vou corrigir de forma tolerante para aceitar tanto a assinatura nova quanto a antiga.
+O problema atual está na função SQL `create_printer_agent_token`. Ela é `SECURITY DEFINER` e usa:
 
-### Do I know what the issue is?
-Sim: o backend tem a função, mas o PostgREST está retornando 404 porque a assinatura exposta/cacheada não está casando com o payload que chega do frontend. A correção segura é manter a assinatura atual e adicionar uma compatibilidade que aceite também o formato antigo, além de melhorar a mensagem do erro.
+```sql
+SET search_path TO public
+```
 
-### Correções
-1. **Adicionar compatibilidade na RPC**
-   - Manter `create_printer_agent_token(nome text)`.
-   - Criar uma sobrecarga segura `create_printer_agent_token(jsonb)` que aceite payloads com `nome` ou `p_nome`.
-   - Essa sobrecarga reutilizará a mesma lógica de permissão: Admin Master ou gerente/admin local da própria empresa.
-   - Liberar execução apenas para `authenticated` e `service_role`, nunca para `anon`.
-   - Recarregar o schema da API após a migration.
+Dentro dela, o SQL chama:
 
-2. **Fortalecer o frontend**
-   - Manter a chamada principal com `{ nome }`.
-   - Se a API ainda responder 404 por cache/assinatura, tentar uma segunda chamada compatível com `{ p_nome: nome }` ou com fallback JSONB, sem criar duplicidade.
-   - Converter qualquer erro do backend em `Error` com mensagem legível.
+```sql
+gen_random_bytes(32)
+digest(v_token, 'sha256')
+```
 
-3. **Corrigir o toast definitivamente**
-   - Substituir o fallback genérico por extração de `message`, `details`, `hint` e `code`.
-   - Se ainda falhar, o toast deve mostrar a mensagem real do backend/PostgREST, por exemplo “Could not find…” ou “Acesso restrito…”.
+Essas funções vêm da extensão criptográfica do banco e, neste projeto, precisam ser chamadas com schema explícito. Como o `search_path` da função foi travado em `public`, o backend não encontra `gen_random_bytes` e a criação do agente falha.
+
+## Por que antes parecia toast genérico
+
+Antes, o frontend caía no fallback `Não foi possível criar o agente`. Depois do ajuste do toast, ele passou a mostrar a mensagem real. A prova é a própria captura: agora vemos o erro SQL completo, não só o texto genérico.
+
+## Plano de correção
+
+1. **Corrigir a RPC principal**
+   - Recriar `create_printer_agent_token(nome text)`.
+   - Trocar:
+     - `gen_random_bytes(32)` por `extensions.gen_random_bytes(32)`
+     - `digest(v_token, 'sha256')` por `extensions.digest(v_token, 'sha256')`
+   - Manter `SECURITY DEFINER` e `SET search_path TO public`.
+
+2. **Manter a compatibilidade JSONB**
+   - Preservar `create_printer_agent_token(payload jsonb)` aceitando `nome` e `p_nome`.
+   - Ela continuará chamando a função principal.
+
+3. **Preservar permissões e escopo**
+   - Reaplicar `GRANT EXECUTE` se necessário.
+   - Não alterar pedidos, delivery, pagamentos, RLS global ou motor financeiro.
 
 4. **Validar**
-   - Conferir no banco que existem as assinaturas esperadas.
-   - Conferir que `anon` não executa e `authenticated` executa.
-   - Conferir que as policies `tokens_admin_master` e `tokens_empresa_manager` continuam aplicadas.
-   - Não mexer em pedidos, delivery, pagamentos, RLS de outras tabelas ou motor financeiro.
-
-### Arquivos/áreas afetadas
-- Migration do backend para a RPC de agente de impressão.
-- `src/lib/printers.ts` para fallback e normalização de erro.
-- `src/routes/_authenticated/caixa.tsx` apenas no catch/toast do modal de agente.
+   - Confirmar que a RPC não retorna mais `42883`.
+   - Confirmar que a criação do agente funciona ou, se houver outra falha, o toast mostra a mensagem real.
 
 <presentation-actions>
   <presentation-open-history>View History</presentation-open-history>
