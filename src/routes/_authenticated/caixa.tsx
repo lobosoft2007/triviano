@@ -2388,6 +2388,9 @@ function PrinterEditorDialog({
   const [cor, setCor] = useState(printer?.cor ?? "#2563eb");
   const [isDefault, setIsDefault] = useState(printer?.is_default ?? false);
   const [ativo, setAtivo] = useState(printer?.ativo ?? true);
+  const [imprimeCompleto, setImprimeCompleto] = useState(
+    printer?.imprime_pedido_completo ?? false,
+  );
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -2411,6 +2414,7 @@ function PrinterEditorDialog({
           caminho_usb: tipo === "USB" ? caminhoUsb.trim() || null : null,
           cor,
           ativo,
+          imprime_pedido_completo: imprimeCompleto,
         });
       } else {
         await createPrinter({
@@ -2420,6 +2424,7 @@ function PrinterEditorDialog({
           porta: portaNum,
           caminho_usb: tipo === "USB" ? caminhoUsb.trim() || null : null,
           cor,
+          imprime_pedido_completo: imprimeCompleto,
         });
       }
 
