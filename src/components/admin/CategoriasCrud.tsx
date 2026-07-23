@@ -128,7 +128,10 @@ export function CategoriasCrud() {
         name: form.name,
         cor_fonte: form.cor_fonte,
         tamanho_fonte: form.tamanho_fonte,
+        allows_half: form.allows_half,
+        min_items: form.min_items,
       });
+
       setOpen(false);
       await invalidate();
       toast.success("Categoria salva!");
