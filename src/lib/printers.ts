@@ -12,6 +12,7 @@ export interface Printer {
   cor: string;
   is_default: boolean;
   ativo: boolean;
+  imprime_pedido_completo: boolean;
 }
 
 export interface CategoryRouting {
