@@ -502,6 +502,7 @@ export type Database = {
           cor: string
           created_at: string
           empresa_id: string
+          encoding: string | null
           endereco_ip: string | null
           id: string
           imprime_pedido_completo: boolean
@@ -517,6 +518,7 @@ export type Database = {
           cor?: string
           created_at?: string
           empresa_id?: string
+          encoding?: string | null
           endereco_ip?: string | null
           id?: string
           imprime_pedido_completo?: boolean
@@ -532,6 +534,7 @@ export type Database = {
           cor?: string
           created_at?: string
           empresa_id?: string
+          encoding?: string | null
           endereco_ip?: string | null
           id?: string
           imprime_pedido_completo?: boolean
@@ -3485,6 +3488,8 @@ export type Database = {
           expires_at: string
           id: string
           last_error: string | null
+          locked_until: string | null
+          next_attempt_at: string
           order_id: string | null
           payload: Json
           printed_at: string | null
@@ -3500,6 +3505,8 @@ export type Database = {
           expires_at?: string
           id?: string
           last_error?: string | null
+          locked_until?: string | null
+          next_attempt_at?: string
           order_id?: string | null
           payload?: Json
           printed_at?: string | null
@@ -3515,6 +3522,8 @@ export type Database = {
           expires_at?: string
           id?: string
           last_error?: string | null
+          locked_until?: string | null
+          next_attempt_at?: string
           order_id?: string | null
           payload?: Json
           printed_at?: string | null
@@ -5079,6 +5088,8 @@ export type Database = {
           expires_at: string
           id: string
           last_error: string | null
+          locked_until: string | null
+          next_attempt_at: string
           order_id: string | null
           payload: Json
           printed_at: string | null
@@ -5609,6 +5620,7 @@ export type Database = {
         }[]
       }
       resolve_empresa_id_by_host: { Args: { p_host: string }; Returns: string }
+      retry_print_job: { Args: { p_job_id: string }; Returns: undefined }
       reverse_order_stock: { Args: { p_order_id: string }; Returns: undefined }
       revoke_printer_agent_token: { Args: { p_id: string }; Returns: undefined }
       save_tap_provider_config: {
