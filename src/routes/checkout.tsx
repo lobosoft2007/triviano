@@ -1042,8 +1042,8 @@ function CheckoutPage() {
                   )}
                 </p>
               )}
-              {(effectivePayMethod === "Cartão de Crédito" ||
-                effectivePayMethod === "Cartão de Débito") && (
+              {(effectivePayMethod === "Crédito na entrega" ||
+                effectivePayMethod === "Débito na entrega") && (
                 <p className="mt-2 rounded-xl bg-background/60 px-3 py-2 text-xs text-muted-foreground">
                   A maquininha estará disponível no momento{" "}
                   {tipo === "Delivery" ? "da entrega" : "da retirada"}.
