@@ -338,8 +338,11 @@ function CheckoutPage() {
   const visibleMethods = PAY_METHODS.filter((m) => {
     if (m.value === "PIX") return mpConfigLoading || (mpActive && allowPixOnline);
     if (m.value === "Dinheiro") return allowNaEntrega;
-    if (m.value === "Cartão de Crédito" || m.value === "Cartão de Débito") {
-      return mpActive ? allowCardOnline : allowNaEntrega;
+    if (m.value === "Crédito online" || m.value === "Débito online") {
+      return mpActive && allowCardOnline;
+    }
+    if (m.value === "Crédito na entrega" || m.value === "Débito na entrega") {
+      return allowNaEntrega;
     }
     return true;
   });
@@ -352,7 +355,7 @@ function CheckoutPage() {
   const isOnlinePayment =
     payMethod === "PIX" ||
     (mpActive &&
-      (payMethod === "Cartão de Crédito" || payMethod === "Cartão de Débito") &&
+      (payMethod === "Crédito online" || payMethod === "Débito online") &&
       allowCardOnline);
 
 
