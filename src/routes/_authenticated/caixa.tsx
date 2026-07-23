@@ -2573,6 +2573,13 @@ function PrinterEditorDialog({
                 <span>Ativa</span>
                 <Switch checked={ativo} onCheckedChange={setAtivo} />
               </label>
+              <label className="flex items-center justify-between gap-2 text-sm">
+                <span>Imprimir pedido completo</span>
+                <Switch
+                  checked={imprimeCompleto}
+                  onCheckedChange={setImprimeCompleto}
+                />
+              </label>
             </div>
           </div>
         </div>
