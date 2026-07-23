@@ -82,16 +82,26 @@ const CHECKOUT_AUTH_LATCH_TTL = 30 * 60 * 1000;
 type PayMethod =
   | "PIX"
   | "Dinheiro"
-  | "Cartão de Crédito"
-  | "Cartão de Débito"
+  | "Crédito online"
+  | "Débito online"
+  | "Crédito na entrega"
+  | "Débito na entrega"
   | "Conta Corrente";
 
 const PAY_METHODS: { value: PayMethod; label: string; hint: string }[] = [
   { value: "PIX", label: "PIX", hint: "QR Code na hora" },
   { value: "Dinheiro", label: "Dinheiro", hint: "Pague na entrega" },
-  { value: "Cartão de Crédito", label: "Crédito", hint: "Maquininha na entrega" },
-  { value: "Cartão de Débito", label: "Débito", hint: "Maquininha na entrega" },
+  { value: "Crédito online", label: "Crédito online", hint: "Cartão pelo app" },
+  { value: "Débito online", label: "Débito online", hint: "Cartão pelo app" },
+  { value: "Crédito na entrega", label: "Crédito na entrega", hint: "Maquininha na entrega" },
+  { value: "Débito na entrega", label: "Débito na entrega", hint: "Maquininha na entrega" },
 ];
+
+/** Pedidos legados/salvos podem ter os rótulos antigos; aceitamos ambos ao decidir a tela de pagamento. */
+const ONLINE_CARD_METHODS: readonly PayMethod[] = [
+  "Crédito online",
+  "Débito online",
+] as const;
 
 interface CheckoutSnapshot {
   at: number;
