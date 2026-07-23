@@ -12,6 +12,7 @@ export interface Printer {
   cor: string;
   is_default: boolean;
   ativo: boolean;
+  imprime_pedido_completo: boolean;
 }
 
 export interface CategoryRouting {
@@ -30,13 +31,16 @@ export async function fetchPrinters(): Promise<Printer[]> {
   const { data, error } = await supabase
     .from("config_impressoras")
     .select(
-      "id, nome, tipo_conexao, endereco_ip, porta, caminho_usb, cor, is_default, ativo",
+      "id, nome, tipo_conexao, endereco_ip, porta, caminho_usb, cor, is_default, ativo, imprime_pedido_completo",
     )
     .order("nome", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((p) => ({
     ...p,
     tipo_conexao: (p.tipo_conexao as TipoConexao) ?? "USB",
+    imprime_pedido_completo: Boolean(
+      (p as { imprime_pedido_completo?: boolean }).imprime_pedido_completo,
+    ),
   })) as Printer[];
 }
 
@@ -67,6 +71,7 @@ export async function createPrinter(input: {
   porta?: number | null;
   caminho_usb?: string | null;
   cor?: string;
+  imprime_pedido_completo?: boolean;
 }): Promise<void> {
   const { error } = await supabase.from("config_impressoras").insert({
     nome: input.nome,
@@ -75,6 +80,7 @@ export async function createPrinter(input: {
     porta: input.porta ?? null,
     caminho_usb: input.caminho_usb ?? null,
     cor: input.cor ?? "#2563eb",
+    imprime_pedido_completo: !!input.imprime_pedido_completo,
   });
   if (error) throw error;
 }
@@ -89,6 +95,7 @@ export async function updatePrinter(
     caminho_usb: string | null;
     cor: string;
     ativo: boolean;
+    imprime_pedido_completo: boolean;
   }>,
 ): Promise<void> {
   const { error } = await supabase
@@ -103,6 +110,50 @@ export async function deletePrinter(id: string): Promise<void> {
     .from("config_impressoras")
     .delete()
     .eq("id", id);
+  if (error) throw error;
+}
+
+/* ------------------------------------------------------------------ */
+/* Test print + Agent tokens                                           */
+/* ------------------------------------------------------------------ */
+
+export async function enqueueTestPrint(printerId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("enqueue_test_print", {
+    p_printer_id: printerId,
+  });
+  if (error) throw error;
+  return data as unknown as string;
+}
+
+export interface PrinterAgentToken {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  last_seen_at: string | null;
+  created_at: string;
+}
+
+export async function fetchPrinterAgentTokens(): Promise<PrinterAgentToken[]> {
+  const { data, error } = await supabase
+    .from("printer_agent_tokens")
+    .select("id, nome, ativo, last_seen_at, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as PrinterAgentToken[];
+}
+
+export async function createPrinterAgentToken(nome: string): Promise<string> {
+  const { data, error } = await supabase.rpc("create_printer_agent_token", {
+    p_nome: nome,
+  });
+  if (error) throw error;
+  return data as unknown as string;
+}
+
+export async function revokePrinterAgentToken(id: string): Promise<void> {
+  const { error } = await supabase.rpc("revoke_printer_agent_token", {
+    p_id: id,
+  });
   if (error) throw error;
 }
 

@@ -1,49 +1,59 @@
-## Diagnóstico
+## Fase A — Motor de impressão server-side (execução completa)
 
-Confirmado: hoje **não existe** UI para cadastrar/editar impressoras em lugar nenhum. O que existe:
+Reissuindo o plano final aprovado, para você clicar em **Implementar plano**.
 
-- **`/caixa` → Configurações/Impressão**: mostra a lista de impressoras já cadastradas (só leitura — nome, cor, badge "Padrão" e um texto explicativo) e permite apenas **rotear categorias → impressora**. Não há botão "Adicionar impressora", nem campos de IP/porta/USB/tipo de conexão/cor/padrão/ativo/excluir.
-- **`/admin`**: não tem aba de impressoras.
-- **Backend**: já está 100% pronto — `src/lib/printers.ts` expõe `createPrinter`, `updatePrinter`, `deletePrinter` e a tabela `config_impressoras` tem todos os campos (`nome`, `tipo_conexao` USB/IP, `endereco_ip`, `porta`, `caminho_usb`, `cor`, `is_default`, `ativo`).
+### Bloco 1 — Migração `print_jobs` + flag no cadastro
 
-Ou seja, faltou só o formulário. Vou ligar a UI ao que já existe.
+- Tabela `public.print_jobs`: `id, empresa_id, printer_id, order_id (nullable), tipo, payload jsonb, status ('pending'|'printing'|'done'|'failed'|'expired'), attempts, last_error, claimed_at, created_at, printed_at, expires_at (default now()+30min)`
+- Índices: `(empresa_id, status, created_at)`, `(printer_id, status)`
+- RLS: staff da empresa lê/escreve seu tenant; agente entra por endpoint que usa `service_role` após validar token
+- GRANT: `authenticated` (leitura/manutenção), `service_role` (all)
+- Coluna nova `config_impressoras.imprime_pedido_completo boolean not null default false`
 
-## O que vou fazer
+### Bloco 2 — Tabela `printer_agent_tokens`
 
-Ampliar o bloco **"Setores de impressão"** da aba Configurações do `/caixa` para virar um CRUD completo (é onde o operador já procura hoje — mantém um lugar só, evita duplicar em `/admin`).
+- Colunas: `id, empresa_id, nome, token_hash text (SHA-256 hex, único), ativo boolean, last_seen_at, created_at`
+- **Nunca** guarda o token em texto puro
+- RLS: só master admin da empresa lê/insere/revoga
+- RPC `create_printer_agent_token(p_nome text)` → gera `encode(gen_random_bytes(32),'hex')`, salva hash, retorna o texto puro **uma única vez**
 
-### 1. Botão "Adicionar impressora"
-No topo da seção, abre um Dialog com formulário:
-- **Nome** (ex.: "Cozinha", "Bar", "Pizzaria", "Balcão")
-- **Tipo de conexão**: radio `USB` / `IP`
-- **Se IP**: campos **Endereço IP** + **Porta** (default 9100)
-- **Se USB**: campo **Caminho USB** (opcional, informativo)
-- **Cor** (color picker — usada nas tags do Caixa)
-- **Marcar como padrão** (switch — desmarca as outras via update)
-- **Ativa** (switch, default ligado)
+### Bloco 3 — RPCs
 
-Valida nome obrigatório e IP/porta quando tipo = IP.
+- `enqueue_print_jobs(p_order_id uuid)` — resolve categoria→impressora, cria 1 job por setor com itens filtrados; para toda impressora com `imprime_pedido_completo=true`, cria job adicional `tipo='pedido_completo'` com **todos** os itens + cliente + endereço + total + pagamento
+- `claim_print_jobs(p_empresa_id uuid, p_limit int)` — `FOR UPDATE SKIP LOCKED`, atômico, incrementa `attempts` e seta `claimed_at`
+- `ack_print_job(p_job_id uuid, p_ok boolean, p_error text)` — `done` ou `failed` (respeita `attempts >= 3`)
+- `pg_cron` a cada 1 min: expira `pending` com `expires_at < now()`; devolve `printing` presos > 2 min para `pending` até `attempts >= 3`
 
-### 2. Cada `PrinterCard` ganha ações
-- Mostra os dados reais (tipo de conexão, IP:porta ou caminho USB, status ativa/inativa).
-- Botão **Editar** (mesmo Dialog, pré-preenchido).
-- Botão **Excluir** (com confirmação; bloqueia se houver categoria apontando pra ela, oferecendo desvincular antes).
-- Toggle **Ativa/Inativa** inline.
+### Bloco 4 — Endpoints em `src/routes/api/public/print-agent/`
 
-### 3. Persistência
-Usa direto `createPrinter` / `updatePrinter` / `deletePrinter` de `src/lib/printers.ts` (já implementados) e invalida `["printers"]` + `["categories-routing"]` no React Query pra atualizar tudo em tempo real.
+- `claim.ts` (POST), `ack.ts` (POST), `heartbeat.ts` (POST)
+- Autenticação: header `x-agent-token` → SHA-256 → lookup em `printer_agent_tokens.token_hash` → obtém `empresa_id`, atualiza `last_seen_at`
+- CORS + tratamento de erros com o padrão do projeto
 
-### 4. Textos e ajuda
-Atualiza o parágrafo de ajuda pra deixar claro que:
-- **USB / fila do SO** (fluxo atual, já homologado na release 1.7.4): configure a impressora como padrão no PC do caixa/cozinha e o Triviano dispara pela fila.
-- **IP** hoje serve como identificação/metadado (roteamento + tag colorida). Impressão TCP:9100 direta do servidor **não** está implementada — se quiser habilitar, isso vira uma segunda etapa (posso propor plano separado).
+### Bloco 5 — Gatilhos de enfileiramento
 
-### 5. `/admin`
-Não vou adicionar aba nova — mantém tudo em um único lugar (`/caixa` → Configurações → Impressão) pra não fragmentar. Se preferir também em `/admin`, digo em uma linha depois de aprovar.
+Chamar `enqueue_print_jobs(order_id)` (sem tocar em nada financeiro):
+- Após finalização de pedido pago (delivery/balcão)
+- Após "Enviar para cozinha" (mesa)
+- Após confirmação de pedido iFood
+- No botão novo "Imprimir cupom de teste" (job `tipo='teste'`)
 
-## Fora do escopo (não vou mexer)
+### Bloco 6 — UI no `/caixa` → Configurações → Impressão
 
-- Motor de impressão (WebUSB/Serial/fila SO) — continua igual.
-- Roteamento categoria→impressora — já funciona, não muda.
-- Impressão direta via TCP/IP a partir do servidor — proponho em plano separado se quiser.
-- RLS/GRANT e qualquer coisa financeira.
+- Switch **"Imprimir pedido completo (balcão)"** no `PrinterEditorDialog`
+- Botão **"Cupom de teste"** em cada card de impressora
+- Nova aba **"Agentes"**: criar token (mostra texto puro 1 vez com "Copiar"), revogar, `last_seen_at`
+- Badge 🟢/🔴 no card da impressora (agente respondeu < 60s)
+
+### Fora do escopo desta rodada
+
+- Agente Node local (ESC/POS, TCP:9100, empacotamento) → **Fase B**, plano separado após validar a fila em produção
+- Motor financeiro, RLS de tabelas existentes, meios de pagamento, webhook MP (protegidos por `mem://constraints/motor-financeiro-protegido`)
+- Fluxo WebUSB/Serial atual — coexiste
+
+### Confirmações técnicas já validadas
+
+- `pg_cron` e `pg_net` já habilitados no projeto
+- Tokens sempre em SHA-256; texto puro nunca persistido
+- Claim atômico via `FOR UPDATE SKIP LOCKED`
+- TTL de 30 min + polling default 1s no agente (Fase B)

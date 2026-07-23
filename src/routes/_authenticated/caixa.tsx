@@ -110,8 +110,13 @@ import {
   createPrinter,
   updatePrinter,
   deletePrinter,
+  enqueueTestPrint,
+  fetchPrinterAgentTokens,
+  createPrinterAgentToken,
+  revokePrinterAgentToken,
   makeSectorResolver,
   type Printer as PrinterConfig,
+  type PrinterAgentToken,
   type ResolvedSector,
   type TipoConexao,
   type CategoryRouting,
@@ -2187,6 +2192,8 @@ function PrintersSection({
         ))}
       </div>
 
+      <AgentsSection />
+
       {(creating || editing) && (
         <PrinterEditorDialog
           printer={editing}
@@ -2198,6 +2205,174 @@ function PrintersSection({
         />
       )}
     </>
+  );
+}
+
+function AgentsSection() {
+  const queryClient = useQueryClient();
+  const { data: tokens = [] } = useQuery({
+    queryKey: ["printer-agent-tokens"],
+    queryFn: fetchPrinterAgentTokens,
+  });
+  const [creating, setCreating] = useState(false);
+  const [nome, setNome] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [issued, setIssued] = useState<string | null>(null);
+
+  async function handleCreate() {
+    if (!nome.trim()) {
+      toast.error("Informe um nome para o agente.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const token = await createPrinterAgentToken(nome.trim());
+      setIssued(token);
+      setNome("");
+      await queryClient.invalidateQueries({ queryKey: ["printer-agent-tokens"] });
+      toast.success("Agente criado. Copie o token — ele não será exibido novamente.");
+    } catch {
+      toast.error("Não foi possível criar o agente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRevoke(t: PrinterAgentToken) {
+    if (!confirm(`Revogar o agente "${t.nome}"? O serviço local deixará de imprimir.`)) return;
+    try {
+      await revokePrinterAgentToken(t.id);
+      await queryClient.invalidateQueries({ queryKey: ["printer-agent-tokens"] });
+      toast.success("Agente revogado.");
+    } catch {
+      toast.error("Não foi possível revogar o agente.");
+    }
+  }
+
+  return (
+    <section className="mt-8">
+      <header className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-lg font-bold">Agentes de impressão</h2>
+          <p className="text-sm text-muted-foreground">
+            Cada PC que roda o serviço local usa um token exclusivo para puxar
+            os cupons da fila e enviar para as impressoras. Ao criar um agente,
+            copie o token imediatamente — ele não será exibido novamente.
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setCreating(true)} className="shrink-0">
+          <Plus className="mr-1 h-4 w-4" /> Novo agente
+        </Button>
+      </header>
+
+      <div className="space-y-2">
+        {tokens.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
+            Nenhum agente cadastrado.
+          </div>
+        )}
+        {tokens.map((t) => (
+          <div
+            key={t.id}
+            className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3 text-sm"
+          >
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${t.ativo ? "bg-emerald-500" : "bg-muted-foreground"}`}
+            />
+            <span className="font-semibold">{t.nome}</span>
+            <span className="text-xs text-muted-foreground">
+              {t.last_seen_at
+                ? `visto em ${new Date(t.last_seen_at).toLocaleString("pt-BR")}`
+                : "nunca conectou"}
+            </span>
+            <div className="ml-auto">
+              {t.ativo && (
+                <Button size="sm" variant="ghost" onClick={() => handleRevoke(t)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
+              {!t.ativo && (
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+                  Revogado
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {creating && (
+        <Dialog open onOpenChange={(o) => !o && (setCreating(false), setIssued(null))}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{issued ? "Token do agente" : "Novo agente"}</DialogTitle>
+            </DialogHeader>
+            {issued ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Copie o token abaixo e configure-o no serviço local (variável
+                  <code className="mx-1 rounded bg-muted px-1">PRINT_AGENT_TOKEN</code>).
+                  Este é o único momento em que ele fica visível.
+                </p>
+                <textarea
+                  readOnly
+                  value={issued}
+                  className="h-24 w-full resize-none rounded-md border border-border bg-muted/40 p-2 font-mono text-xs"
+                  onFocus={(e) => e.currentTarget.select()}
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Label htmlFor="agent-nome">Nome (ex.: PC-Caixa-01)</Label>
+                <Input
+                  id="agent-nome"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder="PC do Caixa"
+                />
+              </div>
+            )}
+            <DialogFooter>
+              {issued ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(issued);
+                      toast.success("Token copiado.");
+                    }}
+                  >
+                    Copiar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setCreating(false);
+                      setIssued(null);
+                    }}
+                  >
+                    Concluir
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCreating(false)}
+                    disabled={saving}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleCreate} disabled={saving}>
+                    {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                    Criar agente
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </section>
   );
 }
 
@@ -2250,6 +2425,18 @@ function PrinterCard({
     }
   }
 
+  async function handleTestPrint() {
+    setBusy(true);
+    try {
+      await enqueueTestPrint(printer.id);
+      toast.success("Cupom de teste enfileirado. Aguardando o agente imprimir.");
+    } catch {
+      toast.error("Não foi possível enfileirar o cupom de teste.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
       <div className="flex items-center gap-2">
@@ -2263,12 +2450,26 @@ function PrinterCard({
             Padrão
           </span>
         )}
+        {printer.imprime_pedido_completo && (
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+            Pedido completo
+          </span>
+        )}
         {!printer.ativo && (
           <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
             Inativa
           </span>
         )}
         <div className="ml-auto flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleTestPrint}
+            disabled={busy}
+            className="h-8 gap-1"
+          >
+            <Printer className="h-3.5 w-3.5" /> Cupom de teste
+          </Button>
           <Button size="icon" variant="ghost" onClick={onEdit} disabled={busy}>
             <Pencil className="h-4 w-4" />
           </Button>
@@ -2357,6 +2558,9 @@ function PrinterEditorDialog({
   const [cor, setCor] = useState(printer?.cor ?? "#2563eb");
   const [isDefault, setIsDefault] = useState(printer?.is_default ?? false);
   const [ativo, setAtivo] = useState(printer?.ativo ?? true);
+  const [imprimeCompleto, setImprimeCompleto] = useState(
+    printer?.imprime_pedido_completo ?? false,
+  );
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -2380,6 +2584,7 @@ function PrinterEditorDialog({
           caminho_usb: tipo === "USB" ? caminhoUsb.trim() || null : null,
           cor,
           ativo,
+          imprime_pedido_completo: imprimeCompleto,
         });
       } else {
         await createPrinter({
@@ -2389,6 +2594,7 @@ function PrinterEditorDialog({
           porta: portaNum,
           caminho_usb: tipo === "USB" ? caminhoUsb.trim() || null : null,
           cor,
+          imprime_pedido_completo: imprimeCompleto,
         });
       }
 
@@ -2536,6 +2742,13 @@ function PrinterEditorDialog({
               <label className="flex items-center justify-between gap-2 text-sm">
                 <span>Ativa</span>
                 <Switch checked={ativo} onCheckedChange={setAtivo} />
+              </label>
+              <label className="flex items-center justify-between gap-2 text-sm">
+                <span>Imprimir pedido completo</span>
+                <Switch
+                  checked={imprimeCompleto}
+                  onCheckedChange={setImprimeCompleto}
+                />
               </label>
             </div>
           </div>

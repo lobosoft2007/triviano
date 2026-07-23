@@ -32,6 +32,9 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicTapTablesRouteImport } from './routes/api/public/tap/tables'
 import { Route as ApiPublicTapReconcileRouteImport } from './routes/api/public/tap/reconcile'
+import { Route as ApiPublicPrintAgentHeartbeatRouteImport } from './routes/api/public/print-agent/heartbeat'
+import { Route as ApiPublicPrintAgentClaimRouteImport } from './routes/api/public/print-agent/claim'
+import { Route as ApiPublicPrintAgentAckRouteImport } from './routes/api/public/print-agent/ack'
 import { Route as ApiPublicPosVersionCheckRouteImport } from './routes/api/public/pos/version-check'
 import { Route as ApiPublicPosPairRouteImport } from './routes/api/public/pos/pair'
 import { Route as ApiPublicPosLoginRouteImport } from './routes/api/public/pos/login'
@@ -161,6 +164,23 @@ const ApiPublicTapReconcileRoute = ApiPublicTapReconcileRouteImport.update({
   path: '/api/public/tap/reconcile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPrintAgentHeartbeatRoute =
+  ApiPublicPrintAgentHeartbeatRouteImport.update({
+    id: '/api/public/print-agent/heartbeat',
+    path: '/api/public/print-agent/heartbeat',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicPrintAgentClaimRoute =
+  ApiPublicPrintAgentClaimRouteImport.update({
+    id: '/api/public/print-agent/claim',
+    path: '/api/public/print-agent/claim',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicPrintAgentAckRoute = ApiPublicPrintAgentAckRouteImport.update({
+  id: '/api/public/print-agent/ack',
+  path: '/api/public/print-agent/ack',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPosVersionCheckRoute =
   ApiPublicPosVersionCheckRouteImport.update({
     id: '/api/public/pos/version-check',
@@ -249,6 +269,9 @@ export interface FileRoutesByFullPath {
   '/api/public/pos/login': typeof ApiPublicPosLoginRoute
   '/api/public/pos/pair': typeof ApiPublicPosPairRoute
   '/api/public/pos/version-check': typeof ApiPublicPosVersionCheckRoute
+  '/api/public/print-agent/ack': typeof ApiPublicPrintAgentAckRoute
+  '/api/public/print-agent/claim': typeof ApiPublicPrintAgentClaimRoute
+  '/api/public/print-agent/heartbeat': typeof ApiPublicPrintAgentHeartbeatRoute
   '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
   '/api/public/tap/tables': typeof ApiPublicTapTablesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -285,6 +308,9 @@ export interface FileRoutesByTo {
   '/api/public/pos/login': typeof ApiPublicPosLoginRoute
   '/api/public/pos/pair': typeof ApiPublicPosPairRoute
   '/api/public/pos/version-check': typeof ApiPublicPosVersionCheckRoute
+  '/api/public/print-agent/ack': typeof ApiPublicPrintAgentAckRoute
+  '/api/public/print-agent/claim': typeof ApiPublicPrintAgentClaimRoute
+  '/api/public/print-agent/heartbeat': typeof ApiPublicPrintAgentHeartbeatRoute
   '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
   '/api/public/tap/tables': typeof ApiPublicTapTablesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -323,6 +349,9 @@ export interface FileRoutesById {
   '/api/public/pos/login': typeof ApiPublicPosLoginRoute
   '/api/public/pos/pair': typeof ApiPublicPosPairRoute
   '/api/public/pos/version-check': typeof ApiPublicPosVersionCheckRoute
+  '/api/public/print-agent/ack': typeof ApiPublicPrintAgentAckRoute
+  '/api/public/print-agent/claim': typeof ApiPublicPrintAgentClaimRoute
+  '/api/public/print-agent/heartbeat': typeof ApiPublicPrintAgentHeartbeatRoute
   '/api/public/tap/reconcile': typeof ApiPublicTapReconcileRoute
   '/api/public/tap/tables': typeof ApiPublicTapTablesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -361,6 +390,9 @@ export interface FileRouteTypes {
     | '/api/public/pos/login'
     | '/api/public/pos/pair'
     | '/api/public/pos/version-check'
+    | '/api/public/print-agent/ack'
+    | '/api/public/print-agent/claim'
+    | '/api/public/print-agent/heartbeat'
     | '/api/public/tap/reconcile'
     | '/api/public/tap/tables'
     | '/lovable/email/auth/preview'
@@ -397,6 +429,9 @@ export interface FileRouteTypes {
     | '/api/public/pos/login'
     | '/api/public/pos/pair'
     | '/api/public/pos/version-check'
+    | '/api/public/print-agent/ack'
+    | '/api/public/print-agent/claim'
+    | '/api/public/print-agent/heartbeat'
     | '/api/public/tap/reconcile'
     | '/api/public/tap/tables'
     | '/lovable/email/auth/preview'
@@ -434,6 +469,9 @@ export interface FileRouteTypes {
     | '/api/public/pos/login'
     | '/api/public/pos/pair'
     | '/api/public/pos/version-check'
+    | '/api/public/print-agent/ack'
+    | '/api/public/print-agent/claim'
+    | '/api/public/print-agent/heartbeat'
     | '/api/public/tap/reconcile'
     | '/api/public/tap/tables'
     | '/lovable/email/auth/preview'
@@ -464,6 +502,9 @@ export interface RootRouteChildren {
   ApiPublicPosLoginRoute: typeof ApiPublicPosLoginRoute
   ApiPublicPosPairRoute: typeof ApiPublicPosPairRoute
   ApiPublicPosVersionCheckRoute: typeof ApiPublicPosVersionCheckRoute
+  ApiPublicPrintAgentAckRoute: typeof ApiPublicPrintAgentAckRoute
+  ApiPublicPrintAgentClaimRoute: typeof ApiPublicPrintAgentClaimRoute
+  ApiPublicPrintAgentHeartbeatRoute: typeof ApiPublicPrintAgentHeartbeatRoute
   ApiPublicTapReconcileRoute: typeof ApiPublicTapReconcileRoute
   ApiPublicTapTablesRoute: typeof ApiPublicTapTablesRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -641,6 +682,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTapReconcileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/print-agent/heartbeat': {
+      id: '/api/public/print-agent/heartbeat'
+      path: '/api/public/print-agent/heartbeat'
+      fullPath: '/api/public/print-agent/heartbeat'
+      preLoaderRoute: typeof ApiPublicPrintAgentHeartbeatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/print-agent/claim': {
+      id: '/api/public/print-agent/claim'
+      path: '/api/public/print-agent/claim'
+      fullPath: '/api/public/print-agent/claim'
+      preLoaderRoute: typeof ApiPublicPrintAgentClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/print-agent/ack': {
+      id: '/api/public/print-agent/ack'
+      path: '/api/public/print-agent/ack'
+      fullPath: '/api/public/print-agent/ack'
+      preLoaderRoute: typeof ApiPublicPrintAgentAckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/pos/version-check': {
       id: '/api/public/pos/version-check'
       path: '/api/public/pos/version-check'
@@ -769,6 +831,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPosLoginRoute: ApiPublicPosLoginRoute,
   ApiPublicPosPairRoute: ApiPublicPosPairRoute,
   ApiPublicPosVersionCheckRoute: ApiPublicPosVersionCheckRoute,
+  ApiPublicPrintAgentAckRoute: ApiPublicPrintAgentAckRoute,
+  ApiPublicPrintAgentClaimRoute: ApiPublicPrintAgentClaimRoute,
+  ApiPublicPrintAgentHeartbeatRoute: ApiPublicPrintAgentHeartbeatRoute,
   ApiPublicTapReconcileRoute: ApiPublicTapReconcileRoute,
   ApiPublicTapTablesRoute: ApiPublicTapTablesRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
@@ -785,13 +850,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -504,6 +504,7 @@ export type Database = {
           empresa_id: string
           endereco_ip: string | null
           id: string
+          imprime_pedido_completo: boolean
           is_default: boolean
           nome: string
           porta: number | null
@@ -518,6 +519,7 @@ export type Database = {
           empresa_id?: string
           endereco_ip?: string | null
           id?: string
+          imprime_pedido_completo?: boolean
           is_default?: boolean
           nome: string
           porta?: number | null
@@ -532,6 +534,7 @@ export type Database = {
           empresa_id?: string
           endereco_ip?: string | null
           id?: string
+          imprime_pedido_completo?: boolean
           is_default?: boolean
           nome?: string
           porta?: number | null
@@ -3473,6 +3476,128 @@ export type Database = {
           },
         ]
       }
+      print_jobs: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          empresa_id: string
+          expires_at: string
+          id: string
+          last_error: string | null
+          order_id: string | null
+          payload: Json
+          printed_at: string | null
+          printer_id: string | null
+          status: string
+          tipo: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          empresa_id: string
+          expires_at?: string
+          id?: string
+          last_error?: string | null
+          order_id?: string | null
+          payload?: Json
+          printed_at?: string | null
+          printer_id?: string | null
+          status?: string
+          tipo?: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          empresa_id?: string
+          expires_at?: string
+          id?: string
+          last_error?: string | null
+          order_id?: string | null
+          payload?: Json
+          printed_at?: string | null
+          printer_id?: string | null
+          status?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_jobs_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_jobs_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_jobs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_jobs_printer_id_fkey"
+            columns: ["printer_id"]
+            isOneToOne: false
+            referencedRelation: "config_impressoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      printer_agent_tokens: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          last_seen_at: string | null
+          nome: string
+          token_hash: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          last_seen_at?: string | null
+          nome: string
+          token_hash: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          last_seen_at?: string | null
+          nome?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printer_agent_tokens_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "printer_agent_tokens_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           available: boolean
@@ -4683,6 +4808,10 @@ export type Database = {
         }
         Returns: string
       }
+      ack_print_job: {
+        Args: { p_error?: string; p_job_id: string; p_ok: boolean }
+        Returns: undefined
+      }
       admin_credit_cashback: {
         Args: { p_cliente_id: string; p_motivo: string; p_valor: number }
         Returns: number
@@ -4940,6 +5069,30 @@ export type Database = {
       can_manage_empresa: { Args: { _empresa_id: string }; Returns: boolean }
       cancel_order: { Args: { p_order_id: string }; Returns: undefined }
       cancelar_reserva: { Args: { p_reserva_id: string }; Returns: undefined }
+      claim_print_jobs: {
+        Args: { p_empresa_id: string; p_limit?: number }
+        Returns: {
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          empresa_id: string
+          expires_at: string
+          id: string
+          last_error: string | null
+          order_id: string | null
+          payload: Json
+          printed_at: string | null
+          printer_id: string | null
+          status: string
+          tipo: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "print_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_tenant_by_host: { Args: { p_host: string }; Returns: string }
       compute_product_cmv: { Args: { p_product_id: string }; Returns: number }
       conciliar_ajuste_nf: {
@@ -4964,6 +5117,7 @@ export type Database = {
         }
         Returns: string
       }
+      create_printer_agent_token: { Args: { p_nome: string }; Returns: string }
       criar_ordem_compra: {
         Args: {
           p_fornecedor: string
@@ -5009,6 +5163,8 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      enqueue_print_jobs: { Args: { p_order_id: string }; Returns: number }
+      enqueue_test_print: { Args: { p_printer_id: string }; Returns: string }
       enviar_pedido_mesa: {
         Args: {
           p_comanda_id: string
@@ -5277,6 +5433,7 @@ export type Database = {
         Args: { p_forcar?: boolean; p_solicitacao_id: string }
         Returns: string
       }
+      maintain_print_jobs: { Args: never; Returns: undefined }
       mesa_token: {
         Args: { p_empresa: string; p_numero: number }
         Returns: string
@@ -5451,6 +5608,7 @@ export type Database = {
       }
       resolve_empresa_id_by_host: { Args: { p_host: string }; Returns: string }
       reverse_order_stock: { Args: { p_order_id: string }; Returns: undefined }
+      revoke_printer_agent_token: { Args: { p_id: string }; Returns: undefined }
       save_tap_provider_config: {
         Args: {
           p_ambiente: string
