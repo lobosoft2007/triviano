@@ -2285,10 +2285,6 @@ function PrinterCard({
             Pedido completo
           </span>
         )}
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase">
-            Padrão
-          </span>
-        )}
         {!printer.ativo && (
           <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
             Inativa
