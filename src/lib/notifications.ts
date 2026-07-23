@@ -217,8 +217,9 @@ export async function notifyOrderCanceled(
 ): Promise<void> {
   if (!userId) return;
   const b = brand?.trim() || "Estabelecimento";
-  const titulo = "Pedido cancelado";
-  const mensagem = `${b}: Seu pedido foi cancelado pelo estabelecimento.`;
+  const label = formatOrderLabel(orderId);
+  const titulo = `Pedido ${label} cancelado`;
+  const mensagem = `${b}: Seu pedido ${label} foi cancelado pelo estabelecimento.`;
   await insertNotification({
     idPedido: orderId,
     idUsuario: userId,
