@@ -59,7 +59,7 @@ export const Route = createFileRoute("/api/public/print-agent/ack")({
         const { error } = await supabaseAdmin.rpc("ack_print_job", {
           p_job_id: body.job_id,
           p_ok: !!body.ok,
-          p_error: body.error ?? null,
+          p_error: body.error ?? undefined,
         });
         if (error) return json({ error: error.message }, 500);
 
