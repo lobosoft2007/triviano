@@ -12,43 +12,56 @@ export interface NotificacaoCliente {
 }
 
 /**
- * Automatic message for each production-conveyor status. Some statuses share
- * the same final message ("Entregue" and "Finalizado").
+ * Short, human-friendly order label used across every customer channel
+ * (bell, OS push, WhatsApp, kitchen coupon). Mirrors the format already used
+ * in WhatsAppStatusButton so the customer sees the same tag everywhere.
  */
-export const STATUS_NOTIFICATION_MESSAGES: Record<
-  StatusPedido,
-  { titulo: string; mensagem: string } | null
-> = {
-  Recebido: {
-    titulo: "Pedido recebido",
-    mensagem: "Seu pedido foi recebido e já está na nossa fila!",
-  },
-  "Em preparação": {
-    titulo: "Em preparação",
-    mensagem:
-      "Boas notícias! Seu pedido já está sendo preparado pela nossa cozinha.",
-  },
-  "Aguardando entregador": {
-    titulo: "Pronto para sair",
-    mensagem:
-      "Seu pedido está pronto e embalado, aguardando a chegada do motoboy.",
-  },
-  "Em entrega": {
-    titulo: "Saiu para entrega",
-    mensagem: "Seu pedido saiu! O entregador já está a caminho do seu endereço.",
-  },
-  Entregue: {
-    titulo: "Pedido finalizado",
-    mensagem:
-      "Pedido finalizado. Muito obrigado pela preferência! Bom apetite!",
-  },
-  Finalizado: {
-    titulo: "Pedido finalizado",
-    mensagem:
-      "Pedido finalizado. Muito obrigado pela preferência! Bom apetite!",
-  },
-  Cancelado: null,
-};
+export function formatOrderLabel(orderId: string): string {
+  return `#${orderId.slice(0, 6).toUpperCase()}`;
+}
+
+/**
+ * Automatic message for each production-conveyor status. Each entry receives
+ * the order label so clients with multiple simultaneous orders can tell which
+ * one just changed status.
+ */
+export function buildStatusNotification(
+  status: StatusPedido,
+  orderLabel: string,
+): { titulo: string; mensagem: string } | null {
+  switch (status) {
+    case "Recebido":
+      return {
+        titulo: `Pedido ${orderLabel} recebido`,
+        mensagem: `Recebemos o seu pedido ${orderLabel} e ele já está na nossa fila!`,
+      };
+    case "Em preparação":
+      return {
+        titulo: `Pedido ${orderLabel} em preparação`,
+        mensagem: `Boas notícias! Seu pedido ${orderLabel} já está sendo preparado pela nossa cozinha.`,
+      };
+    case "Aguardando entregador":
+      return {
+        titulo: `Pedido ${orderLabel} pronto para sair`,
+        mensagem: `Seu pedido ${orderLabel} está pronto e embalado, aguardando a chegada do motoboy.`,
+      };
+    case "Em entrega":
+      return {
+        titulo: `Pedido ${orderLabel} saiu para entrega`,
+        mensagem: `Seu pedido ${orderLabel} saiu! O entregador já está a caminho do seu endereço.`,
+      };
+    case "Entregue":
+    case "Finalizado":
+      return {
+        titulo: `Pedido ${orderLabel} finalizado`,
+        mensagem: `Pedido ${orderLabel} finalizado. Muito obrigado pela preferência! Bom apetite!`,
+      };
+    case "Cancelado":
+      return null;
+    default:
+      return null;
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /* Browser push permission                                             */
