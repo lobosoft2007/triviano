@@ -19,6 +19,10 @@ import {
   Check,
   X,
   Wallet,
+  Plus,
+  Trash2,
+  Wifi,
+  Usb,
 } from "lucide-react";
 
 import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
