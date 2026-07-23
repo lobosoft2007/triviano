@@ -19,6 +19,10 @@ import {
   Check,
   X,
   Wallet,
+  Plus,
+  Trash2,
+  Wifi,
+  Usb,
 } from "lucide-react";
 
 import { OrderEditDialog } from "@/components/caixa/OrderEditDialog";
@@ -103,16 +107,24 @@ import {
   fetchPrinters,
   fetchCategoriesRouting,
   setCategoryPrinter,
+  createPrinter,
+  updatePrinter,
+  deletePrinter,
   makeSectorResolver,
   type Printer as PrinterConfig,
   type ResolvedSector,
+  type TipoConexao,
+  type CategoryRouting,
 } from "@/lib/printers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -2117,26 +2129,127 @@ function ConfigTab() {
 
       {/* Printers list */}
       <section className="lg:col-span-2">
-        <header className="mb-3">
-          <h2 className="font-display text-lg font-bold">Setores de impressão</h2>
-          <p className="text-sm text-muted-foreground">
-            A impressão usa a fila do sistema operacional. Configure cada
-            impressora como padrão na estação correspondente (cozinha, bar,
-            caixa) — o Triviano envia o cupom certo para cada setor
-            automaticamente.
-          </p>
-        </header>
-        <div className="space-y-3">
-          {printers.map((p) => (
-            <PrinterCard key={p.id} printer={p} />
-          ))}
-        </div>
+        <PrintersSection printers={printers} categories={categories} />
       </section>
     </div>
   );
 }
 
-function PrinterCard({ printer }: { printer: PrinterConfig }) {
+/* ------------------------------------------------------------------ */
+/* Printers CRUD                                                       */
+/* ------------------------------------------------------------------ */
+
+function PrintersSection({
+  printers,
+  categories,
+}: {
+  printers: PrinterConfig[];
+  categories: CategoryRouting[];
+}) {
+  const [editing, setEditing] = useState<PrinterConfig | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  return (
+    <>
+      <header className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-lg font-bold">Setores de impressão</h2>
+          <p className="text-sm text-muted-foreground">
+            Cadastre cada setor (Cozinha, Bar, Pizzaria, Balcão...) informando
+            nome, tipo de conexão (USB ou IP) e cor. Impressão USB usa a fila
+            do sistema operacional — defina a impressora como padrão no PC da
+            estação. O endereço IP:porta serve hoje como identificação e para
+            o roteamento colorido dos cupons no Caixa.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => setCreating(true)}
+          className="shrink-0"
+        >
+          <Plus className="mr-1 h-4 w-4" /> Nova
+        </Button>
+      </header>
+      <div className="space-y-3">
+        {printers.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
+            Nenhuma impressora cadastrada. Clique em <strong>Nova</strong> para
+            começar.
+          </div>
+        )}
+        {printers.map((p) => (
+          <PrinterCard
+            key={p.id}
+            printer={p}
+            categories={categories}
+            onEdit={() => setEditing(p)}
+          />
+        ))}
+      </div>
+
+      {(creating || editing) && (
+        <PrinterEditorDialog
+          printer={editing}
+          allPrinters={printers}
+          onClose={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function PrinterCard({
+  printer,
+  categories,
+  onEdit,
+}: {
+  printer: PrinterConfig;
+  categories: CategoryRouting[];
+  onEdit: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const linkedCategories = categories.filter(
+    (c) => c.id_impressora_destino === printer.id,
+  );
+
+  async function handleToggleAtivo(next: boolean) {
+    setBusy(true);
+    try {
+      await updatePrinter(printer.id, { ativo: next });
+      await queryClient.invalidateQueries({ queryKey: ["printers"] });
+      toast.success(next ? "Impressora ativada." : "Impressora desativada.");
+    } catch {
+      toast.error("Não foi possível atualizar a impressora.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete() {
+    setBusy(true);
+    try {
+      // Desvincular categorias primeiro (a FK ficaria órfã).
+      for (const c of linkedCategories) {
+        await setCategoryPrinter(c.id, null);
+      }
+      await deletePrinter(printer.id);
+      await queryClient.invalidateQueries({ queryKey: ["printers"] });
+      await queryClient.invalidateQueries({ queryKey: ["categories-routing"] });
+      toast.success("Impressora removida.");
+      setConfirmDelete(false);
+    } catch {
+      toast.error("Não foi possível remover a impressora.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
       <div className="flex items-center gap-2">
@@ -2146,18 +2259,299 @@ function PrinterCard({ printer }: { printer: PrinterConfig }) {
         />
         <span className="font-display font-bold">{printer.nome}</span>
         {printer.is_default && (
-          <span className="ml-auto rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase">
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase">
             Padrão
           </span>
         )}
+        {!printer.ativo && (
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+            Inativa
+          </span>
+        )}
+        <div className="ml-auto flex items-center gap-1">
+          <Button size="icon" variant="ghost" onClick={onEdit} disabled={busy}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setConfirmDelete(true)}
+            disabled={busy}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
-        Os cupons dos itens vinculados a este setor são enviados pelo diálogo
-        de impressão do navegador. Defina esta impressora como padrão na
-        estação de trabalho correspondente para que a fila do sistema
-        operacional entregue automaticamente.
-      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        {printer.tipo_conexao === "IP" ? (
+          <span className="inline-flex items-center gap-1">
+            <Wifi className="h-3.5 w-3.5" />
+            {printer.endereco_ip ?? "-"}:{printer.porta ?? 9100}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1">
+            <Usb className="h-3.5 w-3.5" />
+            {printer.caminho_usb || "USB (fila do SO)"}
+          </span>
+        )}
+        <span>
+          {linkedCategories.length} categoria
+          {linkedCategories.length === 1 ? "" : "s"} vinculada
+          {linkedCategories.length === 1 ? "" : "s"}
+        </span>
+        <label className="ml-auto inline-flex items-center gap-2">
+          <Switch
+            checked={printer.ativo}
+            onCheckedChange={handleToggleAtivo}
+            disabled={busy}
+          />
+          <span>Ativa</span>
+        </label>
+      </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover "{printer.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {linkedCategories.length > 0
+                ? `Existem ${linkedCategories.length} categoria(s) vinculada(s) a esta impressora. Elas serão desvinculadas (voltam ao Balcão de Entregas).`
+                : "Esta ação não pode ser desfeita."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={busy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+function PrinterEditorDialog({
+  printer,
+  allPrinters,
+  onClose,
+}: {
+  printer: PrinterConfig | null;
+  allPrinters: PrinterConfig[];
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const isEdit = printer !== null;
+
+  const [nome, setNome] = useState(printer?.nome ?? "");
+  const [tipo, setTipo] = useState<TipoConexao>(printer?.tipo_conexao ?? "USB");
+  const [ip, setIp] = useState(printer?.endereco_ip ?? "");
+  const [porta, setPorta] = useState<string>(
+    printer?.porta != null ? String(printer.porta) : "9100",
+  );
+  const [caminhoUsb, setCaminhoUsb] = useState(printer?.caminho_usb ?? "");
+  const [cor, setCor] = useState(printer?.cor ?? "#2563eb");
+  const [isDefault, setIsDefault] = useState(printer?.is_default ?? false);
+  const [ativo, setAtivo] = useState(printer?.ativo ?? true);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!nome.trim()) {
+      toast.error("Informe o nome da impressora.");
+      return;
+    }
+    if (tipo === "IP" && !ip.trim()) {
+      toast.error("Informe o endereço IP.");
+      return;
+    }
+    const portaNum = tipo === "IP" ? Number(porta) || 9100 : null;
+    setSaving(true);
+    try {
+      if (isEdit && printer) {
+        await updatePrinter(printer.id, {
+          nome: nome.trim(),
+          tipo_conexao: tipo,
+          endereco_ip: tipo === "IP" ? ip.trim() : null,
+          porta: portaNum,
+          caminho_usb: tipo === "USB" ? caminhoUsb.trim() || null : null,
+          cor,
+          ativo,
+        });
+      } else {
+        await createPrinter({
+          nome: nome.trim(),
+          tipo_conexao: tipo,
+          endereco_ip: tipo === "IP" ? ip.trim() : null,
+          porta: portaNum,
+          caminho_usb: tipo === "USB" ? caminhoUsb.trim() || null : null,
+          cor,
+        });
+      }
+
+      // Handle "padrão" flag: if this printer is default, unset others.
+      if (isDefault) {
+        const targetId = printer?.id;
+        for (const p of allPrinters) {
+          if (p.id !== targetId && p.is_default) {
+            await updatePrinter(p.id, { ativo: p.ativo });
+            // is_default toggling requires a direct update to that column.
+            await supabase
+              .from("config_impressoras")
+              .update({ is_default: false })
+              .eq("id", p.id);
+          }
+        }
+        if (targetId) {
+          await supabase
+            .from("config_impressoras")
+            .update({ is_default: true })
+            .eq("id", targetId);
+        } else {
+          // For a fresh insert we don't have the ID; mark the most recent by name.
+          await supabase
+            .from("config_impressoras")
+            .update({ is_default: true })
+            .eq("nome", nome.trim());
+        }
+      } else if (isEdit && printer && printer.is_default) {
+        await supabase
+          .from("config_impressoras")
+          .update({ is_default: false })
+          .eq("id", printer.id);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["printers"] });
+      toast.success(isEdit ? "Impressora atualizada." : "Impressora criada.");
+      onClose();
+    } catch {
+      toast.error("Não foi possível salvar a impressora.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? "Editar impressora" : "Nova impressora"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="printer-nome">Nome do setor</Label>
+            <Input
+              id="printer-nome"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex.: Cozinha, Bar, Pizzaria"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Tipo de conexão</Label>
+            <RadioGroup
+              value={tipo}
+              onValueChange={(v) => setTipo(v as TipoConexao)}
+              className="flex gap-4"
+            >
+              <label className="inline-flex items-center gap-2 text-sm">
+                <RadioGroupItem value="USB" id="tipo-usb" />
+                <Usb className="h-4 w-4" /> USB
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <RadioGroupItem value="IP" id="tipo-ip" />
+                <Wifi className="h-4 w-4" /> IP (rede)
+              </label>
+            </RadioGroup>
+          </div>
+
+          {tipo === "IP" ? (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="printer-ip">Endereço IP</Label>
+                <Input
+                  id="printer-ip"
+                  value={ip}
+                  onChange={(e) => setIp(e.target.value)}
+                  placeholder="192.168.0.100"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="printer-porta">Porta</Label>
+                <Input
+                  id="printer-porta"
+                  type="number"
+                  value={porta}
+                  onChange={(e) => setPorta(e.target.value)}
+                  placeholder="9100"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label htmlFor="printer-usb">Caminho USB (opcional)</Label>
+              <Input
+                id="printer-usb"
+                value={caminhoUsb}
+                onChange={(e) => setCaminhoUsb(e.target.value)}
+                placeholder="Ex.: EPSON TM-T20 (identificação)"
+              />
+              <p className="text-xs text-muted-foreground">
+                A impressão USB usa a fila do sistema operacional. Basta
+                configurar esta impressora como padrão no PC da estação.
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="printer-cor">Cor da tag</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="printer-cor"
+                  type="color"
+                  value={cor}
+                  onChange={(e) => setCor(e.target.value)}
+                  className="h-9 w-12 cursor-pointer rounded-md border border-border bg-background"
+                />
+                <Input
+                  value={cor}
+                  onChange={(e) => setCor(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div className="space-y-2 pt-6">
+              <label className="flex items-center justify-between gap-2 text-sm">
+                <span>Marcar como padrão</span>
+                <Switch checked={isDefault} onCheckedChange={setIsDefault} />
+              </label>
+              <label className="flex items-center justify-between gap-2 text-sm">
+                <span>Ativa</span>
+                <Switch checked={ativo} onCheckedChange={setAtivo} />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+            {isEdit ? "Salvar" : "Criar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
