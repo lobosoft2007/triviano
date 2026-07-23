@@ -935,8 +935,11 @@ function CheckoutPage() {
           ) : pendingPayment &&
             mpActive &&
             mpConfig &&
-            (effectivePayMethod === "Cartão de Crédito" ||
-              effectivePayMethod === "Cartão de Débito") ? (
+            (effectivePayMethod === "Crédito online" ||
+              effectivePayMethod === "Débito online" ||
+              // Legado: pedidos criados antes da separação online x na entrega.
+              (effectivePayMethod as string) === "Cartão de Crédito" ||
+              (effectivePayMethod as string) === "Cartão de Débito") ? (
             <section className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-primary" />
@@ -955,6 +958,9 @@ function CheckoutPage() {
                 orderId={pendingPayment.orderId}
                 total={finalTotal}
                 method="card"
+                cardType={
+                  effectivePayMethod === "Débito online" ? "debit" : "credit"
+                }
                 config={mpConfig}
                 payerEmail={user?.email ?? undefined}
                 onPaid={() => {
