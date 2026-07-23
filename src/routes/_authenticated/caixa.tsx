@@ -55,6 +55,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CaixaSidebar } from "@/components/caixa/CaixaSidebar";
+import { PrintQueuePanel } from "@/components/caixa/PrintQueuePanel";
 
 
 import { supabase } from "@/integrations/supabase/client";
@@ -2194,6 +2195,8 @@ function PrintersSection({
       </div>
 
       <AgentsSection />
+
+      <PrintQueuePanel />
 
       {(creating || editing) && (
         <PrinterEditorDialog
