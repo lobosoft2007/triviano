@@ -2196,6 +2196,8 @@ function PrintersSection({
 
       <AgentsSection />
 
+      <PrintQueuePanel />
+
       {(creating || editing) && (
         <PrinterEditorDialog
           printer={editing}
