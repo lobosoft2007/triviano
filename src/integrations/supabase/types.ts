@@ -5117,7 +5117,9 @@ export type Database = {
         }
         Returns: string
       }
-      create_printer_agent_token: { Args: { nome: string }; Returns: string }
+      create_printer_agent_token:
+        | { Args: { nome: string }; Returns: string }
+        | { Args: { payload: Json }; Returns: string }
       criar_ordem_compra: {
         Args: {
           p_fornecedor: string
