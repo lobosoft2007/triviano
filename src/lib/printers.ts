@@ -144,7 +144,7 @@ export async function fetchPrinterAgentTokens(): Promise<PrinterAgentToken[]> {
 
 export async function createPrinterAgentToken(nome: string): Promise<string> {
   const { data, error } = await supabase.rpc("create_printer_agent_token", {
-    p_nome: nome,
+    nome,
   });
   if (error) throw error;
   return data as unknown as string;
