@@ -2244,8 +2244,8 @@ function AgentsSection() {
       await revokePrinterAgentToken(t.id);
       await queryClient.invalidateQueries({ queryKey: ["printer-agent-tokens"] });
       toast.success("Agente revogado.");
-    } catch {
-      toast.error("Não foi possível revogar o agente.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível revogar o agente.");
     }
   }
 
