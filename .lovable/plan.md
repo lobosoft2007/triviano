@@ -1,69 +1,38 @@
-# Plano B v3 — Agente Local de Impressão
+## Fila de Impressão — reimpressão universal + número do pedido
 
-## Objetivo
-Serviço Node.js local que consome a fila `print_jobs`, formata em ESC/POS e envia para impressoras térmicas via TCP:9100, com retry automático e recuperação por soft-fail.
+Ajustar o painel `PrintQueuePanel` para (1) permitir reimprimir jobs em qualquer status (não só `failed`/`expired`) e (2) mostrar o número do pedido para identificar visualmente o cupom a ser reimpresso.
 
-## Estrutura do pacote (`print-agent/`)
-```text
-print-agent/
-  package.json
-  tsconfig.json
-  .env.example
-  README.md
-  src/
-    index.ts          # loop principal (poll + dispatch)
-    config.ts         # carrega .env (URL, token, encoding, intervalos)
-    api.ts            # chamadas /claim, /ack, /heartbeat
-    escpos.ts         # formatação (sector vs full order), encoding CP850/UTF-8
-    tcp.ts            # envio TCP:9100 com timeout
-    logger.ts         # logs simples em stdout + arquivo
-```
-Independente do app web; roda com `npm start` na loja.
+### Banco — `public.retry_print_job(p_job_id uuid)`
 
-## Banco de dados (migração única)
-1. `print_jobs`: adicionar `attempts int default 0`, `next_attempt_at timestamptz default now()`, `last_error text`.
-2. `claim_print_jobs`: reservar jobs onde `status='queued' AND next_attempt_at<=now()` **ou** `status='processing' AND locked_until<now()`. `locked_until = now()+30s`. Incrementa `attempts`.
-3. `ack_print_job(job_id, ok, error_message)`:
-   - `ok=true` → `status='done'`.
-   - `ok=false` e `attempts<5` → `status='queued'`, backoff `next_attempt_at = now()+ (attempts^2 * 10s)`, grava `last_error`.
-   - `ok=false` e `attempts>=5` → `status='failed'`, grava `last_error`.
-4. `pg_cron` de retenção: apaga jobs `done`/`failed` com mais de 7 dias (diário).
-5. Sem cron de expiração de 30min — soft-fail é resolvido pelo próprio `claim_print_jobs`.
+Migração única, substitui a função atual:
 
-## Fluxo do agente
-1. `POST /api/public/print-agent/heartbeat` a cada 30s (atualiza `printer_agent_tokens.last_seen_at`).
-2. `POST /api/public/print-agent/claim` a cada 2s (config): recebe lote de jobs.
-3. Para cada job: formata em ESC/POS conforme `layout` (sector/full), envia por TCP:9100 da impressora alvo.
-4. `POST /api/public/print-agent/ack` com `{ok, error_message?}`.
-5. Se o agente cair entre claim e ack, `locked_until` expira em 30s e outro poll re-reivindica automaticamente (sem cron, sem reversão manual).
+- Aceita jobs em `pending | printing | done | failed | expired`.
+- Bloqueia apenas quando `status='printing' AND locked_until > now()` → `RAISE EXCEPTION 'Job em impressão. Aguarde alguns segundos e tente novamente.'`.
+- Reset: `status='pending', attempts=0, last_error=NULL, claimed_at=NULL, locked_until=NULL, printed_at=NULL, next_attempt_at=now()`.
+- Autorização: `EXISTS (SELECT 1 FROM public.print_jobs pj WHERE pj.id=p_job_id AND public.can_manage_empresa(pj.empresa_id))`, senão `RAISE EXCEPTION 'Sem permissão para reimprimir este job.'`.
+- `SECURITY DEFINER`, `SET search_path = public`.
+- `REVOKE ALL ... FROM public; GRANT EXECUTE ... TO authenticated, service_role;`.
 
-## Formatação ESC/POS (`escpos.ts`)
-- Layout **sector** (cozinha/bar/pizzaria): cabeçalho da empresa, número do pedido/senha, mesa/entregador, apenas itens do setor, adicionais, removidos, observações. Corte final.
-- Layout **full** (via de balcão/entrega): pedido completo, totais, meio de pagamento, endereço se delivery.
-- Encoding: default `cp850`, configurável por `PRINTER_ENCODING` no `.env` e override opcional por impressora (coluna `encoding` em `config_impressoras`, nullable).
+### UI — `src/components/caixa/PrintQueuePanel.tsx`
 
-## `.env.example`
-```
-AGENT_TOKEN=...            # token gerado no /caixa
-API_BASE_URL=https://triviano.com.br
-POLL_INTERVAL_MS=2000
-HEARTBEAT_INTERVAL_MS=30000
-PRINTER_ENCODING=cp850
-LOG_FILE=./agent.log
-```
+- Ampliar `PrintJobRow` com `order_id: string | null` e `payload: Record<string, unknown> | null` e incluir os dois no `.select(...)`.
+- Helper `orderLabel(job)`:
+  1. `job.payload?.order?.senha_diaria` → `"#{valor}"`.
+  2. senão `job.payload?.order?.senha` → `"S{valor}"`.
+  3. senão `job.order_id?.slice(0,6).toUpperCase()` → `"{valor}"`.
+  4. senão `"—"`.
+- Nova badge "Pedido" logo depois do status, antes da impressora: `<Badge variant="outline" className="font-mono bg-muted text-foreground border-border">{orderLabel(j)}</Badge>`. Em mobile mantém visível (é a informação-chave).
+- Botão "Reimprimir" passa a renderizar para **todos** os status, com `disabled` quando `j.status === 'printing'` (fallback de UX; o RPC também bloqueia se o lock ainda estiver ativo).
+- Toast de sucesso: `"Pedido ${orderLabel} reenfileirado"`. Erro continua exibindo `err.message` (permissão / job em impressão).
 
-## UI /caixa — "Fila de Impressão"
-- Painel dentro de Impressoras: lista `print_jobs` recentes com colunas status, tentativas, impressora, criado, último erro.
-- Badges de saúde por agente (online se `last_seen_at < 60s`).
-- Botão "Reimprimir" por job (reseta `attempts=0`, `status='queued'`, `next_attempt_at=now()`).
-- Contador de "atrasados" (queued > 30s).
+### Fora do escopo
 
-## Ordem de execução
-1. Migração DB (colunas, `claim_print_jobs`, `ack_print_job`, cron retenção, coluna `encoding` opcional).
-2. Pacote `print-agent/` (código + README de instalação Windows/Linux).
-3. UI da fila em `src/routes/_authenticated/caixa.tsx` + componente `PrintQueuePanel`.
-4. Ajuste do `enqueue_print_jobs` para setar `next_attempt_at=now()` na criação.
+- Agente local, endpoints `/print-agent/*` e formatador ESC/POS (impressão está correta).
+- `enqueue_print_jobs`, triggers e demais RPCs de impressão.
 
-## Fora do escopo
-- Instalação automática do agente como serviço do Windows (documentado no README).
-- Descoberta automática de impressoras na rede.
+### Verificação
+
+1. Reimprimir job `done` → sai novamente com o mesmo número identificado no toast.
+2. Reimprimir job `failed` → atende como hoje, agora com identificação visual.
+3. Tentar reimprimir job `printing` com lock ativo → botão desabilitado; se disparado via RPC direto retorna erro amigável.
+4. Sem `order_id` (job de teste) → badge mostra `"—"` e reimpressão segue funcionando.
