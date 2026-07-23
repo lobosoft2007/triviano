@@ -107,16 +107,24 @@ import {
   fetchPrinters,
   fetchCategoriesRouting,
   setCategoryPrinter,
+  createPrinter,
+  updatePrinter,
+  deletePrinter,
   makeSectorResolver,
   type Printer as PrinterConfig,
   type ResolvedSector,
+  type TipoConexao,
+  type CategoryRouting,
 } from "@/lib/printers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
