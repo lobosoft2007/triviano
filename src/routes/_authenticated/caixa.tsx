@@ -2291,6 +2291,15 @@ function PrinterCard({
           </span>
         )}
         <div className="ml-auto flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleTestPrint}
+            disabled={busy}
+            className="h-8 gap-1"
+          >
+            <Printer className="h-3.5 w-3.5" /> Cupom de teste
+          </Button>
           <Button size="icon" variant="ghost" onClick={onEdit} disabled={busy}>
             <Pencil className="h-4 w-4" />
           </Button>
