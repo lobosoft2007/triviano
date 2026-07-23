@@ -1026,9 +1026,14 @@ export async function saveCategory(input: {
   name: string;
   cor_fonte: string;
   tamanho_fonte: string;
+  allows_half?: boolean;
+  min_items?: number;
 }): Promise<void> {
   const name = input.name.trim();
   if (!name) throw new Error("O nome da categoria é obrigatório.");
+
+  const allowsHalf = input.allows_half ?? false;
+  const minItems = Math.max(0, Math.floor(Number(input.min_items ?? 0)));
 
   if (input.id) {
     const { error } = await supabase
@@ -1037,6 +1042,8 @@ export async function saveCategory(input: {
         name,
         cor_fonte: input.cor_fonte,
         tamanho_fonte: input.tamanho_fonte,
+        allows_half: allowsHalf,
+        min_items: minItems,
       })
       .eq("id", input.id);
     if (error) throw error;
@@ -1057,6 +1064,8 @@ export async function saveCategory(input: {
       slug: slugify(name) || `cat-${Date.now()}`,
       cor_fonte: input.cor_fonte,
       tamanho_fonte: input.tamanho_fonte,
+      allows_half: allowsHalf,
+      min_items: minItems,
       sort_order: nextOrder,
       // Tenant stamp: RLS + trigger enforce this on the server too.
       empresa_id: empresaId,
@@ -1064,6 +1073,7 @@ export async function saveCategory(input: {
     if (error) throw error;
   }
 }
+
 
 export async function deleteCategory(id: string): Promise<void> {
   // Safety lock: block deletion when any product is linked to the category.

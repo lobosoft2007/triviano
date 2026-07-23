@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -60,6 +61,8 @@ interface FormState {
   name: string;
   cor_fonte: string;
   tamanho_fonte: string;
+  allows_half: boolean;
+  min_items: number;
 }
 
 const EMPTY: FormState = {
@@ -67,7 +70,10 @@ const EMPTY: FormState = {
   name: "",
   cor_fonte: "text-white",
   tamanho_fonte: "text-base",
+  allows_half: false,
+  min_items: 0,
 };
+
 
 const QK = ["admin-categories"];
 
@@ -95,9 +101,12 @@ export function CategoriasCrud() {
       name: c.name,
       cor_fonte: c.cor_fonte,
       tamanho_fonte: c.tamanho_fonte,
+      allows_half: c.allows_half,
+      min_items: c.min_items,
     });
     setOpen(true);
   };
+
 
   async function invalidate() {
     await Promise.all([
@@ -119,7 +128,10 @@ export function CategoriasCrud() {
         name: form.name,
         cor_fonte: form.cor_fonte,
         tamanho_fonte: form.tamanho_fonte,
+        allows_half: form.allows_half,
+        min_items: form.min_items,
       });
+
       setOpen(false);
       await invalidate();
       toast.success("Categoria salva!");
@@ -225,7 +237,10 @@ export function CategoriasCrud() {
                 ·{" "}
                 {TAMANHO_OPTIONS.find((o) => o.value === c.tamanho_fonte)
                   ?.label ?? c.tamanho_fonte}
+                {c.allows_half && " · Meio a meio"}
+                {c.min_items > 0 && ` · Mín ${c.min_items}`}
               </p>
+
             </div>
 
             <button
@@ -313,6 +328,47 @@ export function CategoriasCrud() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="rounded-xl border border-border bg-card px-4 py-3">
+              <label className="flex cursor-pointer items-center justify-between gap-3">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">
+                    Permite pizza meio a meio
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    Habilita o checkbox de segundo sabor no PWA. Cobra 50% de
+                    cada sabor.
+                  </span>
+                </span>
+                <Switch
+                  checked={form.allows_half}
+                  onCheckedChange={(v) =>
+                    setForm({ ...form, allows_half: v === true })
+                  }
+                />
+              </label>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="cat-min-items">Mínimo de itens no carrinho</Label>
+              <Input
+                id="cat-min-items"
+                type="number"
+                min={0}
+                step={1}
+                value={form.min_items}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    min_items: Math.max(0, Number(e.target.value) || 0),
+                  })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Use 0 para desativar. Ex.: Pastéis exige mínimo de 3.
+              </p>
+            </div>
+
 
             {/* Preview */}
             <div className="rounded-xl border border-border bg-background p-4">
