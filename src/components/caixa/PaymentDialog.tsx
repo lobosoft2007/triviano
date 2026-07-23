@@ -82,11 +82,18 @@ export function PaymentDialog({
   const [finalizing, setFinalizing] = useState(false);
   // Cobrança PIX online (QR dinâmico do Mercado Pago) para o total do pedido.
   const [onlinePix, setOnlinePix] = useState(false);
+  // Troco a devolver quando o operador digita valor > restante em Dinheiro.
+  const [troco, setTroco] = useState(0);
 
   // Default the selector to the first active method once they load.
   useEffect(() => {
     if (!meioId && meios && meios.length > 0) setMeioId(meios[0].id);
   }, [meios, meioId]);
+
+  // Reset troco ao abrir/fechar o diálogo.
+  useEffect(() => {
+    if (!open) setTroco(0);
+  }, [open]);
 
   const totalPagoCents = useMemo(
     () => (pagamentos ?? []).reduce((s, p) => s + toCents(p.valor_pago), 0),
