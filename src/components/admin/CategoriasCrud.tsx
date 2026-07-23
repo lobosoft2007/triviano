@@ -101,9 +101,12 @@ export function CategoriasCrud() {
       name: c.name,
       cor_fonte: c.cor_fonte,
       tamanho_fonte: c.tamanho_fonte,
+      allows_half: c.allows_half,
+      min_items: c.min_items,
     });
     setOpen(true);
   };
+
 
   async function invalidate() {
     await Promise.all([
