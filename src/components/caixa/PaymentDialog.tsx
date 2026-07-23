@@ -112,6 +112,10 @@ export function PaymentDialog({
     () => (meios ?? []).find((m) => m.nome.trim().toLowerCase() === "pix"),
     [meios],
   );
+  const dinheiroMeio = useMemo(
+    () => (meios ?? []).find((m) => m.nome.trim().toLowerCase() === "dinheiro"),
+    [meios],
+  );
 
 
   async function handleAdd() {
@@ -126,7 +130,17 @@ export function PaymentDialog({
     }
     setBusy(true);
     try {
-      await addPagamento({ orderId: order.id, meioId, valor: v });
+      // Dinheiro + valor acima do restante → registra pagamento = restante e devolve troco.
+      const isDinheiro = !!dinheiroMeio && meioId === dinheiroMeio.id;
+      const vCents = toCents(v);
+      if (isDinheiro && restanteCents > 0 && vCents > restanteCents) {
+        const trocoValor = (vCents - restanteCents) / 100;
+        await addPagamento({ orderId: order.id, meioId, valor: restante });
+        setTroco(trocoValor);
+        toast.success(`Troco a devolver: ${formatBRL(trocoValor)}`);
+      } else {
+        await addPagamento({ orderId: order.id, meioId, valor: v });
+      }
       await queryClient.invalidateQueries({ queryKey: ["pagamentos", order.id] });
       setValor("");
     } catch (err) {
@@ -135,6 +149,7 @@ export function PaymentDialog({
       setBusy(false);
     }
   }
+
 
   function fillRemaining() {
     if (restanteCents > 0) setValor((restanteCents / 100).toFixed(2));
