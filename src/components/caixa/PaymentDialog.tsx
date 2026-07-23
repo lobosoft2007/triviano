@@ -82,11 +82,18 @@ export function PaymentDialog({
   const [finalizing, setFinalizing] = useState(false);
   // Cobrança PIX online (QR dinâmico do Mercado Pago) para o total do pedido.
   const [onlinePix, setOnlinePix] = useState(false);
+  // Troco a devolver quando o operador digita valor > restante em Dinheiro.
+  const [troco, setTroco] = useState(0);
 
   // Default the selector to the first active method once they load.
   useEffect(() => {
     if (!meioId && meios && meios.length > 0) setMeioId(meios[0].id);
   }, [meios, meioId]);
+
+  // Reset troco ao abrir/fechar o diálogo.
+  useEffect(() => {
+    if (!open) setTroco(0);
+  }, [open]);
 
   const totalPagoCents = useMemo(
     () => (pagamentos ?? []).reduce((s, p) => s + toCents(p.valor_pago), 0),
@@ -105,6 +112,10 @@ export function PaymentDialog({
     () => (meios ?? []).find((m) => m.nome.trim().toLowerCase() === "pix"),
     [meios],
   );
+  const dinheiroMeio = useMemo(
+    () => (meios ?? []).find((m) => m.nome.trim().toLowerCase() === "dinheiro"),
+    [meios],
+  );
 
 
   async function handleAdd() {
@@ -119,7 +130,17 @@ export function PaymentDialog({
     }
     setBusy(true);
     try {
-      await addPagamento({ orderId: order.id, meioId, valor: v });
+      // Dinheiro + valor acima do restante → registra pagamento = restante e devolve troco.
+      const isDinheiro = !!dinheiroMeio && meioId === dinheiroMeio.id;
+      const vCents = toCents(v);
+      if (isDinheiro && restanteCents > 0 && vCents > restanteCents) {
+        const trocoValor = (vCents - restanteCents) / 100;
+        await addPagamento({ orderId: order.id, meioId, valor: restante });
+        setTroco(trocoValor);
+        toast.success(`Troco a devolver: ${formatBRL(trocoValor)}`);
+      } else {
+        await addPagamento({ orderId: order.id, meioId, valor: v });
+      }
       await queryClient.invalidateQueries({ queryKey: ["pagamentos", order.id] });
       setValor("");
     } catch (err) {
@@ -128,6 +149,7 @@ export function PaymentDialog({
       setBusy(false);
     }
   }
+
 
   function fillRemaining() {
     if (restanteCents > 0) setValor((restanteCents / 100).toFixed(2));
@@ -410,6 +432,12 @@ export function PaymentDialog({
               <span>{restanteCents >= 0 ? "Restante" : "Excedente"}</span>
               <span className="tabular-nums">{formatBRL(Math.abs(restante))}</span>
             </div>
+            {troco > 0 && (
+              <div className="mt-1 flex justify-between rounded-md bg-success/10 px-2 py-1 font-display font-bold text-success">
+                <span>Troco a devolver</span>
+                <span className="tabular-nums">{formatBRL(troco)}</span>
+              </div>
+            )}
           </div>
 
 
