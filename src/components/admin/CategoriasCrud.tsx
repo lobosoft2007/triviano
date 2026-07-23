@@ -237,7 +237,10 @@ export function CategoriasCrud() {
                 ·{" "}
                 {TAMANHO_OPTIONS.find((o) => o.value === c.tamanho_fonte)
                   ?.label ?? c.tamanho_fonte}
+                {c.allows_half && " · Meio a meio"}
+                {c.min_items > 0 && ` · Mín ${c.min_items}`}
               </p>
+
             </div>
 
             <button
