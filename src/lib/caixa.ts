@@ -660,10 +660,16 @@ export async function buildPartialReport(
     }
   }
 
-  // Always surface the standard six lines (even at zero), then any extras.
+  // Always surface the standard lines (even at zero), then any extras.
+  // Mantemos os rótulos legados "Cartão de Crédito"/"Cartão de Débito" para
+  // pedidos históricos e adicionamos as 4 variantes online/na entrega.
   const STANDARD = [
     "Dinheiro",
     "PIX",
+    "Crédito online",
+    "Débito online",
+    "Crédito na entrega",
+    "Débito na entrega",
     "Cartão de Crédito",
     "Cartão de Débito",
     "Cashback",
