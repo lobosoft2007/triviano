@@ -31,13 +31,16 @@ export async function fetchPrinters(): Promise<Printer[]> {
   const { data, error } = await supabase
     .from("config_impressoras")
     .select(
-      "id, nome, tipo_conexao, endereco_ip, porta, caminho_usb, cor, is_default, ativo",
+      "id, nome, tipo_conexao, endereco_ip, porta, caminho_usb, cor, is_default, ativo, imprime_pedido_completo",
     )
     .order("nome", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((p) => ({
     ...p,
     tipo_conexao: (p.tipo_conexao as TipoConexao) ?? "USB",
+    imprime_pedido_completo: Boolean(
+      (p as { imprime_pedido_completo?: boolean }).imprime_pedido_completo,
+    ),
   })) as Printer[];
 }
 
