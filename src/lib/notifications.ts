@@ -195,7 +195,7 @@ export async function notifyStatusChange(
   userId: string,
   status: StatusPedido,
 ): Promise<void> {
-  const msg = STATUS_NOTIFICATION_MESSAGES[status];
+  const msg = buildStatusNotification(status, formatOrderLabel(orderId));
   if (!msg || !userId) return;
   await insertNotification({
     idPedido: orderId,
