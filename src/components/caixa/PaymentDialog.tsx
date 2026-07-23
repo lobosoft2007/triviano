@@ -432,6 +432,12 @@ export function PaymentDialog({
               <span>{restanteCents >= 0 ? "Restante" : "Excedente"}</span>
               <span className="tabular-nums">{formatBRL(Math.abs(restante))}</span>
             </div>
+            {troco > 0 && (
+              <div className="mt-1 flex justify-between rounded-md bg-success/10 px-2 py-1 font-display font-bold text-success">
+                <span>Troco a devolver</span>
+                <span className="tabular-nums">{formatBRL(troco)}</span>
+              </div>
+            )}
           </div>
 
 
