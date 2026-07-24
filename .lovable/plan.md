@@ -1,35 +1,37 @@
-## Problema
+## Diagnóstico
 
-No editor de categoria (`CategoriasCrud.tsx`), ao rolar o formulário longo (nome, cor, tamanho, meio-a-meio, mínimo, linha de produção, etapas, prévia), o botão **Salvar** desaparece porque:
+Você acertou o modelo mental: **linha de produção = funcionário/estação que trabalha em paralelo**. 1 funcionário = 1 linha (tudo enfileira). 2 funcionários = 2 linhas (pizza e burger preparam ao mesmo tempo). Isso é exatamente o que o motor `calcular_estimativa_pedido` já faz — soma etapas dentro da mesma linha (fila) e pega o **máximo** entre linhas diferentes (paralelo).
 
-- O `ModalActionBar` usa `sticky top-0`, mas **sticky só funciona se existir um ancestral com scroll**.
-- O `DialogContent` atual (`src/components/ui/dialog.tsx`) não define `max-height` nem `overflow`. Quando o conteúdo excede a viewport, o modal inteiro é empurrado para fora (está `fixed top-50% translate -50%`), o topo é clipado, e o "sticky" não tem onde grudar.
+Como as **etapas variam por categoria** (pizza tem "montar + forno", burger tem "chapa + montagem"), elas continuam morando dentro da categoria. O que muda é só o **enquadramento visual e textual** para bater com sua narrativa.
 
-## Abordagem
+## Alterações (só UI/copy, sem mexer no motor nem no banco)
 
-Fazer o próprio `DialogContent` do editor virar o container de scroll, com altura máxima limitada. Assim o `ModalActionBar` (que já é `sticky top-0 -mx-6 -mt-6`) fica realmente fixado no topo enquanto só o corpo rola.
+**1. `src/components/admin/TemposPreparoTab.tsx`**
+- Renomear título da aba/seção: **"Linhas de Produção"** (ícone `Layers3` no lugar de `Clock`).
+- Reescrever o parágrafo introdutório com o modelo mental novo:
+  > "Cada linha de produção representa um funcionário/estação que trabalha em paralelo. Com 1 funcionário, use 1 linha para tudo (a cozinha faz um item de cada vez). Com 2 funcionários, crie 2 linhas (ex.: Pizza e Burger) e distribua as categorias — elas preparam simultaneamente. O tempo de cada etapa é definido dentro de cada categoria."
+- Manter o card **Tempo de entrega padrão** e **Zonas de entrega** nessa mesma aba (continuam fazendo sentido aqui — são configurações de tempo global da operação).
 
-Mudança pontual — apenas no `<DialogContent>` do editor de categoria, sem tocar no componente `dialog.tsx` global (evita regressão em outros modais).
+**2. `src/components/admin/AdminSidebar.tsx` e `src/routes/_authenticated/admin.tsx`**
+- Renomear o item de menu de "Tempos de Preparo" para **"Linhas de Produção"**. Manter a mesma rota/aba (só o label muda).
 
-## Alterações
+**3. `src/components/admin/LinhasProducaoCrud.tsx`**
+- Ajustar o parágrafo auxiliar para reforçar a analogia:
+  > "Cada linha = um funcionário/estação em paralelo. Categorias na mesma linha formam fila; categorias em linhas diferentes preparam ao mesmo tempo."
 
-**`src/components/admin/CategoriasCrud.tsx`** (uma linha, no `<DialogContent>` do editor):
-
-- Adicionar `max-h-[90dvh] overflow-y-auto` à className.
-- Resultado: `className="max-w-md max-h-[90dvh] overflow-y-auto"`.
-
-Isso é suficiente para que:
-1. O modal nunca ultrapasse 90% da altura da viewport.
-2. O corpo role internamente.
-3. O `ModalActionBar` (Voltar + Salvar) fique visível no topo o tempo todo, em qualquer altura de tela.
-
-## Verificação
-
-- Abrir uma categoria existente (ex.: Pizzas) no `/admin` → Categorias.
-- Rolar até o final (etapas de preparo + prévia).
-- Confirmar que o botão **Salvar** continua visível no topo durante todo o scroll.
-- Testar em viewport pequena (mobile ~700px de altura) e desktop.
+**4. `src/components/admin/CategoriasCrud.tsx`** (editor de categoria)
+- Adicionar uma pequena legenda acima do bloco de etapas explicando:
+  > "Estas etapas somam o tempo de preparo desta categoria dentro da linha de produção escolhida acima."
+- Reforça que o operador entende: **linha = onde**, **etapas = quanto tempo**.
 
 ## Fora de escopo
 
-Não alterar `src/components/ui/dialog.tsx` nem outros modais nesta rodada. Se o mesmo padrão for necessário em outros editores longos, aplicar o mesmo par de classes pontualmente ou promover para o `DialogContent` num plano separado.
+- Não mover etapas para dentro da linha (mantemos etapa por categoria — é onde a granularidade faz sentido, como discutido).
+- Não mexer em `calcular_estimativa_pedido`, `linhas_producao`, `categoria_etapas_preparo`, `zonas_entrega` nem em nenhuma RPC/tabela.
+- Não mexer no editor de etapas em si (`EtapasPreparoEditor.tsx`) — só a legenda ao redor dele.
+
+## Verificação
+
+- Abrir `/admin` → item de menu agora se chama **Linhas de Produção**.
+- Abrir a aba: título, ícone e texto refletem o modelo "linha = funcionário paralelo".
+- Abrir uma categoria (ex.: Pizzas) → o seletor de linha e o editor de etapas continuam funcionando exatamente como hoje, com a nova legenda explicativa.
