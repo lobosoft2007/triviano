@@ -406,6 +406,51 @@ export function CategoriasCrud() {
               </p>
             </div>
 
+            <div className="space-y-1.5">
+              <Label>Linha de produção</Label>
+              <Select
+                value={form.linha_producao_id ?? "__none__"}
+                onValueChange={(v) =>
+                  setForm({
+                    ...form,
+                    linha_producao_id: v === "__none__" ? null : v,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem linha (padrão)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem linha (padrão)</SelectItem>
+                  {(linhas ?? []).map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Estação da cozinha que prepara esta categoria (Pizza, Burger…).
+                Categorias em linhas diferentes preparam em paralelo.
+              </p>
+            </div>
+
+            {form.id ? (
+              loadingEtapas ? (
+                <p className="text-xs text-muted-foreground">
+                  Carregando etapas…
+                </p>
+              ) : (
+                <EtapasPreparoEditor etapas={etapas} onChange={setEtapas} />
+              )
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Salve a categoria para configurar as etapas de preparo.
+              </p>
+            )}
+
+
+
 
             {/* Preview */}
             <div className="rounded-xl border border-border bg-background p-4">
