@@ -261,6 +261,8 @@ export function AdminSidebar({ activeTab, isSuperAdmin, tabAllowed, onSelectTab,
       icon: <ClipboardList className={iconCls} />,
       children: [
         { key: "cardapio", label: "Cardápio", icon: <UtensilsCrossed className={iconCls} /> },
+        { key: "tempos", label: "Tempos de Preparo", icon: <Clock className={iconCls} /> },
+
         {
           key: "categorias",
           label: "Categorias",
