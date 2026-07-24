@@ -964,8 +964,10 @@ export interface AdminCategory {
   min_items: number;
   allows_half: boolean;
   combo_role: string;
+  linha_producao_id: string | null;
   product_count: number;
 }
+
 
 function slugify(s: string): string {
   return s
