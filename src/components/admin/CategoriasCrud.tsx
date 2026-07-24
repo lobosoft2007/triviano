@@ -308,7 +308,7 @@ export function CategoriasCrud() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent hideClose className="max-w-md">
+        <DialogContent hideClose className="max-w-md max-h-[90dvh] overflow-y-auto">
           <ModalActionBar
             title={form.id ? "Editar categoria" : "Nova categoria"}
             onBack={() => setOpen(false)}
