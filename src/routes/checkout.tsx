@@ -804,6 +804,20 @@ function CheckoutPage() {
             <h2 className="mb-3 font-display text-base font-bold">
               Resumo do pedido
             </h2>
+            {estimate && estimate.faixa_max > 0 && (
+              <div className="mb-3 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+                <Clock className="h-4 w-4 text-primary" />
+                <div className="flex-1">
+                  <div className="font-semibold text-foreground">
+                    Tempo estimado: {estimate.faixa_min}–{estimate.faixa_max} min
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {estimate.preparo_min} min de preparo
+                    {estimate.entrega_min > 0 ? ` + ${estimate.entrega_min} min de entrega` : ""}
+                  </div>
+                </div>
+              </div>
+            )}
             <ul className="space-y-2">
               {effectiveItems.map((i) => (
                 <li key={i.lineId} className="flex justify-between gap-3 text-sm">
