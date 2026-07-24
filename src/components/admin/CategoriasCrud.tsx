@@ -71,6 +71,7 @@ interface FormState {
   tamanho_fonte: string;
   allows_half: boolean;
   min_items: number;
+  linha_producao_id: string | null;
 }
 
 const EMPTY: FormState = {
@@ -80,7 +81,9 @@ const EMPTY: FormState = {
   tamanho_fonte: "text-base",
   allows_half: false,
   min_items: 0,
+  linha_producao_id: null,
 };
+
 
 
 const QK = ["admin-categories"];
