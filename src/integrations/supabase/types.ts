@@ -79,6 +79,44 @@ export type Database = {
           },
         ]
       }
+      categoria_etapas_preparo: {
+        Row: {
+          categoria_id: string
+          created_at: string
+          duracao_min: number
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          categoria_id: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          categoria_id?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categoria_etapas_preparo_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           allows_half: boolean
@@ -88,6 +126,7 @@ export type Database = {
           empresa_id: string
           id: string
           id_impressora_destino: string | null
+          linha_producao_id: string | null
           min_items: number
           name: string
           slug: string
@@ -102,6 +141,7 @@ export type Database = {
           empresa_id?: string
           id?: string
           id_impressora_destino?: string | null
+          linha_producao_id?: string | null
           min_items?: number
           name: string
           slug: string
@@ -116,6 +156,7 @@ export type Database = {
           empresa_id?: string
           id?: string
           id_impressora_destino?: string | null
+          linha_producao_id?: string | null
           min_items?: number
           name?: string
           slug?: string
@@ -142,6 +183,13 @@ export type Database = {
             columns: ["id_impressora_destino"]
             isOneToOne: false
             referencedRelation: "config_impressoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_linha_producao_id_fkey"
+            columns: ["linha_producao_id"]
+            isOneToOne: false
+            referencedRelation: "linhas_producao"
             referencedColumns: ["id"]
           },
         ]
@@ -937,6 +985,7 @@ export type Database = {
           subdominio: string | null
           taxa_entrega_valor: number
           taxa_servico_mesa: number
+          tempo_entrega_padrao_min: number
           updated_at: string
         }
         Insert: {
@@ -986,6 +1035,7 @@ export type Database = {
           subdominio?: string | null
           taxa_entrega_valor?: number
           taxa_servico_mesa?: number
+          tempo_entrega_padrao_min?: number
           updated_at?: string
         }
         Update: {
@@ -1035,6 +1085,7 @@ export type Database = {
           subdominio?: string | null
           taxa_entrega_valor?: number
           taxa_servico_mesa?: number
+          tempo_entrega_padrao_min?: number
           updated_at?: string
         }
         Relationships: []
@@ -2319,6 +2370,48 @@ export type Database = {
           },
         ]
       }
+      linhas_producao: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linhas_producao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "linhas_producao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       manifestacoes_destinatario: {
         Row: {
           chave_acesso: string
@@ -2919,6 +3012,7 @@ export type Database = {
           entrega_id: string | null
           entregador_id: string | null
           estoque_baixado: boolean
+          hora_prevista_pronto: string | null
           id: string
           impresso_conta: boolean
           impresso_cozinha: boolean
@@ -2935,10 +3029,14 @@ export type Database = {
           senha_diaria: number | null
           status: string
           status_pedido: string
+          tempo_entrega_min: number | null
+          tempo_estimado_min: number | null
+          tempo_preparo_min: number | null
           tipo_atendimento: Database["public"]["Enums"]["attendance_type"]
           tipo_pagamento: string
           total: number
           user_id: string
+          zona_entrega_id: string | null
         }
         Insert: {
           aguardando_pagamento?: boolean
@@ -2953,6 +3051,7 @@ export type Database = {
           entrega_id?: string | null
           entregador_id?: string | null
           estoque_baixado?: boolean
+          hora_prevista_pronto?: string | null
           id?: string
           impresso_conta?: boolean
           impresso_cozinha?: boolean
@@ -2969,10 +3068,14 @@ export type Database = {
           senha_diaria?: number | null
           status?: string
           status_pedido?: string
+          tempo_entrega_min?: number | null
+          tempo_estimado_min?: number | null
+          tempo_preparo_min?: number | null
           tipo_atendimento?: Database["public"]["Enums"]["attendance_type"]
           tipo_pagamento?: string
           total: number
           user_id: string
+          zona_entrega_id?: string | null
         }
         Update: {
           aguardando_pagamento?: boolean
@@ -2987,6 +3090,7 @@ export type Database = {
           entrega_id?: string | null
           entregador_id?: string | null
           estoque_baixado?: boolean
+          hora_prevista_pronto?: string | null
           id?: string
           impresso_conta?: boolean
           impresso_cozinha?: boolean
@@ -3003,10 +3107,14 @@ export type Database = {
           senha_diaria?: number | null
           status?: string
           status_pedido?: string
+          tempo_entrega_min?: number | null
+          tempo_estimado_min?: number | null
+          tempo_preparo_min?: number | null
           tipo_atendimento?: Database["public"]["Enums"]["attendance_type"]
           tipo_pagamento?: string
           total?: number
           user_id?: string
+          zona_entrega_id?: string | null
         }
         Relationships: [
           {
@@ -3042,6 +3150,13 @@ export type Database = {
             columns: ["entregador_id"]
             isOneToOne: false
             referencedRelation: "entregadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_zona_entrega_id_fkey"
+            columns: ["zona_entrega_id"]
+            isOneToOne: false
+            referencedRelation: "zonas_entrega"
             referencedColumns: ["id"]
           },
         ]
@@ -4720,6 +4835,51 @@ export type Database = {
         }
         Relationships: []
       }
+      zonas_entrega: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          tempo_entrega_min: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome: string
+          tempo_entrega_min?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          tempo_entrega_min?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zonas_entrega_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zonas_entrega_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_public_branding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       empresas_public_branding: {
@@ -5074,6 +5234,10 @@ export type Database = {
           p_observacao: string
         }
         Returns: undefined
+      }
+      calcular_estimativa_pedido: {
+        Args: { p_empresa_id?: string; p_items: Json; p_zona_id?: string }
+        Returns: Json
       }
       can_manage_empresa: { Args: { _empresa_id: string }; Returns: boolean }
       cancel_order: { Args: { p_order_id: string }; Returns: undefined }
@@ -5500,6 +5664,10 @@ export type Database = {
       pay_fiado_from_mp: {
         Args: { p_charge_id: string; p_mp_payment_id: string }
         Returns: number
+      }
+      persistir_estimativa_pedido: {
+        Args: { p_order_id: string }
+        Returns: undefined
       }
       pos_fleet_kpis: { Args: never; Returns: Json }
       pos_generate_pair_code: {

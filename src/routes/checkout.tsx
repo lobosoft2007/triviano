@@ -3,8 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, MapPin, QrCode, Banknote, CreditCard, Wallet, Coins } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, QrCode, Banknote, CreditCard, Wallet, Coins, Clock } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart";
+import { estimateOrder, type EstimateResult } from "@/lib/tempos";
 import { useAuth } from "@/lib/auth";
 import { fetchProfile, placeOrder, discardUnpaidDrafts } from "@/lib/orders";
 import { fetchEsgotadoIds } from "@/lib/menu";
@@ -389,6 +390,26 @@ function CheckoutPage() {
   const effectiveTotalPrice = effectiveCheckoutState.totalPrice;
   const effectiveCanCheckout = effectiveCheckoutState.canCheckout;
   const effectiveShortfalls = effectiveCheckoutState.shortfalls;
+
+  // Estimativa de preparo+entrega — atualiza sempre que o carrinho muda.
+  const [estimate, setEstimate] = useState<EstimateResult | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const items = effectiveItems.map((i) => ({
+      product_id: i.productId,
+      quantity: i.quantity,
+    }));
+    if (items.length === 0) {
+      setEstimate(null);
+      return;
+    }
+    estimateOrder(items).then((res) => {
+      if (!cancelled) setEstimate(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveItems]);
 
   useEffect(() => {
     if (!hydrated || safeItems.length === 0) return;
@@ -783,6 +804,20 @@ function CheckoutPage() {
             <h2 className="mb-3 font-display text-base font-bold">
               Resumo do pedido
             </h2>
+            {estimate && estimate.faixa_max > 0 && (
+              <div className="mb-3 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+                <Clock className="h-4 w-4 text-primary" />
+                <div className="flex-1">
+                  <div className="font-semibold text-foreground">
+                    Tempo estimado: {estimate.faixa_min}–{estimate.faixa_max} min
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {estimate.preparo_min} min de preparo
+                    {estimate.entrega_min > 0 ? ` + ${estimate.entrega_min} min de entrega` : ""}
+                  </div>
+                </div>
+              </div>
+            )}
             <ul className="space-y-2">
               {effectiveItems.map((i) => (
                 <li key={i.lineId} className="flex justify-between gap-3 text-sm">

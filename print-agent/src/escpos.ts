@@ -87,6 +87,8 @@ interface OrderData {
   meio_pagamento?: string;
   taxa_entrega?: number;
   criado_em?: string;
+  hora_prevista_pronto?: string | null;
+  tempo_estimado_min?: number | null;
 }
 
 interface JobPayload {
@@ -211,6 +213,14 @@ export function renderJob(job: PrintJob, encodingOverride?: string | null): Buff
   if (order.cliente_nome) header.push(`Cliente: ${order.cliente_nome}`);
   if (order.phone) header.push(`Tel: ${order.phone}`);
   if (order.created_at) header.push(`Hora: ${new Date(order.created_at).toLocaleString("pt-BR")}`);
+  if (order.hora_prevista_pronto) {
+    const previsto = new Date(order.hora_prevista_pronto).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const dur = order.tempo_estimado_min ? ` (${order.tempo_estimado_min} min)` : "";
+    header.push(`PREVISTO: ${previsto}${dur}`);
+  }
   for (const h of header) parts.push(encode(wrap(h, cols), enc));
 
   if (order.delivery_address && job.tipo === "pedido_completo") {

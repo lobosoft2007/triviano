@@ -1,61 +1,88 @@
 
 ## Objetivo
 
-Hoje o PWA mostra "Crédito" e "Débito" com dica "Maquininha na entrega", mas — quando o Mercado Pago está ativo — abre o Brick e pede os dados do cartão. Vamos separar em 4 opções distintas e independentes, cada uma cadastrada como meio em `/admin > Meios de Pagamento` (para ter cashback e taxas próprios). Retenção de cartão para futuras compras (Mercado Pago Customer Cards) fica para uma próxima fase.
+Implementar o motor de estimativa de tempo descrito no documento: cálculo separado de preparo (cozinha) e entrega (logística), com linhas de produção paralelas, pipeline por etapas dentro de cada linha e margem de segurança proporcional. Exibição de faixa de tempo no carrinho/checkout do PWA e horário previsto de saída (`H_cozinha`) no cupom da cozinha.
 
-## Escopo (apenas frontend / checkout)
+## Modelagem de dados (nova migração)
 
-Não mexer no motor financeiro (RPCs `create_order`, `finalize_order_paid`, webhook `mp-create-payment`/`mp-webhook`, triggers de estoque/cashback, trigger de "finalizado exige pago"). A separação é puramente de UX + rótulos + roteamento condicional.
+1. `linhas_producao` (por empresa)
+   - `id`, `empresa_id`, `nome` (ex: "Pizza", "Burger", "Açaí"), `ativo`, timestamps.
+   - RLS: leitura pública (menu precisa saber para estimar no carrinho), escrita apenas `can_manage_empresa`.
 
-## Novo conjunto de opções no PWA
+2. `categoria_etapas_preparo` (etapas sequenciais por categoria)
+   - `id`, `categoria_id` (FK `categories`), `ordem`, `nome` (ex: "montagem", "forno"), `duracao_min`.
+   - Gargalo = `MAX(duracao_min)` por categoria; tempo total = `SUM`.
+   - RLS igual `categories`.
 
-Substituir as 2 linhas atuais de cartão por 4 rótulos independentes:
+3. Extensão de `public.categories`
+   - `linha_producao_id uuid NULL` — vínculo com a linha (fallback: 1 linha "Padrão" por empresa).
 
-- **Crédito online** — abre o Brick de cartão do Mercado Pago (fluxo atual). Só aparece quando `mpConfig.aceita_cartao_online = true`.
-- **Débito online** — mesmo Brick, mas configurado para forçar débito no MP. Só aparece quando `mpConfig.aceita_cartao_online = true`.
-- **Crédito na entrega** — só rótulo, nenhum Brick, nenhum dado de cartão pedido. Só aparece quando `mpConfig.aceita_na_entrega = true` (ou quando o MP está desligado, como fallback atual).
-- **Débito na entrega** — idem, débito na maquininha do entregador. Mesma regra de visibilidade.
+4. `zonas_entrega`
+   - `id`, `empresa_id`, `nome`, `tempo_entrega_min`, `ativo`.
+   - RLS: leitura pública, escrita `can_manage_empresa`.
+   - Vínculo com o pedido: nova coluna `orders.zona_entrega_id` + fallback `empresas.tempo_entrega_padrao_min` para quando a zona não for informada.
 
-Regras conjuntas:
-- Se MP ativo e "na entrega" habilitado → mostra as 4.
-- Se MP inativo → só as 2 "na entrega".
-- Se "na entrega" desligado no admin → só as 2 "online".
+5. Extensão de `public.orders`
+   - `tempo_preparo_min int`
+   - `tempo_entrega_min int`
+   - `tempo_estimado_min int` (preparo + margem + entrega)
+   - `hora_prevista_pronto timestamptz` (SLA cozinha = agora + preparo + margem)
+   - `zona_entrega_id uuid NULL`
 
-## Alterações de código
+Todas as tabelas novas recebem `GRANT` explícito (SELECT anon quando pública, SELECT/INSERT/UPDATE/DELETE authenticated conforme política) e `ENABLE ROW LEVEL SECURITY` com políticas escopadas por empresa via `can_manage_empresa`.
 
-### 1. `src/routes/checkout.tsx`
+## Algoritmo (RPC no banco)
 
-- Ampliar o union `PayMethod` para incluir `"Crédito online" | "Débito online" | "Crédito na entrega" | "Débito na entrega"` e remover `"Cartão de Crédito"` / `"Cartão de Débito"`.
-- Reescrever `PAY_METHODS` com as 4 novas linhas (labels + hints "Cartão pelo app" / "Maquininha na entrega") + PIX + Dinheiro + Conta Corrente.
-- Atualizar `visibleMethods` conforme regras acima.
-- Atualizar `isOnlinePayment` para `payMethod === "PIX" || payMethod === "Crédito online" || payMethod === "Débito online"` (as duas "na entrega" nunca são online, mesmo com MP ativo).
-- Propagar o novo rótulo em `paymentLabel` (usado no `composedNotes` do pedido) e em toda checagem que hoje bate string com `"Cartão de Crédito"`/`"Cartão de Débito"` (blocos de linhas 265–267, 339–342, 601–608, 647–666).
-- Passar o tipo de cartão escolhido para o `<MercadoPagoCheckout>` via nova prop `cardType?: "credit" | "debit"`.
+Função `public.calcular_estimativa_pedido(p_items jsonb, p_empresa_id uuid, p_zona_id uuid) returns jsonb`:
 
-### 2. `src/components/checkout/MercadoPagoCheckout.tsx`
+1. Para cada item, resolver `categoria_id → linha_producao_id`, e carregar suas etapas (`total`, `gargalo`).
+2. Agrupar por linha. Dentro de cada linha, ordenar por `total` desc:
+   - `T_linha = total(item1) + Σ gargalo(item_i>=2)`.
+3. `T_preparo = MAX(T_linha)` entre todas as linhas ativas do pedido.
+4. Margem proporcional: `≤20 → 3`, `21–40 → 5`, `>40 → 8`.
+5. `T_entrega` = `zonas_entrega.tempo_entrega_min` (ou padrão da empresa; 0 para retirada/mesa).
+6. Retorna `{ preparo, margem, entrega, total_cliente, faixa: [total-margem, total], hora_prevista_pronto }`.
 
-- Adicionar prop `cardType?: "credit" | "debit"` (default: `undefined`).
-- Passar `paymentTypes: { excluded: [...] }` no `initialization` do Card Payment Brick para forçar só crédito ou só débito conforme `cardType` (`credit_card`/`debit_card` do MP). Sem `cardType`, mantém o comportamento atual (ambos).
+Uso:
+- **Carrinho/Checkout (PWA)**: nova server function `estimateOrderTime` que chama a RPC (sem criar pedido) para exibir a faixa antes da confirmação.
+- **`create_order` (RPC existente)**: no final, chamar `calcular_estimativa_pedido` e persistir `tempo_preparo_min`, `tempo_entrega_min`, `tempo_estimado_min`, `hora_prevista_pronto` na linha inserida.
 
-### 3. Migração de rótulos legados (compat)
+## Frontend
 
-- Em `src/lib/caixa.ts` (lista `STANDARD` das linhas 664–671), manter `"Cartão de Crédito"` e `"Cartão de Débito"` (histórico) e adicionar as 4 novas variantes, para o resumo do caixa continuar somando corretamente pedidos antigos e novos.
-- Nenhuma alteração em `NON_CASH_MEIOS`/regra de gaveta: os quatro rótulos novos continuam sendo "não-dinheiro".
+1. **Carrinho / `src/routes/checkout.tsx`**
+   - Ao mudar itens ou endereço/zona, chamar `estimateOrderTime` (debounced) e exibir:
+     > "Tempo estimado: 50–55 min (Preparo: ~35 min · Entrega: ~15 min)"
+   - Limite inferior = `total_cliente − margem`; superior = `total_cliente`.
 
-### 4. `/admin > Meios de Pagamento` (dado, não código)
+2. **Cupom de cozinha (`print-agent` / `enqueue_print_jobs`)**
+   - Incluir `hora_prevista_pronto` no payload e imprimir no cupom do setor:
+     > **PREVISTO P/ SAÍDA: 19:40**
+   - `src/lib/notifications.ts` / rótulos permanecem inalterados.
 
-- Cadastro dos 4 meios (`Crédito online`, `Débito online`, `Crédito na entrega`, `Débito na entrega`) fica a cargo do usuário via UI existente (`MeiosPagamentoCrud`) — cada um com seu cashback/taxa. **Não vamos inserir dados por script**; só documentar no fim: "abra /admin > Meios de Pagamento e crie os 4 registros; os 2 antigos podem ser desativados quando não houver mais pedidos abertos usando-os."
+3. **Admin (`/admin`)**
+   - Nova aba **Tempos de Preparo** com CRUD de:
+     - Linhas de Produção (`linhas_producao`).
+     - Etapas por Categoria (`categoria_etapas_preparo`) e vínculo `categories.linha_producao_id`.
+     - Zonas de Entrega (`zonas_entrega`) + campo "tempo padrão" em `EmpresaConfigTab`.
+   - Componentes novos: `LinhasProducaoCrud.tsx`, `EtapasPreparoEditor.tsx` (dentro do editor de categoria), `ZonasEntregaCrud.tsx`.
 
-## O que **não** entra nesta rodada
+## Compatibilidade / Fallbacks
 
-- Salvar o cartão do cliente no Mercado Pago (Customer Cards / vault) para reutilizar em compras futuras — combinado com o usuário para uma fase posterior. Vai exigir criar um `mp_customer_id` no `profiles`, listar cartões salvos via edge function e ampliar o Brick para "usar cartão salvo".
-- Split, cofre próprio ou tokenização fora do Mercado Pago.
-- Alteração de triggers, RLS, RPC `create_order` ou webhook.
+- Categoria sem etapas configuradas → usa `categories.prep_time_min` atual (se existir) ou `0`.
+- Categoria sem linha → assume linha implícita "Padrão" (todos os itens sem linha competem entre si em pipeline).
+- Zona não informada → usa `empresas.tempo_entrega_padrao_min` (novo, default 20) ou `0` para atendimento em mesa/balcão.
+- Pedidos antigos: colunas ficam `NULL`; UI trata como "sem estimativa".
 
-## Validação depois de implementar
+## Fora de escopo desta rodada
 
-1. MP ativo + na entrega ligado → 4 opções aparecem; "online" abre o Brick, "na entrega" registra o pedido sem pedir cartão.
-2. MP desligado → só as 2 "na entrega".
-3. Pedido em "Crédito na entrega" fica visível no /caixa imediatamente (é offline), roteia impressão como offline (dinheiro/fiado).
-4. Pedido em "Crédito online" fica oculto até o webhook do MP confirmar (comportamento atual do PIX/cartão).
-5. Após cadastrar os 4 meios em /admin, cashback aplicado no pedido usa a % daquele meio específico.
+- Ajuste dinâmico por fila real da cozinha (nº de pedidos ativos, hora do dia).
+- Roteamento por GPS/mapas para calcular zona automaticamente pelo CEP.
+- Reestimativa contínua após envio do pedido (a estimativa é congelada em `create_order`).
+
+## Validação após implementar
+
+1. Cenário do doc: 2 pizzas (20/15) + 1 burger (12) + zona 15 min → preparo 35, total 55, cupom "PREVISTO 19:40" (dado `Hora_atual=19:00`).
+2. Só burger → preparo 12, margem 3, total 30 (12+3+15).
+3. Retirada (sem zona) → só preparo + margem exibidos.
+4. Pedido criado no `/caixa` (balcão) grava as 4 colunas em `orders`.
+5. Cupom do setor Cozinha imprime a linha "PREVISTO P/ SAÍDA".
