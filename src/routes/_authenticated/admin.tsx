@@ -303,6 +303,8 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   categorias: "acesso_cadastro_produtos",
   horarios: "acesso_cadastro_produtos",
   combos: "acesso_cadastro_produtos",
+  tempos: "acesso_cadastro_produtos",
+
   empresa: "master",
   identidade: "master",
   pagamentos: "master",
