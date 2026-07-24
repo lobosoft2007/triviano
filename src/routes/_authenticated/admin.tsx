@@ -800,6 +800,8 @@ function AdminPage() {
           {tab === "categorias" && <CategoriasCrud />}
           {tab === "horarios" && <HorariosResumoTab />}
           {tab === "combos" && <CombosCrud />}
+          {tab === "tempos" && <TemposPreparoTab />}
+
           {tab === "empresa" && <EmpresaConfigTab />}
           {tab === "identidade" && <IdentidadeVisualTab />}
           {tab === "pagamentos" && <PaymentConfigTab />}
