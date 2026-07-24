@@ -1,39 +1,31 @@
 ## Diagnóstico
 
-Confirmei no banco: o valor **está sendo salvo corretamente** (`empresas.tempo_entrega_padrao_min = 10` no seu tenant). Ou seja, o `UPDATE` funciona — o problema é **exibição** ao reabrir a aba.
+O erro **"Não foi possível carregar o tempo atual"** vem de um `SELECT` em `public.empresas` que está falhando com *permission denied*.
 
-Olhando `src/components/admin/TemposPreparoTab.tsx`:
+Ao inspecionar o catálogo:
 
-```ts
-const [value, setValue] = useState<string>("");
-useEffect(() => {
-  if (data !== undefined) setValue(String(data));
-}, [data]);
+```
+relacl: authenticated=awdDxtm/postgres
 ```
 
-Dois pontos frágeis:
+O role `authenticated` tem INSERT / UPDATE / DELETE / TRUNCATE / REFERENCES / TRIGGER / MAINTAIN — **mas não tem `SELECT` (`r`)**. Ou seja, mesmo com as políticas de RLS corretas (`can_manage_empresa(id)` para admin/super_admin), o PostgREST bloqueia a leitura antes da RLS porque falta o GRANT de tabela.
 
-1. **Estado local desacoplado do cache do React Query.** Quando a aba é remontada, `value` reinicia como `""`. O `useEffect` só sobrescreve *depois* que o effect roda; se `data` já vem do cache (mesma referência), o effect pode até rodar, mas se o `refetch` disparado por outro invalidate resetar `data` para `undefined` momentaneamente, o input fica em branco e não repopula (a condição `data !== undefined` protege contra isso, mas o `useState("")` inicial é o real culpado quando o cache está frio).
-
-2. **`useQuery` sem `staleTime`.** Cada montagem refaz a query; enquanto isLoading está true mostramos o Loader (ok), mas se der erro silencioso de RLS/network, `data` fica `undefined` para sempre e o input renderiza vazio sem feedback.
+Por que só afeta esta tela: outras leituras de `empresas` no admin passam por RPCs `SECURITY DEFINER` (`admin_get_empresa_config`, `admin_list_empresas`, etc.), que rodam como owner e ignoram o GRANT. O `getTempoEntregaPadrao` é uma das poucas leituras diretas via Data API, então caiu sozinha.
 
 ## Correção
 
-Arquivo único: `src/components/admin/TemposPreparoTab.tsx`.
+Migration única restaurando o SELECT de tabela para `authenticated` (e mantendo `service_role`):
 
-1. Inicializar `value` a partir do cache do React Query usando `initialData`/`select` ou, mais simples, derivar o valor exibido diretamente de `data` quando o usuário ainda não digitou nada (padrão "controlado com fallback"):
-   - Manter `value: string | null`, iniciar em `null`.
-   - No input, usar `value={value ?? (data !== undefined ? String(data) : "")}`.
-   - `onChange` passa a setar string normal.
-   - Isso elimina a corrida entre `useState` e `useEffect` — o input sempre reflete o cache até o operador digitar.
-2. Adicionar `staleTime: 30_000` na query para evitar refetches desnecessários entre trocas de aba.
-3. Após `setTempoEntregaPadrao`, além do `refetch`, resetar `value` para `null` para que o próximo render leia do cache já atualizado (evita "grudar" no valor digitado se o backend normalizar/arredondar).
-4. Tratar estado de erro: se `error` estiver presente, mostrar um aviso curto ("Não foi possível carregar o tempo atual") no lugar do input em branco silencioso, para expor futuras falhas de RLS/rede.
+```sql
+GRANT SELECT ON public.empresas TO authenticated;
+GRANT ALL    ON public.empresas TO service_role;
+```
 
-Nenhuma mudança de schema, RLS ou lógica de negócio. Só a camada de apresentação da aba.
+Sem grant para `anon` — o acesso público de branding continua funcionando pelo GRANT de coluna já existente (`created_at`) + RPCs `get_public_branding*`.
+
+RLS não muda: as políticas atuais (`Super admin ve todas as empresas` e `Admins gerenciam empresas (select) — can_manage_empresa(id)`) continuam sendo o gate de linhas.
 
 ## Verificação
 
-- Salvar 15 → sair da aba → voltar: input mostra "15".
-- Salvar 0 → voltar: mostra "0" (não "").
-- Simular erro (dev tools offline): aparece aviso em vez de campo vazio silencioso.
+1. Recarregar a aba **Linhas de Produção**: o card "Tempo de entrega padrão" deve carregar o valor salvo.
+2. Editar e salvar: mensagem "Tempo padrão atualizado." e valor persistindo ao trocar de aba.
