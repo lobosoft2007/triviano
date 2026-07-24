@@ -20,6 +20,14 @@ import {
   moveCategory,
   type AdminCategory,
 } from "@/lib/erp";
+import {
+  listLinhasProducao,
+  listEtapasCategoria,
+  saveEtapasCategoria,
+  type EtapaPreparo,
+} from "@/lib/tempos-admin";
+import { EtapasPreparoEditor } from "@/components/admin/EtapasPreparoEditor";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
