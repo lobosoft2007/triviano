@@ -100,13 +100,20 @@ export function CategoriasCrud() {
   const [saving, setSaving] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [horariosFor, setHorariosFor] = useState<AdminCategory | null>(null);
+  const [etapas, setEtapas] = useState<EtapaPreparo[]>([]);
+  const [loadingEtapas, setLoadingEtapas] = useState(false);
 
+  const { data: linhas } = useQuery({
+    queryKey: ["admin-linhas-producao"],
+    queryFn: listLinhasProducao,
+  });
 
   const openNew = () => {
     setForm(EMPTY);
+    setEtapas([]);
     setOpen(true);
   };
-  const openEdit = (c: AdminCategory) => {
+  const openEdit = async (c: AdminCategory) => {
     setForm({
       id: c.id,
       name: c.name,
@@ -114,8 +121,19 @@ export function CategoriasCrud() {
       tamanho_fonte: c.tamanho_fonte,
       allows_half: c.allows_half,
       min_items: c.min_items,
+      linha_producao_id: c.linha_producao_id,
     });
+    setEtapas([]);
     setOpen(true);
+    setLoadingEtapas(true);
+    try {
+      const rows = await listEtapasCategoria(c.id);
+      setEtapas(rows);
+    } catch {
+      /* silencia — editor mostra vazio */
+    } finally {
+      setLoadingEtapas(false);
+    }
   };
 
 
@@ -141,7 +159,14 @@ export function CategoriasCrud() {
         tamanho_fonte: form.tamanho_fonte,
         allows_half: form.allows_half,
         min_items: form.min_items,
+        linha_producao_id: form.linha_producao_id,
       });
+
+      // Etapas: a categoria precisa existir (id) para persistir. Em criação
+      // seguimos sem etapas nesta rodada — o operador cadastra na próxima edição.
+      if (form.id) {
+        await saveEtapasCategoria(form.id, etapas);
+      }
 
       setOpen(false);
       await invalidate();
@@ -152,6 +177,7 @@ export function CategoriasCrud() {
       setSaving(false);
     }
   }
+
 
   async function handleDelete(c: AdminCategory) {
     if (c.product_count > 0) {
