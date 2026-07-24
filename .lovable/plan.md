@@ -1,46 +1,35 @@
-## Contexto
+## Problema
 
-Na rodada anterior implementei o backend do motor de estimativa (tabelas `linhas_producao`, `categoria_etapas_preparo`, `zonas_entrega`, colunas em `orders`, RPC `calcular_estimativa_pedido`) e a exibição no checkout + cupom. Porém a aba de administração descrita no plano original **não foi construída** — por isso não há onde cadastrar linhas, etapas nem zonas hoje. Vamos fechar essa lacuna.
+No editor de categoria (`CategoriasCrud.tsx`), ao rolar o formulário longo (nome, cor, tamanho, meio-a-meio, mínimo, linha de produção, etapas, prévia), o botão **Salvar** desaparece porque:
 
-## O que será construído (somente UI no /admin)
+- O `ModalActionBar` usa `sticky top-0`, mas **sticky só funciona se existir um ancestral com scroll**.
+- O `DialogContent` atual (`src/components/ui/dialog.tsx`) não define `max-height` nem `overflow`. Quando o conteúdo excede a viewport, o modal inteiro é empurrado para fora (está `fixed top-50% translate -50%`), o topo é clipado, e o "sticky" não tem onde grudar.
 
-### 1. Nova aba "Tempos de Preparo" em `/admin`
-Adicionar item na `AdminSidebar` e a rota/seção correspondente em `routes/_authenticated/admin.tsx`. A aba terá 3 blocos empilhados:
+## Abordagem
 
-**a) Linhas de Produção** — `LinhasProducaoCrud.tsx`
-- Lista/CRUD de `linhas_producao` (nome, ativo).
-- Ex.: "Pizza", "Burger", "Açaí", "Bar".
+Fazer o próprio `DialogContent` do editor virar o container de scroll, com altura máxima limitada. Assim o `ModalActionBar` (que já é `sticky top-0 -mx-6 -mt-6`) fica realmente fixado no topo enquanto só o corpo rola.
 
-**b) Zonas de Entrega** — `ZonasEntregaCrud.tsx`
-- Lista/CRUD de `zonas_entrega` (nome, tempo_entrega_min, ativo).
-- Nota explicando que zona sem escolha usa `empresas.tempo_entrega_padrao_min` (campo já existe; será exposto em `EmpresaConfigTab`).
+Mudança pontual — apenas no `<DialogContent>` do editor de categoria, sem tocar no componente `dialog.tsx` global (evita regressão em outros modais).
 
-**c) Etapas por Categoria** — integrado ao editor de categoria em `CategoriasCrud.tsx`
-- No modal "Editar categoria" adiciono:
-  - `Select` de **Linha de Produção** (`categories.linha_producao_id`).
-  - Sub-editor `EtapasPreparoEditor.tsx`: lista de etapas ordenadas com `nome` + `duracao_min`, botões adicionar/remover/reordenar.
-- Explicação curta: "gargalo = maior etapa; total = soma".
+## Alterações
 
-### 2. Campo "Tempo de entrega padrão" em `EmpresaConfigTab`
-- Input numérico ligado a `empresas.tempo_entrega_padrao_min` (fallback quando o pedido não tem zona).
+**`src/components/admin/CategoriasCrud.tsx`** (uma linha, no `<DialogContent>` do editor):
 
-### 3. Camada de dados
-- Extender `src/lib/erp.ts` (ou novo `src/lib/tempos-admin.ts`) com funções:
-  `listLinhasProducao / saveLinhaProducao / deleteLinhaProducao`,
-  `listZonasEntrega / saveZonaEntrega / deleteZonaEntrega`,
-  `listEtapasCategoria / saveEtapasCategoria` (upsert em lote por categoria_id),
-  ajuste em `saveCategory` para persistir `linha_producao_id`.
-- Todas usam o cliente Supabase autenticado; RLS já criada na migração anterior (`can_manage_empresa`).
+- Adicionar `max-h-[90dvh] overflow-y-auto` à className.
+- Resultado: `className="max-w-md max-h-[90dvh] overflow-y-auto"`.
+
+Isso é suficiente para que:
+1. O modal nunca ultrapasse 90% da altura da viewport.
+2. O corpo role internamente.
+3. O `ModalActionBar` (Voltar + Salvar) fique visível no topo o tempo todo, em qualquer altura de tela.
+
+## Verificação
+
+- Abrir uma categoria existente (ex.: Pizzas) no `/admin` → Categorias.
+- Rolar até o final (etapas de preparo + prévia).
+- Confirmar que o botão **Salvar** continua visível no topo durante todo o scroll.
+- Testar em viewport pequena (mobile ~700px de altura) e desktop.
 
 ## Fora de escopo
 
-- Nenhuma alteração no motor financeiro, no cálculo da RPC ou no cupom (já entregues).
-- Sem novas migrações de banco — as tabelas já existem.
-- Sem mudanças no PWA/checkout.
-
-## Validação
-
-1. Criar linha "Pizza" e "Burger" na nova aba.
-2. Editar categoria "Pizzas": vincular à linha "Pizza" e cadastrar etapas (montagem 5, forno 15).
-3. Criar zona "Centro" 15 min.
-4. Fazer pedido no PWA e conferir a faixa exibida + linha "PREVISTO" no cupom.
+Não alterar `src/components/ui/dialog.tsx` nem outros modais nesta rodada. Se o mesmo padrão for necessário em outros editores longos, aplicar o mesmo par de classes pontualmente ou promover para o `DialogContent` num plano separado.
