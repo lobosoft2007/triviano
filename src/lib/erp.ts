@@ -986,7 +986,7 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
     supabase
       .from("categories")
       .select(
-        "id, name, slug, sort_order, cor_fonte, tamanho_fonte, min_items, allows_half, combo_role",
+        "id, name, slug, sort_order, cor_fonte, tamanho_fonte, min_items, allows_half, combo_role, linha_producao_id",
       )
       .eq("empresa_id", empresaId)
       .order("sort_order"),
@@ -1019,9 +1019,12 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
     min_items: Number((c as { min_items?: number }).min_items ?? 0),
     allows_half: (c as { allows_half?: boolean }).allows_half ?? false,
     combo_role: (c as { combo_role?: string }).combo_role ?? "",
+    linha_producao_id:
+      (c as { linha_producao_id?: string | null }).linha_producao_id ?? null,
     product_count: counts.get(c.id) ?? 0,
   }));
 }
+
 
 export async function saveCategory(input: {
   id?: string | null;
