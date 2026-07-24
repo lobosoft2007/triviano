@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Clock, Save } from "lucide-react";
+import { Loader2, Layers3, Save } from "lucide-react";
 import { toast } from "sonner";
 import {
   getTempoEntregaPadrao,
