@@ -30,6 +30,7 @@ import {
   Armchair,
   CalendarClock,
   Clock,
+  Layers3,
   Bike,
   FileBarChart,
   Smartphone,
