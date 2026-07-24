@@ -267,6 +267,8 @@ const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
   { key: "combos", label: "Campanhas", icon: Megaphone },
+  { key: "tempos", label: "Tempos de Preparo", icon: Clock },
+
   { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
   { key: "identidade", label: "Identidade Visual", icon: Palette },
   { key: "pagamentos", label: "Pagamentos", icon: CreditCard },
