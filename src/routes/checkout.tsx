@@ -391,6 +391,26 @@ function CheckoutPage() {
   const effectiveCanCheckout = effectiveCheckoutState.canCheckout;
   const effectiveShortfalls = effectiveCheckoutState.shortfalls;
 
+  // Estimativa de preparo+entrega — atualiza sempre que o carrinho muda.
+  const [estimate, setEstimate] = useState<EstimateResult | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const items = effectiveItems.map((i) => ({
+      product_id: i.productId,
+      quantity: i.quantity,
+    }));
+    if (items.length === 0) {
+      setEstimate(null);
+      return;
+    }
+    estimateOrder(items).then((res) => {
+      if (!cancelled) setEstimate(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveItems]);
+
   useEffect(() => {
     if (!hydrated || safeItems.length === 0) return;
     const nextSnapshot: CheckoutSnapshot = {
