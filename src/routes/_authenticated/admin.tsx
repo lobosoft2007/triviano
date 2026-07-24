@@ -257,8 +257,10 @@ type AdminTab =
   | "frota"
   | "tap"
   | "reservas"
+  | "tempos"
   | "rel-clientes"
   | "rel-chat";
+
 
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
