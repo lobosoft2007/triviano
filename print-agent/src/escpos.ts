@@ -87,6 +87,8 @@ interface OrderData {
   meio_pagamento?: string;
   taxa_entrega?: number;
   criado_em?: string;
+  hora_prevista_pronto?: string | null;
+  tempo_estimado_min?: number | null;
 }
 
 interface JobPayload {
