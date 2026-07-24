@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Clock, Save } from "lucide-react";
+import { Loader2, Layers3, Save } from "lucide-react";
 import { toast } from "sonner";
 import {
   getTempoEntregaPadrao,
@@ -40,13 +40,15 @@ export function TemposPreparoTab() {
   return (
     <div className="space-y-4">
       <header className="flex items-center gap-2">
-        <Clock className="h-5 w-5 text-primary" />
-        <h2 className="font-display text-lg font-bold">Tempos de Preparo</h2>
+        <Layers3 className="h-5 w-5 text-primary" />
+        <h2 className="font-display text-lg font-bold">Linhas de Produção</h2>
       </header>
       <p className="text-sm text-muted-foreground">
-        Configure as linhas de produção da cozinha, as zonas de entrega e o
-        tempo padrão. As etapas de preparo por categoria são configuradas em
-        Categorias → Editar categoria.
+        Cada linha de produção representa um funcionário/estação que trabalha em
+        paralelo. Com 1 funcionário, use 1 linha para tudo (a cozinha faz um
+        item de cada vez). Com 2 funcionários, crie 2 linhas (ex.: Pizza e
+        Burger) e distribua as categorias — elas preparam simultaneamente. O
+        tempo de cada etapa é definido dentro de cada categoria.
       </p>
 
       <section className="rounded-2xl border border-border bg-card p-4">

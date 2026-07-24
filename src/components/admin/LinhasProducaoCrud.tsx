@@ -89,9 +89,9 @@ export function LinhasProducaoCrud() {
         </Button>
       </header>
       <p className="mb-3 text-xs text-muted-foreground">
-        Estações paralelas da cozinha (ex.: Pizza, Burger, Bar, Açaí). Itens
-        de linhas diferentes preparam ao mesmo tempo; itens da mesma linha
-        formam fila.
+        Cada linha = um funcionário/estação em paralelo. Categorias na mesma
+        linha formam fila; categorias em linhas diferentes preparam ao mesmo
+        tempo.
       </p>
 
       {isLoading && (

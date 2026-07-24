@@ -441,7 +441,13 @@ export function CategoriasCrud() {
                   Carregando etapas…
                 </p>
               ) : (
-                <EtapasPreparoEditor etapas={etapas} onChange={setEtapas} />
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Estas etapas somam o tempo de preparo desta categoria
+                    dentro da linha de produção escolhida acima.
+                  </p>
+                  <EtapasPreparoEditor etapas={etapas} onChange={setEtapas} />
+                </div>
               )
             ) : (
               <p className="text-xs text-muted-foreground">
