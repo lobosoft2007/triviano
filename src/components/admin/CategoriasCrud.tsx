@@ -1,52 +1,20 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Loader2,
-  Plus,
-  Pencil,
-  Trash2,
-  Tags,
-  ArrowUp,
-  ArrowDown,
-  Clock,
-} from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Tags, ArrowUp, ArrowDown, Clock } from "lucide-react";
 import { CategoriaHorariosDialog } from "@/components/admin/CategoriaHorariosDialog";
 
 import { toast } from "sonner";
-import {
-  listAdminCategories,
-  saveCategory,
-  deleteCategory,
-  moveCategory,
-  type AdminCategory,
-} from "@/lib/erp";
-import {
-  listLinhasProducao,
-  listEtapasCategoria,
-  saveEtapasCategoria,
-  type EtapaPreparo,
-} from "@/lib/tempos-admin";
+import { listAdminCategories, saveCategory, deleteCategory, moveCategory, type AdminCategory } from "@/lib/erp";
+import { listLinhasProducao, listEtapasCategoria, saveEtapasCategoria, type EtapaPreparo } from "@/lib/tempos-admin";
 import { EtapasPreparoEditor } from "@/components/admin/EtapasPreparoEditor";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ModalActionBar } from "@/components/ui/modal-action-bar";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /** Tailwind font-color options offered to the operator. */
 const COR_OPTIONS: { value: string; label: string }[] = [
@@ -83,8 +51,6 @@ const EMPTY: FormState = {
   min_items: 0,
   linha_producao_id: null,
 };
-
-
 
 const QK = ["admin-categories"];
 
@@ -136,7 +102,6 @@ export function CategoriasCrud() {
     }
   };
 
-
   async function invalidate() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: QK }),
@@ -178,12 +143,9 @@ export function CategoriasCrud() {
     }
   }
 
-
   async function handleDelete(c: AdminCategory) {
     if (c.product_count > 0) {
-      toast.error(
-        `"${c.name}" possui ${c.product_count} produto(s) vinculado(s). Remova-os antes de excluir.`,
-      );
+      toast.error(`"${c.name}" possui ${c.product_count} produto(s) vinculado(s). Remova-os antes de excluir.`);
       return;
     }
     if (!confirm(`Remover a categoria "${c.name}"?`)) return;
@@ -214,9 +176,7 @@ export function CategoriasCrud() {
       <header className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Tags className="h-5 w-5 text-primary" />
-          <h2 className="font-display text-lg font-bold">
-            Categorias do Cardápio
-          </h2>
+          <h2 className="font-display text-lg font-bold">Categorias do Cardápio</h2>
         </div>
         <Button size="sm" onClick={openNew}>
           <Plus className="mr-1 h-4 w-4" /> Nova categoria
@@ -230,17 +190,12 @@ export function CategoriasCrud() {
       )}
 
       {data && data.length === 0 && (
-        <p className="py-10 text-center text-sm text-muted-foreground">
-          Nenhuma categoria cadastrada.
-        </p>
+        <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma categoria cadastrada.</p>
       )}
 
       <div className="space-y-2">
         {data?.map((c, idx) => (
-          <div
-            key={c.id}
-            className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-card"
-          >
+          <div key={c.id} className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-card">
             <div className="flex flex-col">
               <button
                 aria-label={`Subir ${c.name}`}
@@ -262,22 +217,13 @@ export function CategoriasCrud() {
 
             <div className="min-w-0 flex-1">
               {/* Live preview of how the title renders on the storefront. */}
-              <p
-                className={`truncate font-display font-bold ${c.tamanho_fonte} ${c.cor_fonte}`}
-              >
-                {c.name}
-              </p>
+              <p className={`truncate font-display font-bold ${c.tamanho_fonte} ${c.cor_fonte}`}>{c.name}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {c.product_count} produto(s) ·{" "}
-                {COR_OPTIONS.find((o) => o.value === c.cor_fonte)?.label ??
-                  c.cor_fonte}{" "}
-                ·{" "}
-                {TAMANHO_OPTIONS.find((o) => o.value === c.tamanho_fonte)
-                  ?.label ?? c.tamanho_fonte}
+                {c.product_count} produto(s) · {COR_OPTIONS.find((o) => o.value === c.cor_fonte)?.label ?? c.cor_fonte}{" "}
+                · {TAMANHO_OPTIONS.find((o) => o.value === c.tamanho_fonte)?.label ?? c.tamanho_fonte}
                 {c.allows_half && " · Meio a meio"}
                 {c.min_items > 0 && ` · Mín ${c.min_items}`}
               </p>
-
             </div>
 
             <button
@@ -302,7 +248,6 @@ export function CategoriasCrud() {
             >
               <Trash2 className="h-4 w-4" />
             </button>
-
           </div>
         ))}
       </div>
@@ -330,10 +275,7 @@ export function CategoriasCrud() {
 
             <div className="space-y-1.5">
               <Label>Cor da fonte</Label>
-              <Select
-                value={form.cor_fonte}
-                onValueChange={(v) => setForm({ ...form, cor_fonte: v })}
-              >
+              <Select value={form.cor_fonte} onValueChange={(v) => setForm({ ...form, cor_fonte: v })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -349,10 +291,7 @@ export function CategoriasCrud() {
 
             <div className="space-y-1.5">
               <Label>Tamanho da fonte</Label>
-              <Select
-                value={form.tamanho_fonte}
-                onValueChange={(v) => setForm({ ...form, tamanho_fonte: v })}
-              >
+              <Select value={form.tamanho_fonte} onValueChange={(v) => setForm({ ...form, tamanho_fonte: v })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -369,19 +308,14 @@ export function CategoriasCrud() {
             <div className="rounded-xl border border-border bg-card px-4 py-3">
               <label className="flex cursor-pointer items-center justify-between gap-3">
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold">
-                    Permite pizza meio a meio
-                  </span>
+                  <span className="block text-sm font-semibold">Permite produto meio a meio</span>
                   <span className="block text-xs text-muted-foreground">
-                    Habilita o checkbox de segundo sabor no PWA. Cobra 50% de
-                    cada sabor.
+                    Habilita o checkbox de segundo sabor no PWA. Cobra 50% de cada sabor.
                   </span>
                 </span>
                 <Switch
                   checked={form.allows_half}
-                  onCheckedChange={(v) =>
-                    setForm({ ...form, allows_half: v === true })
-                  }
+                  onCheckedChange={(v) => setForm({ ...form, allows_half: v === true })}
                 />
               </label>
             </div>
@@ -401,9 +335,7 @@ export function CategoriasCrud() {
                   })
                 }
               />
-              <p className="text-xs text-muted-foreground">
-                Use 0 para desativar. Ex.: Pastéis exige mínimo de 3.
-              </p>
+              <p className="text-xs text-muted-foreground">Use 0 para desativar. Ex.: Pastéis exige mínimo de 3.</p>
             </div>
 
             <div className="space-y-1.5">
@@ -430,47 +362,34 @@ export function CategoriasCrud() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Estação da cozinha que prepara esta categoria (Pizza, Burger…).
-                Categorias em linhas diferentes preparam em paralelo.
+                Estação da cozinha que prepara esta categoria (Pizza, Burger…). Categorias em linhas diferentes preparam
+                em paralelo.
               </p>
             </div>
 
             {form.id ? (
               loadingEtapas ? (
-                <p className="text-xs text-muted-foreground">
-                  Carregando etapas…
-                </p>
+                <p className="text-xs text-muted-foreground">Carregando etapas…</p>
               ) : (
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    Estas etapas somam o tempo de preparo desta categoria
-                    dentro da linha de produção escolhida acima.
+                    Estas etapas somam o tempo de preparo desta categoria dentro da linha de produção escolhida acima.
                   </p>
                   <EtapasPreparoEditor etapas={etapas} onChange={setEtapas} />
                 </div>
               )
             ) : (
-              <p className="text-xs text-muted-foreground">
-                Salve a categoria para configurar as etapas de preparo.
-              </p>
+              <p className="text-xs text-muted-foreground">Salve a categoria para configurar as etapas de preparo.</p>
             )}
-
-
-
 
             {/* Preview */}
             <div className="rounded-xl border border-border bg-background p-4">
-              <p className="mb-2 text-[11px] uppercase tracking-widest text-muted-foreground">
-                Prévia
-              </p>
-              <p
-                className={`font-display font-bold ${form.tamanho_fonte} ${form.cor_fonte}`}
-              >
+              <p className="mb-2 text-[11px] uppercase tracking-widest text-muted-foreground">Prévia</p>
+              <p className={`font-display font-bold ${form.tamanho_fonte} ${form.cor_fonte}`}>
                 {form.name || "Nome da categoria"}
               </p>
             </div>
           </div>
-
         </DialogContent>
       </Dialog>
 
@@ -484,6 +403,5 @@ export function CategoriasCrud() {
         />
       )}
     </section>
-
   );
 }
