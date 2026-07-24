@@ -84,6 +84,8 @@ import { PermissoesTab } from "@/components/admin/PermissoesTab";
 import { FuncionariosTab } from "@/components/admin/FuncionariosTab";
 import { usePermissions, ACCESS_DENIED_MSG, type PermissionFlag } from "@/lib/permissions";
 import { CombosCrud } from "@/components/admin/CombosCrud";
+import { TemposPreparoTab } from "@/components/admin/TemposPreparoTab";
+
 import { EmpresaConfigTab } from "@/components/admin/EmpresaConfigTab";
 import { MesasQrTab } from "@/components/admin/MesasQrTab";
 import { PaymentConfigTab } from "@/components/admin/PaymentConfigTab";
@@ -257,14 +259,18 @@ type AdminTab =
   | "frota"
   | "tap"
   | "reservas"
+  | "tempos"
   | "rel-clientes"
   | "rel-chat";
+
 
 
 const TABS: { key: AdminTab; label: string; icon: typeof Package }[] = [
   { key: "cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { key: "categorias", label: "Categorias do Cardápio", icon: Tags },
   { key: "combos", label: "Campanhas", icon: Megaphone },
+  { key: "tempos", label: "Tempos de Preparo", icon: Clock },
+
   { key: "empresa", label: "Configurações da Empresa", icon: Building2 },
   { key: "identidade", label: "Identidade Visual", icon: Palette },
   { key: "pagamentos", label: "Pagamentos", icon: CreditCard },
@@ -299,6 +305,8 @@ const TAB_FLAG: Record<AdminTab, PermissionFlag | "master"> = {
   categorias: "acesso_cadastro_produtos",
   horarios: "acesso_cadastro_produtos",
   combos: "acesso_cadastro_produtos",
+  tempos: "acesso_cadastro_produtos",
+
   empresa: "master",
   identidade: "master",
   pagamentos: "master",
@@ -794,6 +802,8 @@ function AdminPage() {
           {tab === "categorias" && <CategoriasCrud />}
           {tab === "horarios" && <HorariosResumoTab />}
           {tab === "combos" && <CombosCrud />}
+          {tab === "tempos" && <TemposPreparoTab />}
+
           {tab === "empresa" && <EmpresaConfigTab />}
           {tab === "identidade" && <IdentidadeVisualTab />}
           {tab === "pagamentos" && <PaymentConfigTab />}

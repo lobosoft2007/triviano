@@ -20,6 +20,14 @@ import {
   moveCategory,
   type AdminCategory,
 } from "@/lib/erp";
+import {
+  listLinhasProducao,
+  listEtapasCategoria,
+  saveEtapasCategoria,
+  type EtapaPreparo,
+} from "@/lib/tempos-admin";
+import { EtapasPreparoEditor } from "@/components/admin/EtapasPreparoEditor";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,6 +71,7 @@ interface FormState {
   tamanho_fonte: string;
   allows_half: boolean;
   min_items: number;
+  linha_producao_id: string | null;
 }
 
 const EMPTY: FormState = {
@@ -72,7 +81,9 @@ const EMPTY: FormState = {
   tamanho_fonte: "text-base",
   allows_half: false,
   min_items: 0,
+  linha_producao_id: null,
 };
+
 
 
 const QK = ["admin-categories"];
@@ -89,13 +100,20 @@ export function CategoriasCrud() {
   const [saving, setSaving] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [horariosFor, setHorariosFor] = useState<AdminCategory | null>(null);
+  const [etapas, setEtapas] = useState<EtapaPreparo[]>([]);
+  const [loadingEtapas, setLoadingEtapas] = useState(false);
 
+  const { data: linhas } = useQuery({
+    queryKey: ["admin-linhas-producao"],
+    queryFn: listLinhasProducao,
+  });
 
   const openNew = () => {
     setForm(EMPTY);
+    setEtapas([]);
     setOpen(true);
   };
-  const openEdit = (c: AdminCategory) => {
+  const openEdit = async (c: AdminCategory) => {
     setForm({
       id: c.id,
       name: c.name,
@@ -103,8 +121,19 @@ export function CategoriasCrud() {
       tamanho_fonte: c.tamanho_fonte,
       allows_half: c.allows_half,
       min_items: c.min_items,
+      linha_producao_id: c.linha_producao_id,
     });
+    setEtapas([]);
     setOpen(true);
+    setLoadingEtapas(true);
+    try {
+      const rows = await listEtapasCategoria(c.id);
+      setEtapas(rows);
+    } catch {
+      /* silencia — editor mostra vazio */
+    } finally {
+      setLoadingEtapas(false);
+    }
   };
 
 
@@ -130,7 +159,14 @@ export function CategoriasCrud() {
         tamanho_fonte: form.tamanho_fonte,
         allows_half: form.allows_half,
         min_items: form.min_items,
+        linha_producao_id: form.linha_producao_id,
       });
+
+      // Etapas: a categoria precisa existir (id) para persistir. Em criação
+      // seguimos sem etapas nesta rodada — o operador cadastra na próxima edição.
+      if (form.id) {
+        await saveEtapasCategoria(form.id, etapas);
+      }
 
       setOpen(false);
       await invalidate();
@@ -141,6 +177,7 @@ export function CategoriasCrud() {
       setSaving(false);
     }
   }
+
 
   async function handleDelete(c: AdminCategory) {
     if (c.product_count > 0) {
@@ -368,6 +405,51 @@ export function CategoriasCrud() {
                 Use 0 para desativar. Ex.: Pastéis exige mínimo de 3.
               </p>
             </div>
+
+            <div className="space-y-1.5">
+              <Label>Linha de produção</Label>
+              <Select
+                value={form.linha_producao_id ?? "__none__"}
+                onValueChange={(v) =>
+                  setForm({
+                    ...form,
+                    linha_producao_id: v === "__none__" ? null : v,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem linha (padrão)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem linha (padrão)</SelectItem>
+                  {(linhas ?? []).map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Estação da cozinha que prepara esta categoria (Pizza, Burger…).
+                Categorias em linhas diferentes preparam em paralelo.
+              </p>
+            </div>
+
+            {form.id ? (
+              loadingEtapas ? (
+                <p className="text-xs text-muted-foreground">
+                  Carregando etapas…
+                </p>
+              ) : (
+                <EtapasPreparoEditor etapas={etapas} onChange={setEtapas} />
+              )
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Salve a categoria para configurar as etapas de preparo.
+              </p>
+            )}
+
+
 
 
             {/* Preview */}

@@ -964,8 +964,10 @@ export interface AdminCategory {
   min_items: number;
   allows_half: boolean;
   combo_role: string;
+  linha_producao_id: string | null;
   product_count: number;
 }
+
 
 function slugify(s: string): string {
   return s
@@ -984,7 +986,7 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
     supabase
       .from("categories")
       .select(
-        "id, name, slug, sort_order, cor_fonte, tamanho_fonte, min_items, allows_half, combo_role",
+        "id, name, slug, sort_order, cor_fonte, tamanho_fonte, min_items, allows_half, combo_role, linha_producao_id",
       )
       .eq("empresa_id", empresaId)
       .order("sort_order"),
@@ -1017,9 +1019,12 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
     min_items: Number((c as { min_items?: number }).min_items ?? 0),
     allows_half: (c as { allows_half?: boolean }).allows_half ?? false,
     combo_role: (c as { combo_role?: string }).combo_role ?? "",
+    linha_producao_id:
+      (c as { linha_producao_id?: string | null }).linha_producao_id ?? null,
     product_count: counts.get(c.id) ?? 0,
   }));
 }
+
 
 export async function saveCategory(input: {
   id?: string | null;
@@ -1028,12 +1033,14 @@ export async function saveCategory(input: {
   tamanho_fonte: string;
   allows_half?: boolean;
   min_items?: number;
+  linha_producao_id?: string | null;
 }): Promise<void> {
   const name = input.name.trim();
   if (!name) throw new Error("O nome da categoria é obrigatório.");
 
   const allowsHalf = input.allows_half ?? false;
   const minItems = Math.max(0, Math.floor(Number(input.min_items ?? 0)));
+  const linhaId = input.linha_producao_id ?? null;
 
   if (input.id) {
     const { error } = await supabase
@@ -1044,6 +1051,7 @@ export async function saveCategory(input: {
         tamanho_fonte: input.tamanho_fonte,
         allows_half: allowsHalf,
         min_items: minItems,
+        linha_producao_id: linhaId,
       })
       .eq("id", input.id);
     if (error) throw error;
@@ -1066,6 +1074,7 @@ export async function saveCategory(input: {
       tamanho_fonte: input.tamanho_fonte,
       allows_half: allowsHalf,
       min_items: minItems,
+      linha_producao_id: linhaId,
       sort_order: nextOrder,
       // Tenant stamp: RLS + trigger enforce this on the server too.
       empresa_id: empresaId,
@@ -1073,6 +1082,7 @@ export async function saveCategory(input: {
     if (error) throw error;
   }
 }
+
 
 
 export async function deleteCategory(id: string): Promise<void> {
