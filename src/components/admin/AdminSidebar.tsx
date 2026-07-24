@@ -64,6 +64,8 @@ export type AdminTab =
   | "categorias"
   | "horarios"
   | "combos"
+  | "tempos"
+
   | "empresa"
   | "identidade"
   | "pagamentos"
