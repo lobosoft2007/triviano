@@ -38,8 +38,8 @@ export async function estimateOrder(
 
   const { data, error } = await supabase.rpc("calcular_estimativa_pedido", {
     p_items: validItems as unknown as never,
-    p_empresa_id: opts?.empresaId ?? null,
-    p_zona_id: opts?.zonaId ?? null,
+    p_empresa_id: opts?.empresaId ?? undefined,
+    p_zona_id: opts?.zonaId ?? undefined,
   });
 
   if (error) {
