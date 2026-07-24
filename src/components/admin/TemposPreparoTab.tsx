@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Layers3, Save } from "lucide-react";
+import { Loader2, Layers3, Save, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   getTempoEntregaPadrao,
@@ -13,22 +13,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function TemposPreparoTab() {
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["empresa-tempo-entrega-padrao"],
     queryFn: getTempoEntregaPadrao,
+    staleTime: 30_000,
   });
-  const [value, setValue] = useState<string>("");
+  // null = "não digitou ainda, mostra o cache"; string = valor sendo editado.
+  const [draft, setDraft] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (data !== undefined) setValue(String(data));
-  }, [data]);
+  const displayValue =
+    draft ?? (data !== undefined ? String(data) : "");
 
   async function handleSave() {
     setSaving(true);
     try {
-      await setTempoEntregaPadrao(Number(value) || 0);
+      await setTempoEntregaPadrao(Number(displayValue) || 0);
       await refetch();
+      setDraft(null); // volta a refletir o cache atualizado
       toast.success("Tempo padrão atualizado.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao salvar.");
@@ -61,6 +63,19 @@ export function TemposPreparoTab() {
         </p>
         {isLoading ? (
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        ) : error ? (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4" />
+            Não foi possível carregar o tempo atual.
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => refetch()}
+              className="ml-auto"
+            >
+              Tentar de novo
+            </Button>
+          </div>
         ) : (
           <div className="flex items-end gap-3">
             <div className="w-40 space-y-1.5">
@@ -69,8 +84,8 @@ export function TemposPreparoTab() {
                 id="tempo-padrao"
                 type="number"
                 min={0}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
+                value={displayValue}
+                onChange={(e) => setDraft(e.target.value)}
               />
             </div>
             <Button onClick={handleSave} disabled={saving}>
@@ -86,3 +101,4 @@ export function TemposPreparoTab() {
     </div>
   );
 }
+

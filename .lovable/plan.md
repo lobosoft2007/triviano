@@ -1,37 +1,39 @@
 ## Diagnóstico
 
-Você acertou o modelo mental: **linha de produção = funcionário/estação que trabalha em paralelo**. 1 funcionário = 1 linha (tudo enfileira). 2 funcionários = 2 linhas (pizza e burger preparam ao mesmo tempo). Isso é exatamente o que o motor `calcular_estimativa_pedido` já faz — soma etapas dentro da mesma linha (fila) e pega o **máximo** entre linhas diferentes (paralelo).
+Confirmei no banco: o valor **está sendo salvo corretamente** (`empresas.tempo_entrega_padrao_min = 10` no seu tenant). Ou seja, o `UPDATE` funciona — o problema é **exibição** ao reabrir a aba.
 
-Como as **etapas variam por categoria** (pizza tem "montar + forno", burger tem "chapa + montagem"), elas continuam morando dentro da categoria. O que muda é só o **enquadramento visual e textual** para bater com sua narrativa.
+Olhando `src/components/admin/TemposPreparoTab.tsx`:
 
-## Alterações (só UI/copy, sem mexer no motor nem no banco)
+```ts
+const [value, setValue] = useState<string>("");
+useEffect(() => {
+  if (data !== undefined) setValue(String(data));
+}, [data]);
+```
 
-**1. `src/components/admin/TemposPreparoTab.tsx`**
-- Renomear título da aba/seção: **"Linhas de Produção"** (ícone `Layers3` no lugar de `Clock`).
-- Reescrever o parágrafo introdutório com o modelo mental novo:
-  > "Cada linha de produção representa um funcionário/estação que trabalha em paralelo. Com 1 funcionário, use 1 linha para tudo (a cozinha faz um item de cada vez). Com 2 funcionários, crie 2 linhas (ex.: Pizza e Burger) e distribua as categorias — elas preparam simultaneamente. O tempo de cada etapa é definido dentro de cada categoria."
-- Manter o card **Tempo de entrega padrão** e **Zonas de entrega** nessa mesma aba (continuam fazendo sentido aqui — são configurações de tempo global da operação).
+Dois pontos frágeis:
 
-**2. `src/components/admin/AdminSidebar.tsx` e `src/routes/_authenticated/admin.tsx`**
-- Renomear o item de menu de "Tempos de Preparo" para **"Linhas de Produção"**. Manter a mesma rota/aba (só o label muda).
+1. **Estado local desacoplado do cache do React Query.** Quando a aba é remontada, `value` reinicia como `""`. O `useEffect` só sobrescreve *depois* que o effect roda; se `data` já vem do cache (mesma referência), o effect pode até rodar, mas se o `refetch` disparado por outro invalidate resetar `data` para `undefined` momentaneamente, o input fica em branco e não repopula (a condição `data !== undefined` protege contra isso, mas o `useState("")` inicial é o real culpado quando o cache está frio).
 
-**3. `src/components/admin/LinhasProducaoCrud.tsx`**
-- Ajustar o parágrafo auxiliar para reforçar a analogia:
-  > "Cada linha = um funcionário/estação em paralelo. Categorias na mesma linha formam fila; categorias em linhas diferentes preparam ao mesmo tempo."
+2. **`useQuery` sem `staleTime`.** Cada montagem refaz a query; enquanto isLoading está true mostramos o Loader (ok), mas se der erro silencioso de RLS/network, `data` fica `undefined` para sempre e o input renderiza vazio sem feedback.
 
-**4. `src/components/admin/CategoriasCrud.tsx`** (editor de categoria)
-- Adicionar uma pequena legenda acima do bloco de etapas explicando:
-  > "Estas etapas somam o tempo de preparo desta categoria dentro da linha de produção escolhida acima."
-- Reforça que o operador entende: **linha = onde**, **etapas = quanto tempo**.
+## Correção
 
-## Fora de escopo
+Arquivo único: `src/components/admin/TemposPreparoTab.tsx`.
 
-- Não mover etapas para dentro da linha (mantemos etapa por categoria — é onde a granularidade faz sentido, como discutido).
-- Não mexer em `calcular_estimativa_pedido`, `linhas_producao`, `categoria_etapas_preparo`, `zonas_entrega` nem em nenhuma RPC/tabela.
-- Não mexer no editor de etapas em si (`EtapasPreparoEditor.tsx`) — só a legenda ao redor dele.
+1. Inicializar `value` a partir do cache do React Query usando `initialData`/`select` ou, mais simples, derivar o valor exibido diretamente de `data` quando o usuário ainda não digitou nada (padrão "controlado com fallback"):
+   - Manter `value: string | null`, iniciar em `null`.
+   - No input, usar `value={value ?? (data !== undefined ? String(data) : "")}`.
+   - `onChange` passa a setar string normal.
+   - Isso elimina a corrida entre `useState` e `useEffect` — o input sempre reflete o cache até o operador digitar.
+2. Adicionar `staleTime: 30_000` na query para evitar refetches desnecessários entre trocas de aba.
+3. Após `setTempoEntregaPadrao`, além do `refetch`, resetar `value` para `null` para que o próximo render leia do cache já atualizado (evita "grudar" no valor digitado se o backend normalizar/arredondar).
+4. Tratar estado de erro: se `error` estiver presente, mostrar um aviso curto ("Não foi possível carregar o tempo atual") no lugar do input em branco silencioso, para expor futuras falhas de RLS/rede.
+
+Nenhuma mudança de schema, RLS ou lógica de negócio. Só a camada de apresentação da aba.
 
 ## Verificação
 
-- Abrir `/admin` → item de menu agora se chama **Linhas de Produção**.
-- Abrir a aba: título, ícone e texto refletem o modelo "linha = funcionário paralelo".
-- Abrir uma categoria (ex.: Pizzas) → o seletor de linha e o editor de etapas continuam funcionando exatamente como hoje, com a nova legenda explicativa.
+- Salvar 15 → sair da aba → voltar: input mostra "15".
+- Salvar 0 → voltar: mostra "0" (não "").
+- Simular erro (dev tools offline): aparece aviso em vez de campo vazio silencioso.
