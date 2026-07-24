@@ -1033,12 +1033,14 @@ export async function saveCategory(input: {
   tamanho_fonte: string;
   allows_half?: boolean;
   min_items?: number;
+  linha_producao_id?: string | null;
 }): Promise<void> {
   const name = input.name.trim();
   if (!name) throw new Error("O nome da categoria é obrigatório.");
 
   const allowsHalf = input.allows_half ?? false;
   const minItems = Math.max(0, Math.floor(Number(input.min_items ?? 0)));
+  const linhaId = input.linha_producao_id ?? null;
 
   if (input.id) {
     const { error } = await supabase
@@ -1049,6 +1051,7 @@ export async function saveCategory(input: {
         tamanho_fonte: input.tamanho_fonte,
         allows_half: allowsHalf,
         min_items: minItems,
+        linha_producao_id: linhaId,
       })
       .eq("id", input.id);
     if (error) throw error;
@@ -1071,6 +1074,7 @@ export async function saveCategory(input: {
       tamanho_fonte: input.tamanho_fonte,
       allows_half: allowsHalf,
       min_items: minItems,
+      linha_producao_id: linhaId,
       sort_order: nextOrder,
       // Tenant stamp: RLS + trigger enforce this on the server too.
       empresa_id: empresaId,
@@ -1078,6 +1082,7 @@ export async function saveCategory(input: {
     if (error) throw error;
   }
 }
+
 
 
 export async function deleteCategory(id: string): Promise<void> {
